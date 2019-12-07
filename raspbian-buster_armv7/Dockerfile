@@ -1,7 +1,7 @@
 # syntax = docker/dockerfile:experimental
 FROM ubuntu:18.04 AS builder
 
-ARG PACKAGE_NAME=raspbian-buster_armv6
+ARG PACKAGE_NAME=raspbian-buster_armv7
 
 ENV SOURCE_DIR "/root/_source/$PACKAGE_NAME"
 ENV BUILD_DIR "/root/_build/$PACKAGE_NAME"
@@ -26,10 +26,8 @@ RUN /root/scripts/prepare_webrtc.sh $SOURCE_DIR $WEBRTC_COMMIT
 COPY scripts/install_webrtc_build_deps.sh /root/scripts/
 RUN /root/scripts/install_webrtc_build_deps.sh $SOURCE_DIR arm
 
-COPY patches/nacl_armv6_2.patch /root/patches/
 COPY patches/4k.patch /root/patches/
 RUN cd $SOURCE_DIR/webrtc/src \
-  && patch -p1 < /root/patches/nacl_armv6_2.patch \
   && patch -p2 < /root/patches/4k.patch
 
 RUN cd $SOURCE_DIR/webrtc/src \
@@ -40,12 +38,6 @@ RUN cd $SOURCE_DIR/webrtc/src \
     target_sysroot="/root/rootfs" \
     rtc_use_h264=true \
     rtc_include_tests=false \
-    arm_version=6 \
-    arm_arch="armv6" \
-    arm_tune="arm1176jzf-s" \
-    arm_fpu="vfpv2" \
-    arm_float_abi="hard" \
-    arm_use_neon=false \
     is_desktop_linux=false \
     rtc_build_json=true \
     use_rtti=true \

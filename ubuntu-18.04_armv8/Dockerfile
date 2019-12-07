@@ -1,7 +1,7 @@
 # syntax = docker/dockerfile:experimental
 FROM ubuntu:18.04 AS builder
 
-ARG PACKAGE_NAME=raspbian-buster_armv6
+ARG PACKAGE_NAME=ubuntu-18.04_armv8
 
 ENV SOURCE_DIR "/root/_source/$PACKAGE_NAME"
 ENV BUILD_DIR "/root/_build/$PACKAGE_NAME"
@@ -10,9 +10,9 @@ ENV PACKAGE_DIR "/root/_package/$PACKAGE_NAME"
 COPY scripts/apt_install_arm.sh /root/scripts/
 RUN /root/scripts/apt_install_arm.sh
 
-COPY scripts/init_rootfs_armhf.sh /root/scripts/
-COPY $PACKAGE_NAME/rpi-raspbian.conf /root/$PACKAGE_NAME/
-RUN /root/scripts/init_rootfs_armhf.sh /root/rootfs /root/$PACKAGE_NAME/rpi-raspbian.conf
+COPY scripts/init_rootfs_arm64.sh /root/scripts/
+COPY $PACKAGE_NAME/arm64.conf /root/$PACKAGE_NAME/
+RUN /root/scripts/init_rootfs_arm64.sh /root/rootfs /root/$PACKAGE_NAME/arm64.conf
 
 COPY scripts/get_depot_tools.sh /root/scripts/
 RUN /root/scripts/get_depot_tools.sh $SOURCE_DIR
@@ -26,29 +26,21 @@ RUN /root/scripts/prepare_webrtc.sh $SOURCE_DIR $WEBRTC_COMMIT
 COPY scripts/install_webrtc_build_deps.sh /root/scripts/
 RUN /root/scripts/install_webrtc_build_deps.sh $SOURCE_DIR arm
 
-COPY patches/nacl_armv6_2.patch /root/patches/
 COPY patches/4k.patch /root/patches/
 RUN cd $SOURCE_DIR/webrtc/src \
-  && patch -p1 < /root/patches/nacl_armv6_2.patch \
   && patch -p2 < /root/patches/4k.patch
 
 RUN cd $SOURCE_DIR/webrtc/src \
   && gn gen $BUILD_DIR/webrtc --args=' \
     target_os="linux" \
-    target_cpu="arm" \
+    target_cpu="arm64" \
     is_debug=false \
     target_sysroot="/root/rootfs" \
     rtc_use_h264=true \
     rtc_include_tests=false \
-    arm_version=6 \
-    arm_arch="armv6" \
-    arm_tune="arm1176jzf-s" \
-    arm_fpu="vfpv2" \
-    arm_float_abi="hard" \
-    arm_use_neon=false \
-    is_desktop_linux=false \
     rtc_build_json=true \
     use_rtti=true \
+    is_desktop_linux=false \
   ' \
   && ninja -C $BUILD_DIR/webrtc
 
