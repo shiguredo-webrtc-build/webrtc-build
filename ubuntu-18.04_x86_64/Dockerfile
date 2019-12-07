@@ -38,7 +38,7 @@ RUN cd $SOURCE_DIR/webrtc/src \
   && ninja -C $BUILD_DIR/webrtc
 
 RUN cd $BUILD_DIR/webrtc/obj \
-  && $SOURCE_DIR/webrtc/src/third_party/llvm-build/Release+Asserts/bin/llvm-ar -rcT $BUILD_DIR/webrtc/libwebrtc.a `find . -name '*.o'`
+  && $SOURCE_DIR/webrtc/src/third_party/llvm-build/Release+Asserts/bin/llvm-ar -rc $BUILD_DIR/webrtc/libwebrtc.a `find . -name '*.o'`
 
 COPY scripts/package_webrtc.sh /root/scripts/
 RUN /root/scripts/package_webrtc.sh $SOURCE_DIR $BUILD_DIR $PACKAGE_DIR

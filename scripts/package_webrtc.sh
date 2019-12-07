@@ -27,6 +27,18 @@ popd
 pushd $SOURCE_DIR/webrtc/src/build
   echo "WEBRTC_SRC_BUILD_COMMIT=`git rev-parse HEAD`" >> $BUILD_DIR/package/webrtc/VERSIONS
 popd
+pushd $SOURCE_DIR/webrtc/src/buildtools
+  echo "WEBRTC_SRC_BUILDTOOLS_COMMIT=`git rev-parse HEAD`" >> $BUILD_DIR/package/webrtc/VERSIONS
+popd
+pushd $SOURCE_DIR/webrtc/src/buildtools/third_party/libc++/trunk
+  echo "WEBRTC_SRC_BUILDTOOLS_THIRD_PARTY_LIBCXX_TRUNK=`git rev-parse HEAD`" >> $BUILD_DIR/package/webrtc/VERSIONS
+popd
+pushd $SOURCE_DIR/webrtc/src/buildtools/third_party/libc++abi/trunk
+  echo "WEBRTC_SRC_BUILDTOOLS_THIRD_PARTY_LIBCXXABI_TRUNK=`git rev-parse HEAD`" >> $BUILD_DIR/package/webrtc/VERSIONS
+popd
+pushd $SOURCE_DIR/webrtc/src/buildtools/third_party/libunwind/trunk
+  echo "WEBRTC_SRC_BUILDTOOLS_THIRD_PARTY_LIBUNWIND_TRUNK=`git rev-parse HEAD`" >> $BUILD_DIR/package/webrtc/VERSIONS
+popd
 pushd $SOURCE_DIR/webrtc/src/third_party
   echo "WEBRTC_SRC_THIRD_PARTY_COMMIT=`git rev-parse HEAD`" >> $BUILD_DIR/package/webrtc/VERSIONS
 popd
