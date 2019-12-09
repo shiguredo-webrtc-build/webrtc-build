@@ -24,7 +24,7 @@ jobs:
       with:
         name: webrtc.macos.tar.gz
         path: _package/macos/webrtc.tar.gz
-  build-raspbian-buster-armv6:
+  build-raspbian-buster_armv6:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v1
@@ -34,7 +34,7 @@ jobs:
       with:
         name: webrtc.raspbian-buster_armv6.tar.gz
         path: _package/raspbian-buster_armv6/webrtc.tar.gz
-  build-raspbian-buster-armv7:
+  build-raspbian-buster_armv7:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v1
@@ -44,7 +44,7 @@ jobs:
       with:
         name: webrtc.raspbian-buster_armv7.tar.gz
         path: _package/raspbian-buster_armv7/webrtc.tar.gz
-  build-ubuntu-18.04-armv8:
+  build-ubuntu-18_04_armv8:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v1
@@ -54,7 +54,7 @@ jobs:
       with:
         name: webrtc.ubuntu-18.04_armv8.tar.gz
         path: _package/ubuntu-18.04_armv8/webrtc.tar.gz
-  build-ubuntu-18.04-x86-64:
+  build-ubuntu-18_04_x86_64:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v1
@@ -70,10 +70,10 @@ jobs:
     needs:
       - build-windows
       - build-macos
-      - build-raspbian-buster-armv6
-      - build-raspbian-buster-armv7
-      - build-ubuntu-18.04-armv8
-      - build-ubuntu-18.04-x86-64
+      - build-raspbian-buster_armv6
+      - build-raspbian-buster_armv7
+      - build-ubuntu-18_04_armv8
+      - build-ubuntu-18_04_x86_64
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
