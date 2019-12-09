@@ -1,5 +1,3 @@
-$ErrorActionPreference = 'Stop'
-
 $VERSION_FILE = Join-Path (Resolve-Path ".").Path "VERSION"
 Get-Content $VERSION_FILE | Foreach-Object{
   $var = $_.Split('=')
