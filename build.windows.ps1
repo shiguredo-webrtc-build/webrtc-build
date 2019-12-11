@@ -1,3 +1,7 @@
+$ErrorActionPreference = 'Stop'
+
+$env:GIT_REDIRECT_STDERR = '2>&1'
+
 $VERSION_FILE = Join-Path (Resolve-Path ".").Path "VERSION"
 Get-Content $VERSION_FILE | Foreach-Object{
   $var = $_.Split('=')
@@ -67,6 +71,7 @@ if (!(Test-Path $WEBRTC_DIR)) {
 }
 if (!(Test-Path $WEBRTC_DIR\src)) {
   Push-Location $WEBRTC_DIR
+    gclient
     fetch webrtc
   Pop-Location
 } else {
@@ -87,6 +92,7 @@ Get-PSDrive
 
 Push-Location $WEBRTC_DIR\src
   git checkout -f "$WEBRTC_COMMIT"
+  git clean -xdf
   gclient sync
 
   # WebRTC ビルド
