@@ -8,6 +8,19 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
+    - name: Disk Cleanup
+      run: |
+        Get-PSDrive
+        # Cache 済み Docker Image の削除
+        docker rmi $(docker images -q -a)
+        # Android SDK の削除
+        Remove-Item -Recurse -Force $Env:ANDROID_HOME
+        Remove-Item -Recurse -Force $Env:ANDROID_NDK_HOME
+        # JVM の削除
+        Remove-Item -Recurse -Force $Env:JAVA_HOME_11_X64
+        Remove-Item -Recurse -Force $Env:JAVA_HOME_8_X64
+        Remove-Item -Recurse -Force $Env:JAVA_HOME_7_X64
+        Get-PSDrive
     - run: .\build.windows.bat
     - name: Upload Artifact
       uses: actions/upload-artifact@v1
