@@ -39,6 +39,9 @@ if ($path) {
 # GitHub Actions の D:\ の容量が少なくてビルド出来ない問題があるので
 # このパスにソースを配置する
 $WEBRTC_DIR = "C:\webrtc"
+# また、WebRTC のビルドしたファイルは同じドライブに無いといけないっぽいので、
+# BUILD_DIR とは別で用意する
+$WEBRTC_BUILD_DIR = "C:\webrtc_build"
 
 # WebRTC ビルドに必要な環境変数の設定
 $Env:GYP_MSVS_VERSION = "2019"
@@ -90,26 +93,29 @@ if (!(Test-Path $WEBRTC_DIR\src)) {
 
 Get-PSDrive
 
+if (!(Test-Path $WEBRTC_BUILD_DIR)) {
+  mkdir $WEBRTC_BUILD_DIR
+}
 Push-Location $WEBRTC_DIR\src
   git checkout -f "$WEBRTC_COMMIT"
   git clean -xdf
   gclient sync
 
   # WebRTC ビルド
-  gn gen $BUILD_DIR\debug --args='is_debug=true rtc_include_tests=false rtc_use_h264=false is_component_build=false use_rtti=true use_custom_libcxx=false'
-  ninja -C "$BUILD_DIR\debug"
+  gn gen $WEBRTC_BUILD_DIR\debug --args='is_debug=true rtc_include_tests=false rtc_use_h264=false is_component_build=false use_rtti=true use_custom_libcxx=false'
+  ninja -C "$WEBRTC_BUILD_DIR\debug"
 
-  gn gen $BUILD_DIR\release --args='is_debug=false rtc_include_tests=false rtc_use_h264=false is_component_build=false use_rtti=true use_custom_libcxx=false'
-  ninja -C "$BUILD_DIR\release"
+  gn gen $WEBRTC_BUILD_DIR\release --args='is_debug=false rtc_include_tests=false rtc_use_h264=false is_component_build=false use_rtti=true use_custom_libcxx=false'
+  ninja -C "$WEBRTC_BUILD_DIR\release"
 Pop-Location
 
 foreach ($build in @("debug", "release")) {
-  ninja -C "$BUILD_DIR\$build" audio_device_module_from_input_and_output
+  ninja -C "$WEBRTC_BUILD_DIR\$build" audio_device_module_from_input_and_output
 
   # このままだと webrtc.lib に含まれないファイルがあるので、いくつか追加する
-  Push-Location $BUILD_DIR\$build\obj
+  Push-Location $WEBRTC_BUILD_DIR\$build\obj
     lib.exe `
-      /out:$BUILD_DIR\$build\webrtc.lib webrtc.lib `
+      /out:$WEBRTC_BUILD_DIR\$build\webrtc.lib webrtc.lib `
       api\task_queue\default_task_queue_factory\default_task_queue_factory_win.obj `
       rtc_base\rtc_task_queue_win\task_queue_win.obj `
       modules\audio_device\audio_device_module_from_input_and_output\audio_device_factory.obj `
@@ -120,7 +126,7 @@ foreach ($build in @("debug", "release")) {
       modules\audio_device\windows_core_audio_utility\core_audio_utility_win.obj `
       modules\audio_device\audio_device_name\audio_device_name.obj
   Pop-Location
-  Move-Item $BUILD_DIR\$build\webrtc.lib $BUILD_DIR\$build\obj\webrtc.lib -Force
+  Move-Item $WEBRTC_BUILD_DIR\$build\webrtc.lib $WEBRTC_BUILD_DIR\$build\obj\webrtc.lib -Force
 }
 
 # WebRTC のヘッダーをパッケージに含める
@@ -134,7 +140,7 @@ robocopy "$WEBRTC_DIR\src" "$BUILD_DIR\package\webrtc\include" *.h *.hpp /S
 # webrtc.lib をパッケージに含める
 foreach ($build in @("debug", "release")) {
   mkdir $BUILD_DIR\package\webrtc\$build
-  Copy-Item $BUILD_DIR\$build\obj\webrtc.lib $BUILD_DIR\package\webrtc\$build\
+  Copy-Item $WEBRTC_BUILD_DIR\$build\obj\webrtc.lib $BUILD_DIR\package\webrtc\$build\
 }
 
 # WebRTC の各種バージョンをパッケージに含める
