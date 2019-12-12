@@ -141,7 +141,7 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: webrtc.macos.tar.gz/webrtc.tar.gz
-        asset_name: webrtc.macos.zip
+        asset_name: webrtc.macos.tar.gz
         asset_content_type: application/gzip
     - name: Upload raspbian-buster_armv6 Release Asset
       uses: actions/upload-release-asset@v1.0.1
@@ -150,7 +150,7 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: webrtc.raspbian-buster_armv6.tar.gz/webrtc.tar.gz
-        asset_name: webrtc.raspbian-buster_armv6.zip
+        asset_name: webrtc.raspbian-buster_armv6.tar.gz
         asset_content_type: application/gzip
     - name: Upload raspbian-buster_armv7 Release Asset
       uses: actions/upload-release-asset@v1.0.1
@@ -159,7 +159,7 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: webrtc.raspbian-buster_armv7.tar.gz/webrtc.tar.gz
-        asset_name: webrtc.raspbian-buster_armv7.zip
+        asset_name: webrtc.raspbian-buster_armv7.tar.gz
         asset_content_type: application/gzip
     - name: Upload ubuntu-18.04_armv8 Release Asset
       uses: actions/upload-release-asset@v1.0.1
@@ -168,7 +168,7 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: webrtc.ubuntu-18.04_armv8.tar.gz/webrtc.tar.gz
-        asset_name: webrtc.ubuntu-18.04_armv8.zip
+        asset_name: webrtc.ubuntu-18.04_armv8.tar.gz
         asset_content_type: application/gzip
     - name: Upload ubuntu-18.04_x86_64 Release Asset
       uses: actions/upload-release-asset@v1.0.1
@@ -177,5 +177,5 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: webrtc.ubuntu-18.04_x86_64.tar.gz/webrtc.tar.gz
-        asset_name: webrtc.ubuntu-18.04_x86_64.zip
+        asset_name: webrtc.ubuntu-18.04_x86_64.tar.gz
         asset_content_type: application/gzip
