@@ -107,14 +107,14 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: webrtc.raspbian-buster_armv7.tar.gz
-    - name: Download build-ubuntu-18.04_armv8
+    - name: Download ubuntu-18.04_armv8
       uses: actions/download-artifact@v1
       with:
-        name: webrtc.build-ubuntu-18.04_armv8.tar.gz
-    - name: Download build-ubuntu-18.04_x86_64
+        name: webrtc.ubuntu-18.04_armv8.tar.gz
+    - name: Download ubuntu-18.04_x86_64
       uses: actions/download-artifact@v1
       with:
-        name: webrtc.build-ubuntu-18.04_x86_64.tar.gz
+        name: webrtc.ubuntu-18.04_x86_64.tar.gz
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1.0.0
