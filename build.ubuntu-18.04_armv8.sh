@@ -13,9 +13,7 @@ set -ex
 
 # ======= ここまでは全ての build.*.sh で共通（PACKAGE_NAME だけ変える）
 
-WEBRTC_COMMIT_SHORT=`echo $WEBRTC_COMMIT | cut -b 1-8`
-
-IMAGE_NAME=webrtc/$PACKAGE_NAME:m${WEBRTC_VERSION}-$WEBRTC_COMMIT_SHORT
+IMAGE_NAME=webrtc/$PACKAGE_NAME:m${WEBRTC_VERSION}
 DOCKER_BUILDKIT=1 docker build \
   -t $IMAGE_NAME \
   --build-arg WEBRTC_COMMIT=$WEBRTC_COMMIT \
