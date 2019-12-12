@@ -78,7 +78,7 @@ jobs:
         name: webrtc.ubuntu-18.04_x86_64.tar.gz
         path: _package/ubuntu-18.04_x86_64/webrtc.tar.gz
   release:
-    name: Upload Release Asset
+    name: Release
     if: contains(github.ref, 'tags/m')
     needs:
       - build-windows
@@ -119,7 +119,7 @@ jobs:
       id: create_release
       uses: actions/create-release@v1.0.0
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       with:
         tag_name: ${{ github.ref }}
         release_name: Release ${{ github.ref }}
@@ -128,7 +128,7 @@ jobs:
     - name: Upload windows Release Asset
       uses: actions/upload-release-asset@v1.0.1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: webrtc.windows.zip/webrtc.zip
@@ -137,7 +137,7 @@ jobs:
     - name: Upload macos Release Asset
       uses: actions/upload-release-asset@v1.0.1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: webrtc.macos.tar.gz/webrtc.tar.gz
@@ -146,7 +146,7 @@ jobs:
     - name: Upload raspbian-buster_armv6 Release Asset
       uses: actions/upload-release-asset@v1.0.1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: webrtc.raspbian-buster_armv6.tar.gz/webrtc.tar.gz
@@ -155,7 +155,7 @@ jobs:
     - name: Upload raspbian-buster_armv7 Release Asset
       uses: actions/upload-release-asset@v1.0.1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: webrtc.raspbian-buster_armv7.tar.gz/webrtc.tar.gz
@@ -164,7 +164,7 @@ jobs:
     - name: Upload ubuntu-18.04_armv8 Release Asset
       uses: actions/upload-release-asset@v1.0.1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: webrtc.ubuntu-18.04_armv8.tar.gz/webrtc.tar.gz
@@ -173,7 +173,7 @@ jobs:
     - name: Upload ubuntu-18.04_x86_64 Release Asset
       uses: actions/upload-release-asset@v1.0.1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: webrtc.ubuntu-18.04_x86_64.tar.gz/webrtc.tar.gz
