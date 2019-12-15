@@ -36,7 +36,7 @@ RUN cd $SOURCE_DIR/webrtc/src \
     target_cpu="arm64" \
     is_debug=false \
     target_sysroot="/root/rootfs" \
-    rtc_use_h264=true \
+    rtc_use_h264=false \
     rtc_include_tests=false \
     rtc_build_json=true \
     use_rtti=true \
