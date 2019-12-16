@@ -40,8 +40,11 @@ RUN cd $SOURCE_DIR/webrtc/src \
 RUN cd $BUILD_DIR/webrtc/obj \
   && $SOURCE_DIR/webrtc/src/third_party/llvm-build/Release+Asserts/bin/llvm-ar -rc $BUILD_DIR/webrtc/libwebrtc.a `find . -name '*.o'`
 
+ENV STATIC_DIR "/root/static"
+
 COPY scripts/package_webrtc.sh /root/scripts/
-RUN /root/scripts/package_webrtc.sh $SOURCE_DIR $BUILD_DIR $PACKAGE_DIR
+COPY static/NOTICE /root/static/
+RUN /root/scripts/package_webrtc.sh $STATIC_DIR $SOURCE_DIR $BUILD_DIR $PACKAGE_DIR
 
 RUN mv $PACKAGE_DIR/webrtc.tar.gz /
 

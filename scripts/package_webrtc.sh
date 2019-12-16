@@ -1,13 +1,14 @@
 #!/bin/bash
 
-if [ $# -lt 3 ]; then
-  echo "$0 <source_dir> <build_dir> <package_dir>"
+if [ $# -lt 4 ]; then
+  echo "$0 <static_dir> <source_dir> <build_dir> <package_dir>"
   exit 1
 fi
 
-SOURCE_DIR=$1
-BUILD_DIR=$2
-PACKAGE_DIR=$3
+STATIC_DIR=$1
+SOURCE_DIR=$2
+BUILD_DIR=$3
+PACKAGE_DIR=$4
 
 rm -rf $BUILD_DIR/package/webrtc
 mkdir -p $BUILD_DIR/package/webrtc/lib
@@ -45,6 +46,9 @@ popd
 pushd $SOURCE_DIR/webrtc/src/tools
   echo "WEBRTC_SRC_TOOLS_COMMIT=`git rev-parse HEAD`" >> $BUILD_DIR/package/webrtc/VERSIONS
 popd
+
+# その他のファイル
+cp "$STATIC_DIR/NOTICE" "$BUILD_DIR/package/webrtc/"
 
 mkdir -p $PACKAGE_DIR
 pushd $BUILD_DIR/package
