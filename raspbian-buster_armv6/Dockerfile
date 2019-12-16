@@ -55,7 +55,7 @@ RUN cd $SOURCE_DIR/webrtc/src \
 RUN cd $BUILD_DIR/webrtc/obj \
   && $SOURCE_DIR/webrtc/src/third_party/llvm-build/Release+Asserts/bin/llvm-ar -rc $BUILD_DIR/webrtc/libwebrtc.a `find . -name '*.o'`
 
-ENV STATIC_FILE "/root/static"
+ENV STATIC_DIR "/root/static"
 
 COPY scripts/package_webrtc.sh /root/scripts/
 COPY static/NOTICE /root/static/
