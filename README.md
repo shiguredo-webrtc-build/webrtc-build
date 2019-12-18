@@ -16,6 +16,7 @@
 - macos
 - raspbian-buster_armv6 (Raspberry Pi Zero)
 - raspbian-buster_armv7 (Raspberry Pi 3, 4)
+- ubuntu-16.04_x86_64
 - ubuntu-18.04_armv8 (Jetson Nano)
 - ubuntu-18.04_x86_64
 

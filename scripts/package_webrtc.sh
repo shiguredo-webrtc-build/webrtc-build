@@ -1,14 +1,18 @@
 #!/bin/bash
 
 if [ $# -lt 4 ]; then
-  echo "$0 <static_dir> <source_dir> <build_dir> <package_dir>"
+  echo "$0 <static_dir> <source_dir> <build_dir> <package_dir> [<additional_build_name>...]"
   exit 1
 fi
+
+set -ex
 
 STATIC_DIR=$1
 SOURCE_DIR=$2
 BUILD_DIR=$3
 PACKAGE_DIR=$4
+shift 4
+ADDITIONAL_BUILD_NAMES="$*"
 
 rm -rf $BUILD_DIR/package/webrtc
 mkdir -p $BUILD_DIR/package/webrtc/lib
@@ -19,6 +23,9 @@ rsync -amv '--include=*/' '--include=*.h' '--include=*.hpp' '--exclude=*' $SOURC
 
 # libwebrtc.a
 cp $BUILD_DIR/webrtc/libwebrtc.a $BUILD_DIR/package/webrtc/lib/
+for name in $ADDITIONAL_BUILD_NAMES; do
+  cp $BUILD_DIR/webrtc_$name/libwebrtc.a $BUILD_DIR/package/webrtc/lib/libwebrtc_$name.a
+done
 
 # 各種情報を拾ってくる
 touch $BUILD_DIR/package/webrtc/VERSIONS
