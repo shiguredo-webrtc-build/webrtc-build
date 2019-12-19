@@ -12,6 +12,7 @@
 ## develop
 
 - [ADD] ubuntu-16.04_x86_64 を追加
+- [ADD] ubuntu-16.04_armv7 を追加
 
 ## m79.5.2
 

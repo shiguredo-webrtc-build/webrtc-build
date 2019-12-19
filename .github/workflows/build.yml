@@ -57,6 +57,16 @@ jobs:
       with:
         name: webrtc.raspbian-buster_armv7.tar.gz
         path: _package/raspbian-buster_armv7/webrtc.tar.gz
+  build-ubuntu-16_04_armv7:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v1
+    - run: ./build.ubuntu-16.04_armv7.sh
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: webrtc.ubuntu-16.04_armv7.tar.gz
+        path: _package/ubuntu-16.04_armv7/webrtc.tar.gz
   build-ubuntu-16_04_x86_64:
     runs-on: ubuntu-18.04
     steps:
@@ -117,6 +127,10 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: webrtc.raspbian-buster_armv7.tar.gz
+    - name: Download ubuntu-16.04_armv7
+      uses: actions/download-artifact@v1
+      with:
+        name: webrtc.ubuntu-16.04_armv7.tar.gz
     - name: Download ubuntu-16.04_x86_64
       uses: actions/download-artifact@v1
       with:
@@ -174,6 +188,15 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: webrtc.raspbian-buster_armv7.tar.gz/webrtc.tar.gz
         asset_name: webrtc.raspbian-buster_armv7.tar.gz
+        asset_content_type: application/gzip
+    - name: Upload ubuntu-16.04_armv7 Release Asset
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: webrtc.ubuntu-16.04_armv7.tar.gz/webrtc.tar.gz
+        asset_name: webrtc.ubuntu-16.04_armv7.tar.gz
         asset_content_type: application/gzip
     - name: Upload ubuntu-16.04_x86_64 Release Asset
       uses: actions/upload-release-asset@v1.0.1
