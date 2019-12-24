@@ -1,5 +1,18 @@
 # webrtc-build
 
+[![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/shiguredo-webrtc-build/webrtc-build.svg)](https://github.com/shiguredo/momo)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Actions Status](https://github.com/shiguredo-webrtc-build/webrtc-build/workflows/build/badge.svg)](https://github.com/shiguredo-webrtc-build/webrtc-build/actions)
+
+## About Support
+
+We check PRs or Issues only when written in JAPANESE.
+In other languages, we won't be able to deal with them. Thank you for your understanding.
+
+## webrtc-build について
+
+様々な環境向けの WebRTC のビルドを行って、そのバイナリを提供しています。
+
 ## ダウンロード
 
 [リリース](https://github.com/melpon/webrtc-build/releases) からダウンロードしてください。
@@ -20,6 +33,10 @@
 - ubuntu-16.04_x86_64
 - ubuntu-18.04_armv8 (Jetson Nano)
 - ubuntu-18.04_x86_64
+
+## 開発について
+
+webrtc-build はオープンソースソフトウェアですが、開発についてはオープンではありません。 そのためコメントやプルリクエストを頂いてもすぐには採用はしません。
 
 ## ライセンス
 
