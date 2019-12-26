@@ -28,7 +28,7 @@ RUN cd $SOURCE_DIR/webrtc/src \
 
 RUN cd $SOURCE_DIR/webrtc/src \
   && gn gen $BUILD_DIR/webrtc --args=' \
-    arget_os="linux" \
+    target_os="linux" \
     is_debug=false \
     rtc_include_tests=false \
     rtc_use_h264=false \
