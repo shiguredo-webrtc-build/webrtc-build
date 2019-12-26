@@ -47,9 +47,10 @@ RUN cd $SOURCE_DIR/webrtc/src \
 RUN cd $BUILD_DIR/webrtc/obj \
   && $SOURCE_DIR/webrtc/src/third_party/llvm-build/Release+Asserts/bin/llvm-ar -rc $BUILD_DIR/webrtc/libwebrtc.a `find . -name '*.o'`
 
-COPY patches/ubuntu-16.04_nolibcxx.patch /root/patches/
+# nolibcxx 版
+COPY patches/ubuntu_nolibcxx.patch /root/patches/
 RUN cd $SOURCE_DIR/webrtc/src \
-  && patch -p2 < /root/patches/ubuntu-16.04_nolibcxx.patch
+  && patch -p2 < /root/patches/ubuntu_nolibcxx.patch
 
 RUN cd $SOURCE_DIR/webrtc/src \
   && gn gen $BUILD_DIR/webrtc_nolibcxx --args=' \
