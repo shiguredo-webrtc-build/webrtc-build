@@ -48,4 +48,4 @@ pushd $BUILD_DIR/webrtc/obj
   /usr/bin/ar -rcT $BUILD_DIR/webrtc/libwebrtc.a `find . -name '*.o'`
 popd
 
-./scripts/package_webrtc.sh $SCRIPT_DIR/static $SOURCE_DIR $BUILD_DIR $PACKAGE_DIR
+./scripts/package_webrtc.sh $SCRIPT_DIR/static $SOURCE_DIR $BUILD_DIR $PACKAGE_DIR $SCRIPT_DIR/VERSION

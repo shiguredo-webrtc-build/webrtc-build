@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [ $# -lt 4 ]; then
-  echo "$0 <static_dir> <source_dir> <build_dir> <package_dir> [<additional_build_name>...]"
+if [ $# -lt 5 ]; then
+  echo "$0 <static_dir> <source_dir> <build_dir> <package_dir> <version_file> [<additional_build_name>...]"
   exit 1
 fi
 
@@ -11,7 +11,8 @@ STATIC_DIR=$1
 SOURCE_DIR=$2
 BUILD_DIR=$3
 PACKAGE_DIR=$4
-shift 4
+VERSION_FILE=$5
+shift 5
 ADDITIONAL_BUILD_NAMES="$*"
 
 rm -rf $BUILD_DIR/package/webrtc
@@ -28,7 +29,7 @@ for name in $ADDITIONAL_BUILD_NAMES; do
 done
 
 # 各種情報を拾ってくる
-touch $BUILD_DIR/package/webrtc/VERSIONS
+cp $VERSION_FILE $BUILD_DIR/package/webrtc/VERSIONS
 pushd $SOURCE_DIR/webrtc/src
   echo "WEBRTC_SRC_COMMIT=`git rev-parse HEAD`" >> $BUILD_DIR/package/webrtc/VERSIONS
 popd

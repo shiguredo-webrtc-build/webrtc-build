@@ -60,7 +60,8 @@ ENV STATIC_DIR "/root/static"
 
 COPY scripts/package_webrtc.sh /root/scripts/
 COPY static/NOTICE /root/static/
-RUN /root/scripts/package_webrtc.sh $STATIC_DIR $SOURCE_DIR $BUILD_DIR $PACKAGE_DIR nolibcxx
+COPY VERSION /root/
+RUN /root/scripts/package_webrtc.sh $STATIC_DIR $SOURCE_DIR $BUILD_DIR $PACKAGE_DIR /root/VERSION nolibcxx
 
 RUN mv $PACKAGE_DIR/webrtc.tar.gz /
 

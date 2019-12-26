@@ -144,7 +144,7 @@ foreach ($build in @("debug", "release")) {
 }
 
 # WebRTC の各種バージョンをパッケージに含める
-New-Item -Type File $BUILD_DIR\package\webrtc\VERSIONS
+Copy-Item $VERSION_FILE $BUILD_DIR\package\webrtc\VERSIONS
 Push-Location $WEBRTC_DIR\src
   Write-Output "WEBRTC_SRC_COMMIT=$(git rev-parse HEAD)" >> $BUILD_DIR\package\webrtc\VERSIONS
 Pop-Location
