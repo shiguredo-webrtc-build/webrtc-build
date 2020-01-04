@@ -1,0 +1,118 @@
+name: build
+
+on:
+  schedule:
+    # 毎日 09:00 JST
+    - cron: "0 0 * * *"
+  # 実験
+  push:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Disk Cleanup
+      run: |
+        Get-PSDrive
+        # Cache 済み Docker Image の削除
+        docker rmi $(docker images -q -a)
+        # Android SDK の削除
+        Remove-Item -Recurse -Force $Env:ANDROID_HOME
+        Remove-Item -Recurse -Force $Env:ANDROID_NDK_HOME
+        # JVM の削除
+        Remove-Item -Recurse -Force $Env:JAVA_HOME_11_X64
+        Remove-Item -Recurse -Force $Env:JAVA_HOME_8_X64
+        Remove-Item -Recurse -Force $Env:JAVA_HOME_7_X64
+        Get-PSDrive
+    - run: Copy-Item VERSION.head VERSION
+    - run: .\build.windows.bat
+    - name: Release windows latest
+      uses: WebFreak001/deploy-nightly@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+      with:
+        upload_url: "https://uploads.github.com/repos/melpon/wandbox-builder/releases/22561082/assets{?name,label}"
+        release_id: 22561082
+        asset_path: _package/windows/webrtc.zip
+        asset_name: webrtc-windows.zip
+        asset_content_type: application/zip
+    - name: Release windows nightly
+      uses: WebFreak001/deploy-nightly@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+      with:
+        upload_url: "https://uploads.github.com/repos/melpon/wandbox-builder/releases/22561082/assets{?name,label}"
+        release_id: 22561082
+        asset_path: _package/windows/webrtc.tar.gz
+        asset_name: webrtc-windows-$$.tar.gz
+        asset_content_type: application/gzip
+        max_releases: 7
+  build-macos:
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v1
+    - run: cp VERSION.head VERSION
+    - run: ./build.macos.sh
+    - name: Release macos latest
+      uses: WebFreak001/deploy-nightly@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+      with:
+        upload_url: "https://uploads.github.com/repos/melpon/wandbox-builder/releases/22561082/assets{?name,label}"
+        release_id: 22561082
+        asset_path: _package/macos/webrtc.tar.gz
+        asset_name: webrtc-macos.tar.gz
+        asset_content_type: application/gzip
+    - name: Release macos nightly
+      uses: WebFreak001/deploy-nightly@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+      with:
+        upload_url: "https://uploads.github.com/repos/melpon/wandbox-builder/releases/22561082/assets{?name,label}"
+        release_id: 22561082
+        asset_path: _package/macos/webrtc.tar.gz
+        asset_name: webrtc-macos-$$.tar.gz
+        asset_content_type: application/gzip
+        max_releases: 7
+  build-linux:
+    strategy:
+      matrix:
+        name:
+          - raspbian-buster_armv6
+          - raspbian-buster_armv7
+          - ubuntu-16.04_armv7
+          - ubuntu-16.04_x86_64
+          - ubuntu-18.04_armv8
+          - ubuntu-18.04_x86_64
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v1
+    - run: cp VERSION.head VERSION
+    - run: ./build.${{ matrix.name }}.sh
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: webrtc.${{ matrix.name }}.tar.gz
+        path: _package/${{ matrix.name }}/webrtc.tar.gz
+    - name: Release ${{ matrix.name }} latest
+      uses: WebFreak001/deploy-nightly@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+      with:
+        upload_url: "https://uploads.github.com/repos/melpon/wandbox-builder/releases/22561082/assets{?name,label}"
+        release_id: 22561082
+        asset_path: _package/${{ matrix.name }}/webrtc.tar.gz
+        asset_name: webrtc-${{ matrix.name }}.tar.gz
+        asset_content_type: application/gzip
+    - name: Release ${{ matrix.name }} nightly
+      uses: WebFreak001/deploy-nightly@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+      with:
+        upload_url: "https://uploads.github.com/repos/melpon/wandbox-builder/releases/22561082/assets{?name,label}"
+        release_id: 22561082
+        asset_path: _package/${{ matrix.name }}/webrtc.tar.gz
+        asset_name: webrtc-${{ matrix.name }}-$$.tar.gz
+        asset_content_type: application/gzip
+        max_releases: 7
