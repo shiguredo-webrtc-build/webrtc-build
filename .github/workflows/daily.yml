@@ -35,7 +35,7 @@ jobs:
         upload_url: "https://uploads.github.com/repos/shiguredo-webrtc-build/webrtc-build/releases/22591864/assets{?name,label}"
         release_id: 22591864
         asset_path: _package/windows/webrtc.zip
-        asset_name: webrtc-windows.zip
+        asset_name: webrtc.windows.latest.zip
         asset_content_type: application/zip
     - name: Release windows nightly
       uses: WebFreak001/deploy-nightly@v1.0.2
@@ -44,8 +44,8 @@ jobs:
       with:
         upload_url: "https://uploads.github.com/repos/shiguredo-webrtc-build/webrtc-build/releases/22591864/assets{?name,label}"
         release_id: 22591864
-        asset_path: _package/windows/webrtc.tar.gz
-        asset_name: webrtc-windows-$$.tar.gz
+        asset_path: _package/windows/webrtc.zip
+        asset_name: webrtc.windows.$$.zip
         asset_content_type: application/gzip
         max_releases: 7
   build-macos:
@@ -62,7 +62,7 @@ jobs:
         upload_url: "https://uploads.github.com/repos/shiguredo-webrtc-build/webrtc-build/releases/22591864/assets{?name,label}"
         release_id: 22591864
         asset_path: _package/macos/webrtc.tar.gz
-        asset_name: webrtc-macos.tar.gz
+        asset_name: webrtc.macos.latest.tar.gz
         asset_content_type: application/gzip
     - name: Release macos nightly
       uses: WebFreak001/deploy-nightly@v1.0.2
@@ -72,7 +72,7 @@ jobs:
         upload_url: "https://uploads.github.com/repos/shiguredo-webrtc-build/webrtc-build/releases/22591864/assets{?name,label}"
         release_id: 22591864
         asset_path: _package/macos/webrtc.tar.gz
-        asset_name: webrtc-macos-$$.tar.gz
+        asset_name: webrtc.macos.$$.tar.gz
         asset_content_type: application/gzip
         max_releases: 7
   build-linux:
@@ -103,7 +103,7 @@ jobs:
         upload_url: "https://uploads.github.com/repos/shiguredo-webrtc-build/webrtc-build/releases/22591864/assets{?name,label}"
         release_id: 22591864
         asset_path: _package/${{ matrix.name }}/webrtc.tar.gz
-        asset_name: webrtc-${{ matrix.name }}.tar.gz
+        asset_name: webrtc.${{ matrix.name }}.latest.tar.gz
         asset_content_type: application/gzip
     - name: Release ${{ matrix.name }} nightly
       uses: WebFreak001/deploy-nightly@v1.0.2
@@ -113,6 +113,6 @@ jobs:
         upload_url: "https://uploads.github.com/repos/shiguredo-webrtc-build/webrtc-build/releases/22591864/assets{?name,label}"
         release_id: 22591864
         asset_path: _package/${{ matrix.name }}/webrtc.tar.gz
-        asset_name: webrtc-${{ matrix.name }}-$$.tar.gz
+        asset_name: webrtc.${{ matrix.name }}.$$.tar.gz
         asset_content_type: application/gzip
         max_releases: 7
