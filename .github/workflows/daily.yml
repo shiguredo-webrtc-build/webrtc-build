@@ -32,8 +32,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       with:
-        upload_url: "https://uploads.github.com/repos/melpon/wandbox-builder/releases/22561082/assets{?name,label}"
-        release_id: 22561082
+        upload_url: "https://uploads.github.com/repos/shiguredo-webrtc-build/webrtc-build/releases/22591864/assets{?name,label}"
+        release_id: 22591864
         asset_path: _package/windows/webrtc.zip
         asset_name: webrtc-windows.zip
         asset_content_type: application/zip
@@ -42,8 +42,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       with:
-        upload_url: "https://uploads.github.com/repos/melpon/wandbox-builder/releases/22561082/assets{?name,label}"
-        release_id: 22561082
+        upload_url: "https://uploads.github.com/repos/shiguredo-webrtc-build/webrtc-build/releases/22591864/assets{?name,label}"
+        release_id: 22591864
         asset_path: _package/windows/webrtc.tar.gz
         asset_name: webrtc-windows-$$.tar.gz
         asset_content_type: application/gzip
@@ -59,8 +59,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       with:
-        upload_url: "https://uploads.github.com/repos/melpon/wandbox-builder/releases/22561082/assets{?name,label}"
-        release_id: 22561082
+        upload_url: "https://uploads.github.com/repos/shiguredo-webrtc-build/webrtc-build/releases/22591864/assets{?name,label}"
+        release_id: 22591864
         asset_path: _package/macos/webrtc.tar.gz
         asset_name: webrtc-macos.tar.gz
         asset_content_type: application/gzip
@@ -69,8 +69,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       with:
-        upload_url: "https://uploads.github.com/repos/melpon/wandbox-builder/releases/22561082/assets{?name,label}"
-        release_id: 22561082
+          upload_url: "https://uploads.github.com/repos/shiguredo-webrtc-build/webrtc-build/releases/22591864/assets{?name,label}"
+        release_id: 22591864
         asset_path: _package/macos/webrtc.tar.gz
         asset_name: webrtc-macos-$$.tar.gz
         asset_content_type: application/gzip
@@ -100,8 +100,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       with:
-        upload_url: "https://uploads.github.com/repos/melpon/wandbox-builder/releases/22561082/assets{?name,label}"
-        release_id: 22561082
+        upload_url: "https://uploads.github.com/repos/shiguredo-webrtc-build/webrtc-build/releases/22591864/assets{?name,label}"
+        release_id: 22591864
         asset_path: _package/${{ matrix.name }}/webrtc.tar.gz
         asset_name: webrtc-${{ matrix.name }}.tar.gz
         asset_content_type: application/gzip
@@ -110,8 +110,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       with:
-        upload_url: "https://uploads.github.com/repos/melpon/wandbox-builder/releases/22561082/assets{?name,label}"
-        release_id: 22561082
+        upload_url: "https://uploads.github.com/repos/shiguredo-webrtc-build/webrtc-build/releases/22591864/assets{?name,label}"
+        release_id: 22591864
         asset_path: _package/${{ matrix.name }}/webrtc.tar.gz
         asset_name: webrtc-${{ matrix.name }}-$$.tar.gz
         asset_content_type: application/gzip
