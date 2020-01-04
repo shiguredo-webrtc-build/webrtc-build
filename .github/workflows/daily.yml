@@ -77,6 +77,7 @@ jobs:
         max_releases: 7
   build-linux:
     strategy:
+      fail-fast: false
       matrix:
         name:
           - raspbian-buster_armv6
