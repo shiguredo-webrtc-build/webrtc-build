@@ -4,8 +4,6 @@ on:
   schedule:
     # 毎日 09:00 JST
     - cron: "0 0 * * *"
-  # 実験
-  push:
 
 jobs:
   build-windows:
