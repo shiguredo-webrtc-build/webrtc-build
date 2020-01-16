@@ -146,28 +146,28 @@ foreach ($build in @("debug", "release")) {
 # WebRTC の各種バージョンをパッケージに含める
 Copy-Item $VERSION_FILE $BUILD_DIR\package\webrtc\VERSIONS
 Push-Location $WEBRTC_DIR\src
-  Write-Output "WEBRTC_SRC_COMMIT=$(git rev-parse HEAD)" >> $BUILD_DIR\package\webrtc\VERSIONS
+  Write-Output "WEBRTC_SRC_COMMIT=$(git rev-parse HEAD)" | Add-Content $BUILD_DIR\package\webrtc\VERSIONS -Encoding UTF8
 Pop-Location
 Push-Location $WEBRTC_DIR\src\build
-  Write-Output "WEBRTC_SRC_BUILD_COMMIT=$(git rev-parse HEAD)" >> $BUILD_DIR\package\webrtc\VERSIONS
+  Write-Output "WEBRTC_SRC_BUILD_COMMIT=$(git rev-parse HEAD)" | Add-Content $BUILD_DIR\package\webrtc\VERSIONS -Encoding UTF8
 Pop-Location
 Push-Location $WEBRTC_DIR\src\buildtools
-  Write-Output "WEBRTC_SRC_BUILDTOOLS_COMMIT=$(git rev-parse HEAD)" >> $BUILD_DIR\package\webrtc\VERSIONS
+  Write-Output "WEBRTC_SRC_BUILDTOOLS_COMMIT=$(git rev-parse HEAD)" | Add-Content $BUILD_DIR\package\webrtc\VERSIONS -Encoding UTF8
 Pop-Location
 Push-Location $WEBRTC_DIR\src\buildtools\third_party\libc++\trunk
-  Write-Output "WEBRTC_SRC_BUILDTOOLS_THIRD_PARTY_LIBCXX_TRUNK=$(git rev-parse HEAD)" >> $BUILD_DIR\package\webrtc\VERSIONS
+  Write-Output "WEBRTC_SRC_BUILDTOOLS_THIRD_PARTY_LIBCXX_TRUNK=$(git rev-parse HEAD)" | Add-Content $BUILD_DIR\package\webrtc\VERSIONS -Encoding UTF8
 Pop-Location
 Push-Location $WEBRTC_DIR\src\buildtools\third_party\libc++abi\trunk
-  Write-Output "WEBRTC_SRC_BUILDTOOLS_THIRD_PARTY_LIBCXXABI_TRUNK=$(git rev-parse HEAD)" >> $BUILD_DIR\package\webrtc\VERSIONS
+  Write-Output "WEBRTC_SRC_BUILDTOOLS_THIRD_PARTY_LIBCXXABI_TRUNK=$(git rev-parse HEAD)" | Add-Content $BUILD_DIR\package\webrtc\VERSIONS -Encoding UTF8
 Pop-Location
 Push-Location $WEBRTC_DIR\src\buildtools\third_party\libunwind\trunk
-  Write-Output "WEBRTC_SRC_BUILDTOOLS_THIRD_PARTY_LIBUNWIND_TRUNK=$(git rev-parse HEAD)" >> $BUILD_DIR\package\webrtc\VERSIONS
+  Write-Output "WEBRTC_SRC_BUILDTOOLS_THIRD_PARTY_LIBUNWIND_TRUNK=$(git rev-parse HEAD)" | Add-Content $BUILD_DIR\package\webrtc\VERSIONS -Encoding UTF8
 Pop-Location
 Push-Location $WEBRTC_DIR\src\third_party
-  Write-Output "WEBRTC_SRC_THIRD_PARTY_COMMIT=$(git rev-parse HEAD)" >> $BUILD_DIR\package\webrtc\VERSIONS
+  Write-Output "WEBRTC_SRC_THIRD_PARTY_COMMIT=$(git rev-parse HEAD)" | Add-Content $BUILD_DIR\package\webrtc\VERSIONS -Encoding UTF8
 Pop-Location
 Push-Location $WEBRTC_DIR\src\tools
-  Write-Output "WEBRTC_SRC_TOOLS_COMMIT=$(git rev-parse HEAD)" >> $BUILD_DIR\package\webrtc\VERSIONS
+  Write-Output "WEBRTC_SRC_TOOLS_COMMIT=$(git rev-parse HEAD)" | Add-Content $BUILD_DIR\package\webrtc\VERSIONS -Encoding UTF8
 Pop-Location
 
 # その他のファイル
