@@ -26,7 +26,7 @@ jobs:
     - run: Copy-Item VERSION.head VERSION
     - run: .\build.windows.bat
     - name: Release windows latest
-      uses: WebFreak001/deploy-nightly@v1.0.2
+      uses: WebFreak001/deploy-nightly@v1.0.3
       env:
         GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       with:
@@ -36,7 +36,7 @@ jobs:
         asset_name: webrtc.windows.latest.zip
         asset_content_type: application/zip
     - name: Release windows nightly
-      uses: WebFreak001/deploy-nightly@v1.0.2
+      uses: WebFreak001/deploy-nightly@v1.0.3
       env:
         GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       with:
@@ -53,7 +53,7 @@ jobs:
     - run: cp VERSION.head VERSION
     - run: ./build.macos.sh
     - name: Release macos latest
-      uses: WebFreak001/deploy-nightly@v1.0.2
+      uses: WebFreak001/deploy-nightly@v1.0.3
       env:
         GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       with:
@@ -63,7 +63,7 @@ jobs:
         asset_name: webrtc.macos.latest.tar.gz
         asset_content_type: application/gzip
     - name: Release macos nightly
-      uses: WebFreak001/deploy-nightly@v1.0.2
+      uses: WebFreak001/deploy-nightly@v1.0.3
       env:
         GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       with:
@@ -95,7 +95,7 @@ jobs:
         name: webrtc.${{ matrix.name }}.tar.gz
         path: _package/${{ matrix.name }}/webrtc.tar.gz
     - name: Release ${{ matrix.name }} latest
-      uses: WebFreak001/deploy-nightly@v1.0.2
+      uses: WebFreak001/deploy-nightly@v1.0.3
       env:
         GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       with:
@@ -105,7 +105,7 @@ jobs:
         asset_name: webrtc.${{ matrix.name }}.latest.tar.gz
         asset_content_type: application/gzip
     - name: Release ${{ matrix.name }} nightly
-      uses: WebFreak001/deploy-nightly@v1.0.2
+      uses: WebFreak001/deploy-nightly@v1.0.3
       env:
         GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       with:
