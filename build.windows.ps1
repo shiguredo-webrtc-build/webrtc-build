@@ -2,6 +2,8 @@
 
 $env:GIT_REDIRECT_STDERR = '2>&1'
 
+$SCRIPT_DIR = (Resolve-Path ".").Path
+
 $VERSION_FILE = Join-Path (Resolve-Path ".").Path "VERSION"
 Get-Content $VERSION_FILE | Foreach-Object{
   $var = $_.Split('=')
@@ -91,8 +93,6 @@ if (!(Test-Path $WEBRTC_DIR\src)) {
   Pop-Location
 }
 
-Get-PSDrive
-
 if (!(Test-Path $WEBRTC_BUILD_DIR)) {
   mkdir $WEBRTC_BUILD_DIR
 }
@@ -100,6 +100,12 @@ Push-Location $WEBRTC_DIR\src
   git checkout -f "$WEBRTC_COMMIT"
   git clean -xdf
   gclient sync
+
+  # patch の適用
+  git apply -p2 $SCRIPT_DIR\patches\4k.patch
+  if (!$?) {
+    exit 1
+  }
 
   # WebRTC ビルド
   gn gen $WEBRTC_BUILD_DIR\debug --args='is_debug=true rtc_include_tests=false rtc_use_h264=false is_component_build=false use_rtti=true use_custom_libcxx=false'
@@ -135,7 +141,7 @@ if (Test-Path $BUILD_DIR\package) {
 }
 mkdir $BUILD_DIR\package
 mkdir $BUILD_DIR\package\webrtc
-robocopy "$WEBRTC_DIR\src" "$BUILD_DIR\package\webrtc\include" *.h *.hpp /S
+robocopy "$WEBRTC_DIR\src" "$BUILD_DIR\package\webrtc\include" *.h *.hpp /S /NP /NFL /NDL
 
 # webrtc.lib をパッケージに含める
 foreach ($build in @("debug", "release")) {
