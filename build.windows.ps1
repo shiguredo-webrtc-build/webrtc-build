@@ -102,7 +102,7 @@ Push-Location $WEBRTC_DIR\src
   gclient sync
 
   # patch の適用
-  git apply -p2 $SCRIPT_DIR\patches\4k.patch
+  git apply -p2 --ignore-space-change --ignore-whitespace --whitespace=nowarn $SCRIPT_DIR\patches\4k.patch
   if (!$?) {
     exit 1
   }
