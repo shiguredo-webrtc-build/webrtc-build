@@ -87,6 +87,10 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v1
+    - name: Disk Cleanup
+      run: |
+        # Cache 済み Docker Image の削除
+        docker rmi $(docker images -q -a)
     - run: cp VERSION.head VERSION
     - run: ./build.${{ matrix.name }}.sh
     - name: Upload Artifact
