@@ -56,9 +56,9 @@ jobs:
         df -h
         docker rmi `docker images -q -a`
         # 3.9GB
-        rm -rf /usr/local/share/boost
+        sudo rm -rf /usr/local/share/boost
         # 17GB
-        rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/share/dotnet
         df -h
     - run: ./build.${{ matrix.name }}.sh
     - name: Upload Artifact
