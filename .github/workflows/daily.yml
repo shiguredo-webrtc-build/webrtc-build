@@ -89,8 +89,13 @@ jobs:
     - uses: actions/checkout@v1
     - name: Disk Cleanup
       run: |
-        # Cache 済み Docker Image の削除
-        docker rmi $(docker images -q -a)
+        df -h
+        docker rmi `docker images -q -a`
+        # 3.9GB
+        sudo rm -rf /usr/local/share/boost
+        # 17GB
+        sudo rm -rf /usr/share/dotnet
+        df -h
     - run: cp VERSION.head VERSION
     - run: ./build.${{ matrix.name }}.sh
     - name: Upload Artifact
