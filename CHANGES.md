@@ -11,6 +11,14 @@
 
 ## master
 
+- [FIX] enable_libaom_decoder=false にする
+    - @tnoho @melpon
+
+## m81.4044.9.0
+
+- [UPDATE] WebRTC のバージョンを 4044@{#9} に上げた
+    - @voluntas
+
 ## m81.4044.7.0
 
 - [UPDATE] WebRTC のバージョンを 4044@{#7} に上げた
