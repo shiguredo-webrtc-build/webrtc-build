@@ -13,6 +13,8 @@
 
 - [FIX] enable_libaom_decoder=false にする
     - @tnoho @melpon
+- [FIX] ubuntu-18.04_armv8 の rootfs が Ubuntu 16.04 になっていたのを修正
+    - @melpon
 
 ## m81.4044.9.0
 
