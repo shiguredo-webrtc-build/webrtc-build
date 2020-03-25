@@ -17,6 +17,8 @@
     - @melpon
 - [FIX] ubuntu-18.04_armv8 の rootfs が Ubuntu 16.04 になっていたのを修正
     - @melpon
+- [ADD] Android 用ビルドを追加
+    - @melpon
 
 ## m81.4044.9.0
 
