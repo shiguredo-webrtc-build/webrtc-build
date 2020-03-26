@@ -11,12 +11,26 @@
 
 ## master
 
+## m82.4085.2
+
+- [UPDATE] WebRTC のバージョンを 4085@{#2} に上げる
+    - @voluntas
+
+## m81.4044.11
+
+- [UPDATE] WebRTC のバージョンを 4044@{#11} に上げる
+    - @voluntas
+
+## m81.4044.10
+
 - [FIX] enable_libaom_decoder=false にする
     - @tnoho @melpon
 - [FIX] enable_libaom_decoder は deprecated なので enable_libaom=false にする
     - @melpon
 - [FIX] ubuntu-18.04_armv8 の rootfs が Ubuntu 16.04 になっていたのを修正
     - @melpon
+- [UPDATE] WebRTC のバージョンを 4044@{#10} に上げる
+    - @voluntas
 
 ## m81.4044.9.0
 
