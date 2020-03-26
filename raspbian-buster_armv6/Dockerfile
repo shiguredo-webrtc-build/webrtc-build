@@ -50,6 +50,7 @@ RUN cd $SOURCE_DIR/webrtc/src \
     rtc_build_json=true \
     use_rtti=true \
     enable_libaom=false \
+    enable_libaom_decoder=false \
   ' \
   && ninja -C $BUILD_DIR/webrtc
 
