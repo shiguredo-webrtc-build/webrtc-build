@@ -22,13 +22,14 @@ mkdir -p $BUILD_DIR/package/webrtc/include
 # webrtc のヘッダ類
 rsync -amv '--include=*/' '--include=*.h' '--include=*.hpp' '--exclude=*' $SOURCE_DIR/webrtc/src/. $BUILD_DIR/package/webrtc/include/.
 
-# libwebrtc.aar, libwebrtc.a
+# libwebrtc.aar, libwebrtc.a, NOTICE
 cp $BUILD_DIR/webrtc_android/libwebrtc.aar $BUILD_DIR/package/webrtc/aar/
 cp $BUILD_DIR/webrtc_android/libwebrtc_onremovetrack.aar $BUILD_DIR/package/webrtc/aar/
 mkdir -p $BUILD_DIR/package/webrtc/lib/armeabi-v7a/
 cp $BUILD_DIR/webrtc_armeabi-v7a/libwebrtc.a $BUILD_DIR/package/webrtc/lib/armeabi-v7a/
 mkdir -p $BUILD_DIR/package/webrtc/lib/arm64-v8a/
 cp $BUILD_DIR/webrtc_arm64-v8a/libwebrtc.a $BUILD_DIR/package/webrtc/lib/arm64-v8a/
+cp $BUILD_DIR/webrtc_android/LICENSE.md $BUILD_DIR/package/webrtc/NOTICE
 
 # libwebrtc.aar を unzip して classes.jar を配置する
 mkdir -p $BUILD_DIR/package/webrtc/jar/tmp
@@ -64,9 +65,6 @@ popd
 pushd $SOURCE_DIR/webrtc/src/tools
   echo "WEBRTC_SRC_TOOLS_COMMIT=`git rev-parse HEAD`" >> $BUILD_DIR/package/webrtc/VERSIONS
 popd
-
-# その他のファイル
-cp "$STATIC_DIR/NOTICE" "$BUILD_DIR/package/webrtc/"
 
 mkdir -p $PACKAGE_DIR
 pushd $BUILD_DIR/package
