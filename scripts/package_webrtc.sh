@@ -27,6 +27,8 @@ cp $BUILD_DIR/webrtc/libwebrtc.a $BUILD_DIR/package/webrtc/lib/
 for name in $ADDITIONAL_BUILD_NAMES; do
   cp $BUILD_DIR/webrtc_$name/libwebrtc.a $BUILD_DIR/package/webrtc/lib/libwebrtc_$name.a
 done
+# NOTICE
+cp $BUILD_DIR/webrtc/LICENSE.md "$BUILD_DIR/package/webrtc/NOTICE"
 
 # 各種情報を拾ってくる
 cp $VERSION_FILE $BUILD_DIR/package/webrtc/VERSIONS
@@ -54,9 +56,6 @@ popd
 pushd $SOURCE_DIR/webrtc/src/tools
   echo "WEBRTC_SRC_TOOLS_COMMIT=`git rev-parse HEAD`" >> $BUILD_DIR/package/webrtc/VERSIONS
 popd
-
-# その他のファイル
-cp "$STATIC_DIR/NOTICE" "$BUILD_DIR/package/webrtc/"
 
 mkdir -p $PACKAGE_DIR
 pushd $BUILD_DIR/package
