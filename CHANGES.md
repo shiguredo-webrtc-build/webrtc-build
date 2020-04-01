@@ -11,24 +11,28 @@
 
 ## master
 
-## m81.4044.13
+## m81.4044.13.2
+
+m81.4044.13.0,1 はリリースミスのためスキップ。
 
 - [UPDATE] ビルド時にライセンスの生成を行う
     - @melpon
 - [UPDATE] WebRTC のバージョンを 4044@{#13} にもどす
     - @voluntas
 
-## m82.4085.2
+
+
+## m82.4085.2.0
 
 - [UPDATE] WebRTC のバージョンを 4085@{#2} に上げる
     - @voluntas
 
-## m81.4044.11
+## m81.4044.11.0
 
 - [UPDATE] WebRTC のバージョンを 4044@{#11} に上げる
     - @voluntas
 
-## m81.4044.10
+## m81.4044.10.0
 
 - [FIX] enable_libaom_decoder=false にする
     - @tnoho @melpon
