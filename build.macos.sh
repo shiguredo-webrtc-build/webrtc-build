@@ -42,6 +42,7 @@ pushd $SOURCE_DIR/webrtc/src
     default_codec_factory_objc \
     peerconnection \
     videocapture_objc
+  python2 tools_webrtc/libs/generate_licenses.py --target :webrtc $BUILD_DIR/webrtc/ $BUILD_DIR/webrtc/
 popd
 
 pushd $BUILD_DIR/webrtc/obj

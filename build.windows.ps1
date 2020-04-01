@@ -135,6 +135,12 @@ foreach ($build in @("debug", "release")) {
   Move-Item $WEBRTC_BUILD_DIR\$build\webrtc.lib $WEBRTC_BUILD_DIR\$build\obj\webrtc.lib -Force
 }
 
+# ライセンス生成
+Push-Location $WEBRTC_DIR\src
+  python2 tools_webrtc\libs\generate_licenses.py --target :webrtc "$WEBRTC_BUILD_DIR\" "$WEBRTC_BUILD_DIR\debug" "$WEBRTC_BUILD_DIR\release"
+Pop-Location
+
+
 # WebRTC のヘッダーをパッケージに含める
 if (Test-Path $BUILD_DIR\package) {
   Remove-Item -Force -Recurse -Path $BUILD_DIR\package
@@ -148,6 +154,9 @@ foreach ($build in @("debug", "release")) {
   mkdir $BUILD_DIR\package\webrtc\$build
   Copy-Item $WEBRTC_BUILD_DIR\$build\obj\webrtc.lib $BUILD_DIR\package\webrtc\$build\
 }
+
+# ライセンスファイルをパッケージに含める
+Copy-Item "$WEBRTC_BUILD_DIR\LICENSE.md" "$BUILD_DIR\package\webrtc\NOTICE"
 
 # WebRTC の各種バージョンをパッケージに含める
 Copy-Item $VERSION_FILE $BUILD_DIR\package\webrtc\VERSIONS
@@ -175,9 +184,6 @@ Pop-Location
 Push-Location $WEBRTC_DIR\src\tools
   Write-Output "WEBRTC_SRC_TOOLS_COMMIT=$(git rev-parse HEAD)" | Add-Content $BUILD_DIR\package\webrtc\VERSIONS -Encoding UTF8
 Pop-Location
-
-# その他のファイル
-Copy-Item "static\NOTICE" $BUILD_DIR\package\webrtc\NOTICE
 
 # まとめて zip にする
 if (!(Test-Path $PACKAGE_DIR)) {

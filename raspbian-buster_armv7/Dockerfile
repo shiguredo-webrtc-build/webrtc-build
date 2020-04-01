@@ -47,10 +47,12 @@ RUN cd $SOURCE_DIR/webrtc/src \
 RUN cd $BUILD_DIR/webrtc/obj \
   && $SOURCE_DIR/webrtc/src/third_party/llvm-build/Release+Asserts/bin/llvm-ar -rc $BUILD_DIR/webrtc/libwebrtc.a `find . -name '*.o'`
 
+RUN cd $SOURCE_DIR/webrtc/src \
+  && python2 tools_webrtc/libs/generate_licenses.py --target :webrtc $BUILD_DIR/webrtc/ $BUILD_DIR/webrtc/
+
 ENV STATIC_DIR "/root/static"
 
 COPY scripts/package_webrtc.sh /root/scripts/
-COPY static/NOTICE /root/static/
 COPY VERSION /root/
 RUN /root/scripts/package_webrtc.sh $STATIC_DIR $SOURCE_DIR $BUILD_DIR $PACKAGE_DIR /root/VERSION
 
