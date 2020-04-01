@@ -57,8 +57,8 @@ RUN cd $SOURCE_DIR/webrtc/src \
 RUN cd $BUILD_DIR/webrtc/obj \
   && $SOURCE_DIR/webrtc/src/third_party/llvm-build/Release+Asserts/bin/llvm-ar -rc $BUILD_DIR/webrtc/libwebrtc.a `find . -name '*.o'`
 
-# ライセンスを生成するんだけど、ビルドによっては enable_libaom=false で警告が出てきて実行に失敗してしまうので、
-# そうなった場合は GN で生成し直して再度実行する
+# ライセンスを生成するんだけど、ビルドによっては enable_libaom=false あるいは enable_libaom_decoder=false で
+# 警告が出てきて実行に失敗してしまうので、そうなった場合は GN で生成し直して再度実行する
 RUN cd $SOURCE_DIR/webrtc/src \
   && python2 tools_webrtc/libs/generate_licenses.py --target :webrtc $BUILD_DIR/webrtc/ $BUILD_DIR/webrtc/ \
   || gn gen $BUILD_DIR/webrtc --args=' \
@@ -78,6 +78,25 @@ RUN cd $SOURCE_DIR/webrtc/src \
     rtc_build_json=true \
     use_rtti=true \
     enable_libaom_decoder=false \
+  ' \
+  && python2 tools_webrtc/libs/generate_licenses.py --target :webrtc $BUILD_DIR/webrtc/ $BUILD_DIR/webrtc/
+  || gn gen $BUILD_DIR/webrtc --args=' \
+    target_os="linux" \
+    target_cpu="arm" \
+    is_debug=false \
+    target_sysroot="/root/rootfs" \
+    rtc_use_h264=false \
+    rtc_include_tests=false \
+    arm_version=6 \
+    arm_arch="armv6" \
+    arm_tune="arm1176jzf-s" \
+    arm_fpu="vfpv2" \
+    arm_float_abi="hard" \
+    arm_use_neon=false \
+    is_desktop_linux=false \
+    rtc_build_json=true \
+    use_rtti=true \
+    enable_libaom=false \
   ' \
   && python2 tools_webrtc/libs/generate_licenses.py --target :webrtc $BUILD_DIR/webrtc/ $BUILD_DIR/webrtc/
 
