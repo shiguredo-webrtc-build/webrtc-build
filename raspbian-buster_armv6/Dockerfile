@@ -98,6 +98,24 @@ RUN cd $SOURCE_DIR/webrtc/src \
     use_rtti=true \
     enable_libaom=false \
   ' \
+  && python2 tools_webrtc/libs/generate_licenses.py --target :webrtc $BUILD_DIR/webrtc/ $BUILD_DIR/webrtc/ \
+  || gn gen $BUILD_DIR/webrtc --args=' \
+    target_os="linux" \
+    target_cpu="arm" \
+    is_debug=false \
+    target_sysroot="/root/rootfs" \
+    rtc_use_h264=false \
+    rtc_include_tests=false \
+    arm_version=6 \
+    arm_arch="armv6" \
+    arm_tune="arm1176jzf-s" \
+    arm_fpu="vfpv2" \
+    arm_float_abi="hard" \
+    arm_use_neon=false \
+    is_desktop_linux=false \
+    rtc_build_json=true \
+    use_rtti=true \
+  ' \
   && python2 tools_webrtc/libs/generate_licenses.py --target :webrtc $BUILD_DIR/webrtc/ $BUILD_DIR/webrtc/
 
 ENV STATIC_DIR "/root/static"
