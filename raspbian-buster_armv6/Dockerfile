@@ -79,7 +79,7 @@ RUN cd $SOURCE_DIR/webrtc/src \
     use_rtti=true \
     enable_libaom_decoder=false \
   ' \
-  && python2 tools_webrtc/libs/generate_licenses.py --target :webrtc $BUILD_DIR/webrtc/ $BUILD_DIR/webrtc/
+  && python2 tools_webrtc/libs/generate_licenses.py --target :webrtc $BUILD_DIR/webrtc/ $BUILD_DIR/webrtc/ \
   || gn gen $BUILD_DIR/webrtc --args=' \
     target_os="linux" \
     target_cpu="arm" \
