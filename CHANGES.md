@@ -11,8 +11,12 @@
 
 ## master
 
+## m81.4044.13
+
 - [UPDATE] ビルド時にライセンスの生成を行う
     - @melpon
+- [UPDATE] WebRTC のバージョンを 4044@{#13} にもどす
+    - @voluntas
 
 ## m82.4085.2
 
