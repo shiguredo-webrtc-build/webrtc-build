@@ -1,0 +1,362 @@
+diff --git a/src/sdk/BUILD.gn b/src/sdk/BUILD.gn
+index 1b313b3d87..6acb68dbb4 100644
+--- a/src/sdk/BUILD.gn
++++ b/src/sdk/BUILD.gn
+@@ -624,6 +624,7 @@ if (is_ios || is_mac) {
+         ":videotoolbox_objc",
+         ":vp8",
+         ":vp9",
++        ":libaom_av1",
+         ":vpx_codec_constants",
+       ]
+     }
+@@ -676,6 +677,25 @@ if (is_ios || is_mac) {
+       ]
+     }
+ 
++    rtc_library("libaom_av1") {
++      visibility = [ "*" ]
++      allow_poison = [ "software_video_codecs" ]
++      sources = [
++        "objc/api/video_codec/RTCVideoDecoderAV1.h",
++        "objc/api/video_codec/RTCVideoDecoderAV1.mm",
++        "objc/api/video_codec/RTCVideoEncoderAV1.h",
++        "objc/api/video_codec/RTCVideoEncoderAV1.mm",
++      ]
++
++      deps = [
++        ":base_objc",
++        ":wrapped_native_codec_objc",
++        "../media:rtc_media_base",
++        "../modules/video_coding/codecs/av1:libaom_av1_decoder",
++        "../modules/video_coding/codecs/av1:libaom_av1_encoder",
++      ]
++    }
++
+     # Build the PeerConnectionFactory without audio/video support.
+     # This target depends on the objc_peeerconnectionfactory_base which still
+     # includes some audio/video related objects such as RTCAudioSource because
+@@ -1036,8 +1056,10 @@ if (is_ios || is_mac) {
+         "objc/Framework/Headers/WebRTC/RTCVideoCodecInfo.h",
+         "objc/Framework/Headers/WebRTC/RTCVideoDecoderVP8.h",
+         "objc/Framework/Headers/WebRTC/RTCVideoDecoderVP9.h",
++        "objc/Framework/Headers/WebRTC/RTCVideoDecoderAV1.h",
+         "objc/Framework/Headers/WebRTC/RTCVideoEncoderVP8.h",
+         "objc/Framework/Headers/WebRTC/RTCVideoEncoderVP9.h",
++        "objc/Framework/Headers/WebRTC/RTCVideoEncoderAV1.h",
+         "objc/Framework/Headers/WebRTC/RTCVideoFrame.h",
+         "objc/Framework/Headers/WebRTC/RTCVideoFrameBuffer.h",
+         "objc/Framework/Headers/WebRTC/RTCVideoRenderer.h",
+@@ -1321,8 +1343,10 @@ if (is_ios || is_mac) {
+           "objc/api/video_codec/RTCVideoCodecConstants.h",
+           "objc/api/video_codec/RTCVideoDecoderVP8.h",
+           "objc/api/video_codec/RTCVideoDecoderVP9.h",
++          "objc/api/video_codec/RTCVideoDecoderAV1.h",
+           "objc/api/video_codec/RTCVideoEncoderVP8.h",
+           "objc/api/video_codec/RTCVideoEncoderVP9.h",
++          "objc/api/video_codec/RTCVideoEncoderAV1.h",
+           "objc/api/video_frame_buffer/RTCNativeI420Buffer.h",
+           "objc/api/video_frame_buffer/RTCNativeMutableI420Buffer.h",
+         ]
+@@ -1430,8 +1454,10 @@ if (is_ios || is_mac) {
+           "objc/api/peerconnection/RTCVideoTrack.h",
+           "objc/api/video_codec/RTCVideoDecoderVP8.h",
+           "objc/api/video_codec/RTCVideoDecoderVP9.h",
++          "objc/api/video_codec/RTCVideoDecoderAV1.h",
+           "objc/api/video_codec/RTCVideoEncoderVP8.h",
+           "objc/api/video_codec/RTCVideoEncoderVP9.h",
++          "objc/api/video_codec/RTCVideoEncoderAV1.h",
+           "objc/api/video_frame_buffer/RTCNativeI420Buffer.h",
+           "objc/api/video_frame_buffer/RTCNativeMutableI420Buffer.h",
+           "objc/base/RTCCodecSpecificInfo.h",
+diff --git a/src/sdk/objc/Framework/Headers/WebRTC/RTCVideoDecoderAV1.h b/src/sdk/objc/Framework/Headers/WebRTC/RTCVideoDecoderAV1.h
+new file mode 100644
+index 0000000000..6454724dc5
+--- /dev/null
++++ b/src/sdk/objc/Framework/Headers/WebRTC/RTCVideoDecoderAV1.h
+@@ -0,0 +1,11 @@
++/*
++ *  Copyright 2017 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#import "api/video_codec/RTCVideoDecoderAV1.h"
+diff --git a/src/sdk/objc/Framework/Headers/WebRTC/RTCVideoEncoderAV1.h b/src/sdk/objc/Framework/Headers/WebRTC/RTCVideoEncoderAV1.h
+new file mode 100644
+index 0000000000..2059bf763b
+--- /dev/null
++++ b/src/sdk/objc/Framework/Headers/WebRTC/RTCVideoEncoderAV1.h
+@@ -0,0 +1,11 @@
++/*
++ *  Copyright 2017 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#import "api/video_codec/RTCVideoEncoderAV1.h"
+diff --git a/src/sdk/objc/api/peerconnection/RTCRtpCodecParameters.h b/src/sdk/objc/api/peerconnection/RTCRtpCodecParameters.h
+index 5d3cac5c96..379ae1e1f2 100644
+--- a/src/sdk/objc/api/peerconnection/RTCRtpCodecParameters.h
++++ b/src/sdk/objc/api/peerconnection/RTCRtpCodecParameters.h
+@@ -29,6 +29,7 @@ RTC_EXTERN const NSString *const kRTCDtmfCodecName;
+ RTC_EXTERN const NSString *const kRTCComfortNoiseCodecName;
+ RTC_EXTERN const NSString *const kRTCVp8CodecName;
+ RTC_EXTERN const NSString *const kRTCVp9CodecName;
++RTC_EXTERN const NSString *const kRTCAv1CodecName;
+ RTC_EXTERN const NSString *const kRTCH264CodecName;
+ 
+ /** Defined in http://w3c.github.io/webrtc-pc/#idl-def-RTCRtpCodecParameters */
+diff --git a/src/sdk/objc/api/peerconnection/RTCRtpCodecParameters.mm b/src/sdk/objc/api/peerconnection/RTCRtpCodecParameters.mm
+index f25679e329..900f6c29cc 100644
+--- a/src/sdk/objc/api/peerconnection/RTCRtpCodecParameters.mm
++++ b/src/sdk/objc/api/peerconnection/RTCRtpCodecParameters.mm
+@@ -32,6 +32,7 @@
+     @(cricket::kComfortNoiseCodecName);
+ const NSString * const kRTCVp8CodecName = @(cricket::kVp8CodecName);
+ const NSString * const kRTCVp9CodecName = @(cricket::kVp9CodecName);
++const NSString * const kRTCAv1CodecName = @(cricket::kAv1CodecName);
+ const NSString * const kRTCH264CodecName = @(cricket::kH264CodecName);
+ 
+ @implementation RTCRtpCodecParameters
+diff --git a/src/sdk/objc/api/video_codec/RTCVideoCodecConstants.h b/src/sdk/objc/api/video_codec/RTCVideoCodecConstants.h
+index 03f36e22ca..b3cc30c22f 100644
+--- a/src/sdk/objc/api/video_codec/RTCVideoCodecConstants.h
++++ b/src/sdk/objc/api/video_codec/RTCVideoCodecConstants.h
+@@ -14,3 +14,4 @@
+ 
+ RTC_OBJC_EXPORT extern NSString* const kRTCVideoCodecVp8Name;
+ RTC_OBJC_EXPORT extern NSString* const kRTCVideoCodecVp9Name;
++RTC_OBJC_EXPORT extern NSString* const kRTCVideoCodecAv1Name;
+diff --git a/src/sdk/objc/api/video_codec/RTCVideoCodecConstants.mm b/src/sdk/objc/api/video_codec/RTCVideoCodecConstants.mm
+index 3de6e22ef7..1ab236a2c2 100644
+--- a/src/sdk/objc/api/video_codec/RTCVideoCodecConstants.mm
++++ b/src/sdk/objc/api/video_codec/RTCVideoCodecConstants.mm
+@@ -15,3 +15,4 @@
+ 
+ NSString *const kRTCVideoCodecVp8Name = @(cricket::kVp8CodecName);
+ NSString *const kRTCVideoCodecVp9Name = @(cricket::kVp9CodecName);
++NSString *const kRTCVideoCodecAv1Name = @(cricket::kAv1CodecName);
+diff --git a/src/sdk/objc/api/video_codec/RTCVideoDecoderAV1.h b/src/sdk/objc/api/video_codec/RTCVideoDecoderAV1.h
+new file mode 100644
+index 0000000000..8367c650f5
+--- /dev/null
++++ b/src/sdk/objc/api/video_codec/RTCVideoDecoderAV1.h
+@@ -0,0 +1,25 @@
++/*
++ *  Copyright 2017 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#import <Foundation/Foundation.h>
++
++#import "RTCMacros.h"
++#import "RTCVideoDecoder.h"
++
++RTC_OBJC_EXPORT
++@interface RTCVideoDecoderAV1 : NSObject
++
++/* This returns a AV1 decoder that can be returned from a RTCVideoDecoderFactory injected into
++ * RTCPeerConnectionFactory. Even though it implements the RTCVideoDecoder protocol, it can not be
++ * used independently from the RTCPeerConnectionFactory.
++ */
+++ (id<RTCVideoDecoder>)av1Decoder;
++
++@end
+diff --git a/src/sdk/objc/api/video_codec/RTCVideoDecoderAV1.mm b/src/sdk/objc/api/video_codec/RTCVideoDecoderAV1.mm
+new file mode 100644
+index 0000000000..f3572598ec
+--- /dev/null
++++ b/src/sdk/objc/api/video_codec/RTCVideoDecoderAV1.mm
+@@ -0,0 +1,26 @@
++/*
++ *  Copyright (c) 2017 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ *
++ */
++
++#import <Foundation/Foundation.h>
++
++#import "RTCVideoDecoderAV1.h"
++#import "RTCWrappedNativeVideoDecoder.h"
++
++#include "modules/video_coding/codecs/av1/libaom_av1_decoder.h"
++
++@implementation RTCVideoDecoderAV1
++
+++ (id<RTCVideoDecoder>)av1Decoder {
++  return [[RTCWrappedNativeVideoDecoder alloc]
++      initWithNativeDecoder:std::unique_ptr<webrtc::VideoDecoder>(webrtc::CreateLibaomAv1Decoder())];
++}
++
++@end
+diff --git a/src/sdk/objc/api/video_codec/RTCVideoEncoderAV1.h b/src/sdk/objc/api/video_codec/RTCVideoEncoderAV1.h
+new file mode 100644
+index 0000000000..294bffe97f
+--- /dev/null
++++ b/src/sdk/objc/api/video_codec/RTCVideoEncoderAV1.h
+@@ -0,0 +1,25 @@
++/*
++ *  Copyright 2017 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#import <Foundation/Foundation.h>
++
++#import "RTCMacros.h"
++#import "RTCVideoEncoder.h"
++
++RTC_OBJC_EXPORT
++@interface RTCVideoEncoderAV1 : NSObject
++
++/* This returns a AV1 encoder that can be returned from a RTCVideoEncoderFactory injected into
++ * RTCPeerConnectionFactory. Even though it implements the RTCVideoEncoder protocol, it can not be
++ * used independently from the RTCPeerConnectionFactory.
++ */
+++ (id<RTCVideoEncoder>)av1Encoder;
++
++@end
+diff --git a/src/sdk/objc/api/video_codec/RTCVideoEncoderAV1.mm b/src/sdk/objc/api/video_codec/RTCVideoEncoderAV1.mm
+new file mode 100644
+index 0000000000..0c92d541b3
+--- /dev/null
++++ b/src/sdk/objc/api/video_codec/RTCVideoEncoderAV1.mm
+@@ -0,0 +1,26 @@
++/*
++ *  Copyright (c) 2017 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ *
++ */
++
++#import <Foundation/Foundation.h>
++
++#import "RTCVideoEncoderAV1.h"
++#import "RTCWrappedNativeVideoEncoder.h"
++
++#include "modules/video_coding/codecs/av1/libaom_av1_encoder.h"
++
++@implementation RTCVideoEncoderAV1
++
+++ (id<RTCVideoEncoder>)av1Encoder {
++  return [[RTCWrappedNativeVideoEncoder alloc]
++      initWithNativeEncoder:std::unique_ptr<webrtc::VideoEncoder>(webrtc::CreateLibaomAv1Encoder())];
++}
++
++@end
+diff --git a/src/sdk/objc/components/video_codec/RTCDefaultVideoDecoderFactory.m b/src/sdk/objc/components/video_codec/RTCDefaultVideoDecoderFactory.m
+index 44445f4b13..b2284c050f 100644
+--- a/src/sdk/objc/components/video_codec/RTCDefaultVideoDecoderFactory.m
++++ b/src/sdk/objc/components/video_codec/RTCDefaultVideoDecoderFactory.m
+@@ -18,6 +18,7 @@
+ #if defined(RTC_ENABLE_VP9)
+ #import "api/video_codec/RTCVideoDecoderVP9.h"
+ #endif
++#import "api/video_codec/RTCVideoDecoderAV1.h"
+ 
+ @implementation RTCDefaultVideoDecoderFactory
+ 
+@@ -46,6 +47,8 @@ @implementation RTCDefaultVideoDecoderFactory
+   RTCVideoCodecInfo *vp9Info = [[RTCVideoCodecInfo alloc] initWithName:kRTCVideoCodecVp9Name];
+ #endif
+ 
++  RTCVideoCodecInfo *av1Info = [[RTCVideoCodecInfo alloc] initWithName:kRTCVideoCodecAv1Name];
++
+   return @[
+     constrainedHighInfo,
+     constrainedBaselineInfo,
+@@ -53,6 +56,7 @@ @implementation RTCDefaultVideoDecoderFactory
+ #if defined(RTC_ENABLE_VP9)
+     vp9Info,
+ #endif
++    av1Info,
+   ];
+ }
+ 
+@@ -65,6 +69,8 @@ @implementation RTCDefaultVideoDecoderFactory
+   } else if ([info.name isEqualToString:kRTCVideoCodecVp9Name]) {
+     return [RTCVideoDecoderVP9 vp9Decoder];
+ #endif
++  } else if ([info.name isEqualToString:kRTCVideoCodecAv1Name]) {
++    return [RTCVideoDecoderAV1 av1Decoder];
+   }
+ 
+   return nil;
+diff --git a/src/sdk/objc/components/video_codec/RTCDefaultVideoEncoderFactory.m b/src/sdk/objc/components/video_codec/RTCDefaultVideoEncoderFactory.m
+index b72296b64f..b9a107fc64 100644
+--- a/src/sdk/objc/components/video_codec/RTCDefaultVideoEncoderFactory.m
++++ b/src/sdk/objc/components/video_codec/RTCDefaultVideoEncoderFactory.m
+@@ -18,6 +18,7 @@
+ #if defined(RTC_ENABLE_VP9)
+ #import "api/video_codec/RTCVideoEncoderVP9.h"
+ #endif
++#import "api/video_codec/RTCVideoEncoderAV1.h"
+ 
+ @implementation RTCDefaultVideoEncoderFactory
+ 
+@@ -48,6 +49,8 @@ @implementation RTCDefaultVideoEncoderFactory
+   RTCVideoCodecInfo *vp9Info = [[RTCVideoCodecInfo alloc] initWithName:kRTCVideoCodecVp9Name];
+ #endif
+ 
++  RTCVideoCodecInfo *av1Info = [[RTCVideoCodecInfo alloc] initWithName:kRTCVideoCodecAv1Name];
++
+   return @[
+     constrainedHighInfo,
+     constrainedBaselineInfo,
+@@ -55,6 +58,7 @@ @implementation RTCDefaultVideoEncoderFactory
+ #if defined(RTC_ENABLE_VP9)
+     vp9Info,
+ #endif
++    av1Info,
+   ];
+ }
+ 
+@@ -67,6 +71,8 @@ @implementation RTCDefaultVideoEncoderFactory
+   } else if ([info.name isEqualToString:kRTCVideoCodecVp9Name]) {
+     return [RTCVideoEncoderVP9 vp9Encoder];
+ #endif
++  } else if ([info.name isEqualToString:kRTCVideoCodecAv1Name]) {
++    return [RTCVideoEncoderAV1 av1Encoder];
+   }
+ 
+   return nil;
+diff --git a/src/sdk/objc/native/src/objc_video_encoder_factory.mm b/src/sdk/objc/native/src/objc_video_encoder_factory.mm
+index b0c7c2c5f1..0053d33c2b 100644
+--- a/src/sdk/objc/native/src/objc_video_encoder_factory.mm
++++ b/src/sdk/objc/native/src/objc_video_encoder_factory.mm
+@@ -146,7 +146,7 @@ void SetRates(const RateControlParameters &parameters) override {
+   // TODO(andersc): This is a hack until we figure out how this should be done properly.
+   NSString *formatName = [NSString stringForStdString:format.name];
+   NSSet *wrappedSoftwareFormats =
+-      [NSSet setWithObjects:kRTCVideoCodecVp8Name, kRTCVideoCodecVp9Name, nil];
++      [NSSet setWithObjects:kRTCVideoCodecVp8Name, kRTCVideoCodecVp9Name, kRTCVideoCodecAv1Name, nil];
+ 
+   CodecInfo codec_info;
+   codec_info.is_hardware_accelerated = ![wrappedSoftwareFormats containsObject:formatName];

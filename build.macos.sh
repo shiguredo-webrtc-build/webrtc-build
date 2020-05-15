@@ -21,6 +21,7 @@ export PATH="$SOURCE_DIR/depot_tools:$PATH"
 pushd $SOURCE_DIR/webrtc/src
   patch -p2 < $SCRIPT_DIR/patches/4k.patch
   patch -p2 < $SCRIPT_DIR/patches/macos_h264_encoder.patch
+  patch -p2 < $SCRIPT_DIR/patches/macos_av1.patch
 popd
 
 pushd $SOURCE_DIR/webrtc/src
@@ -42,6 +43,7 @@ pushd $SOURCE_DIR/webrtc/src
     default_codec_factory_objc \
     peerconnection \
     videocapture_objc
+  python2 tools_webrtc/libs/generate_licenses.py --target :webrtc $BUILD_DIR/webrtc/ $BUILD_DIR/webrtc/
 popd
 
 pushd $BUILD_DIR/webrtc/obj

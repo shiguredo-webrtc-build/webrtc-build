@@ -47,36 +47,14 @@ RUN cd $SOURCE_DIR/webrtc/src \
 RUN cd $BUILD_DIR/webrtc/obj \
   && $SOURCE_DIR/webrtc/src/third_party/llvm-build/Release+Asserts/bin/llvm-ar -rc $BUILD_DIR/webrtc/libwebrtc.a `find . -name '*.o'`
 
-# nolibcxx 版
-COPY patches/ubuntu_nolibcxx.patch /root/patches/
 RUN cd $SOURCE_DIR/webrtc/src \
-  && patch -p2 < /root/patches/ubuntu_nolibcxx.patch
-
-RUN cd $SOURCE_DIR/webrtc/src \
-  && gn gen $BUILD_DIR/webrtc_nolibcxx --args=' \
-    target_os="linux" \
-    target_cpu="arm" \
-    is_debug=false \
-    target_sysroot="/root/rootfs" \
-    rtc_use_h264=false \
-    rtc_include_tests=false \
-    use_rtti=true \
-    is_component_build=false \
-    is_desktop_linux=false \
-    use_custom_libcxx=false \
-    use_custom_libcxx_for_host=false \
-  ' \
-  && ninja -C $BUILD_DIR/webrtc_nolibcxx
-
-RUN cd $BUILD_DIR/webrtc_nolibcxx/obj \
-  && $SOURCE_DIR/webrtc/src/third_party/llvm-build/Release+Asserts/bin/llvm-ar -rc $BUILD_DIR/webrtc_nolibcxx/libwebrtc.a `find . -name '*.o'`
+  && python2 tools_webrtc/libs/generate_licenses.py --target :webrtc $BUILD_DIR/webrtc/ $BUILD_DIR/webrtc/
 
 ENV STATIC_DIR "/root/static"
 
 COPY scripts/package_webrtc.sh /root/scripts/
-COPY static/NOTICE /root/static/
 COPY VERSION /root/
-RUN /root/scripts/package_webrtc.sh $STATIC_DIR $SOURCE_DIR $BUILD_DIR $PACKAGE_DIR /root/VERSION nolibcxx
+RUN /root/scripts/package_webrtc.sh $STATIC_DIR $SOURCE_DIR $BUILD_DIR $PACKAGE_DIR /root/VERSION
 
 RUN mv $PACKAGE_DIR/webrtc.tar.gz /
 
