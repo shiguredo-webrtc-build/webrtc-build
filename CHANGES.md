@@ -11,6 +11,9 @@
 
 ## master
 
+- [ADD] Android 用ビルドを追加
+    - @melpon
+
 ## m83.4103.9.0
 
 - [UPDATE] WebRTC のバージョンを 4103@{#9} に上げる
