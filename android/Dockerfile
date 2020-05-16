@@ -104,7 +104,6 @@ RUN cd $BUILD_DIR/webrtc_arm64-v8a/obj \
 ENV STATIC_DIR "/root/static"
 
 COPY scripts/package_webrtc_android.sh /root/scripts/
-COPY static/NOTICE /root/static/
 COPY VERSION /root/
 RUN /root/scripts/package_webrtc_android.sh $STATIC_DIR $SOURCE_DIR $BUILD_DIR $PACKAGE_DIR /root/VERSION
 
