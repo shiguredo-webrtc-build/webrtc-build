@@ -33,6 +33,7 @@ In other languages, we won't be able to deal with them. Thank you for your under
 - ubuntu-16.04_x86_64
 - ubuntu-18.04_armv8 (Jetson Nano)
 - ubuntu-18.04_x86_64
+- android (for native)
 
 ## 開発について
 
