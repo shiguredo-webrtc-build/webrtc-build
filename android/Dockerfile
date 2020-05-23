@@ -84,22 +84,22 @@ RUN cd $BUILD_DIR/webrtc_arm64-v8a/obj \
 
 # onremovetrack 入りの aar
 # ソースが書き換わるので最後にやる必要がある
-# COPY patches/android_onremovetrack.patch /root/patches/
-# RUN cd $SOURCE_DIR/webrtc/src \
-#   && patch -p1 < /root/patches/android_onremovetrack.patch
-#
-# RUN cd /root/_source/android/webrtc/src \
-#   && python $SOURCE_DIR/webrtc/src/tools_webrtc/android/build_aar.py \
-#       --build-dir $BUILD_DIR/webrtc_android \
-#       --output $BUILD_DIR//webrtc_android/libwebrtc_onremovetrack.aar \
-#       --arch armeabi-v7a arm64-v8a \
-#       --extra-gn-args ' \
-#         is_java_debug=false \
-#         rtc_include_tests=false \
-#         rtc_use_h264=false \
-#         is_component_build=false \
-#         use_rtti=true \
-#       '
+COPY patches/android_onremovetrack.patch /root/patches/
+RUN cd $SOURCE_DIR/webrtc/src \
+  && patch -p1 < /root/patches/android_onremovetrack.patch
+
+RUN cd /root/_source/android/webrtc/src \
+  && python $SOURCE_DIR/webrtc/src/tools_webrtc/android/build_aar.py \
+      --build-dir $BUILD_DIR/webrtc_android \
+      --output $BUILD_DIR//webrtc_android/libwebrtc_onremovetrack.aar \
+      --arch armeabi-v7a arm64-v8a \
+      --extra-gn-args ' \
+        is_java_debug=false \
+        rtc_include_tests=false \
+        rtc_use_h264=false \
+        is_component_build=false \
+        use_rtti=true \
+      '
 
 ENV STATIC_DIR "/root/static"
 
