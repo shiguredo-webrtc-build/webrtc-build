@@ -1,7 +1,7 @@
 # syntax = docker/dockerfile:experimental
 FROM ubuntu:18.04 AS builder
 
-ARG PACKAGE_NAME=raspbian-buster_armv7
+ARG PACKAGE_NAME=raspberry-pi-os_armv7
 
 ENV SOURCE_DIR "/root/_source/$PACKAGE_NAME"
 ENV BUILD_DIR "/root/_build/$PACKAGE_NAME"

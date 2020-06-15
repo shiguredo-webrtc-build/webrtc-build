@@ -4,7 +4,7 @@ cd `dirname $0`
 source VERSION
 SCRIPT_DIR="`pwd`"
 
-PACKAGE_NAME=raspbian-buster_armv6
+PACKAGE_NAME=raspberry-pi-os_armv7
 SOURCE_DIR="`pwd`/_source/$PACKAGE_NAME"
 BUILD_DIR="`pwd`/_build/$PACKAGE_NAME"
 PACKAGE_DIR="`pwd`/_package/$PACKAGE_NAME"

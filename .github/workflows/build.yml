@@ -47,8 +47,8 @@ jobs:
       fail-fast: false
       matrix:
         name:
-          - raspbian-buster_armv6
-          - raspbian-buster_armv7
+          - raspberry-pi-os_armv6
+          - raspberry-pi-os_armv7
           - ubuntu-16.04_armv7
           - ubuntu-16.04_x86_64
           - ubuntu-18.04_armv8
@@ -106,8 +106,8 @@ jobs:
       matrix:
         name:
           - macos
-          - raspbian-buster_armv6
-          - raspbian-buster_armv7
+          - raspberry-pi-os_armv6
+          - raspberry-pi-os_armv7
           - ubuntu-16.04_armv7
           - ubuntu-16.04_x86_64
           - ubuntu-18.04_armv8
