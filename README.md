@@ -29,6 +29,7 @@ In other languages, we won't be able to deal with them. Thank you for your under
 - macos
 - raspberry-pi-os_armv6 (Raspberry Pi Zero)
 - raspberry-pi-os_armv7 (Raspberry Pi 3, 4)
+- raspberry-pi-os_armv8 (Raspberry Pi 3, 4)
 - ubuntu-16.04_armv7
 - ubuntu-16.04_x86_64
 - ubuntu-18.04_armv8 (Jetson Nano)

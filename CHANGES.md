@@ -11,6 +11,8 @@
 
 ## master
 
+- [ADD] raspberry-pi-os_armv8 を追加
+
 ## m84.4147.7.0 (2020/6/15)
 
 - [CHANGE] raspbian-buster を raspberry-pi-os に変更する
