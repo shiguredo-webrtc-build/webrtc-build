@@ -11,6 +11,9 @@
 
 ## master
 
+- [CHANGE] raspbian-buster を raspberry-pi-os に変更する
+    - @melpon
+
 ## m83.4103.12.2 (2020/5/26)
 
 - [ADD] AAR パッケージの削除処理を Revert して Android に AAR を追加する
