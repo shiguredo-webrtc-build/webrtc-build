@@ -11,6 +11,8 @@
 
 ## master
 
+## m84.4147.7.0 (2020/6/15)
+
 - [CHANGE] raspbian-buster を raspberry-pi-os に変更する
     - @melpon
 
