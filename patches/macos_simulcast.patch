@@ -1,0 +1,30 @@
+diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderH264.mm b/sdk/objc/components/video_codec/RTCVideoEncoderH264.mm
+index 113806489c..3372508d82 100644
+--- a/sdk/objc/components/video_codec/RTCVideoEncoderH264.mm
++++ b/sdk/objc/components/video_codec/RTCVideoEncoderH264.mm
+@@ -389,8 +389,8 @@ - (NSInteger)startEncodeWithSettings:(RTC_OBJC_TYPE(RTCVideoEncoderSettings) *)s
+ - (NSInteger)encode:(RTC_OBJC_TYPE(RTCVideoFrame) *)frame
+     codecSpecificInfo:(nullable id<RTC_OBJC_TYPE(RTCCodecSpecificInfo)>)codecSpecificInfo
+            frameTypes:(NSArray<NSNumber *> *)frameTypes {
+-  RTC_DCHECK_EQ(frame.width, _width);
+-  RTC_DCHECK_EQ(frame.height, _height);
++  // RTC_DCHECK_EQ(frame.width, _width);
++  // RTC_DCHECK_EQ(frame.height, _height);
+   if (!_callback || !_compressionSession) {
+     return WEBRTC_VIDEO_CODEC_UNINITIALIZED;
+   }
+diff --git a/sdk/objc/native/src/objc_video_encoder_factory.mm b/sdk/objc/native/src/objc_video_encoder_factory.mm
+index b54945f49e..79607fe9fa 100644
+--- a/sdk/objc/native/src/objc_video_encoder_factory.mm
++++ b/sdk/objc/native/src/objc_video_encoder_factory.mm
+@@ -53,6 +53,10 @@ int32_t RegisterEncodeCompleteCallback(EncodedImageCallback *callback) override
+     [encoder_ setCallback:^BOOL(RTC_OBJC_TYPE(RTCEncodedImage) * _Nonnull frame,
+                                 id<RTC_OBJC_TYPE(RTCCodecSpecificInfo)> _Nonnull info,
+                                 RTC_OBJC_TYPE(RTCRtpFragmentationHeader) * _Nonnull header) {
++      if (callback == nullptr) {
++        return FALSE;
++      }
++
+       EncodedImage encodedImage = [frame nativeEncodedImage];
+ 
+       // Handle types that can be converted into one of CodecSpecificInfo's hard coded cases.

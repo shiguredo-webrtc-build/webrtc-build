@@ -22,6 +22,7 @@ pushd $SOURCE_DIR/webrtc/src
   patch -p2 < $SCRIPT_DIR/patches/4k.patch
   patch -p2 < $SCRIPT_DIR/patches/macos_h264_encoder.patch
   patch -p2 < $SCRIPT_DIR/patches/macos_av1.patch
+  patch -p1 < $SCRIPT_DIR/patches/macos_simulcast.patch
 popd
 
 pushd $SOURCE_DIR/webrtc/src
