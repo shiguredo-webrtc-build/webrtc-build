@@ -32,7 +32,10 @@ In other languages, we won't be able to deal with them. Thank you for your under
 - raspberry-pi-os_armv8 (Raspberry Pi 3, 4)
 - ubuntu-16.04_armv7
 - ubuntu-16.04_x86_64
-- ubuntu-18.04_armv8 (Jetson Nano)
+- ubuntu-18.04_armv8
+    - Jetson Nano
+    - Jetson Xavier NX
+    - Jetson AGX Xavier)
 - ubuntu-18.04_x86_64
 - ubuntu-20.04_x86_64
 - android (for native)
