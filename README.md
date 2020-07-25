@@ -67,9 +67,9 @@ limitations under the License.
 
 ### Contributing
 
-- melpon - **Original Author, Android support**
-- tnoho - **Original Author, AV1 support for macOS**
-- hakobera - **Ubuntu 20.04 x86_64 support**
+- melpon - *Original Author, Android support*
+- tnoho - *Original Author, AV1 support for macOS*
+- hakobera - *Ubuntu 20.04 x86_64 support*
 
 ### Thanks
 
