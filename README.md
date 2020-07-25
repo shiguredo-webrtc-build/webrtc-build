@@ -65,10 +65,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-### THANKS
+### Contributing
 
-- melpon
-- tnoho
+- melpon - **Original Author, Android support**
+- tnoho - **Original Author, AV1 support for macOS**
+- hakobera - **Ubuntu 20.04 x86_64 support**
+
+### Thanks
+
 - enm10k
 - kdxu
-- hakobera
