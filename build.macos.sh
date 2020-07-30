@@ -24,6 +24,7 @@ pushd $SOURCE_DIR/webrtc/src
   patch -p2 < $SCRIPT_DIR/patches/macos_av1.patch
   patch -p2 < $SCRIPT_DIR/patches/macos_screen_capture.patch
   patch -p1 < $SCRIPT_DIR/patches/macos_simulcast.patch
+  patch -p1 < $SCRIPT_DIR/patches/h265.patch
 popd
 
 pushd $SOURCE_DIR/webrtc/src
@@ -36,6 +37,8 @@ pushd $SOURCE_DIR/webrtc/src
     is_component_build=false
     use_rtti=true
     libcxx_abi_unstable=false
+    mac_deployment_target="10.13.0"
+    mac_min_system_version="10.13.0"
   '
   ninja -C $BUILD_DIR/webrtc
   ninja -C $BUILD_DIR/webrtc \
