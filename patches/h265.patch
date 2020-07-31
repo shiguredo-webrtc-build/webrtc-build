@@ -3188,7 +3188,7 @@ diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
 index dc9b265155..9a988143b9 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
-@@ -586,6 +586,11 @@ if (is_ios || is_mac) {
+@@ -586,6 +586,11 @@
          "objc/components/video_codec/RTCCodecSpecificInfoH264.mm",
          "objc/components/video_codec/RTCH264ProfileLevelId.h",
          "objc/components/video_codec/RTCH264ProfileLevelId.mm",
@@ -3200,7 +3200,7 @@ index dc9b265155..9a988143b9 100644
        ]
        if (is_ios) {
          sources += [
-@@ -1000,6 +1005,7 @@ if (is_ios || is_mac) {
+@@ -1020,6 +1025,7 @@
          "objc/Framework/Headers/WebRTC/RTCFileLogger.h",
          "objc/Framework/Headers/WebRTC/RTCFileVideoCapturer.h",
          "objc/Framework/Headers/WebRTC/RTCH264ProfileLevelId.h",
@@ -3208,7 +3208,7 @@ index dc9b265155..9a988143b9 100644
          "objc/Framework/Headers/WebRTC/RTCIceCandidate.h",
          "objc/Framework/Headers/WebRTC/RTCIceServer.h",
          "objc/Framework/Headers/WebRTC/RTCLegacyStatsReport.h",
-@@ -1032,6 +1038,7 @@ if (is_ios || is_mac) {
+@@ -1052,6 +1058,7 @@
          "objc/Framework/Headers/WebRTC/RTCVideoCodec.h",
          "objc/Framework/Headers/WebRTC/RTCVideoCodecFactory.h",
          "objc/Framework/Headers/WebRTC/RTCVideoCodecH264.h",
@@ -3216,7 +3216,7 @@ index dc9b265155..9a988143b9 100644
          "objc/Framework/Headers/WebRTC/RTCVideoCodecInfo.h",
          "objc/Framework/Headers/WebRTC/RTCVideoDecoderVP8.h",
          "objc/Framework/Headers/WebRTC/RTCVideoDecoderVP9.h",
-@@ -1270,13 +1277,17 @@ if (is_ios || is_mac) {
+@@ -1292,13 +1299,17 @@
            "objc/components/renderer/opengl/RTCEAGLVideoView.h",
            "objc/components/renderer/opengl/RTCVideoViewShading.h",
            "objc/components/video_codec/RTCCodecSpecificInfoH264.h",
@@ -3234,7 +3234,7 @@ index dc9b265155..9a988143b9 100644
            "objc/components/video_frame_buffer/RTCCVPixelBuffer.h",
            "objc/helpers/RTCCameraPreviewView.h",
            "objc/helpers/RTCDispatcher.h",
-@@ -1458,13 +1469,17 @@ if (is_ios || is_mac) {
+@@ -1484,13 +1495,17 @@
            "objc/components/renderer/opengl/RTCNSGLVideoView.h",
            "objc/components/renderer/opengl/RTCVideoViewShading.h",
            "objc/components/video_codec/RTCCodecSpecificInfoH264.h",
@@ -3252,7 +3252,7 @@ index dc9b265155..9a988143b9 100644
            "objc/components/video_frame_buffer/RTCCVPixelBuffer.h",
            "objc/helpers/RTCDispatcher.h",
          ]
-@@ -1648,6 +1663,10 @@ if (is_ios || is_mac) {
+@@ -1674,6 +1689,10 @@
          "objc/components/video_codec/RTCVideoEncoderFactoryH264.m",
          "objc/components/video_codec/RTCVideoEncoderH264.h",
          "objc/components/video_codec/RTCVideoEncoderH264.mm",
@@ -3418,33 +3418,33 @@ index 4046cfedbe..f15ac48836 100644
  #import "api/video_codec/RTCVideoCodecConstants.h"
  #import "api/video_codec/RTCVideoDecoderVP8.h"
  #import "base/RTCVideoCodecInfo.h"
-@@ -43,6 +45,9 @@ @implementation RTC_OBJC_TYPE (RTCDefaultVideoDecoderFactory)
-   RTC_OBJC_TYPE(RTCVideoCodecInfo) *vp8Info =
-       [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecVp8Name];
+@@ -49,6 +51,9 @@
+       [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecVp9Name];
+ #endif
  
-+ RTC_OBJC_TYPE(RTCVideoCodecInfo) *h265Info = 
++  RTC_OBJC_TYPE(RTCVideoCodecInfo) *h265Info = 
 +      [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecH265Name];
 +
- #if defined(RTC_ENABLE_VP9)
-   RTC_OBJC_TYPE(RTCVideoCodecInfo) *vp9Info =
-       [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecVp9Name];
-@@ -51,6 +56,7 @@ @implementation RTC_OBJC_TYPE (RTCDefaultVideoDecoderFactory)
+   RTCVideoCodecInfo *av1Info = [[RTCVideoCodecInfo alloc] initWithName:kRTCVideoCodecAv1Name];
+ 
    return @[
-     constrainedHighInfo,
-     constrainedBaselineInfo,
-+    h265Info,
-     vp8Info,
+@@ -58,6 +63,7 @@
  #if defined(RTC_ENABLE_VP9)
      vp9Info,
-@@ -63,6 +69,8 @@ @implementation RTC_OBJC_TYPE (RTCDefaultVideoDecoderFactory)
-     return [[RTC_OBJC_TYPE(RTCVideoDecoderH264) alloc] init];
-   } else if ([info.name isEqualToString:kRTCVideoCodecVp8Name]) {
-     return [RTC_OBJC_TYPE(RTCVideoDecoderVP8) vp8Decoder];
-+  } else if ([info.name isEqualToString:kRTCVideoCodecH265Name]) {
-+    return [[RTC_OBJC_TYPE(RTCVideoDecoderH265) alloc] init];
- #if defined(RTC_ENABLE_VP9)
+ #endif
++    h265Info,
+     av1Info,
+   ];
+ }
+@@ -71,6 +77,8 @@
    } else if ([info.name isEqualToString:kRTCVideoCodecVp9Name]) {
      return [RTC_OBJC_TYPE(RTCVideoDecoderVP9) vp9Decoder];
+ #endif
++  } else if ([info.name isEqualToString:kRTCVideoCodecH265Name]) {
++    return [[RTC_OBJC_TYPE(RTCVideoDecoderH265) alloc] init];
+   } else if ([info.name isEqualToString:kRTCVideoCodecAv1Name]) {
+     return [RTCVideoDecoderAV1 av1Decoder];
+   }
 diff --git a/sdk/objc/components/video_codec/RTCDefaultVideoEncoderFactory.m b/sdk/objc/components/video_codec/RTCDefaultVideoEncoderFactory.m
 index 35a1407f38..0fd03008d3 100644
 --- a/sdk/objc/components/video_codec/RTCDefaultVideoEncoderFactory.m
@@ -3459,33 +3459,33 @@ index 35a1407f38..0fd03008d3 100644
  #import "api/video_codec/RTCVideoCodecConstants.h"
  #import "api/video_codec/RTCVideoEncoderVP8.h"
  #import "base/RTCVideoCodecInfo.h"
-@@ -45,6 +47,9 @@ @implementation RTC_OBJC_TYPE (RTCDefaultVideoEncoderFactory)
-   RTC_OBJC_TYPE(RTCVideoCodecInfo) *vp8Info =
-       [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecVp8Name];
+@@ -51,6 +53,9 @@
+       [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecVp9Name];
+ #endif
  
 +  RTC_OBJC_TYPE(RTCVideoCodecInfo) *h265Info =
 +      [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecH265Name];
 +
- #if defined(RTC_ENABLE_VP9)
-   RTC_OBJC_TYPE(RTCVideoCodecInfo) *vp9Info =
-       [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecVp9Name];
-@@ -53,6 +58,7 @@ @implementation RTC_OBJC_TYPE (RTCDefaultVideoEncoderFactory)
+   RTCVideoCodecInfo *av1Info = [[RTCVideoCodecInfo alloc] initWithName:kRTCVideoCodecAv1Name];
+ 
    return @[
-     constrainedHighInfo,
-     constrainedBaselineInfo,
-+    h265Info,
-     vp8Info,
+@@ -60,6 +65,7 @@
  #if defined(RTC_ENABLE_VP9)
      vp9Info,
-@@ -69,6 +75,8 @@ @implementation RTC_OBJC_TYPE (RTCDefaultVideoEncoderFactory)
+ #endif
++    h265Info,
+     av1Info,
+   ];
+ }
+@@ -73,6 +79,8 @@
    } else if ([info.name isEqualToString:kRTCVideoCodecVp9Name]) {
      return [RTC_OBJC_TYPE(RTCVideoEncoderVP9) vp9Encoder];
  #endif
 +  } else if ([info.name isEqualToString:kRTCVideoCodecH265Name]) {
-+    return [[RTCVideoEncoderH265 alloc] initWithCodecInfo:info];
++     return [[RTCVideoEncoderH265 alloc] initWithCodecInfo:info];
+   } else if ([info.name isEqualToString:kRTCVideoCodecAv1Name]) {
+     return [RTCVideoEncoderAV1 av1Encoder];
    }
- 
-   return nil;
 diff --git a/sdk/objc/components/video_codec/RTCH265ProfileLevelId.h b/sdk/objc/components/video_codec/RTCH265ProfileLevelId.h
 new file mode 100644
 index 0000000000..17bc34f226
