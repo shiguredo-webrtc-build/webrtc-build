@@ -1,0 +1,1664 @@
+diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
+index dc9b265155..9a988143b9 100644
+--- a/sdk/BUILD.gn
++++ b/sdk/BUILD.gn
+@@ -586,6 +586,11 @@
+         "objc/components/video_codec/RTCCodecSpecificInfoH264.mm",
+         "objc/components/video_codec/RTCH264ProfileLevelId.h",
+         "objc/components/video_codec/RTCH264ProfileLevelId.mm",
++        "objc/components/video_codec/RTCCodecSpecificInfoH265+Private.h",
++        "objc/components/video_codec/RTCCodecSpecificInfoH265.h",
++        "objc/components/video_codec/RTCCodecSpecificInfoH265.mm",
++        "objc/components/video_codec/RTCH265ProfileLevelId.h",
++        "objc/components/video_codec/RTCH265ProfileLevelId.mm",
+       ]
+       if (is_ios) {
+         sources += [
+@@ -1020,6 +1025,7 @@
+         "objc/Framework/Headers/WebRTC/RTCFileLogger.h",
+         "objc/Framework/Headers/WebRTC/RTCFileVideoCapturer.h",
+         "objc/Framework/Headers/WebRTC/RTCH264ProfileLevelId.h",
++        "objc/Framework/Headers/WebRTC/RTCH265ProfileLevelId.h",
+         "objc/Framework/Headers/WebRTC/RTCIceCandidate.h",
+         "objc/Framework/Headers/WebRTC/RTCIceServer.h",
+         "objc/Framework/Headers/WebRTC/RTCLegacyStatsReport.h",
+@@ -1052,6 +1058,7 @@
+         "objc/Framework/Headers/WebRTC/RTCVideoCodec.h",
+         "objc/Framework/Headers/WebRTC/RTCVideoCodecFactory.h",
+         "objc/Framework/Headers/WebRTC/RTCVideoCodecH264.h",
++        "objc/Framework/Headers/WebRTC/RTCVideoCodecH265.h",
+         "objc/Framework/Headers/WebRTC/RTCVideoCodecInfo.h",
+         "objc/Framework/Headers/WebRTC/RTCVideoDecoderVP8.h",
+         "objc/Framework/Headers/WebRTC/RTCVideoDecoderVP9.h",
+@@ -1292,13 +1299,17 @@
+           "objc/components/renderer/opengl/RTCEAGLVideoView.h",
+           "objc/components/renderer/opengl/RTCVideoViewShading.h",
+           "objc/components/video_codec/RTCCodecSpecificInfoH264.h",
++          "objc/components/video_codec/RTCCodecSpecificInfoH265.h",
+           "objc/components/video_codec/RTCDefaultVideoDecoderFactory.h",
+           "objc/components/video_codec/RTCDefaultVideoEncoderFactory.h",
+           "objc/components/video_codec/RTCH264ProfileLevelId.h",
++          "objc/components/video_codec/RTCH265ProfileLevelId.h",
+           "objc/components/video_codec/RTCVideoDecoderFactoryH264.h",
+           "objc/components/video_codec/RTCVideoDecoderH264.h",
++          "objc/components/video_codec/RTCVideoDecoderH265.h",
+           "objc/components/video_codec/RTCVideoEncoderFactoryH264.h",
+           "objc/components/video_codec/RTCVideoEncoderH264.h",
++          "objc/components/video_codec/RTCVideoEncoderH265.h",
+           "objc/components/video_frame_buffer/RTCCVPixelBuffer.h",
+           "objc/helpers/RTCCameraPreviewView.h",
+           "objc/helpers/RTCDispatcher.h",
+@@ -1484,13 +1495,17 @@
+           "objc/components/renderer/opengl/RTCNSGLVideoView.h",
+           "objc/components/renderer/opengl/RTCVideoViewShading.h",
+           "objc/components/video_codec/RTCCodecSpecificInfoH264.h",
++          "objc/components/video_codec/RTCCodecSpecificInfoH265.h",
+           "objc/components/video_codec/RTCDefaultVideoDecoderFactory.h",
+           "objc/components/video_codec/RTCDefaultVideoEncoderFactory.h",
+           "objc/components/video_codec/RTCH264ProfileLevelId.h",
++          "objc/components/video_codec/RTCH265ProfileLevelId.h",
+           "objc/components/video_codec/RTCVideoDecoderFactoryH264.h",
+           "objc/components/video_codec/RTCVideoDecoderH264.h",
++          "objc/components/video_codec/RTCVideoDecoderH265.h",
+           "objc/components/video_codec/RTCVideoEncoderFactoryH264.h",
+           "objc/components/video_codec/RTCVideoEncoderH264.h",
++          "objc/components/video_codec/RTCVideoEncoderH265.h",
+           "objc/components/video_frame_buffer/RTCCVPixelBuffer.h",
+           "objc/helpers/RTCDispatcher.h",
+         ]
+@@ -1674,6 +1689,10 @@
+         "objc/components/video_codec/RTCVideoEncoderFactoryH264.m",
+         "objc/components/video_codec/RTCVideoEncoderH264.h",
+         "objc/components/video_codec/RTCVideoEncoderH264.mm",
++        "objc/components/video_codec/RTCVideoDecoderH265.h",
++        "objc/components/video_codec/RTCVideoDecoderH265.mm",
++        "objc/components/video_codec/RTCVideoEncoderH265.h",
++        "objc/components/video_codec/RTCVideoEncoderH265.mm",
+       ]
+ 
+       configs += [
+diff --git a/sdk/objc/Framework/Headers/WebRTC/RTCH265ProfileLevelId.h b/sdk/objc/Framework/Headers/WebRTC/RTCH265ProfileLevelId.h
+new file mode 100644
+index 0000000000..4c80d2327a
+--- /dev/null
++++ b/sdk/objc/Framework/Headers/WebRTC/RTCH265ProfileLevelId.h
+@@ -0,0 +1,11 @@
++/*
++ *  Copyright 2017 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#import "components/video_codec/RTCH265ProfileLevelId.h"
+diff --git a/sdk/objc/Framework/Headers/WebRTC/RTCVideoCodecH265.h b/sdk/objc/Framework/Headers/WebRTC/RTCVideoCodecH265.h
+new file mode 100644
+index 0000000000..3402390f90
+--- /dev/null
++++ b/sdk/objc/Framework/Headers/WebRTC/RTCVideoCodecH265.h
+@@ -0,0 +1,16 @@
++/*
++ *  Copyright 2017 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#import "components/video_codec/RTCCodecSpecificInfoH265.h"
++#import "components/video_codec/RTCH265ProfileLevelId.h"
++#import "components/video_codec/RTCVideoDecoderFactoryH265.h"
++#import "components/video_codec/RTCVideoDecoderH265.h"
++#import "components/video_codec/RTCVideoEncoderFactoryH265.h"
++#import "components/video_codec/RTCVideoEncoderH265.h"
+diff --git a/sdk/objc/components/video_codec/RTCCodecSpecificInfoH265+Private.h b/sdk/objc/components/video_codec/RTCCodecSpecificInfoH265+Private.h
+new file mode 100644
+index 0000000000..ca179f34cb
+--- /dev/null
++++ b/sdk/objc/components/video_codec/RTCCodecSpecificInfoH265+Private.h
+@@ -0,0 +1,26 @@
++/*
++ *  Copyright 2017 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++/* This file is borrowed from sdk/objc/components/video_codec/RTCCodecSpecificInfoH264+Private.h */
++
++#import "RTCCodecSpecificInfoH265.h"
++
++#include "modules/video_coding/include/video_codec_interface.h"
++
++NS_ASSUME_NONNULL_BEGIN
++
++/* Interfaces for converting to/from internal C++ formats. */
++@interface RTC_OBJC_TYPE (RTCCodecSpecificInfoH265)
++()
++
++    - (webrtc::CodecSpecificInfo)nativeCodecSpecificInfo;
++
++@end
++
++NS_ASSUME_NONNULL_END
+diff --git a/sdk/objc/components/video_codec/RTCCodecSpecificInfoH265.h b/sdk/objc/components/video_codec/RTCCodecSpecificInfoH265.h
+new file mode 100644
+index 0000000000..38f0bce31c
+--- /dev/null
++++ b/sdk/objc/components/video_codec/RTCCodecSpecificInfoH265.h
+@@ -0,0 +1,28 @@
++/*
++ *  Copyright 2017 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++/* This file is borrowed from sdk/objc/components/video_codec/RTCCodecSpecificInfoH264.h. */
++
++#import <Foundation/Foundation.h>
++
++#import "RTCCodecSpecificInfo.h"
++#import "RTCMacros.h"
++
++/** Class for H265 specific config. */
++typedef NS_ENUM(NSUInteger, RTCH265PacketizationMode) {
++  RTCH265PacketizationModeNonInterleaved = 0,  // Mode 1 - STAP-A, FU-A is allowed
++  RTCH265PacketizationModeSingleNalUnit        // Mode 0 - only single NALU allowed
++};
++
++RTC_OBJC_EXPORT
++@interface RTC_OBJC_TYPE (RTCCodecSpecificInfoH265) : NSObject <RTC_OBJC_TYPE(RTCCodecSpecificInfo)>
++
++@property(nonatomic, assign) RTCH265PacketizationMode packetizationMode;
++
++@end
+\ No newline at end of file
+diff --git a/sdk/objc/components/video_codec/RTCCodecSpecificInfoH265.mm b/sdk/objc/components/video_codec/RTCCodecSpecificInfoH265.mm
+new file mode 100644
+index 0000000000..dc52eaca36
+--- /dev/null
++++ b/sdk/objc/components/video_codec/RTCCodecSpecificInfoH265.mm
+@@ -0,0 +1,29 @@
++/*
++ *  Copyright 2017 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#import "RTCCodecSpecificInfoH265+Private.h"
++
++#import "RTCH264ProfileLevelId.h"
++
++// H264 specific settings.
++@implementation RTC_OBJC_TYPE (RTCCodecSpecificInfoH265)
++
++@synthesize packetizationMode = _packetizationMode;
++
++- (webrtc::CodecSpecificInfo)nativeCodecSpecificInfo {
++  webrtc::CodecSpecificInfo codecSpecificInfo;
++  codecSpecificInfo.codecType = webrtc::kVideoCodecH265;
++  codecSpecificInfo.codecSpecific.H265.packetization_mode =
++      (webrtc::H265PacketizationMode)_packetizationMode;
++
++  return codecSpecificInfo;
++}
++
++@end
+diff --git a/sdk/objc/components/video_codec/RTCDefaultVideoDecoderFactory.m b/sdk/objc/components/video_codec/RTCDefaultVideoDecoderFactory.m
+index 4046cfedbe..f15ac48836 100644
+--- a/sdk/objc/components/video_codec/RTCDefaultVideoDecoderFactory.m
++++ b/sdk/objc/components/video_codec/RTCDefaultVideoDecoderFactory.m
+@@ -11,7 +11,9 @@
+ #import "RTCDefaultVideoDecoderFactory.h"
+ 
+ #import "RTCH264ProfileLevelId.h"
++#import "RTCH265ProfileLevelId.h"
+ #import "RTCVideoDecoderH264.h"
++#import "RTCVideoDecoderH265.h"
+ #import "api/video_codec/RTCVideoCodecConstants.h"
+ #import "api/video_codec/RTCVideoDecoderVP8.h"
+ #import "base/RTCVideoCodecInfo.h"
+@@ -49,6 +51,9 @@
+       [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecVp9Name];
+ #endif
+ 
++  RTC_OBJC_TYPE(RTCVideoCodecInfo) *h265Info = 
++      [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecH265Name];
++
+   RTCVideoCodecInfo *av1Info = [[RTCVideoCodecInfo alloc] initWithName:kRTCVideoCodecAv1Name];
+ 
+   return @[
+@@ -58,6 +63,7 @@
+ #if defined(RTC_ENABLE_VP9)
+     vp9Info,
+ #endif
++    h265Info,
+     av1Info,
+   ];
+ }
+@@ -71,6 +77,8 @@
+   } else if ([info.name isEqualToString:kRTCVideoCodecVp9Name]) {
+     return [RTC_OBJC_TYPE(RTCVideoDecoderVP9) vp9Decoder];
+ #endif
++  } else if ([info.name isEqualToString:kRTCVideoCodecH265Name]) {
++    return [[RTC_OBJC_TYPE(RTCVideoDecoderH265) alloc] init];
+   } else if ([info.name isEqualToString:kRTCVideoCodecAv1Name]) {
+     return [RTCVideoDecoderAV1 av1Decoder];
+   }
+diff --git a/sdk/objc/components/video_codec/RTCDefaultVideoEncoderFactory.m b/sdk/objc/components/video_codec/RTCDefaultVideoEncoderFactory.m
+index 35a1407f38..0fd03008d3 100644
+--- a/sdk/objc/components/video_codec/RTCDefaultVideoEncoderFactory.m
++++ b/sdk/objc/components/video_codec/RTCDefaultVideoEncoderFactory.m
+@@ -11,7 +11,9 @@
+ #import "RTCDefaultVideoEncoderFactory.h"
+ 
+ #import "RTCH264ProfileLevelId.h"
++#import "RTCH265ProfileLevelId.h"
+ #import "RTCVideoEncoderH264.h"
++#import "RTCVideoEncoderH265.h"
+ #import "api/video_codec/RTCVideoCodecConstants.h"
+ #import "api/video_codec/RTCVideoEncoderVP8.h"
+ #import "base/RTCVideoCodecInfo.h"
+@@ -51,6 +53,9 @@
+       [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecVp9Name];
+ #endif
+ 
++  RTC_OBJC_TYPE(RTCVideoCodecInfo) *h265Info =
++      [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecH265Name];
++
+   RTCVideoCodecInfo *av1Info = [[RTCVideoCodecInfo alloc] initWithName:kRTCVideoCodecAv1Name];
+ 
+   return @[
+@@ -60,6 +65,7 @@
+ #if defined(RTC_ENABLE_VP9)
+     vp9Info,
+ #endif
++    h265Info,
+     av1Info,
+   ];
+ }
+@@ -73,6 +79,8 @@
+   } else if ([info.name isEqualToString:kRTCVideoCodecVp9Name]) {
+     return [RTC_OBJC_TYPE(RTCVideoEncoderVP9) vp9Encoder];
+ #endif
++  } else if ([info.name isEqualToString:kRTCVideoCodecH265Name]) {
++     return [[RTCVideoEncoderH265 alloc] initWithCodecInfo:info];
+   } else if ([info.name isEqualToString:kRTCVideoCodecAv1Name]) {
+     return [RTCVideoEncoderAV1 av1Encoder];
+   }
+diff --git a/sdk/objc/components/video_codec/RTCH265ProfileLevelId.h b/sdk/objc/components/video_codec/RTCH265ProfileLevelId.h
+new file mode 100644
+index 0000000000..17bc34f226
+--- /dev/null
++++ b/sdk/objc/components/video_codec/RTCH265ProfileLevelId.h
+@@ -0,0 +1,16 @@
++/*
++ *  Copyright 2017 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#import <Foundation/Foundation.h>
++
++#import "RTCMacros.h"
++
++RTC_OBJC_EXPORT extern NSString *const kRTCVideoCodecH265Name;
++RTC_OBJC_EXPORT extern NSString *const kRTCLevel31Main;
+\ No newline at end of file
+diff --git a/sdk/objc/components/video_codec/RTCH265ProfileLevelId.mm b/sdk/objc/components/video_codec/RTCH265ProfileLevelId.mm
+new file mode 100644
+index 0000000000..fe9c6330c1
+--- /dev/null
++++ b/sdk/objc/components/video_codec/RTCH265ProfileLevelId.mm
+@@ -0,0 +1,18 @@
++/*
++ *  Copyright 2018 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ *
++ */
++
++#import "RTCH265ProfileLevelId.h"
++
++#include "media/base/media_constants.h"
++
++NSString *const kRTCVideoCodecH265Name = @"H265";
++// TODO(jianjunz): This is value is not correct.
++NSString *const kRTCLevel31Main = @"4d001f";
+\ No newline at end of file
+diff --git a/sdk/objc/components/video_codec/RTCVideoDecoderFactoryH265.h b/sdk/objc/components/video_codec/RTCVideoDecoderFactoryH265.h
+deleted file mode 100644
+index e69de29bb2..0000000000
+diff --git a/sdk/objc/components/video_codec/RTCVideoDecoderFactoryH265.m b/sdk/objc/components/video_codec/RTCVideoDecoderFactoryH265.m
+deleted file mode 100644
+index e69de29bb2..0000000000
+diff --git a/sdk/objc/components/video_codec/RTCVideoDecoderH265.h b/sdk/objc/components/video_codec/RTCVideoDecoderH265.h
+new file mode 100644
+index 0000000000..e5a097a59d
+--- /dev/null
++++ b/sdk/objc/components/video_codec/RTCVideoDecoderH265.h
+@@ -0,0 +1,21 @@
++/*
++ *  Copyright 2017 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#import <Foundation/Foundation.h>
++
++#import "RTCMacros.h"
++#import "RTCVideoDecoder.h"
++
++RTC_OBJC_EXPORT
++@interface RTC_OBJC_TYPE (RTCVideoDecoderH265) : NSObject <RTC_OBJC_TYPE(RTCVideoDecoder)>
++- (NSInteger)decodeData:(const uint8_t *)data
++    size:(size_t)size
++    timeStamp:(uint32_t)timeStamp;
++@end
+diff --git a/sdk/objc/components/video_codec/RTCVideoDecoderH265.mm b/sdk/objc/components/video_codec/RTCVideoDecoderH265.mm
+new file mode 100644
+index 0000000000..614f1df4ba
+--- /dev/null
++++ b/sdk/objc/components/video_codec/RTCVideoDecoderH265.mm
+@@ -0,0 +1,273 @@
++/*
++ *  Copyright (c) 2018 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ *
++ */
++
++#import "RTCVideoDecoderH265.h"
++
++#import <VideoToolbox/VideoToolbox.h>
++
++#import "base/RTCVideoFrame.h"
++#import "base/RTCVideoFrameBuffer.h"
++#import "components/video_frame_buffer/RTCCVPixelBuffer.h"
++#import "helpers.h"
++#import "helpers/scoped_cftyperef.h"
++
++#include "modules/video_coding/include/video_error_codes.h"
++#include "rtc_base/checks.h"
++#include "rtc_base/logging.h"
++#include "rtc_base/time_utils.h"
++#include "sdk/objc/components/video_codec/nalu_rewriter.h"
++
++// Struct that we pass to the decoder per frame to decode. We receive it again
++// in the decoder callback.
++struct RTCH265FrameDecodeParams {
++  RTCH265FrameDecodeParams(RTCVideoDecoderCallback cb, int64_t ts)
++      : callback(cb), timestamp(ts) {}
++  RTCVideoDecoderCallback callback;
++  int64_t timestamp;
++};
++
++// This is the callback function that VideoToolbox calls when decode is
++// complete.
++void h265DecompressionOutputCallback(void* decoder,
++                                     void* params,
++                                     OSStatus status,
++                                     VTDecodeInfoFlags infoFlags,
++                                     CVImageBufferRef imageBuffer,
++                                     CMTime timestamp,
++                                     CMTime duration) {
++  std::unique_ptr<RTCH265FrameDecodeParams> decodeParams(
++      reinterpret_cast<RTCH265FrameDecodeParams*>(params));
++  if (status != noErr) {
++    RTC_LOG(LS_ERROR) << "Failed to decode frame. Status: " << status;
++    return;
++  }
++  // TODO(tkchin): Handle CVO properly.
++  RTC_OBJC_TYPE(RTCCVPixelBuffer)* frameBuffer =
++      [[RTC_OBJC_TYPE(RTCCVPixelBuffer) alloc] initWithPixelBuffer:imageBuffer];
++  RTC_OBJC_TYPE(RTCVideoFrame)* decodedFrame = [[RTC_OBJC_TYPE(RTCVideoFrame) alloc]
++      initWithBuffer:frameBuffer
++            rotation:RTCVideoRotation_0
++         timeStampNs:CMTimeGetSeconds(timestamp) * rtc::kNumNanosecsPerSec];
++  decodedFrame.timeStamp = decodeParams->timestamp;
++  decodeParams->callback(decodedFrame);
++}
++
++// Decoder.
++@implementation RTC_OBJC_TYPE (RTCVideoDecoderH265) {
++  CMVideoFormatDescriptionRef _videoFormat;
++  VTDecompressionSessionRef _decompressionSession;
++  RTCVideoDecoderCallback _callback;
++  OSStatus _error;
++}
++
++- (instancetype)init {
++  if (self = [super init]) {
++  }
++
++  return self;
++}
++
++- (void)dealloc {
++  [self destroyDecompressionSession];
++  [self setVideoFormat:nullptr];
++}
++
++- (NSInteger)startDecodeWithNumberOfCores:(int)numberOfCores {
++  return WEBRTC_VIDEO_CODEC_OK;
++}
++
++- (NSInteger)decode:(RTC_OBJC_TYPE(RTCEncodedImage) *)inputImage
++          missingFrames:(BOOL)missingFrames
++      codecSpecificInfo:(__nullable id<RTC_OBJC_TYPE(RTCCodecSpecificInfo)>)info
++           renderTimeMs:(int64_t)renderTimeMs {
++  RTC_DCHECK(inputImage.buffer);
++  return [self decodeData: (uint8_t *)inputImage.buffer.bytes size: inputImage.buffer.length timeStamp: inputImage.timeStamp];
++}
++
++- (NSInteger)decodeData:(const uint8_t *)data size:(size_t)size timeStamp:(uint32_t)timeStamp {
++  if (_error != noErr) {
++    RTC_LOG(LS_WARNING) << "Last frame decode failed.";
++    _error = noErr;
++    return WEBRTC_VIDEO_CODEC_ERROR;
++  }
++
++  rtc::ScopedCFTypeRef<CMVideoFormatDescriptionRef> inputFormat =
++      rtc::ScopedCF(webrtc::CreateH265VideoFormatDescription(
++          (uint8_t*)data, size));
++  if (inputFormat) {
++    CMVideoDimensions dimensions =
++        CMVideoFormatDescriptionGetDimensions(inputFormat.get());
++    RTC_LOG(LS_INFO) << "Resolution: " << dimensions.width << " x "
++                     << dimensions.height;
++    // Check if the video format has changed, and reinitialize decoder if
++    // needed.
++    if (!CMFormatDescriptionEqual(inputFormat.get(), _videoFormat)) {
++      [self setVideoFormat:inputFormat.get()];
++      int resetDecompressionSessionError = [self resetDecompressionSession];
++      if (resetDecompressionSessionError != WEBRTC_VIDEO_CODEC_OK) {
++        return resetDecompressionSessionError;
++      }
++    }
++  }
++  if (!_videoFormat) {
++    // We received a frame but we don't have format information so we can't
++    // decode it.
++    // This can happen after backgrounding. We need to wait for the next
++    // sps/pps before we can resume so we request a keyframe by returning an
++    // error.
++    RTC_LOG(LS_WARNING) << "Missing video format. Frame with sps/pps required.";
++    return WEBRTC_VIDEO_CODEC_ERROR;
++  }
++  CMSampleBufferRef sampleBuffer = nullptr;
++  if (!webrtc::H265AnnexBBufferToCMSampleBuffer(
++          (uint8_t*)data, size,
++          _videoFormat, &sampleBuffer)) {
++    return WEBRTC_VIDEO_CODEC_ERROR;
++  }
++  RTC_DCHECK(sampleBuffer);
++  VTDecodeFrameFlags decodeFlags =
++      kVTDecodeFrame_EnableAsynchronousDecompression;
++  std::unique_ptr<RTCH265FrameDecodeParams> frameDecodeParams;
++  frameDecodeParams.reset(
++      new RTCH265FrameDecodeParams(_callback, timeStamp));
++  OSStatus status = VTDecompressionSessionDecodeFrame(
++      _decompressionSession, sampleBuffer, decodeFlags,
++      frameDecodeParams.release(), nullptr);
++#if defined(WEBRTC_IOS)
++  // Re-initialize the decoder if we have an invalid session while the app is
++  // active and retry the decode request.
++  if (status == kVTInvalidSessionErr &&
++      [self resetDecompressionSession] == WEBRTC_VIDEO_CODEC_OK) {
++    frameDecodeParams.reset(
++        new RTCH265FrameDecodeParams(_callback, timeStamp));
++    status = VTDecompressionSessionDecodeFrame(
++        _decompressionSession, sampleBuffer, decodeFlags,
++        frameDecodeParams.release(), nullptr);
++  }
++#endif
++  CFRelease(sampleBuffer);
++  if (status != noErr) {
++    RTC_LOG(LS_ERROR) << "Failed to decode frame with code: " << status;
++    return WEBRTC_VIDEO_CODEC_ERROR;
++  }
++  return WEBRTC_VIDEO_CODEC_OK;
++}
++
++- (void)setCallback:(RTCVideoDecoderCallback)callback {
++  _callback = callback;
++}
++
++- (NSInteger)releaseDecoder {
++  // Need to invalidate the session so that callbacks no longer occur and it
++  // is safe to null out the callback.
++  [self destroyDecompressionSession];
++  [self setVideoFormat:nullptr];
++  _callback = nullptr;
++  return WEBRTC_VIDEO_CODEC_OK;
++}
++
++#pragma mark - Private
++
++- (int)resetDecompressionSession {
++  [self destroyDecompressionSession];
++
++  // Need to wait for the first SPS to initialize decoder.
++  if (!_videoFormat) {
++    return WEBRTC_VIDEO_CODEC_OK;
++  }
++
++  // Set keys for OpenGL and IOSurface compatibilty, which makes the encoder
++  // create pixel buffers with GPU backed memory. The intent here is to pass
++  // the pixel buffers directly so we avoid a texture upload later during
++  // rendering. This currently is moot because we are converting back to an
++  // I420 frame after decode, but eventually we will be able to plumb
++  // CVPixelBuffers directly to the renderer.
++  // TODO(tkchin): Maybe only set OpenGL/IOSurface keys if we know that that
++  // we can pass CVPixelBuffers as native handles in decoder output.
++  static size_t const attributesSize = 3;
++  CFTypeRef keys[attributesSize] = {
++#if defined(WEBRTC_IOS)
++    kCVPixelBufferOpenGLESCompatibilityKey,
++#elif defined(WEBRTC_MAC)
++    kCVPixelBufferOpenGLCompatibilityKey,
++#endif
++    kCVPixelBufferIOSurfacePropertiesKey,
++    kCVPixelBufferPixelFormatTypeKey
++  };
++  CFDictionaryRef ioSurfaceValue = CreateCFTypeDictionary(nullptr, nullptr, 0);
++  int64_t nv12type = kCVPixelFormatType_420YpCbCr8BiPlanarFullRange;
++  CFNumberRef pixelFormat =
++      CFNumberCreate(nullptr, kCFNumberLongType, &nv12type);
++  CFTypeRef values[attributesSize] = {kCFBooleanTrue, ioSurfaceValue,
++                                      pixelFormat};
++  CFDictionaryRef attributes =
++      CreateCFTypeDictionary(keys, values, attributesSize);
++  if (ioSurfaceValue) {
++    CFRelease(ioSurfaceValue);
++    ioSurfaceValue = nullptr;
++  }
++  if (pixelFormat) {
++    CFRelease(pixelFormat);
++    pixelFormat = nullptr;
++  }
++  VTDecompressionOutputCallbackRecord record = {
++      h265DecompressionOutputCallback,
++      nullptr,
++  };
++  OSStatus status =
++      VTDecompressionSessionCreate(nullptr, _videoFormat, nullptr, attributes,
++                                   &record, &_decompressionSession);
++  CFRelease(attributes);
++  if (status != noErr) {
++    [self destroyDecompressionSession];
++    return WEBRTC_VIDEO_CODEC_ERROR;
++  }
++  [self configureDecompressionSession];
++
++  return WEBRTC_VIDEO_CODEC_OK;
++}
++
++- (void)configureDecompressionSession {
++  RTC_DCHECK(_decompressionSession);
++#if defined(WEBRTC_IOS)
++  VTSessionSetProperty(_decompressionSession, kVTDecompressionPropertyKey_RealTime, kCFBooleanTrue);
++#endif
++}
++
++- (void)destroyDecompressionSession {
++  if (_decompressionSession) {
++#if defined(WEBRTC_IOS)
++    VTDecompressionSessionWaitForAsynchronousFrames(_decompressionSession);
++#endif
++    VTDecompressionSessionInvalidate(_decompressionSession);
++    CFRelease(_decompressionSession);
++    _decompressionSession = nullptr;
++  }
++}
++
++- (void)setVideoFormat:(CMVideoFormatDescriptionRef)videoFormat {
++  if (_videoFormat == videoFormat) {
++    return;
++  }
++  if (_videoFormat) {
++    CFRelease(_videoFormat);
++  }
++  _videoFormat = videoFormat;
++  if (_videoFormat) {
++    CFRetain(_videoFormat);
++  }
++}
++
++- (NSString*)implementationName {
++  return @"VideoToolbox";
++}
++
++@end
+\ No newline at end of file
+diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderFactoryH265.h b/sdk/objc/components/video_codec/RTCVideoEncoderFactoryH265.h
+deleted file mode 100644
+index e69de29bb2..0000000000
+diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderFactoryH265.m b/sdk/objc/components/video_codec/RTCVideoEncoderFactoryH265.m
+deleted file mode 100644
+index e69de29bb2..0000000000
+diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderH265.h b/sdk/objc/components/video_codec/RTCVideoEncoderH265.h
+new file mode 100644
+index 0000000000..3f5f438a5f
+--- /dev/null
++++ b/sdk/objc/components/video_codec/RTCVideoEncoderH265.h
+@@ -0,0 +1,22 @@
++/*
++ *  Copyright 2017 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#import <Foundation/Foundation.h>
++
++#import "RTCMacros.h"
++#import "RTCVideoCodecInfo.h"
++#import "RTCVideoEncoder.h"
++
++RTC_OBJC_EXPORT
++@interface RTC_OBJC_TYPE (RTCVideoEncoderH265) : NSObject <RTC_OBJC_TYPE(RTCVideoEncoder)>
++
++- (instancetype)initWithCodecInfo:(RTC_OBJC_TYPE(RTCVideoCodecInfo) *)codecInfo;
++
++@end
+diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderH265.mm b/sdk/objc/components/video_codec/RTCVideoEncoderH265.mm
+new file mode 100644
+index 0000000000..9dbfd3e2ef
+--- /dev/null
++++ b/sdk/objc/components/video_codec/RTCVideoEncoderH265.mm
+@@ -0,0 +1,585 @@
++/*
++ *  Copyright (c) 2018 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ *
++ */
++
++#import "RTCVideoEncoderH265.h"
++
++#import <VideoToolbox/VideoToolbox.h>
++#include <vector>
++
++#import "RTCCodecSpecificInfoH265.h"
++#import "api/peerconnection/RTCRtpFragmentationHeader+Private.h"
++#import "api/peerconnection/RTCVideoCodecInfo+Private.h"
++#import "base/RTCI420Buffer.h"
++#import "base/RTCVideoFrame.h"
++#import "base/RTCVideoFrameBuffer.h"
++#import "components/video_frame_buffer/RTCCVPixelBuffer.h"
++#import "helpers.h"
++#if defined(WEBRTC_IOS)
++#import "helpers/UIDevice+RTCDevice.h"
++#endif
++
++#include "common_video/include/bitrate_adjuster.h"
++#include "libyuv/convert_from.h"
++#include "modules/include/module_common_types.h"
++#include "modules/video_coding/include/video_error_codes.h"
++#include "rtc_base/buffer.h"
++#include "rtc_base/logging.h"
++#include "rtc_base/time_utils.h"
++#include "sdk/objc/Framework/Classes/VideoToolbox/nalu_rewriter.h"
++#include "system_wrappers/include/clock.h"
++
++@interface RTC_OBJC_TYPE (RTCVideoEncoderH265) ()
++
++- (void)frameWasEncoded:(OSStatus)status
++                  flags:(VTEncodeInfoFlags)infoFlags
++           sampleBuffer:(CMSampleBufferRef)sampleBuffer
++                  width:(int32_t)width
++                 height:(int32_t)height
++           renderTimeMs:(int64_t)renderTimeMs
++              timestamp:(uint32_t)timestamp
++               rotation:(RTCVideoRotation)rotation;
++
++@end
++
++namespace {  // anonymous namespace
++
++// The ratio between kVTCompressionPropertyKey_DataRateLimits and
++// kVTCompressionPropertyKey_AverageBitRate. The data rate limit is set higher
++// than the average bit rate to avoid undershooting the target.
++const float kLimitToAverageBitRateFactor = 1.5f;
++// These thresholds deviate from the default h265 QP thresholds, as they
++// have been found to work better on devices that support VideoToolbox
++const int kLowh265QpThreshold = 28;
++const int kHighh265QpThreshold = 39;
++
++// Struct that we pass to the encoder per frame to encode. We receive it again
++// in the encoder callback.
++struct RTCFrameEncodeParams {
++  RTCFrameEncodeParams(RTC_OBJC_TYPE(RTCVideoEncoderH265) * e,
++                       int32_t w,
++                       int32_t h,
++                       int64_t rtms,
++                       uint32_t ts,
++                       RTCVideoRotation r)
++      : encoder(e),
++        width(w),
++        height(h),
++        render_time_ms(rtms),
++        timestamp(ts),
++        rotation(r) {}
++
++  RTC_OBJC_TYPE(RTCVideoEncoderH265) * encoder;
++  int32_t width;
++  int32_t height;
++  int64_t render_time_ms;
++  uint32_t timestamp;
++  RTCVideoRotation rotation;
++};
++
++// We receive I420Frames as input, but we need to feed CVPixelBuffers into the
++// encoder. This performs the copy and format conversion.
++// TODO(tkchin): See if encoder will accept i420 frames and compare performance.
++bool CopyVideoFrameToPixelBuffer(id<RTC_OBJC_TYPE(RTCI420Buffer)> frameBuffer,
++                                 CVPixelBufferRef pixelBuffer) {
++  RTC_DCHECK(pixelBuffer);
++  RTC_DCHECK_EQ(CVPixelBufferGetPixelFormatType(pixelBuffer),
++                kCVPixelFormatType_420YpCbCr8BiPlanarFullRange);
++  RTC_DCHECK_EQ(CVPixelBufferGetHeightOfPlane(pixelBuffer, 0),
++                frameBuffer.height);
++  RTC_DCHECK_EQ(CVPixelBufferGetWidthOfPlane(pixelBuffer, 0),
++                frameBuffer.width);
++
++  CVReturn cvRet = CVPixelBufferLockBaseAddress(pixelBuffer, 0);
++  if (cvRet != kCVReturnSuccess) {
++    RTC_LOG(LS_ERROR) << "Failed to lock base address: " << cvRet;
++    return false;
++  }
++
++  uint8_t* dstY = reinterpret_cast<uint8_t*>(
++      CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 0));
++  int dstStrideY = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 0);
++  uint8_t* dstUV = reinterpret_cast<uint8_t*>(
++      CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 1));
++  int dstStrideUV = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 1);
++  // Convert I420 to NV12.
++  int ret = libyuv::I420ToNV12(
++      frameBuffer.dataY, frameBuffer.strideY, frameBuffer.dataU,
++      frameBuffer.strideU, frameBuffer.dataV, frameBuffer.strideV, dstY,
++      dstStrideY, dstUV, dstStrideUV, frameBuffer.width, frameBuffer.height);
++  CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
++  if (ret) {
++    RTC_LOG(LS_ERROR) << "Error converting I420 VideoFrame to NV12 :" << ret;
++    return false;
++  }
++  return true;
++}
++
++CVPixelBufferRef CreatePixelBuffer(CVPixelBufferPoolRef pixel_buffer_pool) {
++  if (!pixel_buffer_pool) {
++    RTC_LOG(LS_ERROR) << "Failed to get pixel buffer pool.";
++    return nullptr;
++  }
++  CVPixelBufferRef pixel_buffer;
++  CVReturn ret = CVPixelBufferPoolCreatePixelBuffer(nullptr, pixel_buffer_pool,
++                                                    &pixel_buffer);
++  if (ret != kCVReturnSuccess) {
++    RTC_LOG(LS_ERROR) << "Failed to create pixel buffer: " << ret;
++    // We probably want to drop frames here, since failure probably means
++    // that the pool is empty.
++    return nullptr;
++  }
++  return pixel_buffer;
++}
++
++// This is the callback function that VideoToolbox calls when encode is
++// complete. From inspection this happens on its own queue.
++void compressionOutputCallback(void* encoder,
++                               void* params,
++                               OSStatus status,
++                               VTEncodeInfoFlags infoFlags,
++                               CMSampleBufferRef sampleBuffer)
++    API_AVAILABLE(ios(11.0)) {
++  RTC_CHECK(params);
++  std::unique_ptr<RTCFrameEncodeParams> encodeParams(
++      reinterpret_cast<RTCFrameEncodeParams*>(params));
++  RTC_CHECK(encodeParams->encoder);
++  [encodeParams->encoder frameWasEncoded:status
++                                   flags:infoFlags
++                            sampleBuffer:sampleBuffer
++                                   width:encodeParams->width
++                                  height:encodeParams->height
++                            renderTimeMs:encodeParams->render_time_ms
++                               timestamp:encodeParams->timestamp
++                                rotation:encodeParams->rotation];
++}
++}  // namespace
++
++@implementation RTC_OBJC_TYPE(RTCVideoEncoderH265) {
++  RTC_OBJC_TYPE(RTCVideoCodecInfo) * _codecInfo;
++  std::unique_ptr<webrtc::BitrateAdjuster> _bitrateAdjuster;
++  uint32_t _targetBitrateBps;
++  uint32_t _encoderBitrateBps;
++  CFStringRef _profile;
++  RTCVideoEncoderCallback _callback;
++  int32_t _width;
++  int32_t _height;
++  VTCompressionSessionRef _compressionSession;
++  RTCVideoCodecMode _mode;
++  int framesLeft;
++
++  std::vector<uint8_t> _nv12ScaleBuffer;
++}
++
++// .5 is set as a mininum to prevent overcompensating for large temporary
++// overshoots. We don't want to degrade video quality too badly.
++// .95 is set to prevent oscillations. When a lower bitrate is set on the
++// encoder than previously set, its output seems to have a brief period of
++// drastically reduced bitrate, so we want to avoid that. In steady state
++// conditions, 0.95 seems to give us better overall bitrate over long periods
++// of time.
++- (instancetype)initWithCodecInfo:(RTC_OBJC_TYPE(RTCVideoCodecInfo) *)codecInfo {
++  if (self = [super init]) {
++    _codecInfo = codecInfo;
++    _bitrateAdjuster.reset(new webrtc::BitrateAdjuster(.5, .95));
++    RTC_CHECK([codecInfo.name isEqualToString:@"H265"]);
++  }
++  return self;
++}
++
++- (void)dealloc {
++  [self destroyCompressionSession];
++}
++
++- (NSInteger)startEncodeWithSettings:(RTC_OBJC_TYPE(RTCVideoEncoderSettings) *)settings
++                       numberOfCores:(int)numberOfCores {
++  RTC_DCHECK(settings);
++  RTC_DCHECK([settings.name isEqualToString:@"H265"]);
++
++  _width = settings.width;
++  _height = settings.height;
++  _mode = settings.mode;
++
++  // We can only set average bitrate on the HW encoder.
++  _targetBitrateBps = settings.startBitrate;
++  _bitrateAdjuster->SetTargetBitrateBps(_targetBitrateBps);
++
++  return [self resetCompressionSession];
++}
++
++- (NSInteger)encode:(RTC_OBJC_TYPE(RTCVideoFrame) *)frame
++    codecSpecificInfo:(nullable id<RTC_OBJC_TYPE(RTCCodecSpecificInfo)>)codecSpecificInfo
++           frameTypes:(NSArray<NSNumber*>*)frameTypes {
++  RTC_DCHECK_EQ(frame.width, _width);
++  RTC_DCHECK_EQ(frame.height, _height);
++  if (!_callback || !_compressionSession) {
++    return WEBRTC_VIDEO_CODEC_UNINITIALIZED;
++  }
++  BOOL isKeyframeRequired = NO;
++
++  // Get a pixel buffer from the pool and copy frame data over.
++  CVPixelBufferPoolRef pixelBufferPool =
++      VTCompressionSessionGetPixelBufferPool(_compressionSession);
++
++#if defined(WEBRTC_IOS)
++  if (!pixelBufferPool) {
++    // Kind of a hack. On backgrounding, the compression session seems to get
++    // invalidated, which causes this pool call to fail when the application
++    // is foregrounded and frames are being sent for encoding again.
++    // Resetting the session when this happens fixes the issue.
++    // In addition we request a keyframe so video can recover quickly.
++    [self resetCompressionSession];
++    pixelBufferPool =
++        VTCompressionSessionGetPixelBufferPool(_compressionSession);
++    isKeyframeRequired = YES;
++    RTC_LOG(LS_INFO) << "Resetting compression session due to invalid pool.";
++  }
++#endif
++
++  CVPixelBufferRef pixelBuffer = nullptr;
++  if ([frame.buffer isKindOfClass:[RTC_OBJC_TYPE(RTCCVPixelBuffer) class]]) {
++    // Native frame buffer
++    RTC_OBJC_TYPE(RTCCVPixelBuffer) *rtcPixelBuffer =
++        (RTC_OBJC_TYPE(RTCCVPixelBuffer) *)frame.buffer;
++    if (![rtcPixelBuffer requiresCropping]) {
++      // This pixel buffer might have a higher resolution than what the
++      // compression session is configured to. The compression session can
++      // handle that and will output encoded frames in the configured
++      // resolution regardless of the input pixel buffer resolution.
++      pixelBuffer = rtcPixelBuffer.pixelBuffer;
++      CVBufferRetain(pixelBuffer);
++    } else {
++      // Cropping required, we need to crop and scale to a new pixel buffer.
++      pixelBuffer = CreatePixelBuffer(pixelBufferPool);
++      if (!pixelBuffer) {
++        return WEBRTC_VIDEO_CODEC_ERROR;
++      }
++      int dstWidth = CVPixelBufferGetWidth(pixelBuffer);
++      int dstHeight = CVPixelBufferGetHeight(pixelBuffer);
++      if ([rtcPixelBuffer requiresScalingToWidth:dstWidth height:dstHeight]) {
++        int size =
++            [rtcPixelBuffer bufferSizeForCroppingAndScalingToWidth:dstWidth
++                                                            height:dstHeight];
++        _nv12ScaleBuffer.resize(size);
++      } else {
++        _nv12ScaleBuffer.clear();
++      }
++      _nv12ScaleBuffer.shrink_to_fit();
++      if (![rtcPixelBuffer cropAndScaleTo:pixelBuffer
++                           withTempBuffer:_nv12ScaleBuffer.data()]) {
++        return WEBRTC_VIDEO_CODEC_ERROR;
++      }
++    }
++  }
++
++  if (!pixelBuffer) {
++    // We did not have a native frame buffer
++    pixelBuffer = CreatePixelBuffer(pixelBufferPool);
++    if (!pixelBuffer) {
++      return WEBRTC_VIDEO_CODEC_ERROR;
++    }
++    RTC_DCHECK(pixelBuffer);
++    if (!CopyVideoFrameToPixelBuffer([frame.buffer toI420], pixelBuffer)) {
++      RTC_LOG(LS_ERROR) << "Failed to copy frame data.";
++      CVBufferRelease(pixelBuffer);
++      return WEBRTC_VIDEO_CODEC_ERROR;
++    }
++  }
++
++  // Check if we need a keyframe.
++  if (!isKeyframeRequired && frameTypes) {
++    for (NSNumber* frameType in frameTypes) {
++      if ((RTCFrameType)frameType.intValue == RTCFrameTypeVideoFrameKey) {
++        isKeyframeRequired = YES;
++        break;
++      }
++    }
++  }
++
++  CMTime presentationTimeStamp =
++      CMTimeMake(frame.timeStampNs / rtc::kNumNanosecsPerMillisec, 1000);
++  CFDictionaryRef frameProperties = nullptr;
++  if (isKeyframeRequired) {
++    CFTypeRef keys[] = {kVTEncodeFrameOptionKey_ForceKeyFrame};
++    CFTypeRef values[] = {kCFBooleanTrue};
++    frameProperties = CreateCFTypeDictionary(keys, values, 1);
++  }
++
++  std::unique_ptr<RTCFrameEncodeParams> encodeParams;
++  encodeParams.reset(new RTCFrameEncodeParams(
++      self, _width, _height, frame.timeStampNs / rtc::kNumNanosecsPerMillisec,
++      frame.timeStamp, frame.rotation));
++
++  // Update the bitrate if needed.
++  [self setBitrateBps:_bitrateAdjuster->GetAdjustedBitrateBps()];
++
++  OSStatus status = VTCompressionSessionEncodeFrame(
++      _compressionSession, pixelBuffer, presentationTimeStamp, kCMTimeInvalid,
++      frameProperties, encodeParams.release(), nullptr);
++  if (frameProperties) {
++    CFRelease(frameProperties);
++  }
++  if (pixelBuffer) {
++    CVBufferRelease(pixelBuffer);
++  }
++  if (status != noErr) {
++    RTC_LOG(LS_ERROR) << "Failed to encode frame with code: " << status;
++    return WEBRTC_VIDEO_CODEC_ERROR;
++  }
++  return WEBRTC_VIDEO_CODEC_OK;
++}
++
++- (void)setCallback:(RTCVideoEncoderCallback)callback {
++  _callback = callback;
++}
++
++- (int)setBitrate:(uint32_t)bitrateKbit framerate:(uint32_t)framerate {
++  _targetBitrateBps = 1000 * bitrateKbit;
++  _bitrateAdjuster->SetTargetBitrateBps(_targetBitrateBps);
++  [self setBitrateBps:_bitrateAdjuster->GetAdjustedBitrateBps()];
++  return WEBRTC_VIDEO_CODEC_OK;
++}
++
++#pragma mark - Private
++
++- (NSInteger)releaseEncoder {
++  // Need to destroy so that the session is invalidated and won't use the
++  // callback anymore. Do not remove callback until the session is invalidated
++  // since async encoder callbacks can occur until invalidation.
++  [self destroyCompressionSession];
++  _callback = nullptr;
++  return WEBRTC_VIDEO_CODEC_OK;
++}
++
++- (int)resetCompressionSession {
++  [self destroyCompressionSession];
++
++  // Set source image buffer attributes. These attributes will be present on
++  // buffers retrieved from the encoder's pixel buffer pool.
++  const size_t attributesSize = 3;
++  CFTypeRef keys[attributesSize] = {
++#if defined(WEBRTC_IOS)
++    kCVPixelBufferOpenGLESCompatibilityKey,
++#elif defined(WEBRTC_MAC)
++    kCVPixelBufferOpenGLCompatibilityKey,
++#endif
++    kCVPixelBufferIOSurfacePropertiesKey,
++    kCVPixelBufferPixelFormatTypeKey
++  };
++  CFDictionaryRef ioSurfaceValue = CreateCFTypeDictionary(nullptr, nullptr, 0);
++  int64_t nv12type = kCVPixelFormatType_420YpCbCr8BiPlanarFullRange;
++  CFNumberRef pixelFormat =
++      CFNumberCreate(nullptr, kCFNumberLongType, &nv12type);
++  CFTypeRef values[attributesSize] = {kCFBooleanTrue, ioSurfaceValue,
++                                      pixelFormat};
++  CFDictionaryRef sourceAttributes =
++      CreateCFTypeDictionary(keys, values, attributesSize);
++  if (ioSurfaceValue) {
++    CFRelease(ioSurfaceValue);
++    ioSurfaceValue = nullptr;
++  }
++  if (pixelFormat) {
++    CFRelease(pixelFormat);
++    pixelFormat = nullptr;
++  }
++  CFMutableDictionaryRef encoder_specs = CFDictionaryCreateMutable(nullptr, 2, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
++#if defined(WEBRTC_MAC) && !defined(WEBRTC_IOS)
++  CFDictionarySetValue(encoder_specs, kVTVideoEncoderSpecification_EnableHardwareAcceleratedVideoEncoder, kCFBooleanTrue);
++#endif
++  OSStatus status = VTCompressionSessionCreate(
++      nullptr,  // use default allocator
++      _width, _height, kCMVideoCodecType_HEVC,
++      encoder_specs,  // use hardware accelerated encoder if available
++      sourceAttributes,
++      nullptr,  // use default compressed data allocator
++      compressionOutputCallback, nullptr, &_compressionSession);
++  if (sourceAttributes) {
++    CFRelease(sourceAttributes);
++    sourceAttributes = nullptr;
++  }
++  if (encoder_specs) {
++    CFRelease(encoder_specs);
++    encoder_specs = nullptr;
++  }
++  if (status != noErr) {
++    RTC_LOG(LS_ERROR) << "Failed to create compression session: " << status;
++    return WEBRTC_VIDEO_CODEC_ERROR;
++  }
++#if defined(WEBRTC_MAC) && !defined(WEBRTC_IOS)
++  CFBooleanRef hwaccl_enabled = nullptr;
++  status = VTSessionCopyProperty(
++      _compressionSession,
++      kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder, nullptr,
++      &hwaccl_enabled);
++  if (status == noErr && (CFBooleanGetValue(hwaccl_enabled))) {
++    RTC_LOG(LS_INFO) << "Compression session created with hw accl enabled";
++  } else {
++    RTC_LOG(LS_INFO) << "Compression session created with hw accl disabled";
++  }
++#endif
++  [self configureCompressionSession];
++  return WEBRTC_VIDEO_CODEC_OK;
++}
++
++- (void)configureCompressionSession {
++  RTC_DCHECK(_compressionSession);
++  SetVTSessionProperty(_compressionSession, kVTCompressionPropertyKey_RealTime, false);
++  // (check:tnoho)
++  // SetVTSessionProperty(_compressionSession,
++  // kVTCompressionPropertyKey_ProfileLevel, _profile);
++  SetVTSessionProperty(_compressionSession, kVTCompressionPropertyKey_AllowFrameReordering, false);
++  [self setEncoderBitrateBps:_targetBitrateBps];
++
++  // Set a relatively large value for keyframe emission (7200 frames or 4 minutes).
++  SetVTSessionProperty(_compressionSession, kVTCompressionPropertyKey_MaxKeyFrameInterval, 7200);
++  SetVTSessionProperty(
++      _compressionSession, kVTCompressionPropertyKey_MaxKeyFrameIntervalDuration, 240);
++  OSStatus status =
++      VTCompressionSessionPrepareToEncodeFrames(_compressionSession);
++  if (status != noErr) {
++    RTC_LOG(LS_ERROR) << "Compression session failed to prepare encode frames.";
++  }
++}
++
++- (void)destroyCompressionSession {
++  if (_compressionSession) {
++    VTCompressionSessionInvalidate(_compressionSession);
++    CFRelease(_compressionSession);
++    _compressionSession = nullptr;
++  }
++}
++
++- (NSString*)implementationName {
++  return @"VideoToolbox";
++}
++
++- (void)setBitrateBps:(uint32_t)bitrateBps {
++  if (_encoderBitrateBps != bitrateBps) {
++    [self setEncoderBitrateBps:bitrateBps];
++  }
++}
++
++- (void)setEncoderBitrateBps:(uint32_t)bitrateBps {
++  if (_compressionSession) {
++    SetVTSessionProperty(_compressionSession, kVTCompressionPropertyKey_AverageBitRate, bitrateBps);
++
++    // TODO(tkchin): Add a helper method to set array value.
++    int64_t dataLimitBytesPerSecondValue =
++        static_cast<int64_t>(bitrateBps * kLimitToAverageBitRateFactor / 8);
++    CFNumberRef bytesPerSecond =
++        CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type,
++                       &dataLimitBytesPerSecondValue);
++    int64_t oneSecondValue = 1;
++    CFNumberRef oneSecond = CFNumberCreate(
++        kCFAllocatorDefault, kCFNumberSInt64Type, &oneSecondValue);
++    const void* nums[2] = {bytesPerSecond, oneSecond};
++    CFArrayRef dataRateLimits =
++        CFArrayCreate(nullptr, nums, 2, &kCFTypeArrayCallBacks);
++    OSStatus status = VTSessionSetProperty(
++        _compressionSession, kVTCompressionPropertyKey_DataRateLimits,
++        dataRateLimits);
++    if (bytesPerSecond) {
++      CFRelease(bytesPerSecond);
++    }
++    if (oneSecond) {
++      CFRelease(oneSecond);
++    }
++    if (dataRateLimits) {
++      CFRelease(dataRateLimits);
++    }
++    if (status != noErr) {
++      RTC_LOG(LS_ERROR) << "Failed to set data rate limit";
++    }
++
++    _encoderBitrateBps = bitrateBps;
++  }
++}
++
++- (void)frameWasEncoded:(OSStatus)status
++                  flags:(VTEncodeInfoFlags)infoFlags
++           sampleBuffer:(CMSampleBufferRef)sampleBuffer
++                  width:(int32_t)width
++                 height:(int32_t)height
++           renderTimeMs:(int64_t)renderTimeMs
++              timestamp:(uint32_t)timestamp
++               rotation:(RTCVideoRotation)rotation {
++  if (status != noErr) {
++    RTC_LOG(LS_ERROR) << "h265 encode failed.";
++    return;
++  }
++  if (infoFlags & kVTEncodeInfo_FrameDropped) {
++    RTC_LOG(LS_INFO) << "h265 encoder dropped a frame.";
++    return;
++  }
++
++  BOOL isKeyframe = NO;
++  CFArrayRef attachments =
++      CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, 0);
++  if (attachments != nullptr && CFArrayGetCount(attachments)) {
++    CFDictionaryRef attachment =
++        static_cast<CFDictionaryRef>(CFArrayGetValueAtIndex(attachments, 0));
++    isKeyframe =
++        !CFDictionaryContainsKey(attachment, kCMSampleAttachmentKey_NotSync);
++  }
++
++  if (isKeyframe) {
++    RTC_LOG(LS_INFO) << "Generated keyframe";
++  }
++
++  // Convert the sample buffer into a buffer suitable for RTP packetization.
++  // TODO(tkchin): Allocate buffers through a pool.
++  std::unique_ptr<rtc::Buffer> buffer(new rtc::Buffer());
++  RTC_OBJC_TYPE(RTCRtpFragmentationHeader) * header;
++  {
++    std::unique_ptr<webrtc::RTPFragmentationHeader> header_cpp;
++    bool result = H265CMSampleBufferToAnnexBBuffer(sampleBuffer, isKeyframe,
++                                                   buffer.get(), &header_cpp);
++    header = [[RTC_OBJC_TYPE(RTCRtpFragmentationHeader) alloc]
++        initWithNativeFragmentationHeader:header_cpp.get()];
++    if (!result) {
++      RTC_LOG(LS_ERROR) << "Failed to convert sample buffer.";
++      return;
++    }
++  }
++
++  RTC_OBJC_TYPE(RTCEncodedImage)* frame = [[RTC_OBJC_TYPE(RTCEncodedImage) alloc] init];
++  frame.buffer = [NSData dataWithBytesNoCopy:buffer->data()
++                                      length:buffer->size()
++                                freeWhenDone:NO];
++  frame.encodedWidth = width;
++  frame.encodedHeight = height;
++  frame.completeFrame = YES;
++  frame.frameType =
++      isKeyframe ? RTCFrameTypeVideoFrameKey : RTCFrameTypeVideoFrameDelta;
++  frame.captureTimeMs = renderTimeMs;
++  frame.timeStamp = timestamp;
++  frame.rotation = rotation;
++  frame.contentType = (_mode == RTCVideoCodecModeScreensharing)
++                          ? RTCVideoContentTypeScreenshare
++                          : RTCVideoContentTypeUnspecified;
++  frame.flags = webrtc::VideoSendTiming::kInvalid;
++
++  // FIXME: QP is ignored because there is no H.265 bitstream parser.
++
++  BOOL res = _callback(frame, [[RTC_OBJC_TYPE(RTCCodecSpecificInfoH265) alloc] init], header);
++  if (!res) {
++    RTC_LOG(LS_ERROR) << "Encode callback failed.";
++    return;
++  }
++  _bitrateAdjuster->Update(frame.buffer.length);
++}
++
++- (nullable RTC_OBJC_TYPE(RTCVideoEncoderQpThresholds) *)scalingSettings {
++  return [[RTC_OBJC_TYPE(RTCVideoEncoderQpThresholds) alloc]
++      initWithThresholdsLow:kLowh265QpThreshold
++                       high:kHighh265QpThreshold];
++}
++
++@end
+\ No newline at end of file
+diff --git a/sdk/objc/components/video_codec/nalu_rewriter.cc b/sdk/objc/components/video_codec/nalu_rewriter.cc
+index dc258d6064..2621689bc7 100644
+--- a/sdk/objc/components/video_codec/nalu_rewriter.cc
++++ b/sdk/objc/components/video_codec/nalu_rewriter.cc
+@@ -248,6 +248,227 @@ bool H264AnnexBBufferToCMSampleBuffer(const uint8_t* annexb_buffer,
+   return true;
+ }
+ 
++bool H265CMSampleBufferToAnnexBBuffer(
++    CMSampleBufferRef hvcc_sample_buffer,
++    bool is_keyframe,
++    rtc::Buffer* annexb_buffer,
++    std::unique_ptr<RTPFragmentationHeader> *out_header) {
++  RTC_DCHECK(hvcc_sample_buffer);
++  RTC_DCHECK(out_header);
++  out_header->reset(nullptr);
++
++  // Get format description from the sample buffer.
++  CMVideoFormatDescriptionRef description =
++      CMSampleBufferGetFormatDescription(hvcc_sample_buffer);
++  if (description == nullptr) {
++    RTC_LOG(LS_ERROR) << "Failed to get sample buffer's description.";
++    return false;
++  }
++
++  // Get parameter set information.
++  int nalu_header_size = 0;
++  size_t param_set_count = 0;
++  OSStatus status = CMVideoFormatDescriptionGetHEVCParameterSetAtIndex(
++      description, 0, nullptr, nullptr, &param_set_count, &nalu_header_size);
++  if (status != noErr) {
++    RTC_LOG(LS_ERROR) << "Failed to get parameter set.";
++    return false;
++  }
++  RTC_CHECK_EQ(nalu_header_size, kAvccHeaderByteSize);
++  RTC_DCHECK_EQ(param_set_count, 3);
++
++  // Truncate any previous data in the buffer without changing its capacity.
++  annexb_buffer->SetSize(0);
++
++  size_t nalu_offset = 0;
++  std::vector<size_t> frag_offsets;
++  std::vector<size_t> frag_lengths;
++
++  // Place all parameter sets at the front of buffer.
++  if (is_keyframe) {
++    size_t param_set_size = 0;
++    const uint8_t* param_set = nullptr;
++    for (size_t i = 0; i < param_set_count; ++i) {
++      status = CMVideoFormatDescriptionGetHEVCParameterSetAtIndex(
++          description, i, &param_set, &param_set_size, nullptr, nullptr);
++      if (status != noErr) {
++        RTC_LOG(LS_ERROR) << "Failed to get parameter set.";
++        return false;
++      }
++      // Update buffer.
++      annexb_buffer->AppendData(kAnnexBHeaderBytes, sizeof(kAnnexBHeaderBytes));
++      annexb_buffer->AppendData(reinterpret_cast<const char*>(param_set),
++                                param_set_size);
++      // Update fragmentation.
++      frag_offsets.push_back(nalu_offset + sizeof(kAnnexBHeaderBytes));
++      frag_lengths.push_back(param_set_size);
++      nalu_offset += sizeof(kAnnexBHeaderBytes) + param_set_size;
++    }
++  }
++
++  // Get block buffer from the sample buffer.
++  CMBlockBufferRef block_buffer =
++      CMSampleBufferGetDataBuffer(hvcc_sample_buffer);
++  if (block_buffer == nullptr) {
++    RTC_LOG(LS_ERROR) << "Failed to get sample buffer's block buffer.";
++    return false;
++  }
++  CMBlockBufferRef contiguous_buffer = nullptr;
++  // Make sure block buffer is contiguous.
++  if (!CMBlockBufferIsRangeContiguous(block_buffer, 0, 0)) {
++    status = CMBlockBufferCreateContiguous(
++        nullptr, block_buffer, nullptr, nullptr, 0, 0, 0, &contiguous_buffer);
++    if (status != noErr) {
++      RTC_LOG(LS_ERROR) << "Failed to flatten non-contiguous block buffer: "
++                        << status;
++      return false;
++    }
++  } else {
++    contiguous_buffer = block_buffer;
++    // Retain to make cleanup easier.
++    CFRetain(contiguous_buffer);
++    block_buffer = nullptr;
++  }
++
++  // Now copy the actual data.
++  char* data_ptr = nullptr;
++  size_t block_buffer_size = CMBlockBufferGetDataLength(contiguous_buffer);
++  status = CMBlockBufferGetDataPointer(contiguous_buffer, 0, nullptr, nullptr,
++                                       &data_ptr);
++  if (status != noErr) {
++    RTC_LOG(LS_ERROR) << "Failed to get block buffer data.";
++    CFRelease(contiguous_buffer);
++    return false;
++  }
++  size_t bytes_remaining = block_buffer_size;
++  while (bytes_remaining > 0) {
++    // The size type here must match |nalu_header_size|, we expect 4 bytes.
++    // Read the length of the next packet of data. Must convert from big endian
++    // to host endian.
++    RTC_DCHECK_GE(bytes_remaining, (size_t)nalu_header_size);
++    uint32_t* uint32_data_ptr = reinterpret_cast<uint32_t*>(data_ptr);
++    uint32_t packet_size = CFSwapInt32BigToHost(*uint32_data_ptr);
++    // Update buffer.
++    annexb_buffer->AppendData(kAnnexBHeaderBytes, sizeof(kAnnexBHeaderBytes));
++    annexb_buffer->AppendData(data_ptr + nalu_header_size, packet_size);
++    // Update fragmentation.
++    frag_offsets.push_back(nalu_offset + sizeof(kAnnexBHeaderBytes));
++    frag_lengths.push_back(packet_size);
++    nalu_offset += sizeof(kAnnexBHeaderBytes) + packet_size;
++
++    size_t bytes_written = packet_size + sizeof(kAnnexBHeaderBytes);
++    bytes_remaining -= bytes_written;
++    data_ptr += bytes_written;
++  }
++  RTC_DCHECK_EQ(bytes_remaining, (size_t)0);
++
++  std::unique_ptr<RTPFragmentationHeader> header(new RTPFragmentationHeader());
++  header->VerifyAndAllocateFragmentationHeader(frag_offsets.size());
++  RTC_DCHECK_EQ(frag_lengths.size(), frag_offsets.size());
++  for (size_t i = 0; i < frag_offsets.size(); ++i) {
++    header->fragmentationOffset[i] = frag_offsets[i];
++    header->fragmentationLength[i] = frag_lengths[i];
++  }
++  *out_header = std::move(header);
++  CFRelease(contiguous_buffer);
++  return true;
++}
++
++bool H265AnnexBBufferToCMSampleBuffer(const uint8_t* annexb_buffer,
++                                      size_t annexb_buffer_size,
++                                      CMVideoFormatDescriptionRef video_format,
++                                      CMSampleBufferRef* out_sample_buffer) {
++  RTC_DCHECK(annexb_buffer);
++  RTC_DCHECK(out_sample_buffer);
++  RTC_DCHECK(video_format);
++  *out_sample_buffer = nullptr;
++
++  AnnexBBufferReader reader(annexb_buffer, annexb_buffer_size);
++  if (reader.SeekToNextNaluOfType(H265::kVps)) {
++    // Buffer contains an SPS NALU - skip it and the following PPS
++    const uint8_t* data;
++    size_t data_len;
++    if (!reader.ReadNalu(&data, &data_len)) {
++      RTC_LOG(LS_ERROR) << "Failed to read VPS";
++      return false;
++    }
++    if (!reader.ReadNalu(&data, &data_len)) {
++      RTC_LOG(LS_ERROR) << "Failed to read SPS";
++      return false;
++    }
++    if (!reader.ReadNalu(&data, &data_len)) {
++      RTC_LOG(LS_ERROR) << "Failed to read PPS";
++      return false;
++    }
++  } else {
++    // No SPS NALU - start reading from the first NALU in the buffer
++    reader.SeekToStart();
++  }
++
++  // Allocate memory as a block buffer.
++  // TODO(tkchin): figure out how to use a pool.
++  CMBlockBufferRef block_buffer = nullptr;
++  OSStatus status = CMBlockBufferCreateWithMemoryBlock(
++      nullptr, nullptr, reader.BytesRemaining(), nullptr, nullptr, 0,
++      reader.BytesRemaining(), kCMBlockBufferAssureMemoryNowFlag,
++      &block_buffer);
++  if (status != kCMBlockBufferNoErr) {
++    RTC_LOG(LS_ERROR) << "Failed to create block buffer.";
++    return false;
++  }
++
++  // Make sure block buffer is contiguous.
++  CMBlockBufferRef contiguous_buffer = nullptr;
++  if (!CMBlockBufferIsRangeContiguous(block_buffer, 0, 0)) {
++    status = CMBlockBufferCreateContiguous(
++        nullptr, block_buffer, nullptr, nullptr, 0, 0, 0, &contiguous_buffer);
++    if (status != noErr) {
++      RTC_LOG(LS_ERROR) << "Failed to flatten non-contiguous block buffer: "
++                        << status;
++      CFRelease(block_buffer);
++      return false;
++    }
++  } else {
++    contiguous_buffer = block_buffer;
++    block_buffer = nullptr;
++  }
++
++  // Get a raw pointer into allocated memory.
++  size_t block_buffer_size = 0;
++  char* data_ptr = nullptr;
++  status = CMBlockBufferGetDataPointer(contiguous_buffer, 0, nullptr,
++                                       &block_buffer_size, &data_ptr);
++  if (status != kCMBlockBufferNoErr) {
++    RTC_LOG(LS_ERROR) << "Failed to get block buffer data pointer.";
++    CFRelease(contiguous_buffer);
++    return false;
++  }
++  RTC_DCHECK(block_buffer_size == reader.BytesRemaining());
++
++  // Write Avcc NALUs into block buffer memory.
++  AvccBufferWriter writer(reinterpret_cast<uint8_t*>(data_ptr),
++                          block_buffer_size);
++  while (reader.BytesRemaining() > 0) {
++    const uint8_t* nalu_data_ptr = nullptr;
++    size_t nalu_data_size = 0;
++    if (reader.ReadNalu(&nalu_data_ptr, &nalu_data_size)) {
++      writer.WriteNalu(nalu_data_ptr, nalu_data_size);
++    }
++  }
++
++  // Create sample buffer.
++  status = CMSampleBufferCreate(nullptr, contiguous_buffer, true, nullptr,
++                                nullptr, video_format, 1, 0, nullptr, 0,
++                                nullptr, out_sample_buffer);
++  if (status != noErr) {
++    RTC_LOG(LS_ERROR) << "Failed to create sample buffer.";
++    CFRelease(contiguous_buffer);
++    return false;
++  }
++  CFRelease(contiguous_buffer);
++  return true;
++}
++
+ CMVideoFormatDescriptionRef CreateVideoFormatDescription(
+     const uint8_t* annexb_buffer,
+     size_t annexb_buffer_size) {
+@@ -278,6 +499,41 @@ CMVideoFormatDescriptionRef CreateVideoFormatDescription(
+   return description;
+ }
+ 
++CMVideoFormatDescriptionRef CreateH265VideoFormatDescription(
++    const uint8_t* annexb_buffer,
++    size_t annexb_buffer_size) {
++  const uint8_t* param_set_ptrs[3] = {};
++  size_t param_set_sizes[3] = {};
++  AnnexBBufferReader reader(annexb_buffer, annexb_buffer_size);
++  // Skip everyting before the VPS, then read the VPS, SPS and PPS
++  if (!reader.SeekToNextNaluOfType(H265::kVps)) {
++    return nullptr;
++  }
++  if (!reader.ReadNalu(&param_set_ptrs[0], &param_set_sizes[0])) {
++    RTC_LOG(LS_ERROR) << "Failed to read VPS";
++    return nullptr;
++  }
++  if (!reader.ReadNalu(&param_set_ptrs[1], &param_set_sizes[1])) {
++    RTC_LOG(LS_ERROR) << "Failed to read SPS";
++    return nullptr;
++  }
++  if (!reader.ReadNalu(&param_set_ptrs[2], &param_set_sizes[2])) {
++    RTC_LOG(LS_ERROR) << "Failed to read PPS";
++    return nullptr;
++  }
++
++  // Parse the SPS and PPS into a CMVideoFormatDescription.
++  CMVideoFormatDescriptionRef description = nullptr;
++  OSStatus status = CMVideoFormatDescriptionCreateFromHEVCParameterSets(
++      kCFAllocatorDefault, 3, param_set_ptrs, param_set_sizes, 4, nullptr,
++      &description);
++  if (status != noErr) {
++    RTC_LOG(LS_ERROR) << "Failed to create video format description.";
++    return nullptr;
++  }
++  return description;
++}
++
+ AnnexBBufferReader::AnnexBBufferReader(const uint8_t* annexb_buffer,
+                                        size_t length)
+     : start_(annexb_buffer), length_(length) {
+@@ -324,6 +580,17 @@ bool AnnexBBufferReader::SeekToNextNaluOfType(NaluType type) {
+   }
+   return false;
+ }
++
++bool AnnexBBufferReader::SeekToNextNaluOfType(H265::NaluType type) {
++  for (; offset_ != offsets_.end(); ++offset_) {
++    if (offset_->payload_size < 1)
++      continue;
++    if (H265::ParseNaluType(*(start_ + offset_->payload_start_offset)) == type)
++      return true;
++  }
++  return false;
++}
++
+ AvccBufferWriter::AvccBufferWriter(uint8_t* const avcc_buffer, size_t length)
+     : start_(avcc_buffer), offset_(0), length_(length) {
+   RTC_DCHECK(avcc_buffer);
+diff --git a/sdk/objc/components/video_codec/nalu_rewriter.h b/sdk/objc/components/video_codec/nalu_rewriter.h
+index a0c1aa90af..657a0f0988 100644
+--- a/sdk/objc/components/video_codec/nalu_rewriter.h
++++ b/sdk/objc/components/video_codec/nalu_rewriter.h
+@@ -18,6 +18,7 @@
+ #include <vector>
+ 
+ #include "common_video/h264/h264_common.h"
++#include "common_video/h265/h265_common.h"
+ #include "modules/include/module_common_types.h"
+ #include "rtc_base/buffer.h"
+ 
+@@ -47,6 +48,28 @@ bool H264AnnexBBufferToCMSampleBuffer(const uint8_t* annexb_buffer,
+                                       CMSampleBufferRef* out_sample_buffer,
+                                       CMMemoryPoolRef memory_pool);
+ 
++// Converts a sample buffer emitted from the VideoToolbox encoder into a buffer
++// suitable for RTP. The sample buffer is in hvcc format whereas the rtp buffer
++// needs to be in Annex B format. Data is written directly to |annexb_buffer|
++// and a new RTPFragmentationHeader is returned in |out_header|.
++bool H265CMSampleBufferToAnnexBBuffer(
++    CMSampleBufferRef hvcc_sample_buffer,
++    bool is_keyframe,
++    rtc::Buffer* annexb_buffer,
++    std::unique_ptr<RTPFragmentationHeader> *out_header)
++    __OSX_AVAILABLE_STARTING(__MAC_10_12, __IPHONE_11_0);
++ 
++// Converts a buffer received from RTP into a sample buffer suitable for the
++// VideoToolbox decoder. The RTP buffer is in annex b format whereas the sample
++// buffer is in hvcc format.
++// If |is_keyframe| is true then |video_format| is ignored since the format will
++// be read from the buffer. Otherwise |video_format| must be provided.
++// Caller is responsible for releasing the created sample buffer.
++bool H265AnnexBBufferToCMSampleBuffer(const uint8_t* annexb_buffer,
++                                      size_t annexb_buffer_size,
++                                      CMVideoFormatDescriptionRef video_format,
++                                      CMSampleBufferRef* out_sample_buffer);
++
+ // Returns a video format description created from the sps/pps information in
+ // the Annex B buffer. If there is no such information, nullptr is returned.
+ // The caller is responsible for releasing the description.
+@@ -54,6 +77,10 @@ CMVideoFormatDescriptionRef CreateVideoFormatDescription(
+     const uint8_t* annexb_buffer,
+     size_t annexb_buffer_size);
+ 
++CMVideoFormatDescriptionRef CreateH265VideoFormatDescription(
++    const uint8_t* annexb_buffer,
++    size_t annexb_buffer_size);
++
+ // Helper class for reading NALUs from an RTP Annex B buffer.
+ class AnnexBBufferReader final {
+  public:
+@@ -79,6 +106,8 @@ class AnnexBBufferReader final {
+   // reached the end instead
+   bool SeekToNextNaluOfType(H264::NaluType type);
+ 
++  bool SeekToNextNaluOfType(H265::NaluType type);
++
+  private:
+   // Returns the the next offset that contains NALU data.
+   size_t FindNextNaluHeader(const uint8_t* start,
+diff --git a/sdk/objc/native/src/objc_video_encoder_factory.mm b/sdk/objc/native/src/objc_video_encoder_factory.mm
+index b54945f49e..30ce22f163 100644
+--- a/sdk/objc/native/src/objc_video_encoder_factory.mm
++++ b/sdk/objc/native/src/objc_video_encoder_factory.mm
+@@ -16,6 +16,7 @@
+ #import "base/RTCVideoEncoder.h"
+ #import "base/RTCVideoEncoderFactory.h"
+ #import "components/video_codec/RTCCodecSpecificInfoH264+Private.h"
++#import "components/video_codec/RTCCodecSpecificInfoH265+Private.h"
+ #import "sdk/objc/api/peerconnection/RTCEncodedImage+Private.h"
+ #import "sdk/objc/api/peerconnection/RTCRtpFragmentationHeader+Private.h"
+ #import "sdk/objc/api/peerconnection/RTCVideoCodecInfo+Private.h"
+@@ -60,6 +61,9 @@ int32_t RegisterEncodeCompleteCallback(EncodedImageCallback *callback) override
+       if ([info isKindOfClass:[RTC_OBJC_TYPE(RTCCodecSpecificInfoH264) class]]) {
+         codecSpecificInfo =
+             [(RTC_OBJC_TYPE(RTCCodecSpecificInfoH264) *)info nativeCodecSpecificInfo];
++      } else if ([info isKindOfClass:[RTC_OBJC_TYPE(RTCCodecSpecificInfoH265) class]]) {
++        codecSpecificInfo =
++            [(RTC_OBJC_TYPE(RTCCodecSpecificInfoH265) *)info nativeCodecSpecificInfo];
+       }
+ 
+       std::unique_ptr<RTPFragmentationHeader> fragmentationHeader =
