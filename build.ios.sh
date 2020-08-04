@@ -97,6 +97,7 @@ pushd $SOURCE_DIR/webrtc/src
     _dirs="$_dirs $BUILD_DIR/webrtc/${arch}_libs"
   done
   lipo $_libs -create -output $BUILD_DIR/webrtc/libwebrtc.a
+  python tools_webrtc/libs/generate_licenses.py --target //sdk:framework_objc $BUILD_DIR/webrtc/ $_dirs
 popd
 
 ./scripts/package_webrtc_ios.sh $SCRIPT_DIR/static $SOURCE_DIR $BUILD_DIR $PACKAGE_DIR $SCRIPT_DIR/VERSION
