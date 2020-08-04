@@ -12,7 +12,7 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Disk Cleanup
       run: |
         Get-PSDrive
@@ -33,15 +33,21 @@ jobs:
         name: webrtc.windows.zip
         path: _package\windows\webrtc.zip
   build-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        name:
+          - macos
+          - ios
     runs-on: macOS-latest
     steps:
-    - uses: actions/checkout@v1
-    - run: ./build.macos.sh
+    - uses: actions/checkout@v2
+    - run: ./build.${{ matrix.name }}.sh
     - name: Upload Artifact
       uses: actions/upload-artifact@v1
       with:
-        name: webrtc.macos.tar.gz
-        path: _package/macos/webrtc.tar.gz
+        name: webrtc.${{ matrix.name }}.tar.gz
+        path: _package/${{ matrix.name }}/webrtc.tar.gz
   build-linux:
     strategy:
       fail-fast: false
@@ -58,7 +64,7 @@ jobs:
           - android
     runs-on: ubuntu-18.04
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Disk Cleanup
       run: |
         df -h
@@ -107,6 +113,7 @@ jobs:
       matrix:
         name:
           - macos
+          - ios
           - raspberry-pi-os_armv6
           - raspberry-pi-os_armv7
           - raspberry-pi-os_armv8
@@ -123,7 +130,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@master
+      uses: actions/checkout@v2
     - name: Download ${{ matrix.name }}
       uses: actions/download-artifact@v1
       with:
@@ -155,7 +162,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@master
+      uses: actions/checkout@v2
     - name: Download windows
       uses: actions/download-artifact@v1
       with:
