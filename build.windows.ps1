@@ -106,6 +106,10 @@ Push-Location $WEBRTC_DIR\src
   if (!$?) {
     exit 1
   }
+  git apply -p1 --ignore-space-change --ignore-whitespace --whitespace=nowarn $SCRIPT_DIR\patches\h265.patch
+  if (!$?) {
+    exit 1
+  }
 
   # WebRTC ビルド
   gn gen $WEBRTC_BUILD_DIR\debug --args='is_debug=true rtc_include_tests=false rtc_use_h264=false is_component_build=false use_rtti=true use_custom_libcxx=false'

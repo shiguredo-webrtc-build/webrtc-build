@@ -28,9 +28,11 @@ RUN /root/scripts/install_webrtc_build_deps.sh $SOURCE_DIR arm
 
 COPY patches/nacl_armv6_2.patch /root/patches/
 COPY patches/4k.patch /root/patches/
+COPY patches/h265.patch /root/patches/
 RUN cd $SOURCE_DIR/webrtc/src \
   && patch -p1 < /root/patches/nacl_armv6_2.patch \
-  && patch -p2 < /root/patches/4k.patch
+  && patch -p2 < /root/patches/4k.patch \
+  && patch -p1 < /root/patches/h265.patch
 
 RUN cd $SOURCE_DIR/webrtc/src \
   && gn gen $BUILD_DIR/webrtc --args=' \

@@ -27,11 +27,9 @@ COPY scripts/install_webrtc_build_deps.sh /root/scripts/
 RUN /root/scripts/install_webrtc_build_deps.sh $SOURCE_DIR arm
 
 COPY patches/4k.patch /root/patches/
-RUN cd $SOURCE_DIR/webrtc/src \
-  && patch -p2 < /root/patches/4k.patch
-
 COPY patches/h265.patch /root/patches/
 RUN cd $SOURCE_DIR/webrtc/src \
+  && patch -p2 < /root/patches/4k.patch \
   && patch -p1 < /root/patches/h265.patch
 
 RUN cd $SOURCE_DIR/webrtc/src \
