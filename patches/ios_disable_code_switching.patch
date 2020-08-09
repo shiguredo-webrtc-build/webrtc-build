@@ -1,0 +1,25 @@
+diff --git a/pc/peer_connection.cc b/pc/peer_connection.cc
+index 14281eb243..bf59676ef0 100644
+--- a/pc/peer_connection.cc
++++ b/pc/peer_connection.cc
+@@ -4116,13 +4116,13 @@ RTCError PeerConnection::SetConfiguration(
+         modified_config.active_reset_srtp_params);
+   }
+ 
+-  if (modified_config.allow_codec_switching.has_value()) {
+-    cricket::VideoMediaChannel* video_channel = video_media_channel();
+-    if (video_channel) {
+-      video_channel->SetVideoCodecSwitchingEnabled(
+-          *modified_config.allow_codec_switching);
+-    }
+-  }
++  // if (modified_config.allow_codec_switching.has_value()) {
++  //   cricket::VideoMediaChannel* video_channel = video_media_channel();
++  //   if (video_channel) {
++  //     video_channel->SetVideoCodecSwitchingEnabled(
++  //         *modified_config.allow_codec_switching);
++  //   }
++  // }
+ 
+   configuration_ = modified_config;
+   return RTCError::OK();
