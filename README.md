@@ -9,6 +9,10 @@
 We check PRs or Issues only when written in JAPANESE.
 In other languages, we won't be able to deal with them. Thank you for your understanding.
 
+## 時雨堂のオープンソースソフトウェアについて
+
+利用前に https://github.com/shiguredo/oss をお読みください。
+
 ## webrtc-build について
 
 様々な環境向けの WebRTC のビルドを行って、そのバイナリを提供しています。
@@ -40,10 +44,6 @@ In other languages, we won't be able to deal with them. Thank you for your under
 - ubuntu-20.04_x86_64
 - android (for native)
 - ios
-
-## 開発について
-
-webrtc-build はオープンソースソフトウェアですが、開発についてはオープンではありません。 そのためコメントやプルリクエストを頂いてもすぐには採用はしません。
 
 ## ライセンス
 
