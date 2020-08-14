@@ -68,8 +68,8 @@ limitations under the License.
 
 ### Contributing
 
-- melpon - *Original Author, Android support*
-- tnoho - *Original Author, AV1 support for macOS*
+- melpon - *Original Author, Android support, iOS Support*
+- tnoho - *Original Author, AV1 support for macOS, H.265 Support for macOS*
 - hakobera - *Ubuntu 20.04 x86_64 support*
 
 ### Thanks
