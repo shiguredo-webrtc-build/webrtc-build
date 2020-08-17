@@ -3,10 +3,12 @@ name: build
 on:
   push:
     paths-ignore:
-    - '**.md'
-    - 'LICENSE'
-    - '.gitignore'
-    - '.dockerignore'
+      - '**.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.dockerignore'
+    branches-ignore:
+      - daily
 
 jobs:
   build-windows:
