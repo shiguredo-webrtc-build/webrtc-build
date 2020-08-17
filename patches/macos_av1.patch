@@ -347,16 +347,3 @@ index b72296b64f..b9a107fc64 100644
    }
  
    return nil;
-diff --git a/src/sdk/objc/native/src/objc_video_encoder_factory.mm b/src/sdk/objc/native/src/objc_video_encoder_factory.mm
-index b0c7c2c5f1..0053d33c2b 100644
---- a/src/sdk/objc/native/src/objc_video_encoder_factory.mm
-+++ b/src/sdk/objc/native/src/objc_video_encoder_factory.mm
-@@ -146,7 +146,7 @@ void SetRates(const RateControlParameters &parameters) override {
-   // TODO(andersc): This is a hack until we figure out how this should be done properly.
-   NSString *formatName = [NSString stringForStdString:format.name];
-   NSSet *wrappedSoftwareFormats =
--      [NSSet setWithObjects:kRTCVideoCodecVp8Name, kRTCVideoCodecVp9Name, nil];
-+      [NSSet setWithObjects:kRTCVideoCodecVp8Name, kRTCVideoCodecVp9Name, kRTCVideoCodecAv1Name, nil];
- 
-   CodecInfo codec_info;
-   codec_info.is_hardware_accelerated = ![wrappedSoftwareFormats containsObject:formatName];
