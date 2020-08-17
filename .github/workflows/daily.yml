@@ -10,6 +10,8 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
+      with:
+        ref: daily
     - name: Disk Cleanup
       run: |
         Get-PSDrive
@@ -56,6 +58,8 @@ jobs:
     runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v2
+      with:
+        ref: daily
     - run: cp VERSION.head VERSION
     - run: ./build.${{ matrix.name }}.sh
     - name: Release ${{ matrix.name }} latest
@@ -96,6 +100,8 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
+      with:
+        ref: daily
     - name: Disk Cleanup
       run: |
         df -h
