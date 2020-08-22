@@ -137,7 +137,7 @@ foreach ($build in @("debug", "release")) {
 
 # ライセンス生成
 Push-Location $WEBRTC_DIR\src
-  python2 tools_webrtc\libs\generate_licenses.py --target :webrtc "$WEBRTC_BUILD_DIR\" "$WEBRTC_BUILD_DIR\debug" "$WEBRTC_BUILD_DIR\release"
+  python tools_webrtc\libs\generate_licenses.py --target :webrtc "$WEBRTC_BUILD_DIR\" "$WEBRTC_BUILD_DIR\debug" "$WEBRTC_BUILD_DIR\release"
 Pop-Location
 
 

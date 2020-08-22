@@ -9,7 +9,9 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+      with:
+        ref: daily
     - name: Disk Cleanup
       run: |
         Get-PSDrive
@@ -47,30 +49,38 @@ jobs:
         asset_content_type: application/gzip
         max_releases: 7
   build-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        name:
+          - macos
+          - ios
     runs-on: macOS-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+      with:
+        ref: daily
     - run: cp VERSION.head VERSION
-    - run: ./build.macos.sh
-    - name: Release macos latest
+    - run: ./build.${{ matrix.name }}.sh
+    - name: Release ${{ matrix.name }} latest
       uses: WebFreak001/deploy-nightly@v1.0.3
       env:
         GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       with:
         upload_url: "https://uploads.github.com/repos/shiguredo-webrtc-build/webrtc-build/releases/22591864/assets{?name,label}"
         release_id: 22591864
-        asset_path: _package/macos/webrtc.tar.gz
-        asset_name: webrtc.macos.latest.tar.gz
+        asset_path: _package/${{ matrix.name }}/webrtc.tar.gz
+        asset_name: webrtc.${{ matrix.name }}.latest.tar.gz
         asset_content_type: application/gzip
-    - name: Release macos nightly
+    - name: Release ${{ matrix.name }} nightly
       uses: WebFreak001/deploy-nightly@v1.0.3
       env:
         GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       with:
         upload_url: "https://uploads.github.com/repos/shiguredo-webrtc-build/webrtc-build/releases/22591864/assets{?name,label}"
         release_id: 22591864
-        asset_path: _package/macos/webrtc.tar.gz
-        asset_name: webrtc.macos.$$.tar.gz
+        asset_path: _package/${{ matrix.name }}/webrtc.tar.gz
+        asset_name: webrtc.${{ matrix.name }}.$$.tar.gz
         asset_content_type: application/gzip
         max_releases: 7
   build-linux:
@@ -89,7 +99,9 @@ jobs:
           - android
     runs-on: ubuntu-18.04
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+      with:
+        ref: daily
     - name: Disk Cleanup
       run: |
         df -h
