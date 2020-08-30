@@ -9,6 +9,8 @@ on:
       - '.dockerignore'
     branches-ignore:
       - daily
+    tags:
+      - '*'
 
 jobs:
   build-windows:
