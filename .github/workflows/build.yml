@@ -7,8 +7,6 @@ on:
       - 'LICENSE'
       - '.gitignore'
       - '.dockerignore'
-    branches-ignore:
-      - daily
 
 jobs:
   build-windows:
