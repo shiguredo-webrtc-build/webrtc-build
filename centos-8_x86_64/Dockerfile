@@ -51,6 +51,6 @@ RUN /root/scripts/package_webrtc.sh $STATIC_DIR $SOURCE_DIR $BUILD_DIR $PACKAGE_
 
 RUN mv $PACKAGE_DIR/webrtc.tar.gz /
 
-FROM ubuntu:20.04
+FROM centos:8
 
 COPY --from=builder /webrtc.tar.gz /

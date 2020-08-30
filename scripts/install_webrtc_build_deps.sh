@@ -26,7 +26,7 @@ pushd $SOURCE_DIR/webrtc
     #17 2.138 No match for argument: libxkbcommon-x11-devel
     #17 2.144 No match for argument: python-psutil
     #17 2.147 No match for argument: wdiff
-    su -c 'yum -y install git python2 bzip2 tar pkgconfig atk-devel alsa-lib-devel \
+    yum -y install git bzip2 tar pkgconfig atk-devel alsa-lib-devel \
       bison binutils bzip2-devel cairo-devel \
       cups-devel dbus-devel dbus-glib-devel expat-devel fontconfig-devel \
       freetype-devel gcc-c++ glib2-devel glibc.i686 glib2-devel \
@@ -35,7 +35,7 @@ pushd $SOURCE_DIR/webrtc
       libXScrnSaver-devel libXtst-devel ncurses-compat-libs \
       nspr-devel nss-devel pam-devel pango-devel pciutils-devel \
       pulseaudio-libs-devel zlib.i686 httpd mod_ssl php php-cli \
-      xorg-x11-server-Xvfb'
+      xorg-x11-server-Xvfb
   else
     sed -i -e 's/sudo/sudo -E/g' src/build/install-build-deps.sh
     bash ./src/build/install-build-deps.sh --no-arm --no-chromeos-fonts
