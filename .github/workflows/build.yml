@@ -65,6 +65,7 @@ jobs:
           - ubuntu-18.04_armv8
           - ubuntu-18.04_x86_64
           - ubuntu-20.04_x86_64
+          - centos-8_x86_64
           - android
     runs-on: ubuntu-18.04
     steps:
@@ -126,6 +127,7 @@ jobs:
           - ubuntu-18.04_armv8
           - ubuntu-18.04_x86_64
           - ubuntu-20.04_x86_64
+          - centos-8_x86_64
           - android
     name: Release ${{ matrix.name }}
     if: contains(github.ref, 'tags/m')
