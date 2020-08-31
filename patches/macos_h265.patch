@@ -1,3 +1,16 @@
+diff --git a/tools_webrtc/ios/build_ios_libs.py b/tools_webrtc/ios/build_ios_libs.py
+index b0d28c0151..5deb61022a 100755
+--- a/tools_webrtc/ios/build_ios_libs.py
++++ b/tools_webrtc/ios/build_ios_libs.py
+@@ -33,7 +33,7 @@ SDK_OUTPUT_DIR = os.path.join(SRC_DIR, 'out_ios_libs')
+ SDK_FRAMEWORK_NAME = 'WebRTC.framework'
+ 
+ DEFAULT_ARCHS = ENABLED_ARCHS = ['arm64', 'arm', 'x64', 'x86']
+-IOS_DEPLOYMENT_TARGET = '10.0'
++IOS_DEPLOYMENT_TARGET = '11.0'
+ LIBVPX_BUILD_VP9 = False
+ 
+ sys.path.append(os.path.join(SCRIPT_DIR, '..', 'libs'))
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
 index 6092d96e02..790c813064 100644
 --- a/sdk/BUILD.gn
