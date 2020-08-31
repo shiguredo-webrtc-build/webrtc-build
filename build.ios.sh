@@ -61,10 +61,6 @@ EOF
 popd
 
 pushd $SOURCE_DIR/webrtc/src
-  pushd ./tools_webrtc/ios/
-    IOS_DEPLOYMENT_TARGET=`python -c 'from build_ios_libs import IOS_DEPLOYMENT_TARGET; print(IOS_DEPLOYMENT_TARGET)'`
-  popd
-
   _libs=""
   _dirs=""
   for arch in $TARGET_ARCHS; do
@@ -74,7 +70,7 @@ pushd $SOURCE_DIR/webrtc/src
       ios_enable_code_signing=false
       use_xcode_clang=true
       is_component_build=false
-      ios_deployment_target=\"$IOS_DEPLOYMENT_TARGET\"
+      ios_deployment_target=\"11.0\"
       rtc_libvpx_build_vp9=true
       enable_ios_bitcode=true
 
