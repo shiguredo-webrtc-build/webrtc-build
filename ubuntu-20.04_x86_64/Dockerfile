@@ -19,14 +19,16 @@ ARG WEBRTC_COMMIT
 COPY scripts/prepare_webrtc.sh /root/scripts/
 RUN /root/scripts/prepare_webrtc.sh $SOURCE_DIR $WEBRTC_COMMIT
 
-COPY scripts/install_webrtc_build_deps.sh /root/scripts/
-RUN /root/scripts/install_webrtc_build_deps.sh $SOURCE_DIR x86_64
-
+COPY patches/ubuntu_20_04_libtinfo5.patch /root/patches/
 COPY patches/4k.patch /root/patches/
 COPY patches/h265.patch /root/patches/
 RUN cd $SOURCE_DIR/webrtc/src \
   && patch -p2 < /root/patches/4k.patch \
-  && patch -p1 < /root/patches/h265.patch
+  && patch -p1 < /root/patches/h265.patch \
+  && patch -p1 < /root/patches/ubuntu_20_04_libtinfo5.patch
+
+COPY scripts/install_webrtc_build_deps.sh /root/scripts/
+RUN /root/scripts/install_webrtc_build_deps.sh $SOURCE_DIR x86_64
 
 RUN cd $SOURCE_DIR/webrtc/src \
   && gn gen $BUILD_DIR/webrtc --args=' \

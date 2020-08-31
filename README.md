@@ -9,6 +9,10 @@
 We check PRs or Issues only when written in JAPANESE.
 In other languages, we won't be able to deal with them. Thank you for your understanding.
 
+## 時雨堂のオープンソースソフトウェアについて
+
+利用前に https://github.com/shiguredo/oss をお読みください。
+
 ## webrtc-build について
 
 様々な環境向けの WebRTC のビルドを行って、そのバイナリを提供しています。
@@ -32,14 +36,14 @@ In other languages, we won't be able to deal with them. Thank you for your under
 - raspberry-pi-os_armv8 (Raspberry Pi 3, 4)
 - ubuntu-16.04_armv7
 - ubuntu-16.04_x86_64
-- ubuntu-18.04_armv8 (Jetson Nano)
+- ubuntu-18.04_armv8
+    - Jetson Nano
+    - Jetson Xavier NX
+    - Jetson AGX Xavier)
 - ubuntu-18.04_x86_64
 - ubuntu-20.04_x86_64
 - android (for native)
-
-## 開発について
-
-webrtc-build はオープンソースソフトウェアですが、開発についてはオープンではありません。 そのためコメントやプルリクエストを頂いてもすぐには採用はしません。
+- ios
 
 ## ライセンス
 
@@ -62,9 +66,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-### THANKS
+### Contributing
 
-- melpon
-- tnoho
+- melpon - *Original Author, Android support, iOS Support*
+- tnoho - *Original Author, AV1 support for macOS, H.265 Support for macOS*
+- hakobera - *Ubuntu 20.04 x86_64 support*
+
+### Thanks
+
 - enm10k
 - kdxu
