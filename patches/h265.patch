@@ -1187,9 +1187,9 @@ index 03679d9627..f8f93f8cd4 100644
  const char kHEVCCodecName[] = "H265X";
  
  // RFC 6184 RTP Payload Format for H.264 video
-@@ -113,6 +114,12 @@ const char kH264FmtpPacketizationMode[] = "packetization-mode";
- const char kH264FmtpSpropParameterSets[] = "sprop-parameter-sets";
+@@ -115,6 +116,12 @@ const char kH264FmtpSpsPpsIdrInKeyframe[] = "sps-pps-idr-in-keyframe";
  const char kH264ProfileLevelConstrainedBaseline[] = "42e01f";
+ const char kH264ProfileLevelConstrainedHigh[] = "640c1f";
  
 +// RFC 7798 RTP Payload Format for H.265 video
 +const char kH265FmtpProfileSpace[] = "profile-space";
@@ -1212,9 +1212,9 @@ index d2bfb36ee9..919af2e262 100644
  RTC_EXPORT extern const char kHEVCCodecName[];
  
  // RFC 6184 RTP Payload Format for H.264 video
-@@ -139,6 +140,12 @@ RTC_EXPORT extern const char kH264FmtpPacketizationMode[];
- extern const char kH264FmtpSpropParameterSets[];
+@@ -141,6 +142,12 @@ extern const char kH264FmtpSpsPpsIdrInKeyframe[];
  extern const char kH264ProfileLevelConstrainedBaseline[];
+ extern const char kH264ProfileLevelConstrainedHigh[];
  
 +// RFC 7798 RTP Payload Format for H.265 video
 +RTC_EXPORT extern const char kH265FmtpProfileSpace[];
@@ -3220,9 +3220,9 @@ index 68e23eee53..1eb877a815 100644
  #include "modules/video_coding/loss_notification_controller.h"
  #include "modules/video_coding/packet_buffer.h"
  #include "modules/video_coding/rtp_frame_reference_finder.h"
-@@ -361,6 +362,7 @@ class RtpVideoStreamReceiver : public LossNotificationSender,
+@@ -362,6 +363,7 @@ class RtpVideoStreamReceiver : public LossNotificationSender,
    std::map<int64_t, uint16_t> last_seq_num_for_pic_id_
-       RTC_GUARDED_BY(last_seq_num_cs_);
+       RTC_GUARDED_BY(last_seq_num_mutex_);
    video_coding::H264SpsPpsTracker tracker_;
 +  video_coding::H265VpsSpsPpsTracker h265_tracker_;
  
