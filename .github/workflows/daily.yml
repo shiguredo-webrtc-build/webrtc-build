@@ -91,8 +91,6 @@ jobs:
           - raspberry-pi-os_armv6
           - raspberry-pi-os_armv7
           - raspberry-pi-os_armv8
-          - ubuntu-16.04_armv7
-          - ubuntu-16.04_x86_64
           - ubuntu-18.04_armv8
           - ubuntu-18.04_x86_64
           - ubuntu-20.04_x86_64

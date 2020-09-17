@@ -29,7 +29,7 @@ popd
 pushd $SOURCE_DIR/webrtc/src
   gn gen $BUILD_DIR/webrtc --args='
     target_os="mac"
-    is_debug=false
+    is_debug=true
     rtc_include_tests=false
     rtc_build_examples=false
     rtc_use_h264=false
