@@ -11,7 +11,7 @@ index 12dcfac1b9..fdbc5187d8 100644
  };
  
 diff --git a/api/video_codecs/video_codec.cc b/api/video_codecs/video_codec.cc
-index d03082b91e..b189795ec5 100644
+index 490eced4e0..a06e89a820 100644
 --- a/api/video_codecs/video_codec.cc
 +++ b/api/video_codecs/video_codec.cc
 @@ -25,6 +25,7 @@ constexpr char kPayloadNameVp9[] = "VP9";
@@ -38,7 +38,7 @@ index d03082b91e..b189795ec5 100644
  VideoCodec::VideoCodec()
      : codecType(kVideoCodecGeneric),
        width(0),
-@@ -115,6 +125,16 @@ const VideoCodecH264& VideoCodec::H264() const {
+@@ -105,6 +115,16 @@ const VideoCodecH264& VideoCodec::H264() const {
    return codec_specific_.H264;
  }
  
@@ -55,7 +55,7 @@ index d03082b91e..b189795ec5 100644
  const char* CodecTypeToPayloadString(VideoCodecType type) {
    switch (type) {
      case kVideoCodecVP8:
-@@ -125,6 +145,8 @@ const char* CodecTypeToPayloadString(VideoCodecType type) {
+@@ -115,6 +135,8 @@ const char* CodecTypeToPayloadString(VideoCodecType type) {
        return kPayloadNameAv1;
      case kVideoCodecH264:
        return kPayloadNameH264;
@@ -64,7 +64,7 @@ index d03082b91e..b189795ec5 100644
      case kVideoCodecMultiplex:
        return kPayloadNameMultiplex;
      case kVideoCodecGeneric:
-@@ -141,6 +163,8 @@ VideoCodecType PayloadStringToCodecType(const std::string& name) {
+@@ -131,6 +153,8 @@ VideoCodecType PayloadStringToCodecType(const std::string& name) {
      return kVideoCodecAV1;
    if (absl::EqualsIgnoreCase(name, kPayloadNameH264))
      return kVideoCodecH264;
@@ -74,7 +74,7 @@ index d03082b91e..b189795ec5 100644
      return kVideoCodecMultiplex;
    return kVideoCodecGeneric;
 diff --git a/api/video_codecs/video_codec.h b/api/video_codecs/video_codec.h
-index c07fae9b8b..567f6b09ec 100644
+index 48e72edb67..a9ae544245 100644
 --- a/api/video_codecs/video_codec.h
 +++ b/api/video_codecs/video_codec.h
 @@ -84,6 +84,21 @@ struct VideoCodecH264 {
@@ -107,7 +107,7 @@ index c07fae9b8b..567f6b09ec 100644
  };
  
  enum class VideoCodecMode { kRealtimeVideo, kScreensharing };
-@@ -159,6 +175,8 @@ class RTC_EXPORT VideoCodec {
+@@ -161,6 +177,8 @@ class RTC_EXPORT VideoCodec {
    const VideoCodecVP9& VP9() const;
    VideoCodecH264* H264();
    const VideoCodecH264& H264() const;
@@ -132,7 +132,7 @@ index 128087f207..81a56cfd79 100644
        RTC_HISTOGRAM_COUNTS_100000(kFallbackHistogramsUmaPrefix + "Multiplex",
                                    hw_decoded_frames_since_last_fallback_);
 diff --git a/api/video_codecs/video_encoder.cc b/api/video_codecs/video_encoder.cc
-index 4427d6c1f1..1f320e8e95 100644
+index da22746493..dd385e100f 100644
 --- a/api/video_codecs/video_encoder.cc
 +++ b/api/video_codecs/video_encoder.cc
 @@ -60,6 +60,21 @@ VideoCodecH264 VideoEncoder::GetDefaultH264Settings() {
@@ -158,10 +158,10 @@ index 4427d6c1f1..1f320e8e95 100644
  
  VideoEncoder::ScalingSettings::ScalingSettings(KOff) : ScalingSettings() {}
 diff --git a/api/video_codecs/video_encoder.h b/api/video_codecs/video_encoder.h
-index 064dc8ffb5..1b3bc1bbb8 100644
+index d73c9f0dcb..c759eeea40 100644
 --- a/api/video_codecs/video_encoder.h
 +++ b/api/video_codecs/video_encoder.h
-@@ -320,6 +320,7 @@ class RTC_EXPORT VideoEncoder {
+@@ -327,6 +327,7 @@ class RTC_EXPORT VideoEncoder {
    static VideoCodecVP8 GetDefaultVp8Settings();
    static VideoCodecVP9 GetDefaultVp9Settings();
    static VideoCodecH264 GetDefaultH264Settings();
@@ -170,10 +170,10 @@ index 064dc8ffb5..1b3bc1bbb8 100644
    virtual ~VideoEncoder() {}
  
 diff --git a/api/video_codecs/video_encoder_config.cc b/api/video_codecs/video_encoder_config.cc
-index 6efcbf2bdd..37ee0a6782 100644
+index 5956d60365..e7a14f7ce3 100644
 --- a/api/video_codecs/video_encoder_config.cc
 +++ b/api/video_codecs/video_encoder_config.cc
-@@ -93,6 +93,8 @@ void VideoEncoderConfig::EncoderSpecificSettings::FillEncoderSpecificSettings(
+@@ -95,6 +95,8 @@ void VideoEncoderConfig::EncoderSpecificSettings::FillEncoderSpecificSettings(
      FillVideoCodecVp8(codec->VP8());
    } else if (codec->codecType == kVideoCodecVP9) {
      FillVideoCodecVp9(codec->VP9());
@@ -182,7 +182,7 @@ index 6efcbf2bdd..37ee0a6782 100644
    } else {
      RTC_NOTREACHED() << "Encoder specifics set/used for unknown codec type.";
    }
-@@ -103,6 +105,11 @@ void VideoEncoderConfig::EncoderSpecificSettings::FillVideoCodecH264(
+@@ -105,6 +107,11 @@ void VideoEncoderConfig::EncoderSpecificSettings::FillVideoCodecH264(
    RTC_NOTREACHED();
  }
  
@@ -194,7 +194,7 @@ index 6efcbf2bdd..37ee0a6782 100644
  void VideoEncoderConfig::EncoderSpecificSettings::FillVideoCodecVp8(
      VideoCodecVP8* vp8_settings) const {
    RTC_NOTREACHED();
-@@ -122,6 +129,15 @@ void VideoEncoderConfig::H264EncoderSpecificSettings::FillVideoCodecH264(
+@@ -124,6 +131,15 @@ void VideoEncoderConfig::H264EncoderSpecificSettings::FillVideoCodecH264(
    *h264_settings = specifics_;
  }
  
@@ -211,7 +211,7 @@ index 6efcbf2bdd..37ee0a6782 100644
      const VideoCodecVP8& specifics)
      : specifics_(specifics) {}
 diff --git a/api/video_codecs/video_encoder_config.h b/api/video_codecs/video_encoder_config.h
-index ef8db100a3..03b8564311 100644
+index 7a59dacd1b..f98359b782 100644
 --- a/api/video_codecs/video_encoder_config.h
 +++ b/api/video_codecs/video_encoder_config.h
 @@ -84,6 +84,7 @@ class VideoEncoderConfig {
@@ -239,7 +239,7 @@ index ef8db100a3..03b8564311 100644
     public:
      explicit Vp8EncoderSpecificSettings(const VideoCodecVP8& specifics);
 diff --git a/call/rtp_payload_params.cc b/call/rtp_payload_params.cc
-index 110db2e9fa..045f9cb42e 100644
+index ad979a590a..6c27c9775f 100644
 --- a/call/rtp_payload_params.cc
 +++ b/call/rtp_payload_params.cc
 @@ -95,6 +95,12 @@ void PopulateRtpWithCodecSpecifics(const CodecSpecificInfo& info,
@@ -255,7 +255,7 @@ index 110db2e9fa..045f9cb42e 100644
      case kVideoCodecMultiplex:
      case kVideoCodecGeneric:
        rtp->codec = kVideoCodecGeneric;
-@@ -285,6 +291,7 @@ void RtpPayloadParams::SetGeneric(const CodecSpecificInfo* codec_specific_info,
+@@ -286,6 +292,7 @@ void RtpPayloadParams::SetGeneric(const CodecSpecificInfo* codec_specific_info,
                        is_keyframe, rtp_video_header);
        }
        return;
@@ -264,10 +264,10 @@ index 110db2e9fa..045f9cb42e 100644
        return;
    }
 diff --git a/common_video/BUILD.gn b/common_video/BUILD.gn
-index 9ae87d242d..698f8666fb 100644
+index 9cb6f454d7..ffba448d0d 100644
 --- a/common_video/BUILD.gn
 +++ b/common_video/BUILD.gn
-@@ -41,6 +41,17 @@ rtc_library("common_video") {
+@@ -40,6 +40,17 @@ rtc_library("common_video") {
      "video_render_frames.h",
    ]
  
@@ -1175,8 +1175,20 @@ index 0000000000..0b7c1af511
 +}  // namespace webrtc
 +#endif  // COMMON_VIDEO_H265_H265_VPS_PARSER_H_
 \ No newline at end of file
+diff --git a/logging/rtc_event_log/encoder/rtc_event_log_encoder_new_format.cc b/logging/rtc_event_log/encoder/rtc_event_log_encoder_new_format.cc
+index 8891396a2c..10068cf2e5 100644
+--- a/logging/rtc_event_log/encoder/rtc_event_log_encoder_new_format.cc
++++ b/logging/rtc_event_log/encoder/rtc_event_log_encoder_new_format.cc
+@@ -104,6 +104,7 @@ rtclog2::FrameDecodedEvents::Codec ConvertToProtoFormat(VideoCodecType codec) {
+       return rtclog2::FrameDecodedEvents::CODEC_AV1;
+     case VideoCodecType::kVideoCodecH264:
+       return rtclog2::FrameDecodedEvents::CODEC_H264;
++    case VideoCodecType::kVideoCodecH265:
+     case VideoCodecType::kVideoCodecMultiplex:
+       // This codec type is afaik not used.
+       return rtclog2::FrameDecodedEvents::CODEC_UNKNOWN;
 diff --git a/media/base/media_constants.cc b/media/base/media_constants.cc
-index 03679d9627..f8f93f8cd4 100644
+index 5abb744a5c..fe5a6d1a01 100644
 --- a/media/base/media_constants.cc
 +++ b/media/base/media_constants.cc
 @@ -104,6 +104,7 @@ const char kVp8CodecName[] = "VP8";
@@ -1184,10 +1196,10 @@ index 03679d9627..f8f93f8cd4 100644
  const char kAv1CodecName[] = "AV1X";
  const char kH264CodecName[] = "H264";
 +const char kH265CodecName[] = "H265";
- const char kHEVCCodecName[] = "H265X";
  
  // RFC 6184 RTP Payload Format for H.264 video
-@@ -115,6 +116,12 @@ const char kH264FmtpSpsPpsIdrInKeyframe[] = "sps-pps-idr-in-keyframe";
+ const char kH264FmtpProfileLevelId[] = "profile-level-id";
+@@ -114,6 +115,12 @@ const char kH264FmtpSpsPpsIdrInKeyframe[] = "sps-pps-idr-in-keyframe";
  const char kH264ProfileLevelConstrainedBaseline[] = "42e01f";
  const char kH264ProfileLevelConstrainedHigh[] = "640c1f";
  
@@ -1201,7 +1213,7 @@ index 03679d9627..f8f93f8cd4 100644
  
  const size_t kConferenceMaxNumSpatialLayers = 3;
 diff --git a/media/base/media_constants.h b/media/base/media_constants.h
-index d2bfb36ee9..919af2e262 100644
+index 37e177aeb4..4e57f15feb 100644
 --- a/media/base/media_constants.h
 +++ b/media/base/media_constants.h
 @@ -130,6 +130,7 @@ RTC_EXPORT extern const char kVp8CodecName[];
@@ -1209,10 +1221,10 @@ index d2bfb36ee9..919af2e262 100644
  RTC_EXPORT extern const char kAv1CodecName[];
  RTC_EXPORT extern const char kH264CodecName[];
 +RTC_EXPORT extern const char kH265CodecName[];
- RTC_EXPORT extern const char kHEVCCodecName[];
  
  // RFC 6184 RTP Payload Format for H.264 video
-@@ -141,6 +142,12 @@ extern const char kH264FmtpSpsPpsIdrInKeyframe[];
+ RTC_EXPORT extern const char kH264FmtpProfileLevelId[];
+@@ -140,6 +141,12 @@ extern const char kH264FmtpSpsPpsIdrInKeyframe[];
  extern const char kH264ProfileLevelConstrainedBaseline[];
  extern const char kH264ProfileLevelConstrainedHigh[];
  
@@ -1226,10 +1238,10 @@ index d2bfb36ee9..919af2e262 100644
  
  extern const size_t kConferenceMaxNumSpatialLayers;
 diff --git a/modules/audio_device/BUILD.gn b/modules/audio_device/BUILD.gn
-index 0d1ee81b47..25863d3a73 100644
+index 4f701e4be8..4e17d136bc 100644
 --- a/modules/audio_device/BUILD.gn
 +++ b/modules/audio_device/BUILD.gn
-@@ -289,6 +289,7 @@ rtc_library("audio_device_impl") {
+@@ -293,6 +293,7 @@ rtc_library("audio_device_impl") {
          ]
        }
        if (is_mac) {
@@ -1238,10 +1250,10 @@ index 0d1ee81b47..25863d3a73 100644
            "mac/audio_device_mac.cc",
            "mac/audio_device_mac.h",
 diff --git a/modules/desktop_capture/BUILD.gn b/modules/desktop_capture/BUILD.gn
-index e49e8381f6..1818604f7c 100644
+index 735616b633..a3cacfe393 100644
 --- a/modules/desktop_capture/BUILD.gn
 +++ b/modules/desktop_capture/BUILD.gn
-@@ -235,6 +235,7 @@ rtc_source_set("desktop_capture") {
+@@ -240,6 +240,7 @@ rtc_source_set("desktop_capture") {
  if (is_mac) {
    rtc_library("desktop_capture_objc") {
      visibility = [ ":desktop_capture" ]
@@ -1250,10 +1262,10 @@ index e49e8381f6..1818604f7c 100644
        "mac/desktop_configuration.mm",
        "mac/desktop_frame_cgimage.h",
 diff --git a/modules/rtp_rtcp/BUILD.gn b/modules/rtp_rtcp/BUILD.gn
-index 0446799fb7..99cdbe3a92 100644
+index e7efb41715..2d21f3f3ca 100644
 --- a/modules/rtp_rtcp/BUILD.gn
 +++ b/modules/rtp_rtcp/BUILD.gn
-@@ -244,6 +244,11 @@ rtc_library("rtp_rtcp") {
+@@ -243,6 +243,11 @@ rtc_library("rtp_rtcp") {
      defines = [ "BWE_TEST_LOGGING_COMPILE_TIME_ENABLE=0" ]
    }
  
@@ -1526,7 +1538,7 @@ index 0000000000..1e62b58977
 +#endif  // WEBRTC_MODULES_RTP_RTCP_SOURCE_H265_SPS_PARSER_H_
 \ No newline at end of file
 diff --git a/modules/rtp_rtcp/source/rtp_format.cc b/modules/rtp_rtcp/source/rtp_format.cc
-index 28f63f1109..d0bb2353fc 100644
+index 7703a6bf0f..56dded309d 100644
 --- a/modules/rtp_rtcp/source/rtp_format.cc
 +++ b/modules/rtp_rtcp/source/rtp_format.cc
 @@ -14,11 +14,13 @@
@@ -2214,10 +2226,10 @@ index 0000000000..4ba16832f9
 \ No newline at end of file
 diff --git a/modules/rtp_rtcp/source/rtp_format_h265.h b/modules/rtp_rtcp/source/rtp_format_h265.h
 new file mode 100644
-index 0000000000..aeba830615
+index 0000000000..86e26b79b5
 --- /dev/null
 +++ b/modules/rtp_rtcp/source/rtp_format_h265.h
-@@ -0,0 +1,130 @@
+@@ -0,0 +1,129 @@
 +/*
 + *  Intel License
 + * See https://01.org/open-webrtc-toolkit
@@ -2323,7 +2335,6 @@ index 0000000000..aeba830615
 +
 +  const PayloadSizeLimits limits_;
 +  size_t num_packets_left_;
-+  RTPFragmentationHeader fragmentation_;
 +
 +  RTC_DISALLOW_COPY_AND_ASSIGN(RtpPacketizerH265);
 +};
@@ -2350,10 +2361,10 @@ index 0000000000..aeba830615
 +#endif  // WEBRTC_MODULES_RTP_RTCP_SOURCE_RTP_FORMAT_H265_H_
 \ No newline at end of file
 diff --git a/modules/rtp_rtcp/source/rtp_sender_video.cc b/modules/rtp_rtcp/source/rtp_sender_video.cc
-index 58a8699688..39aa82db6f 100644
+index 8ce1eed913..6e0eb76cb1 100644
 --- a/modules/rtp_rtcp/source/rtp_sender_video.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender_video.cc
-@@ -723,6 +723,7 @@ uint8_t RTPSenderVideo::GetTemporalId(const RTPVideoHeader& header) {
+@@ -749,6 +749,7 @@ uint8_t RTPSenderVideo::GetTemporalId(const RTPVideoHeader& header) {
        return vp9.temporal_idx;
      }
      uint8_t operator()(const RTPVideoHeaderH264&) { return kNoTemporalIdx; }
@@ -2362,12 +2373,12 @@ index 58a8699688..39aa82db6f 100644
        return kNoTemporalIdx;
      }
 diff --git a/modules/rtp_rtcp/source/rtp_video_header.h b/modules/rtp_rtcp/source/rtp_video_header.h
-index 514340add6..af1e225a6b 100644
+index ca3415587d..b73ccdb4c2 100644
 --- a/modules/rtp_rtcp/source/rtp_video_header.h
 +++ b/modules/rtp_rtcp/source/rtp_video_header.h
 @@ -24,6 +24,7 @@
+ #include "api/video/video_rotation.h"
  #include "api/video/video_timing.h"
- #include "common_types.h"  // NOLINT(build/include_directory)
  #include "modules/video_coding/codecs/h264/include/h264_globals.h"
 +#include "modules/video_coding/codecs/h265/include/h265_globals.h"
  #include "modules/video_coding/codecs/vp8/include/vp8_globals.h"
@@ -2394,7 +2405,7 @@ index c49c544e9d..a43f8a9e6a 100644
      "pa_memorybarrier.h",
      "pa_ringbuffer.c",
 diff --git a/modules/video_coding/BUILD.gn b/modules/video_coding/BUILD.gn
-index e92649d4e6..b28bbf5428 100644
+index bf8a4d620c..f68ba7bcb7 100644
 --- a/modules/video_coding/BUILD.gn
 +++ b/modules/video_coding/BUILD.gn
 @@ -15,6 +15,12 @@ rtc_library("encoded_frame") {
@@ -2950,7 +2961,7 @@ index 0c4a658b8f..cb7c7dc468 100644
        video_header(videoHeader),
        packet_info(rtp_header, receive_time_ms) {
 diff --git a/modules/video_coding/packet_buffer.cc b/modules/video_coding/packet_buffer.cc
-index 7da8a1c301..9d28c58215 100644
+index d2a2bcfb47..bc1f3b0c73 100644
 --- a/modules/video_coding/packet_buffer.cc
 +++ b/modules/video_coding/packet_buffer.cc
 @@ -23,10 +23,12 @@
@@ -3181,10 +3192,10 @@ index 11450d0849..bc86d35965 100644
        case kVideoCodecMultiplex:
          return absl::nullopt;
 diff --git a/video/rtp_video_stream_receiver.cc b/video/rtp_video_stream_receiver.cc
-index 8bbb5866a0..ab07669bf6 100644
+index 1b8828be2c..894e9f6eae 100644
 --- a/video/rtp_video_stream_receiver.cc
 +++ b/video/rtp_video_stream_receiver.cc
-@@ -623,7 +623,22 @@ void RtpVideoStreamReceiver::OnReceivedPayloadData(
+@@ -628,7 +628,22 @@ void RtpVideoStreamReceiver::OnReceivedPayloadData(
          packet->video_payload = std::move(fixed.bitstream);
          break;
      }
@@ -3209,7 +3220,7 @@ index 8bbb5866a0..ab07669bf6 100644
      packet->video_payload = std::move(codec_payload);
    }
 diff --git a/video/rtp_video_stream_receiver.h b/video/rtp_video_stream_receiver.h
-index 68e23eee53..1eb877a815 100644
+index 40958c48ec..2bc7edc2cd 100644
 --- a/video/rtp_video_stream_receiver.h
 +++ b/video/rtp_video_stream_receiver.h
 @@ -37,6 +37,7 @@
@@ -3229,10 +3240,10 @@ index 68e23eee53..1eb877a815 100644
    // Maps payload id to the depacketizer.
    std::map<uint8_t, std::unique_ptr<VideoRtpDepacketizer>> payload_type_map_;
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index 1a5316517d..a0641cda0b 100644
+index f3345597ea..6336642682 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
-@@ -593,6 +593,23 @@ void RtpVideoStreamReceiver2::OnReceivedPayloadData(
+@@ -597,6 +597,23 @@ void RtpVideoStreamReceiver2::OnReceivedPayloadData(
          break;
      }
  
@@ -3257,7 +3268,7 @@ index 1a5316517d..a0641cda0b 100644
      packet->video_payload = std::move(codec_payload);
    }
 diff --git a/video/rtp_video_stream_receiver2.h b/video/rtp_video_stream_receiver2.h
-index 2a3befd65b..2e5cf34afe 100644
+index 40e7ef6f1b..a14045f38b 100644
 --- a/video/rtp_video_stream_receiver2.h
 +++ b/video/rtp_video_stream_receiver2.h
 @@ -35,6 +35,7 @@
@@ -3277,7 +3288,7 @@ index 2a3befd65b..2e5cf34afe 100644
    // Maps payload id to the depacketizer.
    std::map<uint8_t, std::unique_ptr<VideoRtpDepacketizer>> payload_type_map_
 diff --git a/video/send_statistics_proxy.cc b/video/send_statistics_proxy.cc
-index b5bcbe6bf1..4d9eb130b6 100644
+index ee32fd91c1..0b46f9f744 100644
 --- a/video/send_statistics_proxy.cc
 +++ b/video/send_statistics_proxy.cc
 @@ -47,6 +47,7 @@ enum HistogramCodecType {
@@ -3298,10 +3309,10 @@ index b5bcbe6bf1..4d9eb130b6 100644
        return kVideoUnknown;
    }
 diff --git a/video/video_receive_stream.cc b/video/video_receive_stream.cc
-index f1b3fc7b5b..56c0b6de5e 100644
+index 02eb9034fc..3755b6afea 100644
 --- a/video/video_receive_stream.cc
 +++ b/video/video_receive_stream.cc
-@@ -126,6 +126,8 @@ VideoCodec CreateDecoderVideoCodec(const VideoReceiveStream::Decoder& decoder) {
+@@ -125,6 +125,8 @@ VideoCodec CreateDecoderVideoCodec(const VideoReceiveStream::Decoder& decoder) {
      *(codec.VP9()) = VideoEncoder::GetDefaultVp9Settings();
    } else if (codec.codecType == kVideoCodecH264) {
      *(codec.H264()) = VideoEncoder::GetDefaultH264Settings();
@@ -3311,10 +3322,10 @@ index f1b3fc7b5b..56c0b6de5e 100644
      VideoReceiveStream::Decoder associated_decoder = decoder;
      associated_decoder.video_format =
 diff --git a/video/video_stream_encoder.cc b/video/video_stream_encoder.cc
-index 0ed73a3e63..4f0d60ceb8 100644
+index f229a6097e..44512af673 100644
 --- a/video/video_stream_encoder.cc
 +++ b/video/video_stream_encoder.cc
-@@ -103,6 +103,12 @@ bool RequiresEncoderReset(const VideoCodec& prev_send_codec,
+@@ -111,6 +111,12 @@ bool RequiresEncoderReset(const VideoCodec& prev_send_codec,
        }
        break;
  
@@ -3327,7 +3338,7 @@ index 0ed73a3e63..4f0d60ceb8 100644
      default:
        break;
    }
-@@ -1553,6 +1559,7 @@ EncodedImageCallback::Result VideoStreamEncoder::OnEncodedImage(
+@@ -1594,6 +1600,7 @@ EncodedImageCallback::Result VideoStreamEncoder::OnEncodedImage(
    if (codec_specific_info &&
        (codec_specific_info->codecType == kVideoCodecVP8 ||
         codec_specific_info->codecType == kVideoCodecH264 ||
@@ -3335,15 +3346,3 @@ index 0ed73a3e63..4f0d60ceb8 100644
         codec_specific_info->codecType == kVideoCodecGeneric)) {
      simulcast_id = encoded_image.SpatialIndex().value_or(0);
    }
-diff --git a/logging/rtc_event_log/encoder/rtc_event_log_encoder_new_format.cc b/logging/rtc_event_log/encoder/rtc_event_log_encoder_new_format.cc
-index a2f52ac0a2..844e682d5e 100644
---- a/logging/rtc_event_log/encoder/rtc_event_log_encoder_new_format.cc
-+++ b/logging/rtc_event_log/encoder/rtc_event_log_encoder_new_format.cc
-@@ -104,6 +104,7 @@ rtclog2::FrameDecodedEvents::Codec ConvertToProtoFormat(VideoCodecType codec) {
-       return rtclog2::FrameDecodedEvents::CODEC_AV1;
-     case VideoCodecType::kVideoCodecH264:
-       return rtclog2::FrameDecodedEvents::CODEC_H264;
-+    case VideoCodecType::kVideoCodecH265:
-     case VideoCodecType::kVideoCodecMultiplex:
-       // This codec type is afaik not used.
-       return rtclog2::FrameDecodedEvents::CODEC_UNKNOWN;

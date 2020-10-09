@@ -4,7 +4,7 @@ cd `dirname $0`
 source VERSION
 SCRIPT_DIR="`pwd`"
 
-PACKAGE_NAME=ubuntu-16.04_armv7
+PACKAGE_NAME=centos-8_x86_64
 SOURCE_DIR="`pwd`/_source/$PACKAGE_NAME"
 BUILD_DIR="`pwd`/_build/$PACKAGE_NAME"
 PACKAGE_DIR="`pwd`/_package/$PACKAGE_NAME"

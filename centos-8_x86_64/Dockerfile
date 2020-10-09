@@ -1,18 +1,14 @@
 # syntax = docker/dockerfile:experimental
-FROM ubuntu:16.04 AS builder
+FROM centos:8 AS builder
 
-ARG PACKAGE_NAME=ubuntu-16.04_armv7
+ARG PACKAGE_NAME=centos-8_x86_64
 
 ENV SOURCE_DIR "/root/_source/$PACKAGE_NAME"
 ENV BUILD_DIR "/root/_build/$PACKAGE_NAME"
 ENV PACKAGE_DIR "/root/_package/$PACKAGE_NAME"
 
-COPY scripts/apt_install_arm.sh /root/scripts/
-RUN /root/scripts/apt_install_arm.sh
-
-COPY scripts/init_rootfs_armhf.sh /root/scripts/
-COPY $PACKAGE_NAME/armhf.conf /root/$PACKAGE_NAME/
-RUN /root/scripts/init_rootfs_armhf.sh /root/rootfs /root/$PACKAGE_NAME/armhf.conf
+COPY scripts/yum_install_x86_64.sh /root/scripts/
+RUN /root/scripts/yum_install_x86_64.sh
 
 COPY scripts/get_depot_tools.sh /root/scripts/
 RUN /root/scripts/get_depot_tools.sh $SOURCE_DIR
@@ -24,7 +20,7 @@ COPY scripts/prepare_webrtc.sh /root/scripts/
 RUN /root/scripts/prepare_webrtc.sh $SOURCE_DIR $WEBRTC_COMMIT
 
 COPY scripts/install_webrtc_build_deps.sh /root/scripts/
-RUN /root/scripts/install_webrtc_build_deps.sh $SOURCE_DIR arm
+RUN /root/scripts/install_webrtc_build_deps.sh $SOURCE_DIR centos
 
 COPY patches/4k.patch /root/patches/
 COPY patches/h265.patch /root/patches/
@@ -35,14 +31,11 @@ RUN cd $SOURCE_DIR/webrtc/src \
 RUN cd $SOURCE_DIR/webrtc/src \
   && gn gen $BUILD_DIR/webrtc --args=' \
     target_os="linux" \
-    target_cpu="arm" \
     is_debug=false \
-    target_sysroot="/root/rootfs" \
-    rtc_use_h264=false \
     rtc_include_tests=false \
-    use_rtti=true \
+    rtc_use_h264=false \
     is_component_build=false \
-    is_desktop_linux=false \
+    use_rtti=true \
   ' \
   && ninja -C $BUILD_DIR/webrtc
 
@@ -60,6 +53,6 @@ RUN /root/scripts/package_webrtc.sh $STATIC_DIR $SOURCE_DIR $BUILD_DIR $PACKAGE_
 
 RUN mv $PACKAGE_DIR/webrtc.tar.gz /
 
-FROM ubuntu:16.04
+FROM centos:8
 
 COPY --from=builder /webrtc.tar.gz /

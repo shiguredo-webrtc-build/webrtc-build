@@ -31,7 +31,6 @@ pushd $SOURCE_DIR/webrtc/src
   patch -p1 < $SCRIPT_DIR/patches/macos_simulcast.patch
   patch -p1 < $SCRIPT_DIR/patches/h265.patch
   patch -p1 < $SCRIPT_DIR/patches/macos_h265.patch
-  patch -p1 < $SCRIPT_DIR/patches/ios_disable_code_switching.patch
   patch -p1 < $SCRIPT_DIR/patches/ios_manual_audio_input.patch
 popd
 

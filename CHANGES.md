@@ -14,7 +14,15 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## master
 
-**m85 ブランチ**
+- [CHANGE] ubuntu-16.04_x86_64 ビルドを削除
+    - @melpon
+- [CHANGE] ubuntu-16.04_armv7 ビルドを削除
+    - @melpon
+
+## m86.4240.1.2 (2020/8/31)
+
+- [ADD] centos-8_x86_64 ビルドを追加
+    - @melpon
 
 - [FIX] macOS でサイマルキャストを行うとセグフォが起きていたのを修正
     - @melpon

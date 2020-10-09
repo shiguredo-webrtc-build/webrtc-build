@@ -12,10 +12,10 @@ index b0d28c0151..5deb61022a 100755
  
  sys.path.append(os.path.join(SCRIPT_DIR, '..', 'libs'))
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index 6092d96e02..790c813064 100644
+index 14b2bca447..acb89101c5 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
-@@ -586,6 +586,11 @@ if (is_ios || is_mac) {
+@@ -615,6 +615,11 @@ if (is_ios || is_mac) {
          "objc/components/video_codec/RTCCodecSpecificInfoH264.mm",
          "objc/components/video_codec/RTCH264ProfileLevelId.h",
          "objc/components/video_codec/RTCH264ProfileLevelId.mm",
@@ -375,12 +375,6 @@ index 0000000000..fe9c6330c1
 +// TODO(jianjunz): This is value is not correct.
 +NSString *const kRTCLevel31Main = @"4d001f";
 \ No newline at end of file
-diff --git a/sdk/objc/components/video_codec/RTCVideoDecoderFactoryH265.h b/sdk/objc/components/video_codec/RTCVideoDecoderFactoryH265.h
-deleted file mode 100644
-index e69de29bb2..0000000000
-diff --git a/sdk/objc/components/video_codec/RTCVideoDecoderFactoryH265.m b/sdk/objc/components/video_codec/RTCVideoDecoderFactoryH265.m
-deleted file mode 100644
-index e69de29bb2..0000000000
 diff --git a/sdk/objc/components/video_codec/RTCVideoDecoderH265.h b/sdk/objc/components/video_codec/RTCVideoDecoderH265.h
 new file mode 100644
 index 0000000000..e5a097a59d
@@ -688,12 +682,6 @@ index 0000000000..614f1df4ba
 +
 +@end
 \ No newline at end of file
-diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderFactoryH265.h b/sdk/objc/components/video_codec/RTCVideoEncoderFactoryH265.h
-deleted file mode 100644
-index e69de29bb2..0000000000
-diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderFactoryH265.m b/sdk/objc/components/video_codec/RTCVideoEncoderFactoryH265.m
-deleted file mode 100644
-index e69de29bb2..0000000000
 diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderH265.h b/sdk/objc/components/video_codec/RTCVideoEncoderH265.h
 new file mode 100644
 index 0000000000..3f5f438a5f
@@ -724,10 +712,10 @@ index 0000000000..3f5f438a5f
 +@end
 diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderH265.mm b/sdk/objc/components/video_codec/RTCVideoEncoderH265.mm
 new file mode 100644
-index 0000000000..9dbfd3e2ef
+index 0000000000..8ef7465e1e
 --- /dev/null
 +++ b/sdk/objc/components/video_codec/RTCVideoEncoderH265.mm
-@@ -0,0 +1,585 @@
+@@ -0,0 +1,577 @@
 +/*
 + *  Copyright (c) 2018 The WebRTC project authors. All Rights Reserved.
 + *
@@ -745,7 +733,6 @@ index 0000000000..9dbfd3e2ef
 +#include <vector>
 +
 +#import "RTCCodecSpecificInfoH265.h"
-+#import "api/peerconnection/RTCRtpFragmentationHeader+Private.h"
 +#import "api/peerconnection/RTCVideoCodecInfo+Private.h"
 +#import "base/RTCI420Buffer.h"
 +#import "base/RTCVideoFrame.h"
@@ -1266,17 +1253,9 @@ index 0000000000..9dbfd3e2ef
 +  // Convert the sample buffer into a buffer suitable for RTP packetization.
 +  // TODO(tkchin): Allocate buffers through a pool.
 +  std::unique_ptr<rtc::Buffer> buffer(new rtc::Buffer());
-+  RTC_OBJC_TYPE(RTCRtpFragmentationHeader) * header;
-+  {
-+    std::unique_ptr<webrtc::RTPFragmentationHeader> header_cpp;
-+    bool result = H265CMSampleBufferToAnnexBBuffer(sampleBuffer, isKeyframe,
-+                                                   buffer.get(), &header_cpp);
-+    header = [[RTC_OBJC_TYPE(RTCRtpFragmentationHeader) alloc]
-+        initWithNativeFragmentationHeader:header_cpp.get()];
-+    if (!result) {
-+      RTC_LOG(LS_ERROR) << "Failed to convert sample buffer.";
-+      return;
-+    }
++  if (!webrtc::H265CMSampleBufferToAnnexBBuffer(sampleBuffer, isKeyframe, buffer.get())) {
++    RTC_LOG(LS_ERROR) << "Failed to convert sample buffer.";
++    return;
 +  }
 +
 +  RTC_OBJC_TYPE(RTCEncodedImage)* frame = [[RTC_OBJC_TYPE(RTCEncodedImage) alloc] init];
@@ -1297,7 +1276,8 @@ index 0000000000..9dbfd3e2ef
 +  frame.flags = webrtc::VideoSendTiming::kInvalid;
 +
 +  // FIXME: QP is ignored because there is no H.265 bitstream parser.
-+
++  RTC_OBJC_TYPE(RTCRtpFragmentationHeader) *header =
++      [[RTC_OBJC_TYPE(RTCRtpFragmentationHeader) alloc] init];
 +  BOOL res = _callback(frame, [[RTC_OBJC_TYPE(RTCCodecSpecificInfoH265) alloc] init], header);
 +  if (!res) {
 +    RTC_LOG(LS_ERROR) << "Encode callback failed.";
@@ -1315,21 +1295,18 @@ index 0000000000..9dbfd3e2ef
 +@end
 \ No newline at end of file
 diff --git a/sdk/objc/components/video_codec/nalu_rewriter.cc b/sdk/objc/components/video_codec/nalu_rewriter.cc
-index dc258d6064..2621689bc7 100644
+index 60382d2b2d..418b942f34 100644
 --- a/sdk/objc/components/video_codec/nalu_rewriter.cc
 +++ b/sdk/objc/components/video_codec/nalu_rewriter.cc
-@@ -248,6 +248,227 @@ bool H264AnnexBBufferToCMSampleBuffer(const uint8_t* annexb_buffer,
+@@ -224,6 +224,203 @@ bool H264AnnexBBufferToCMSampleBuffer(const uint8_t* annexb_buffer,
    return true;
  }
  
 +bool H265CMSampleBufferToAnnexBBuffer(
 +    CMSampleBufferRef hvcc_sample_buffer,
 +    bool is_keyframe,
-+    rtc::Buffer* annexb_buffer,
-+    std::unique_ptr<RTPFragmentationHeader> *out_header) {
++    rtc::Buffer* annexb_buffer) {
 +  RTC_DCHECK(hvcc_sample_buffer);
-+  RTC_DCHECK(out_header);
-+  out_header->reset(nullptr);
 +
 +  // Get format description from the sample buffer.
 +  CMVideoFormatDescriptionRef description =
@@ -1354,10 +1331,6 @@ index dc258d6064..2621689bc7 100644
 +  // Truncate any previous data in the buffer without changing its capacity.
 +  annexb_buffer->SetSize(0);
 +
-+  size_t nalu_offset = 0;
-+  std::vector<size_t> frag_offsets;
-+  std::vector<size_t> frag_lengths;
-+
 +  // Place all parameter sets at the front of buffer.
 +  if (is_keyframe) {
 +    size_t param_set_size = 0;
@@ -1373,10 +1346,6 @@ index dc258d6064..2621689bc7 100644
 +      annexb_buffer->AppendData(kAnnexBHeaderBytes, sizeof(kAnnexBHeaderBytes));
 +      annexb_buffer->AppendData(reinterpret_cast<const char*>(param_set),
 +                                param_set_size);
-+      // Update fragmentation.
-+      frag_offsets.push_back(nalu_offset + sizeof(kAnnexBHeaderBytes));
-+      frag_lengths.push_back(param_set_size);
-+      nalu_offset += sizeof(kAnnexBHeaderBytes) + param_set_size;
 +    }
 +  }
 +
@@ -1425,25 +1394,12 @@ index dc258d6064..2621689bc7 100644
 +    // Update buffer.
 +    annexb_buffer->AppendData(kAnnexBHeaderBytes, sizeof(kAnnexBHeaderBytes));
 +    annexb_buffer->AppendData(data_ptr + nalu_header_size, packet_size);
-+    // Update fragmentation.
-+    frag_offsets.push_back(nalu_offset + sizeof(kAnnexBHeaderBytes));
-+    frag_lengths.push_back(packet_size);
-+    nalu_offset += sizeof(kAnnexBHeaderBytes) + packet_size;
 +
 +    size_t bytes_written = packet_size + sizeof(kAnnexBHeaderBytes);
 +    bytes_remaining -= bytes_written;
 +    data_ptr += bytes_written;
 +  }
 +  RTC_DCHECK_EQ(bytes_remaining, (size_t)0);
-+
-+  std::unique_ptr<RTPFragmentationHeader> header(new RTPFragmentationHeader());
-+  header->VerifyAndAllocateFragmentationHeader(frag_offsets.size());
-+  RTC_DCHECK_EQ(frag_lengths.size(), frag_offsets.size());
-+  for (size_t i = 0; i < frag_offsets.size(); ++i) {
-+    header->fragmentationOffset[i] = frag_offsets[i];
-+    header->fragmentationLength[i] = frag_lengths[i];
-+  }
-+  *out_header = std::move(header);
 +  CFRelease(contiguous_buffer);
 +  return true;
 +}
@@ -1546,7 +1502,7 @@ index dc258d6064..2621689bc7 100644
  CMVideoFormatDescriptionRef CreateVideoFormatDescription(
      const uint8_t* annexb_buffer,
      size_t annexb_buffer_size) {
-@@ -278,6 +499,41 @@ CMVideoFormatDescriptionRef CreateVideoFormatDescription(
+@@ -254,6 +451,41 @@ CMVideoFormatDescriptionRef CreateVideoFormatDescription(
    return description;
  }
  
@@ -1588,7 +1544,7 @@ index dc258d6064..2621689bc7 100644
  AnnexBBufferReader::AnnexBBufferReader(const uint8_t* annexb_buffer,
                                         size_t length)
      : start_(annexb_buffer), length_(length) {
-@@ -324,6 +580,17 @@ bool AnnexBBufferReader::SeekToNextNaluOfType(NaluType type) {
+@@ -300,6 +532,17 @@ bool AnnexBBufferReader::SeekToNextNaluOfType(NaluType type) {
    }
    return false;
  }
@@ -1607,7 +1563,7 @@ index dc258d6064..2621689bc7 100644
      : start_(avcc_buffer), offset_(0), length_(length) {
    RTC_DCHECK(avcc_buffer);
 diff --git a/sdk/objc/components/video_codec/nalu_rewriter.h b/sdk/objc/components/video_codec/nalu_rewriter.h
-index a0c1aa90af..657a0f0988 100644
+index d94ce7b7aa..085543443c 100644
 --- a/sdk/objc/components/video_codec/nalu_rewriter.h
 +++ b/sdk/objc/components/video_codec/nalu_rewriter.h
 @@ -18,6 +18,7 @@
@@ -1615,10 +1571,10 @@ index a0c1aa90af..657a0f0988 100644
  
  #include "common_video/h264/h264_common.h"
 +#include "common_video/h265/h265_common.h"
- #include "modules/include/module_common_types.h"
  #include "rtc_base/buffer.h"
  
-@@ -47,6 +48,28 @@ bool H264AnnexBBufferToCMSampleBuffer(const uint8_t* annexb_buffer,
+ using webrtc::H264::NaluIndex;
+@@ -43,6 +44,27 @@ bool H264AnnexBBufferToCMSampleBuffer(const uint8_t* annexb_buffer,
                                        CMSampleBufferRef* out_sample_buffer,
                                        CMMemoryPoolRef memory_pool);
  
@@ -1629,8 +1585,7 @@ index a0c1aa90af..657a0f0988 100644
 +bool H265CMSampleBufferToAnnexBBuffer(
 +    CMSampleBufferRef hvcc_sample_buffer,
 +    bool is_keyframe,
-+    rtc::Buffer* annexb_buffer,
-+    std::unique_ptr<RTPFragmentationHeader> *out_header)
++    rtc::Buffer* annexb_buffer)
 +    __OSX_AVAILABLE_STARTING(__MAC_10_12, __IPHONE_11_0);
 + 
 +// Converts a buffer received from RTP into a sample buffer suitable for the
@@ -1647,7 +1602,7 @@ index a0c1aa90af..657a0f0988 100644
  // Returns a video format description created from the sps/pps information in
  // the Annex B buffer. If there is no such information, nullptr is returned.
  // The caller is responsible for releasing the description.
-@@ -54,6 +77,10 @@ CMVideoFormatDescriptionRef CreateVideoFormatDescription(
+@@ -50,6 +72,10 @@ CMVideoFormatDescriptionRef CreateVideoFormatDescription(
      const uint8_t* annexb_buffer,
      size_t annexb_buffer_size);
  
@@ -1658,7 +1613,7 @@ index a0c1aa90af..657a0f0988 100644
  // Helper class for reading NALUs from an RTP Annex B buffer.
  class AnnexBBufferReader final {
   public:
-@@ -79,6 +106,8 @@ class AnnexBBufferReader final {
+@@ -75,6 +101,8 @@ class AnnexBBufferReader final {
    // reached the end instead
    bool SeekToNextNaluOfType(H264::NaluType type);
  
@@ -1668,7 +1623,7 @@ index a0c1aa90af..657a0f0988 100644
    // Returns the the next offset that contains NALU data.
    size_t FindNextNaluHeader(const uint8_t* start,
 diff --git a/sdk/objc/native/src/objc_video_encoder_factory.mm b/sdk/objc/native/src/objc_video_encoder_factory.mm
-index b54945f49e..30ce22f163 100644
+index 7ef82f4a67..e4ecd86e4b 100644
 --- a/sdk/objc/native/src/objc_video_encoder_factory.mm
 +++ b/sdk/objc/native/src/objc_video_encoder_factory.mm
 @@ -16,6 +16,7 @@
@@ -1677,9 +1632,9 @@ index b54945f49e..30ce22f163 100644
  #import "components/video_codec/RTCCodecSpecificInfoH264+Private.h"
 +#import "components/video_codec/RTCCodecSpecificInfoH265+Private.h"
  #import "sdk/objc/api/peerconnection/RTCEncodedImage+Private.h"
- #import "sdk/objc/api/peerconnection/RTCRtpFragmentationHeader+Private.h"
  #import "sdk/objc/api/peerconnection/RTCVideoCodecInfo+Private.h"
-@@ -60,6 +61,9 @@ int32_t RegisterEncodeCompleteCallback(EncodedImageCallback *callback) override
+ #import "sdk/objc/api/peerconnection/RTCVideoEncoderSettings+Private.h"
+@@ -59,6 +64,9 @@ int32_t RegisterEncodeCompleteCallback(EncodedImageCallback *callback) override
        if ([info isKindOfClass:[RTC_OBJC_TYPE(RTCCodecSpecificInfoH264) class]]) {
          codecSpecificInfo =
              [(RTC_OBJC_TYPE(RTCCodecSpecificInfoH264) *)info nativeCodecSpecificInfo];
@@ -1688,7 +1643,7 @@ index b54945f49e..30ce22f163 100644
 +            [(RTC_OBJC_TYPE(RTCCodecSpecificInfoH265) *)info nativeCodecSpecificInfo];
        }
  
-       std::unique_ptr<RTPFragmentationHeader> fragmentationHeader =
+       EncodedImageCallback::Result res = callback->OnEncodedImage(encodedImage, &codecSpecificInfo);
 diff --git a/sdk/objc/components/video_codec/RTCVideoDecoderFactoryH265.h b/sdk/objc/components/video_codec/RTCVideoDecoderFactoryH265.h
 new file mode 100644
 index 0000000000..9a91d81996
