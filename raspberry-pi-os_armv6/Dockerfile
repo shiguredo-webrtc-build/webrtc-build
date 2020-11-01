@@ -46,7 +46,7 @@ RUN cd $SOURCE_DIR/webrtc/src \
     arm_fpu="vfpv2" \
     arm_float_abi="hard" \
     arm_use_neon=false \
-    is_desktop_linux=false \
+    rtc_use_pipewire=false \
     rtc_build_json=true \
     use_rtti=true \
     enable_libaom=false \
@@ -74,7 +74,7 @@ RUN cd $SOURCE_DIR/webrtc/src \
     arm_fpu="vfpv2" \
     arm_float_abi="hard" \
     arm_use_neon=false \
-    is_desktop_linux=false \
+    rtc_use_pipewire=false \
     rtc_build_json=true \
     use_rtti=true \
     enable_libaom_decoder=false \
@@ -93,7 +93,7 @@ RUN cd $SOURCE_DIR/webrtc/src \
     arm_fpu="vfpv2" \
     arm_float_abi="hard" \
     arm_use_neon=false \
-    is_desktop_linux=false \
+    rtc_use_pipewire=false \
     rtc_build_json=true \
     use_rtti=true \
     enable_libaom=false \
@@ -112,7 +112,7 @@ RUN cd $SOURCE_DIR/webrtc/src \
     arm_fpu="vfpv2" \
     arm_float_abi="hard" \
     arm_use_neon=false \
-    is_desktop_linux=false \
+    rtc_use_pipewire=false \
     rtc_build_json=true \
     use_rtti=true \
   ' \
