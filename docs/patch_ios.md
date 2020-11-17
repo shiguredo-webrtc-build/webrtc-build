@@ -15,5 +15,6 @@
 - マイクを使う場合は ``RTCAudioSession.initializeInput(completionHandler:)`` を実行してマイクを初期化する。
   - このメソッドはマイクが使用されるまで非同期で待ち、必要になったら初期化する。マイクの使用許可がなければユーザーにパーミッションを要求する。
   - 接続ごとに実行すること。接続が終了するとマイクは初期化前の状態に戻る。
+  - 実行前に ``RTCAudioSessionConfiguration.webRTCConfiguration.category`` にマイクを使用可能なカテゴリをセットすること。 ``AVAudioSessionCategoryPlayAndRecord`` など。
 
 - マイクを使わない場合は ``Info.plist`` にマイクの用途を記述する必要はない。
