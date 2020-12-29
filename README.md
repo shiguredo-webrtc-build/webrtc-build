@@ -80,5 +80,3 @@ limitations under the License.
 ### Thanks
 
 - enm10k
-- kdxu
-
