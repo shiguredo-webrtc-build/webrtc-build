@@ -1,8 +1,8 @@
 diff --git a/src/sdk/BUILD.gn b/src/sdk/BUILD.gn
-index 1b313b3d87..6acb68dbb4 100644
+index f793368671..da94726018 100644
 --- a/src/sdk/BUILD.gn
 +++ b/src/sdk/BUILD.gn
-@@ -624,6 +624,7 @@ if (is_ios || is_mac) {
+@@ -645,6 +645,7 @@ if (is_ios || is_mac) {
          ":videotoolbox_objc",
          ":vp8",
          ":vp9",
@@ -10,7 +10,7 @@ index 1b313b3d87..6acb68dbb4 100644
          ":vpx_codec_constants",
        ]
      }
-@@ -676,6 +677,25 @@ if (is_ios || is_mac) {
+@@ -697,6 +698,25 @@ if (is_ios || is_mac) {
        ]
      }
  
@@ -36,18 +36,7 @@ index 1b313b3d87..6acb68dbb4 100644
      # Build the PeerConnectionFactory without audio/video support.
      # This target depends on the objc_peeerconnectionfactory_base which still
      # includes some audio/video related objects such as RTCAudioSource because
-@@ -1036,8 +1056,10 @@ if (is_ios || is_mac) {
-         "objc/Framework/Headers/WebRTC/RTCVideoCodecInfo.h",
-         "objc/Framework/Headers/WebRTC/RTCVideoDecoderVP8.h",
-         "objc/Framework/Headers/WebRTC/RTCVideoDecoderVP9.h",
-+        "objc/Framework/Headers/WebRTC/RTCVideoDecoderAV1.h",
-         "objc/Framework/Headers/WebRTC/RTCVideoEncoderVP8.h",
-         "objc/Framework/Headers/WebRTC/RTCVideoEncoderVP9.h",
-+        "objc/Framework/Headers/WebRTC/RTCVideoEncoderAV1.h",
-         "objc/Framework/Headers/WebRTC/RTCVideoFrame.h",
-         "objc/Framework/Headers/WebRTC/RTCVideoFrameBuffer.h",
-         "objc/Framework/Headers/WebRTC/RTCVideoRenderer.h",
-@@ -1321,8 +1343,10 @@ if (is_ios || is_mac) {
+@@ -1256,8 +1276,10 @@ if (is_ios || is_mac) {
            "objc/api/video_codec/RTCVideoCodecConstants.h",
            "objc/api/video_codec/RTCVideoDecoderVP8.h",
            "objc/api/video_codec/RTCVideoDecoderVP9.h",
@@ -58,7 +47,7 @@ index 1b313b3d87..6acb68dbb4 100644
            "objc/api/video_frame_buffer/RTCNativeI420Buffer.h",
            "objc/api/video_frame_buffer/RTCNativeMutableI420Buffer.h",
          ]
-@@ -1430,8 +1454,10 @@ if (is_ios || is_mac) {
+@@ -1365,8 +1387,10 @@ if (is_ios || is_mac) {
            "objc/api/peerconnection/RTCVideoTrack.h",
            "objc/api/video_codec/RTCVideoDecoderVP8.h",
            "objc/api/video_codec/RTCVideoDecoderVP9.h",
