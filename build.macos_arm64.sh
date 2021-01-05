@@ -4,7 +4,7 @@ cd `dirname $0`
 source VERSION
 SCRIPT_DIR="`pwd`"
 
-PACKAGE_NAME=macos
+PACKAGE_NAME=macos_arm64
 SOURCE_DIR="`pwd`/_source/$PACKAGE_NAME"
 BUILD_DIR="`pwd`/_build/$PACKAGE_NAME"
 PACKAGE_DIR="`pwd`/_package/$PACKAGE_NAME"
@@ -29,6 +29,7 @@ popd
 pushd $SOURCE_DIR/webrtc/src
   gn gen $BUILD_DIR/webrtc --args='
     target_os="mac"
+    target_cpu="arm64"
     is_debug=false
     rtc_include_tests=false
     rtc_build_examples=false
