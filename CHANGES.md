@@ -19,6 +19,20 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 - [CHANGE] ubuntu-16.04_armv7 ビルドを削除
     - @melpon
 
+## m88.4324.3.1
+
+- [ADD] Apple Silicon 用ビルド (macos_arm64) を追加
+    - @hakobera
+- [CHANGE] Apple Silicon 対応に伴い、既存の macos を macos_x86_64 に変更する
+    - @hakobera
+
+## m88.4324.0.0
+
+- [CHANGE] Linux の x86_64 にも `rtc_use_pipewire=false` を設定
+    - @melpon
+- [FIX] armv6用パッチの修正
+    - @melpon
+
 ## m86.4240.1.2 (2020/8/31)
 
 - [ADD] centos-8_x86_64 ビルドを追加
