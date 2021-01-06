@@ -29,8 +29,9 @@ In other languages, we won't be able to deal with them. Thank you for your under
 
 ## 現在提供しているビルド
 
-- windows
-- macos
+- windows x86_64
+- macos x86_64
+- macos arm64
 - raspberry-pi-os_armv6 (Raspberry Pi Zero)
 - raspberry-pi-os_armv7 (Raspberry Pi 3, 4)
 - raspberry-pi-os_armv8 (Raspberry Pi 3, 4)
