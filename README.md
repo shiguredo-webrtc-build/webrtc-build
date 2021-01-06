@@ -40,7 +40,7 @@ In other languages, we won't be able to deal with them. Thank you for your under
     - Jetson AGX Xavier
 - ubuntu-18.04_x86_64
 - ubuntu-20.04_x86_64
-- centos-8_x86_64
+- centos-8_x86_64 (そのうち削除します)
 - android
 - ios
 
