@@ -76,7 +76,4 @@ limitations under the License.
     - H.265 Support for macOS
 - hakobera
     - Ubuntu 20.04 x86_64 support
-
-### Thanks
-
-- enm10k
+    - macOS 11 arm64 support
