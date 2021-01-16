@@ -14,13 +14,13 @@ index 113806489c..3372508d82 100644
      return WEBRTC_VIDEO_CODEC_UNINITIALIZED;
    }
 diff --git a/sdk/objc/native/src/objc_video_encoder_factory.mm b/sdk/objc/native/src/objc_video_encoder_factory.mm
-index b54945f49e..79607fe9fa 100644
+index e51fc9d319..b4cfbf21ae 100644
 --- a/sdk/objc/native/src/objc_video_encoder_factory.mm
 +++ b/sdk/objc/native/src/objc_video_encoder_factory.mm
-@@ -53,6 +53,10 @@ int32_t RegisterEncodeCompleteCallback(EncodedImageCallback *callback) override
+@@ -50,6 +50,10 @@ int32_t InitEncode(const VideoCodec *codec_settings, const Settings &encoder_set
+   int32_t RegisterEncodeCompleteCallback(EncodedImageCallback *callback) override {
      [encoder_ setCallback:^BOOL(RTC_OBJC_TYPE(RTCEncodedImage) * _Nonnull frame,
-                                 id<RTC_OBJC_TYPE(RTCCodecSpecificInfo)> _Nonnull info,
-                                 RTC_OBJC_TYPE(RTCRtpFragmentationHeader) * _Nonnull header) {
+                                 id<RTC_OBJC_TYPE(RTCCodecSpecificInfo)> _Nonnull info) {
 +      if (callback == nullptr) {
 +        return FALSE;
 +      }
