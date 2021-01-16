@@ -53,9 +53,10 @@ jobs:
       fail-fast: false
       matrix:
         name:
-          - macos
+          - macos_arm64
+          - macos_x86_64
           - ios
-    runs-on: macOS-latest
+    runs-on: macOS-11.0
     steps:
     - uses: actions/checkout@v2
       with:
