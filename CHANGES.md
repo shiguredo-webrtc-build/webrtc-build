@@ -12,13 +12,6 @@
 VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 パッチやビルドの変更のみ記録すること。
 
-## master
-
-- [CHANGE] ubuntu-16.04_x86_64 ビルドを削除
-    - @melpon
-- [CHANGE] ubuntu-16.04_armv7 ビルドを削除
-    - @melpon
-
 ## m88.4324.3.1
 
 - [ADD] Apple Silicon 用ビルド (macos_arm64) を追加
