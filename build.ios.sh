@@ -39,7 +39,13 @@ done
 
 pushd $SOURCE_DIR/webrtc/src
   for build_config in $TARGET_BUILD_CONFIGS; do
-    build_config = "release" && (_is_debug="false"; true) || _is_debug="true"
+
+    if [ $build_config = "release" ]; then
+      _is_debug="false"
+    else
+      _is_debug="true"
+    fi
+
     ./tools_webrtc/ios/build_ios_libs.sh -o $BUILD_DIR/webrtc/$build_config --build_config $build_config --arch $TARGET_ARCHS --bitcode --extra-gn-args " \
       rtc_libvpx_build_vp9=true \
       rtc_include_tests=false \
@@ -74,7 +80,13 @@ pushd $SOURCE_DIR/webrtc/src
   for build_config in $TARGET_BUILD_CONFIGS; do
     _libs=""
     _dirs=""
-    build_config = "release" && (_is_debug="false"; true) || _is_debug="true"
+
+    if [ $build_config = "release" ]; then
+      _is_debug="false"
+    else
+      _is_debug="true"
+    fi
+
     for arch in $TARGET_ARCHS; do
       gn gen $BUILD_DIR/webrtc/$build_config/${arch}_libs --args="
         target_os=\"ios\"
