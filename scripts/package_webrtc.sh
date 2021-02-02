@@ -29,6 +29,8 @@ for name in $ADDITIONAL_BUILD_NAMES; do
 done
 # NOTICE
 cp $BUILD_DIR/webrtc/LICENSE.md "$BUILD_DIR/package/webrtc/NOTICE"
+# WebRTC.framework
+cp -r $BUILD_DIR/webrtc/WebRTC.framework "$BUILD_DIR/package/webrtc/WebRTC.framework"
 
 # 各種情報を拾ってくる
 cp $VERSION_FILE $BUILD_DIR/package/webrtc/VERSIONS
