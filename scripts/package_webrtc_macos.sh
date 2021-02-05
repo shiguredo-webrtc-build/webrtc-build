@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ $# -lt 5 ]; then
-  echo "$0 <static_dir> <source_dir> <build_dir> <package_dir> <version_file> [<additional_build_name>...]"
+  echo "$0 <static_dir> <source_dir> <build_dir> <package_dir> <version_file>"
   exit 1
 fi
 
@@ -13,22 +13,25 @@ BUILD_DIR=$3
 PACKAGE_DIR=$4
 VERSION_FILE=$5
 shift 5
-ADDITIONAL_BUILD_NAMES="$*"
 
 rm -rf $BUILD_DIR/package/webrtc
-mkdir -p $BUILD_DIR/package/webrtc/lib
+mkdir -p $BUILD_DIR/package/webrtc/debug/lib
+mkdir -p $BUILD_DIR/package/webrtc/release/lib
 mkdir -p $BUILD_DIR/package/webrtc/include
 
 # webrtc のヘッダ類
 rsync -amv '--include=*/' '--include=*.h' '--include=*.hpp' '--exclude=*' $SOURCE_DIR/webrtc/src/. $BUILD_DIR/package/webrtc/include/.
 
 # libwebrtc.a
-cp $BUILD_DIR/webrtc/libwebrtc.a $BUILD_DIR/package/webrtc/lib/
-for name in $ADDITIONAL_BUILD_NAMES; do
-  cp $BUILD_DIR/webrtc_$name/libwebrtc.a $BUILD_DIR/package/webrtc/lib/libwebrtc_$name.a
-done
+cp $BUILD_DIR/webrtc/debug/libwebrtc.a $BUILD_DIR/package/webrtc/debug/lib/
+cp $BUILD_DIR/webrtc/release/libwebrtc.a $BUILD_DIR/package/webrtc/release/lib/
 # NOTICE
 cp $BUILD_DIR/webrtc/LICENSE.md "$BUILD_DIR/package/webrtc/NOTICE"
+# WebRTC.framework
+cp -r $BUILD_DIR/webrtc/debug/WebRTC.framework "$BUILD_DIR/package/webrtc/debug/WebRTC.framework"
+cp -r $BUILD_DIR/webrtc/release/WebRTC.framework "$BUILD_DIR/package/webrtc/release/WebRTC.framework"
+# WebRTC.dSYM ... debugのみ
+cp -r $BUILD_DIR/webrtc/debug/WebRTC.dSYM "$BUILD_DIR/package/webrtc/debug/WebRTC.dSYM"
 
 # 各種情報を拾ってくる
 cp $VERSION_FILE $BUILD_DIR/package/webrtc/VERSIONS

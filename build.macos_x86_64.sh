@@ -44,8 +44,7 @@ pushd $SOURCE_DIR/webrtc/src
     native_api \
     default_codec_factory_objc \
     peerconnection \
-    videocapture_objc \
-    mac_framework_objc
+    videocapture_objc
   python2 tools_webrtc/libs/generate_licenses.py --target :webrtc $BUILD_DIR/webrtc/ $BUILD_DIR/webrtc/
 popd
 
