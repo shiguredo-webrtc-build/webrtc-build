@@ -15,19 +15,18 @@ VERSION_FILE=$5
 TARGET_BUILD_CONFIGS=$6
 
 rm -rf $BUILD_DIR/package/webrtc
+mkdir -p $BUILD_DIR/package/webrtc/include
+# webrtc のヘッダ類
+rsync -amv '--include=*/' '--include=*.h' '--include=*.hpp' '--exclude=*' $SOURCE_DIR/webrtc/src/. $BUILD_DIR/package/webrtc/include/.
 
 for build_config in $TARGET_BUILD_CONFIGS; do
   mkdir -p $BUILD_DIR/package/webrtc/${build_config}/lib
-  mkdir -p $BUILD_DIR/package/webrtc/${build_config}/include
-
-  # webrtc のヘッダ類
-  rsync -amv '--include=*/' '--include=*.h' '--include=*.hpp' '--exclude=*' $SOURCE_DIR/webrtc/src/. $BUILD_DIR/package/webrtc/${build_config}/include/.
 
   # libwebrtc.a
   cp $BUILD_DIR/webrtc/${build_config}/libwebrtc.a $BUILD_DIR/package/webrtc/${build_config}/lib/
 
   # NOTICE
-  cp $BUILD_DIR/webrtc/${build_config}/LICENSE.md "$BUILD_DIR/package/webrtc/${build_config}/NOTICE"
+  cp $BUILD_DIR/webrtc/${build_config}/WebRTC.framework/LICENSE.md "$BUILD_DIR/package/webrtc/NOTICE"
 
   # WebRTC.framework
   cp -R $BUILD_DIR/webrtc/${build_config}/WebRTC.framework "$BUILD_DIR/package/webrtc/${build_config}/WebRTC.framework"

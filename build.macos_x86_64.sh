@@ -5,9 +5,6 @@ source VERSION
 SCRIPT_DIR="`pwd`"
 
 PACKAGE_NAME=macos_x86_64
-TARGET_ARCH=x64
-TARGET_BUILD_CONFIGS="debug release"
-MAC_DEPLOYMENT_TARGET=10.10
 SOURCE_DIR="`pwd`/_source/$PACKAGE_NAME"
 BUILD_DIR="`pwd`/_build/$PACKAGE_NAME"
 PACKAGE_DIR="`pwd`/_package/$PACKAGE_NAME"
@@ -15,19 +12,22 @@ PACKAGE_DIR="`pwd`/_package/$PACKAGE_NAME"
 set -ex
 
 # ======= ここまでは全ての build.*.sh で共通（PACKAGE_NAME だけ変える）
+TARGET_ARCH=x64
+TARGET_BUILD_CONFIGS="debug release"
+MAC_DEPLOYMENT_TARGET=10.10
 
-# ./scripts/get_depot_tools.sh $SOURCE_DIR
+./scripts/get_depot_tools.sh $SOURCE_DIR
 export PATH="$SOURCE_DIR/depot_tools:$PATH"
 
-# ./scripts/prepare_webrtc.sh $SOURCE_DIR $WEBRTC_COMMIT
+./scripts/prepare_webrtc.sh $SOURCE_DIR $WEBRTC_COMMIT
 
-# pushd $SOURCE_DIR/webrtc/src
-#   patch -p2 < $SCRIPT_DIR/patches/4k.patch
-#   patch -p2 < $SCRIPT_DIR/patches/macos_h264_encoder.patch
-#   patch -p2 < $SCRIPT_DIR/patches/macos_av1.patch
-#   patch -p2 < $SCRIPT_DIR/patches/macos_screen_capture.patch
-#   patch -p1 < $SCRIPT_DIR/patches/macos_simulcast.patch
-# popd
+pushd $SOURCE_DIR/webrtc/src
+  patch -p2 < $SCRIPT_DIR/patches/4k.patch
+  patch -p2 < $SCRIPT_DIR/patches/macos_h264_encoder.patch
+  patch -p2 < $SCRIPT_DIR/patches/macos_av1.patch
+  patch -p2 < $SCRIPT_DIR/patches/macos_screen_capture.patch
+  patch -p1 < $SCRIPT_DIR/patches/macos_simulcast.patch
+popd
 
 pushd $SOURCE_DIR/webrtc/src
   for build_config in $TARGET_BUILD_CONFIGS; do
@@ -83,13 +83,6 @@ pushd $SOURCE_DIR/webrtc/src
 }
 EOF
 
-    /usr/bin/ar -rc $libs_dir/libwebrtc.a `find . -name '*.o'`
-
-    python2 tools_webrtc/libs/generate_licenses.py --target :webrtc $libs_dir $libs_dir
-  done
-popd
-
-./scripts/package_webrtc_macos.sh $SCRIPT_DIR/static $SOURCE_DIR $BUILD_DIR $PACKAGE_DIR $SCRIPT_DIR/VERSION "$TARGET_BUILD_CONFIGS"
     # info.plistの編集(tools_wertc/ios/build_ios_libs.py内の処理を踏襲)
     info_plist_path=$libs_dir/WebRTC.framework/Resources/Info.plist
     major_minor=(echo -n `/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" $info_plist_path`)
@@ -97,3 +90,10 @@ popd
     /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $version_number" $info_plist_path
     plutil -convert binary1 $info_plist_path
 
+    /usr/bin/ar -rc $libs_dir/libwebrtc.a `find . -name '*.o'`
+
+    python2 tools_webrtc/libs/generate_licenses.py --target //sdk:mac_framework_objc $libs_dir/WebRTC.framework $libs_dir
+  done
+popd
+
+./scripts/package_webrtc_macos.sh $SCRIPT_DIR/static $SOURCE_DIR $BUILD_DIR $PACKAGE_DIR $SCRIPT_DIR/VERSION "$TARGET_BUILD_CONFIGS"
