@@ -41,9 +41,9 @@ pushd $SOURCE_DIR/webrtc/src
   for build_config in $TARGET_BUILD_CONFIGS; do
 
     if [ $build_config = "release" ]; then
-      _is_debug="false"
+      _enable_dsyms="false"
     else
-      _is_debug="true"
+      _enable_dsyms="true"
     fi
 
     ./tools_webrtc/ios/build_macos_libs.sh -o $BUILD_DIR/webrtc/$build_config --build_config $build_config --arch $TARGET_ARCHS --bitcode --extra-gn-args " \
@@ -53,7 +53,7 @@ pushd $SOURCE_DIR/webrtc/src
       rtc_use_h264=false \
       use_rtti=true \
       libcxx_abi_unstable=false \
-      enable_dsyms=$_is_debug \
+      enable_dsyms=$_enable_dsyms \
     "
     _branch="M`echo $WEBRTC_VERSION | cut -d'.' -f1`"
     _commit="`echo $WEBRTC_VERSION | cut -d'.' -f3`"
