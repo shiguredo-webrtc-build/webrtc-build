@@ -30,12 +30,12 @@ pushd $SOURCE_DIR/webrtc/src
 popd
 
 pushd $SOURCE_DIR/webrtc/src
-  for build_config in $TARGET_BUILD_CONFIGS; do
-    libs_dir=$BUILD_DIR/webrtc/$build_config
+  for _build_config in $TARGET_BUILD_CONFIGS; do
+    _libs_dir=$BUILD_DIR/webrtc/$_build_config
 
-    mkdir -p $libs_dir
+    mkdir -p $_libs_dir
 
-    if [ $build_config = "release" ]; then
+    if [ $_build_config = "release" ]; then
       _is_debug="false"
       _enable_dsyms="false"
     else
@@ -43,7 +43,7 @@ pushd $SOURCE_DIR/webrtc/src
       _enable_dsyms="true"
     fi
 
-    gn gen $libs_dir --args="
+    gn gen $_libs_dir --args="
       target_os=\"mac\"
       target_cpu=\"$TARGET_ARCH\"
       mac_deployment_target=\"$MAC_DEPLOYMENT_TARGET\"
@@ -59,8 +59,8 @@ pushd $SOURCE_DIR/webrtc/src
       use_rtti=true
       libcxx_abi_unstable=false
     "
-    ninja -C $libs_dir
-    ninja -C $libs_dir \
+    ninja -C $_libs_dir
+    ninja -C $_libs_dir \
       builtin_audio_decoder_factory \
       default_task_queue_factory \
       native_api \
@@ -74,7 +74,7 @@ pushd $SOURCE_DIR/webrtc/src
     _revision=$WEBRTC_COMMIT
     _maint="`echo $WEBRTC_BUILD_VERSION | cut -d'.' -f4`"
 
-    cat <<EOF > $libs_dir/WebRTC.framework/build_info.json
+    cat <<EOF > $_libs_dir/WebRTC.framework/build_info.json
 {
     "webrtc_version": "$_branch",
     "webrtc_commit": "$_commit",
@@ -84,15 +84,15 @@ pushd $SOURCE_DIR/webrtc/src
 EOF
 
     # info.plistの編集(tools_wertc/ios/build_ios_libs.py内の処理を踏襲)
-    info_plist_path=$libs_dir/WebRTC.framework/Resources/Info.plist
-    major_minor=(echo -n `/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" $info_plist_path`)
-    version_number="$major_minor.0"
-    /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $version_number" $info_plist_path
-    plutil -convert binary1 $info_plist_path
+    _info_plist_path=$_libs_dir/WebRTC.framework/Resources/Info.plist
+    _major_minor=(echo -n `/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" $_info_plist_path`)
+    _version_number="$_major_minor.0"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $_version_number" $_info_plist_path
+    plutil -convert binary1 $_info_plist_path
 
-    /usr/bin/ar -rc $libs_dir/libwebrtc.a `find . -name '*.o'`
+    /usr/bin/ar -rc $_libs_dir/libwebrtc.a `find . -name '*.o'`
 
-    python2 tools_webrtc/libs/generate_licenses.py --target //sdk:mac_framework_objc $libs_dir/WebRTC.framework $libs_dir
+    python2 tools_webrtc/libs/generate_licenses.py --target //sdk:mac_framework_objc $_libs_dir/WebRTC.framework $_libs_dir
   done
 popd
 
