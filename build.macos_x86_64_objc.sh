@@ -20,11 +20,6 @@ TARGET_BUILD_CONFIGS="debug release"
 export PATH="$SOURCE_DIR/depot_tools:$PATH"
 
 ./scripts/prepare_webrtc.sh $SOURCE_DIR $WEBRTC_COMMIT
-# macOSの場合には.gclientへの書き込みは不要
-# https://chromium.googlesource.com/libyuv/libyuv/+/HEAD/docs/getting_started.md
-pushd $SOURCE_DIR/webrtc
-  gclient sync
-popd
 
 pushd $SOURCE_DIR/webrtc/src
   patch -p2 < $SCRIPT_DIR/patches/4k.patch
