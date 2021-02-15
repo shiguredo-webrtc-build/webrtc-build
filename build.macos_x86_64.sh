@@ -74,7 +74,7 @@ pushd $SOURCE_DIR/webrtc/src
     _revision=$WEBRTC_COMMIT
     _maint="`echo $WEBRTC_BUILD_VERSION | cut -d'.' -f4`"
 
-    cat <<EOF > $_libs_dir/WebRTC.framework/build_info.json
+    cat <<EOF > $_libs_dir/WebRTC.framework/Resources/build_info.json
 {
     "webrtc_version": "$_branch",
     "webrtc_commit": "$_commit",
@@ -92,7 +92,7 @@ EOF
 
     /usr/bin/ar -rc $_libs_dir/libwebrtc.a `find . -name '*.o'`
 
-    python2 tools_webrtc/libs/generate_licenses.py --target //sdk:mac_framework_objc $_libs_dir/WebRTC.framework $_libs_dir
+    python2 tools_webrtc/libs/generate_licenses.py --target //sdk:mac_framework_objc $_libs_dir/WebRTC.framework/Resources $_libs_dir
   done
 popd
 
