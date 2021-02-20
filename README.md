@@ -36,9 +36,8 @@ In other languages, we won't be able to deal with them. Thank you for your under
 - raspberry-pi-os_armv7 (Raspberry Pi 3, 4)
 - raspberry-pi-os_armv8 (Raspberry Pi 3, 4)
 - ubuntu-18.04_armv8
-    - Jetson Nano
-    - Jetson Xavier NX
-    - Jetson AGX Xavier
+- ubuntu-18.04_armv8_jetson_nano (Jetson Nano)
+- ubuntu-18.04_armv8_jetson_xavier (Jetson Xavier NX, AGX Xavier)
 - ubuntu-18.04_x86_64
 - ubuntu-20.04_x86_64
 - centos-8_x86_64 (そのうち削除します)
