@@ -14,8 +14,8 @@ COPY scripts/init_rootfs_arm64.sh /root/scripts/
 COPY $PACKAGE_NAME/arm64.conf /root/$PACKAGE_NAME/
 RUN /root/scripts/init_rootfs_arm64.sh /root/rootfs /root/$PACKAGE_NAME/arm64.conf
 
-COPY jetson.sh /root/scripts/
-RUN /root/scripts/jetson.sh
+COPY $PACKAGE_NAME/jetson.sh /root/$PACKAGE_NAME/
+RUN /root/$PACKAGE_NAME/jetson.sh
 
 COPY scripts/get_depot_tools.sh /root/scripts/
 RUN /root/scripts/get_depot_tools.sh $SOURCE_DIR
