@@ -14,8 +14,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## m89.4389
 
-- [ADD] Jetson 用ビルドを ubuntu-18.04_armv8 から分岐
-    - @tnoho
+- [CHANGE] Jetson 用の ubuntu-18.04_armv8 に use_system_libjpeg=false を追加
+    - @melpon @tnoho
 
 ## m88.4324.3.1
 
