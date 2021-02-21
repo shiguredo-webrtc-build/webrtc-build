@@ -44,6 +44,8 @@ RUN cd $SOURCE_DIR/webrtc/src \
     rtc_build_json=true \
     use_rtti=true \
     rtc_use_pipewire=false \
+    rtc_build_examples=false \
+    use_glib=false \
   ' \
   && ninja -C $BUILD_DIR/webrtc
 
@@ -68,6 +70,8 @@ RUN cd $SOURCE_DIR/webrtc/src \
     rtc_use_pipewire=false \
     use_custom_libcxx=false \
     use_custom_libcxx_for_host=false \
+    rtc_build_examples=false \
+    use_glib=false \
   ' \
   && ninja -C $BUILD_DIR/webrtc_nolibcxx
 
