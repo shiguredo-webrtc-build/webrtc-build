@@ -31,9 +31,12 @@ pushd $SOURCE_DIR/webrtc/src
     target_os="mac"
     target_cpu="arm64"
     is_debug=false
+    enable_dsyms=false
+    enable_stripping=true
     rtc_include_tests=false
     rtc_build_examples=false
     rtc_use_h264=false
+    rtc_enable_symbol_export=true
     is_component_build=false
     use_rtti=true
     libcxx_abi_unstable=false
