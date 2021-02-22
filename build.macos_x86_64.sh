@@ -90,7 +90,9 @@ EOF
     /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $_version_number" $_info_plist_path
     plutil -convert binary1 $_info_plist_path
 
-    /usr/bin/ar -rc $_libs_dir/libwebrtc.a `find . -name '*.o'`
+    pushd $_libs_dir/obj
+      /usr/bin/ar -rc $_libs_dir/libwebrtc.a `find . -name '*.o'`
+    popd
 
     python2 tools_webrtc/libs/generate_licenses.py --target //sdk:mac_framework_objc $_libs_dir/WebRTC.framework/Resources $_libs_dir
   done
