@@ -26,8 +26,10 @@ RUN /root/scripts/prepare_webrtc.sh $SOURCE_DIR $WEBRTC_COMMIT
 COPY scripts/install_webrtc_build_deps.sh /root/scripts/
 RUN /root/scripts/install_webrtc_build_deps.sh $SOURCE_DIR arm
 
+COPY patches/libjpeg_mangle.patch /root/patches/
 COPY patches/4k.patch /root/patches/
 RUN cd $SOURCE_DIR/webrtc/src \
+  && patch -p0 < /root/patches/libjpeg_mangle.patch \
   && patch -p2 < /root/patches/4k.patch
 
 RUN cd $SOURCE_DIR/webrtc/src \
