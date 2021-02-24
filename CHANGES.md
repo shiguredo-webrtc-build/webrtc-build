@@ -12,6 +12,11 @@
 VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 パッチやビルドの変更のみ記録すること。
 
+## m89.4389
+
+- [CHANGE] ubuntu-18.04_armv8 向けに `libjpeg_mangle.patch` を追加
+    - @tnoho @melpon
+
 ## m88.4324.3.1
 
 - [ADD] Apple Silicon 用ビルド (macos_arm64) を追加

@@ -23,7 +23,6 @@ jobs:
         # JVM の削除
         Remove-Item -Recurse -Force $Env:JAVA_HOME_11_X64 -ErrorAction Ignore
         Remove-Item -Recurse -Force $Env:JAVA_HOME_8_X64 -ErrorAction Ignore
-        Remove-Item -Recurse -Force $Env:JAVA_HOME_7_X64 -ErrorAction Ignore
         Get-PSDrive
     - run: Copy-Item VERSION.head VERSION
     - run: .\build.windows.bat
