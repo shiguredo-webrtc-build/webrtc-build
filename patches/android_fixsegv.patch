@@ -1,0 +1,39 @@
+# フレームドロップ時、入力に回転などが含まれてると toI420 呼び出し時に落ちてしまう
+diff --git a/sdk/android/src/java/org/webrtc/NativeCapturerObserver.java b/sdk/android/src/java/org/webrtc/NativeCapturerObserver.java
+index c195fb3a4c..f12749e47e 100644
+--- a/sdk/android/src/java/org/webrtc/NativeCapturerObserver.java
++++ b/sdk/android/src/java/org/webrtc/NativeCapturerObserver.java
+@@ -38,7 +38,7 @@ class NativeCapturerObserver implements CapturerObserver {
+   public void onFrameCaptured(VideoFrame frame) {
+     final VideoProcessor.FrameAdaptationParameters parameters =
+         nativeAndroidVideoTrackSource.adaptFrame(frame);
+-    if (parameters == null) {
++    if (parameters.drop) {
+       // Drop frame.
+       return;
+     }
+# active: false 時、callback_ に値が設定される前に OnEncodedFrame が呼ばれて落ちてしまう
+diff --git a/sdk/android/src/jni/video_encoder_wrapper.cc b/sdk/android/src/jni/video_encoder_wrapper.cc
+index 3bdfdc3d35..93f9706b70 100644
+--- a/sdk/android/src/jni/video_encoder_wrapper.cc
++++ b/sdk/android/src/jni/video_encoder_wrapper.cc
+@@ -32,7 +32,7 @@ namespace jni {
+
+ VideoEncoderWrapper::VideoEncoderWrapper(JNIEnv* jni,
+                                          const JavaRef<jobject>& j_encoder)
+-    : encoder_(jni, j_encoder), int_array_class_(GetClass(jni, "[I")) {
++    : encoder_(jni, j_encoder), int_array_class_(GetClass(jni, "[I")), callback_(nullptr) {
+   initialized_ = false;
+   num_resets_ = 0;
+
+@@ -269,7 +269,9 @@ void VideoEncoderWrapper::OnEncodedFrame(
+
+   CodecSpecificInfo info(ParseCodecSpecificInfo(frame));
+
+-  callback_->OnEncodedImage(frame_copy, &info);
++  if (callback_ != nullptr) {
++    callback_->OnEncodedImage(frame_copy, &info);
++  }
+ }
+
+ int32_t VideoEncoderWrapper::HandleReturnCode(JNIEnv* jni,
