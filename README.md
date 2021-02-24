@@ -69,12 +69,16 @@ limitations under the License.
 ### Contributing
 
 - melpon - *Original Author*
-    - Android support
-    - iOS Support
-    - CentOS 8 support
+    - Android サポート
+    - iOS サポート
+    - CentOS 8 サポート
 - tnoho - *Original Author*
-    - AV1 support for macOS
-    - H.265 Support for macOS
+    - macOS 向け AV1 サポート
+    - macOS 向け H.265 サポート
 - hakobera
-    - Ubuntu 20.04 x86_64 support
-    - macOS 11 arm64 support
+    - Ubuntu 20.04 x86_64 サポート
+    - macOS 11 arm64 サポート
+- enm10k
+    - iOS 向けデバッグビルド追加
+- soudegesu
+    - macOS 向け ObjC ヘッダー追加
