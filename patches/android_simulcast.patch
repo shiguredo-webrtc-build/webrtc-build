@@ -59,7 +59,7 @@ index 0000000000..dee1c91fae
 +    public SimulcastVideoEncoder(VideoEncoderFactory primary, VideoEncoderFactory fallback, VideoCodecInfo info) {
 +        this.primary = primary;
 +        this.fallback = fallback;
-+	this.info = info;
++	       this.info = info;
 +    }
 +
 +    @Override
