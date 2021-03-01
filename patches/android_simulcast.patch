@@ -129,7 +129,7 @@ new file mode 100644
 index 0000000000..2928cdab92
 --- /dev/null
 +++ b/sdk/android/src/jni/simulcast_video_encoder.cc
-@@ -0,0 +1,33 @@
+@@ -0,0 +1,36 @@
 +#include <jni.h>
 +
 +#include "sdk/android/src/jni/jni_helpers.h"
@@ -151,6 +151,9 @@ index 0000000000..2928cdab92
 +    RTC_LOG(LS_INFO) << "Create simulcast video encoder";
 +    JavaParamRef<jobject> info_ref(info);
 +    SdpVideoFormat format = VideoCodecInfoToSdpVideoFormat(env, info_ref);
++
++    // TODO: 影響は軽微だが、リークする可能性があるので将来的に修正したい
++    // https://github.com/shiguredo-webrtc-build/webrtc-build/pull/16#pullrequestreview-600675795
 +    return NativeToJavaPointer(std::make_unique<SimulcastEncoderAdapter>(
 +			    JavaToNativeVideoEncoderFactory(env, primary).release(),
 +			    JavaToNativeVideoEncoderFactory(env, fallback).release(),
