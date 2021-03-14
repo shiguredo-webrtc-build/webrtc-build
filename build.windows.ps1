@@ -1,6 +1,4 @@
-#$ErrorActionPreference = 'Stop'
-
-$env:GIT_REDIRECT_STDERR = '2>&1'
+$ErrorActionPreference = 'Stop'
 
 $SCRIPT_DIR = (Resolve-Path ".").Path
 

@@ -25,7 +25,7 @@ jobs:
         Remove-Item -Recurse -Force $Env:JAVA_HOME_8_X64 -ErrorAction Ignore
         Get-PSDrive
     - run: Copy-Item VERSION.head VERSION
-    - run: .\build.windows.bat
+    - run: "& .\\build.windows.ps1"
     - name: Release windows latest
       uses: WebFreak001/deploy-nightly@v1.0.3
       env:
