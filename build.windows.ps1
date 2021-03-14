@@ -208,7 +208,7 @@ if (Test-Path $PACKAGE_DIR\webrtc.zip) {
   Remove-Item -Force -Path $PACKAGE_DIR\webrtc.zip
 }
 Push-Location $BUILD_DIR\package
-  7z a $PACKAGE_DIR\webrtc.zip webrtc
+  7z a $PACKAGE_DIR\webrtc.zip webrtc -ErrorAction Continue
   # 7z に失敗したら Compress-Archive を使う
   if (!$?) {
     Compress-Archive -DestinationPath $PACKAGE_DIR\webrtc.zip -Path webrtc -Force
