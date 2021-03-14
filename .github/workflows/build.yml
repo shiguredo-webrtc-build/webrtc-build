@@ -29,7 +29,7 @@ jobs:
         Remove-Item -Recurse -Force $Env:JAVA_HOME_11_X64 -ErrorAction Ignore
         Remove-Item -Recurse -Force $Env:JAVA_HOME_8_X64 -ErrorAction Ignore
         Get-PSDrive
-    - run: .\build.windows.bat
+    - run: "& .\\build.windows.ps1"
     - name: Upload Artifact
       uses: actions/upload-artifact@v1
       with:
@@ -63,7 +63,6 @@ jobs:
           - ubuntu-18.04_armv8
           - ubuntu-18.04_x86_64
           - ubuntu-20.04_x86_64
-          - centos-8_x86_64
           - android
     runs-on: ubuntu-18.04
     steps:
@@ -124,7 +123,6 @@ jobs:
           - ubuntu-18.04_armv8
           - ubuntu-18.04_x86_64
           - ubuntu-20.04_x86_64
-          - centos-8_x86_64
           - android
     name: Release ${{ matrix.name }}
     if: contains(github.ref, 'tags/m')

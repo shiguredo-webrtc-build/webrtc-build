@@ -25,28 +25,7 @@ jobs:
         Remove-Item -Recurse -Force $Env:JAVA_HOME_8_X64 -ErrorAction Ignore
         Get-PSDrive
     - run: Copy-Item VERSION.head VERSION
-    - run: .\build.windows.bat
-    - name: Release windows latest
-      uses: WebFreak001/deploy-nightly@v1.0.3
-      env:
-        GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
-      with:
-        upload_url: "https://uploads.github.com/repos/shiguredo-webrtc-build/webrtc-build/releases/22591864/assets{?name,label}"
-        release_id: 22591864
-        asset_path: _package/windows/webrtc.zip
-        asset_name: webrtc.windows.latest.zip
-        asset_content_type: application/zip
-    - name: Release windows nightly
-      uses: WebFreak001/deploy-nightly@v1.0.3
-      env:
-        GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
-      with:
-        upload_url: "https://uploads.github.com/repos/shiguredo-webrtc-build/webrtc-build/releases/22591864/assets{?name,label}"
-        release_id: 22591864
-        asset_path: _package/windows/webrtc.zip
-        asset_name: webrtc.windows.$$.zip
-        asset_content_type: application/gzip
-        max_releases: 7
+    - run: "& .\\build.windows.ps1"
   build-macos:
     strategy:
       fail-fast: false
@@ -62,27 +41,6 @@ jobs:
         ref: daily
     - run: cp VERSION.head VERSION
     - run: ./build.${{ matrix.name }}.sh
-    - name: Release ${{ matrix.name }} latest
-      uses: WebFreak001/deploy-nightly@v1.0.3
-      env:
-        GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
-      with:
-        upload_url: "https://uploads.github.com/repos/shiguredo-webrtc-build/webrtc-build/releases/22591864/assets{?name,label}"
-        release_id: 22591864
-        asset_path: _package/${{ matrix.name }}/webrtc.tar.gz
-        asset_name: webrtc.${{ matrix.name }}.latest.tar.gz
-        asset_content_type: application/gzip
-    - name: Release ${{ matrix.name }} nightly
-      uses: WebFreak001/deploy-nightly@v1.0.3
-      env:
-        GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
-      with:
-        upload_url: "https://uploads.github.com/repos/shiguredo-webrtc-build/webrtc-build/releases/22591864/assets{?name,label}"
-        release_id: 22591864
-        asset_path: _package/${{ matrix.name }}/webrtc.tar.gz
-        asset_name: webrtc.${{ matrix.name }}.$$.tar.gz
-        asset_content_type: application/gzip
-        max_releases: 7
   build-linux:
     strategy:
       fail-fast: false
@@ -94,7 +52,6 @@ jobs:
           - ubuntu-18.04_armv8
           - ubuntu-18.04_x86_64
           - ubuntu-20.04_x86_64
-          - centos-8_x86_64
           - android
     runs-on: ubuntu-18.04
     steps:
@@ -117,24 +74,3 @@ jobs:
       with:
         name: webrtc.${{ matrix.name }}.tar.gz
         path: _package/${{ matrix.name }}/webrtc.tar.gz
-    - name: Release ${{ matrix.name }} latest
-      uses: WebFreak001/deploy-nightly@v1.0.3
-      env:
-        GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
-      with:
-        upload_url: "https://uploads.github.com/repos/shiguredo-webrtc-build/webrtc-build/releases/22591864/assets{?name,label}"
-        release_id: 22591864
-        asset_path: _package/${{ matrix.name }}/webrtc.tar.gz
-        asset_name: webrtc.${{ matrix.name }}.latest.tar.gz
-        asset_content_type: application/gzip
-    - name: Release ${{ matrix.name }} nightly
-      uses: WebFreak001/deploy-nightly@v1.0.3
-      env:
-        GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
-      with:
-        upload_url: "https://uploads.github.com/repos/shiguredo-webrtc-build/webrtc-build/releases/22591864/assets{?name,label}"
-        release_id: 22591864
-        asset_path: _package/${{ matrix.name }}/webrtc.tar.gz
-        asset_name: webrtc.${{ matrix.name }}.$$.tar.gz
-        asset_content_type: application/gzip
-        max_releases: 7
