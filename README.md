@@ -4,10 +4,11 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Actions Status](https://github.com/shiguredo-webrtc-build/webrtc-build/workflows/build/badge.svg)](https://github.com/shiguredo-webrtc-build/webrtc-build/actions)
 
-## About Support
+## About Shiguredo's open source software
 
-We check PRs or Issues only when written in JAPANESE.
-In other languages, we won't be able to deal with them. Thank you for your understanding.
+We will not respond to PRs or issues that have not been discussed on Discord. Also, Discord is only available in Japanese.
+
+Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use.
 
 ## 時雨堂のオープンソースソフトウェアについて
 
