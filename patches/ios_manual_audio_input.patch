@@ -137,15 +137,12 @@ index 09ffa16fcc..824c25cd03 100644
  }
  
  @synthesize session = _session;
-@@ -397,6 +403,14 @@ - (BOOL)setActive:(BOOL)active
+@@ -397,6 +403,11 @@ - (BOOL)setActive:(BOOL)active
    return success;
  }
  
 +- (BOOL)setCategory:(NSString *)category
 +              error:(NSError **)outError {
-+  if (![self checkLock:outError]) {
-+    return NO;
-+  }
 +  return [self.session setCategory:category error:outError];
 +}
 +
