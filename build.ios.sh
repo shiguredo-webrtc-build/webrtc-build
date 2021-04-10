@@ -31,6 +31,7 @@ pushd $SOURCE_DIR/webrtc/src
   patch -p2 < $SCRIPT_DIR/patches/macos_av1.patch
   patch -p1 < $SCRIPT_DIR/patches/macos_simulcast.patch
   patch -p1 < $SCRIPT_DIR/patches/ios_manual_audio_input.patch
+  patch -p1 < $SCRIPT_DIR/patches/ios_simulcast.patch
 popd
 
 for build_config in $TARGET_BUILD_CONFIGS; do
