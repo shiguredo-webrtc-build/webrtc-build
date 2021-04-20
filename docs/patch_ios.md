@@ -37,7 +37,7 @@ bool success = [session configureWebRTCSession:nil];
 どこかですでにロックされている状態で上記のコードが実行されるとデッドロックしてしまう。
 
 パッチで追加する `-[RTCAudioSession startVoiceProcessingAudioUnit:]` は `RTCAudioSession` の設定を変更するためにロックを行う。
-`startVoiceProcessingAudioUnit:` は `VoiceProcessingAudioUnit::Initialize()` (`third_party/webrtc/sdk/objc/native/src/audio/voice_processing_audio_unit.mm`) から呼ばれる。
+`startVoiceProcessingAudioUnit:` は `VoiceProcessingAudioUnit::Initialize()` (`sdk/objc/native/src/audio/voice_processing_audio_unit.mm`) から呼ばれる。
 `VoiceProcessingAudioUnit::Initialize()` は次の複数の箇所から呼ばれている:
 
 - `AudioDeviceIOS::InitPlayOrRecord()` (`sdk/objc/native/src/audio/audio_device_ios.mm`)
