@@ -34,7 +34,8 @@ bool success = [session configureWebRTCSession:nil];
 ```
 
 ただし、 `lockForConfiguration` は現在相互排他ロック (mutex) として実装されているので、デッドロックに注意しなければならない (パッチ実装時は再帰的ロックだった) 。
-どこかですでにロックされている状態で上記のコードが実行されるとデッドロックしてしまう。
+`RTCAudioSession` がいずれかのスレッド (ディスパッチキュー) ですでにロックされている状態でロックしようとするとデッドロックしてしまう。
+`RTCAudioSession` の相互排他ロックは同一スレッド間のみに制限されないので注意すべき。
 
 パッチで追加する `-[RTCAudioSession startVoiceProcessingAudioUnit:]` は `RTCAudioSession` の設定を変更するためにロックを行う。
 `startVoiceProcessingAudioUnit:` は `VoiceProcessingAudioUnit::Initialize()` (`sdk/objc/native/src/audio/voice_processing_audio_unit.mm`) から呼ばれる。
