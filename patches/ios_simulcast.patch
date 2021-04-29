@@ -130,7 +130,7 @@ new file mode 100644
 index 0000000000..7ce2a4eaba
 --- /dev/null
 +++ b/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.mm
-@@ -0,0 +1,37 @@
+@@ -0,0 +1,36 @@
 +#import <Foundation/Foundation.h>
 +
 +#import "RTCMacros.h"
@@ -162,8 +162,7 @@ index 0000000000..7ce2a4eaba
 +}
 +
 +- (NSArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *)supportedCodecs {
-+    NSArray *codecs = [[_primary supportedCodecs] arrayByAddingObjectsFromArray: [_fallback supportedCodecs]];
-+    return [[NSSet setWithArray: codecs] allObjects];
++    return [[_primary supportedCodecs] arrayByAddingObjectsFromArray: [_fallback supportedCodecs]];
 +}
 +
 +
