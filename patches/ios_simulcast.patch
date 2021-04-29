@@ -162,8 +162,8 @@ index 0000000000..7ce2a4eaba
 +}
 +
 +- (NSArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *)supportedCodecs {
-+    // TODO: primary + fallback
-+    return [_primary supportedCodecs];
++    NSArray *codecs = [[_primary supportedCodecs] arrayByAddingObjectsFromArray: [_fallback supportedCodecs]];
++    return [[NSSet setWithArray: codecs] allObjects];
 +}
 +
 +
