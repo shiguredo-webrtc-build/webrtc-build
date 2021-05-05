@@ -14,12 +14,17 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## master
 
-- [ADD] iOS にサイマルキャスト対応のパッチを追加
+- [CHANGE] iOS にサイマルキャスト対応のパッチを追加
     - @szktty @enm10k
+
+## m90.4430.3.1
+
+- [FIX] iOS で発生したロックの競合を解消する
+    - @melpon @enm10k
 
 ## m89.4389.5.6
 
-- [ADD] Android にサイマルキャスト対応のパッチを追加
+- [CHANGE] Android にサイマルキャスト対応のパッチを追加
     - @szktty @enm10k
 
 ## m89.4389.5.5
