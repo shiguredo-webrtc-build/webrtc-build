@@ -26,3 +26,9 @@ apt-get -y install \
 # Ubuntu 18.04 で multistrap が動かない問題の修正。
 # https://github.com/volumio/Build/issues/348#issuecomment-462271607 を参照
 sed -e 's/Apt::Get::AllowUnauthenticated=true/Apt::Get::AllowUnauthenticated=true";\n$config_str .= " -o Acquire::AllowInsecureRepositories=true/' -i /usr/sbin/multistrap
+
+# Ubuntu 18.04 では GLIBCXX_3.4.26 が無いためエラーになったので、
+# 新しいパッケージがある場所からインストールする
+add-apt-repository ppa:ubuntu-toolchain-r/test
+apt update
+apt-get install --only-upgrade libstdc++6
