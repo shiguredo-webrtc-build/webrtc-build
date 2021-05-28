@@ -2,14 +2,14 @@ diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
 index b25250d42e..bd46c1f830 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
-@@ -653,6 +653,7 @@ if (is_ios || is_mac) {
-         ":vp8",
-         ":vp9",
-         ":libaom_av1",
+@@ -648,6 +648,7 @@ if (is_ios || is_mac) {
+
+       deps = [
+         ":av1",
 +        ":simulcast",
-         ":vpx_codec_constants",
-       ]
-     }
+         ":base_objc",
+         ":native_video",
+         ":videocodec_objc",
 @@ -724,6 +725,22 @@ if (is_ios || is_mac) {
        ]
      }
