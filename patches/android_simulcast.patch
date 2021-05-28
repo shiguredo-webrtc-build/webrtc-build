@@ -1,20 +1,20 @@
 diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
-index ce5db777df..fb8a357787 100644
+index 0094c8ea39..ceebb4c65e 100644
 --- a/sdk/android/BUILD.gn
 +++ b/sdk/android/BUILD.gn
-@@ -512,6 +512,8 @@ if (is_android) {
+@@ -520,6 +520,8 @@ if (is_android) {
      sources = [
        "api/org/webrtc/SoftwareVideoDecoderFactory.java",
        "api/org/webrtc/SoftwareVideoEncoderFactory.java",
 +      "api/org/webrtc/SimulcastVideoEncoder.java",
 +      "api/org/webrtc/SimulcastVideoEncoderFactory.java",
      ]
- 
+
      deps = [
-@@ -800,12 +802,28 @@ if (current_os == "linux" || is_android) {
+@@ -854,6 +856,21 @@ if (current_os == "linux" || is_android) {
      ]
    }
- 
+
 +  rtc_library("simulcast_jni") {
 +    visibility = [ "*" ]
 +    allow_poison = [ "software_video_codecs" ]
@@ -33,13 +33,14 @@ index ce5db777df..fb8a357787 100644
    rtc_library("swcodecs_jni") {
      visibility = [ "*" ]
      allow_poison = [ "software_video_codecs" ]
-     deps = [
+@@ -861,6 +878,7 @@ if (current_os == "linux" || is_android) {
+       ":libaom_av1_jni",
        ":libvpx_vp8_jni",
        ":libvpx_vp9_jni",
 +      ":simulcast_jni",
      ]
    }
- 
+
 diff --git a/sdk/android/api/org/webrtc/SimulcastVideoEncoder.java b/sdk/android/api/org/webrtc/SimulcastVideoEncoder.java
 new file mode 100644
 index 0000000000..dee1c91fae
