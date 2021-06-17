@@ -33,13 +33,15 @@ COPY patches/4k.patch /root/patches/
 COPY patches/android_webrtc_version.patch /root/patches/
 COPY patches/android_fixsegv.patch /root/patches/
 COPY patches/android_simulcast.patch /root/patches/
+COPY patches/android_onremovetrack.patch /root/patches/
 COPY android/WebrtcBuildVersion.java $SOURCE_DIR/webrtc/src/sdk/android/api/org/webrtc/
 RUN cd $SOURCE_DIR/webrtc/src \
   && patch -p1 < /root/patches/add_dep_zlib.patch \
   && patch -p2 < /root/patches/4k.patch \
   && patch -p1 < /root/patches/android_webrtc_version.patch \
   && patch -p1 < /root/patches/android_fixsegv.patch \
-  && patch -p1 < /root/patches/android_simulcast.patch
+  && patch -p1 < /root/patches/android_simulcast.patch \
+  && patch -p1 < /root/patches/android_onremovetrack.patch
 
 RUN cd /root/_source/android/webrtc/src \
   && python $SOURCE_DIR/webrtc/src/tools_webrtc/android/build_aar.py \
@@ -87,25 +89,6 @@ RUN cd $SOURCE_DIR/webrtc/src \
 
 RUN cd $BUILD_DIR/webrtc_arm64-v8a/obj \
   && $SOURCE_DIR/webrtc/src/third_party/llvm-build/Release+Asserts/bin/llvm-ar -rc $BUILD_DIR/webrtc_arm64-v8a/libwebrtc.a `find . -name '*.o'`
-
-# onremovetrack 入りの aar
-# ソースが書き換わるので最後にやる必要がある
-COPY patches/android_onremovetrack.patch /root/patches/
-RUN cd $SOURCE_DIR/webrtc/src \
-  && patch -p1 < /root/patches/android_onremovetrack.patch
-
-RUN cd /root/_source/android/webrtc/src \
-  && python $SOURCE_DIR/webrtc/src/tools_webrtc/android/build_aar.py \
-      --build-dir $BUILD_DIR/webrtc_android \
-      --output $BUILD_DIR//webrtc_android/libwebrtc_onremovetrack.aar \
-      --arch armeabi-v7a arm64-v8a \
-      --extra-gn-args ' \
-        is_java_debug=false \
-        rtc_include_tests=false \
-        rtc_use_h264=false \
-        is_component_build=false \
-        use_rtti=true \
-      '
 
 ENV STATIC_DIR "/root/static"
 
