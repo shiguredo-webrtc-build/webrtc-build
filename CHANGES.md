@@ -12,6 +12,11 @@
 VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 パッチやビルドの変更のみ記録すること。
 
+## develop
+
+- [CHANGE] libwebrtc_onremovetrack.aar を廃止して、 libwebrtc.aar に android_onremovetrack.patch を適用する
+    - @enm10k
+
 ## m91.4472.9.3
 
 - [ADD] 各環境のバイナリに zlib を追加
