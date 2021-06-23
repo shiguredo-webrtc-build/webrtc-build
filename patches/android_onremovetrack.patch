@@ -1,16 +1,3 @@
-diff --git a/webrtc.gni b/webrtc.gni
-index b70cba633a..a7e82acc27 100644
---- a/webrtc.gni
-+++ b/webrtc.gni
-@@ -106,7 +106,7 @@ declare_args() {
-   rtc_enable_bwe_test_logging = false
- 
-   # Set this to false to skip building examples.
--  rtc_build_examples = true
-+  rtc_build_examples = false
- 
-   # Set this to false to skip building tools.
-   rtc_build_tools = true
 diff --git a/sdk/android/api/org/webrtc/PeerConnection.java b/sdk/android/api/org/webrtc/PeerConnection.java
 index b981520746..abda50766d 100644
 --- a/sdk/android/api/org/webrtc/PeerConnection.java

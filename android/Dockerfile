@@ -54,6 +54,7 @@ RUN cd /root/_source/android/webrtc/src \
         rtc_use_h264=false \
         is_component_build=false \
         use_rtti=true \
+        rtc_build_examples=false \
       '
 
 # armeabi-v7a 用の libwebrtc.a
@@ -66,6 +67,7 @@ RUN cd $SOURCE_DIR/webrtc/src \
     rtc_include_tests=false \
     rtc_build_json=true \
     use_rtti=true \
+    rtc_build_examples=false \
   ' \
   && ninja -C $BUILD_DIR/webrtc_armeabi-v7a \
   && ninja -C $BUILD_DIR/webrtc_armeabi-v7a native_api
@@ -83,6 +85,7 @@ RUN cd $SOURCE_DIR/webrtc/src \
     rtc_include_tests=false \
     rtc_build_json=true \
     use_rtti=true \
+    rtc_build_examples=false \
   ' \
   && ninja -C $BUILD_DIR/webrtc_arm64-v8a \
   && ninja -C $BUILD_DIR/webrtc_arm64-v8a native_api
