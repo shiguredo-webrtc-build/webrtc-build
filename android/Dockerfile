@@ -76,6 +76,12 @@ RUN cd $BUILD_DIR/webrtc_arm64-v8a/obj \
 
 # aar
 COPY patches/android_onremovetrack.patch /root/patches/
+
+# android_onremovetrack.patch を適用すると libwebrtc.a のビルドがエラーになるため、
+# このパッチのみ libwebrtc.aar をビルドする直前に適用しています
+#
+# ビルドエラーの詳細は以下のリンクを参照してください
+# https://github.com/shiguredo-webrtc-build/webrtc-build/pull/21#discussion_r656692110
 RUN cd $SOURCE_DIR/webrtc/src \
   && patch -p1 < /root/patches/android_onremovetrack.patch
 
