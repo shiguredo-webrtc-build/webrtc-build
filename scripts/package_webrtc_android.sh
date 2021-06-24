@@ -24,7 +24,6 @@ rsync -amv '--include=*/' '--include=*.h' '--include=*.hpp' '--exclude=*' $SOURC
 
 # libwebrtc.aar, libwebrtc.a, NOTICE
 cp $BUILD_DIR/webrtc_android/libwebrtc.aar $BUILD_DIR/package/webrtc/aar/
-cp $BUILD_DIR/webrtc_android/libwebrtc_onremovetrack.aar $BUILD_DIR/package/webrtc/aar/
 mkdir -p $BUILD_DIR/package/webrtc/lib/armeabi-v7a/
 cp $BUILD_DIR/webrtc_armeabi-v7a/libwebrtc.a $BUILD_DIR/package/webrtc/lib/armeabi-v7a/
 mkdir -p $BUILD_DIR/package/webrtc/lib/arm64-v8a/
