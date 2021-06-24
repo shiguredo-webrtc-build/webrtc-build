@@ -366,3 +366,22 @@ index 15a09b31e2..531b16a751 100644
    OSStatus result = AudioOutputUnitStop(vpio_unit_);
    if (result != noErr) {
      RTCLogError(@"Failed to stop audio unit. Error=%ld", (long)result);
+diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
+index f51714ce1d..6d19052408 100644
+--- a/sdk/objc/native/src/audio/audio_device_ios.mm
++++ b/sdk/objc/native/src/audio/audio_device_ios.mm
+@@ -913,8 +913,14 @@ bool AudioDeviceIOS::InitPlayOrRecord() {
+       audio_unit_.reset();
+       return false;
+     }
++    // NOTE(enm10k): lockForConfiguration の実装が recursive lock から non-recursive lock に変更されたタイミングで、
++    // この関数内の lock と、 audio_unit_->Initialize 内で実行される startVoiceProcessingAudioUnit が取得しようとするロックが競合するようになった
++    // パッチ前の処理はロックの粒度を大きめに取っているが、以降の SetupAudioBuffersForActiveAudioSession や audio_unit_->Initialize は lock を必要としていないため、
++    // ここで unlockForConfiguration するように修正する
++    [session unlockForConfiguration];
+     SetupAudioBuffersForActiveAudioSession();
+     audio_unit_->Initialize(playout_parameters_.sample_rate());
++    return true;
+   }
+ 
+   // Release the lock.

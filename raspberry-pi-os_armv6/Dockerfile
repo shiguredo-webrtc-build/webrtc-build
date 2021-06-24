@@ -27,9 +27,11 @@ COPY scripts/install_webrtc_build_deps.sh /root/scripts/
 RUN /root/scripts/install_webrtc_build_deps.sh $SOURCE_DIR arm
 
 COPY patches/nacl_armv6_2.patch /root/patches/
+COPY patches/add_dep_zlib.patch /root/patches/
 COPY patches/4k.patch /root/patches/
 RUN cd $SOURCE_DIR/webrtc/src \
   && patch -p1 < /root/patches/nacl_armv6_2.patch \
+  && patch -p1 < /root/patches/add_dep_zlib.patch \
   && patch -p2 < /root/patches/4k.patch
 
 RUN cd $SOURCE_DIR/webrtc/src \

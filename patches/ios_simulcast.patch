@@ -1,0 +1,170 @@
+diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
+index b25250d42e..bd46c1f830 100644
+--- a/sdk/BUILD.gn
++++ b/sdk/BUILD.gn
+@@ -648,6 +648,7 @@ if (is_ios || is_mac) {
+
+       deps = [
+         ":av1",
++        ":simulcast",
+         ":base_objc",
+         ":native_video",
+         ":videocodec_objc",
+@@ -724,6 +725,22 @@ if (is_ios || is_mac) {
+       ]
+     }
+ 
++    rtc_library("simulcast") {
++      sources = [
++        "objc/components/video_codec/RTCVideoEncoderFactorySimulcast.h",
++        "objc/components/video_codec/RTCVideoEncoderFactorySimulcast.mm",
++        "objc/api/video_codec/RTCVideoEncoderSimulcast.h",
++        "objc/api/video_codec/RTCVideoEncoderSimulcast.mm",
++      ]
++
++      deps = [
++        ":base_objc",
++        ":wrapped_native_codec_objc",
++        "../media:rtc_media_base",
++        "../media:rtc_simulcast_encoder_adapter",
++      ]
++    }
++
+     # Build the PeerConnectionFactory without audio/video support.
+     # This target depends on the objc_peeerconnectionfactory_base which still
+     # includes some audio/video related objects such as RTCAudioSource because
+@@ -1239,6 +1256,7 @@ if (is_ios || is_mac) {
+           "objc/components/video_codec/RTCVideoDecoderH264.h",
+           "objc/components/video_codec/RTCVideoEncoderFactoryH264.h",
+           "objc/components/video_codec/RTCVideoEncoderH264.h",
++          "objc/components/video_codec/RTCVideoEncoderFactorySimulcast.h",
+           "objc/components/video_frame_buffer/RTCCVPixelBuffer.h",
+           "objc/helpers/RTCCameraPreviewView.h",
+           "objc/helpers/RTCDispatcher.h",
+@@ -1285,6 +1303,7 @@ if (is_ios || is_mac) {
+           "objc/api/video_codec/RTCVideoEncoderVP8.h",
+           "objc/api/video_codec/RTCVideoEncoderVP9.h",
+           "objc/api/video_codec/RTCVideoEncoderAV1.h",
++          "objc/api/video_codec/RTCVideoEncoderSimulcast.h",
+           "objc/api/video_frame_buffer/RTCNativeI420Buffer.h",
+           "objc/api/video_frame_buffer/RTCNativeMutableI420Buffer.h",
+         ]
+diff --git a/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.h b/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.h
+new file mode 100644
+index 0000000000..c5c0744211
+--- /dev/null
++++ b/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.h
+@@ -0,0 +1,13 @@
++#import "RTCMacros.h"
++#import "RTCVideoEncoder.h"
++#import "RTCVideoEncoderFactory.h"
++#import "RTCVideoCodecInfo.h"
++
++RTC_OBJC_EXPORT
++@interface RTC_OBJC_TYPE (RTCVideoEncoderSimulcast) : NSObject
++
+++ (id<RTC_OBJC_TYPE(RTCVideoEncoder)>)simulcastEncoderWithPrimary:(id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)primary
++                                                         fallback:(id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)fallback
++                                                   videoCodecInfo:(RTC_OBJC_TYPE(RTCVideoCodecInfo) *)videoCodecInfo;
++
++@end
+\ No newline at end of file
+diff --git a/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.mm b/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.mm
+new file mode 100644
+index 0000000000..187294c430
+--- /dev/null
++++ b/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.mm
+@@ -0,0 +1,26 @@
++#import <Foundation/Foundation.h>
++
++#import "RTCMacros.h"
++#import "RTCVideoEncoderSimulcast.h"
++#import "RTCWrappedNativeVideoEncoder.h"
++#import "api/peerconnection/RTCVideoCodecInfo+Private.h"
++
++#include "native/api/video_encoder_factory.h"
++#include "media/engine/simulcast_encoder_adapter.h"
++
++@implementation RTC_OBJC_TYPE (RTCVideoEncoderSimulcast)
++
+++ (id<RTC_OBJC_TYPE(RTCVideoEncoder)>)simulcastEncoderWithPrimary:(id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)primary
++                                                         fallback:(id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)fallback
++                                                   videoCodecInfo:(RTC_OBJC_TYPE(RTCVideoCodecInfo) *)videoCodecInfo {
++    auto nativePrimary = webrtc::ObjCToNativeVideoEncoderFactory(primary);
++    auto nativeFallback = webrtc::ObjCToNativeVideoEncoderFactory(fallback);
++    auto nativeFormat = [videoCodecInfo nativeSdpVideoFormat];
++    return [[RTC_OBJC_TYPE(RTCWrappedNativeVideoEncoder) alloc]
++        initWithNativeEncoder: std::make_unique<webrtc::SimulcastEncoderAdapter>(
++            nativePrimary.release(),
++            nativeFallback.release(),
++            std::move(nativeFormat))];
++}
++
++@end
+\ No newline at end of file
+diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.h b/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.h
+new file mode 100644
+index 0000000000..05cc990c2b
+--- /dev/null
++++ b/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.h
+@@ -0,0 +1,16 @@
++#import <Foundation/Foundation.h>
++
++#import "RTCMacros.h"
++#import "RTCVideoEncoderFactory.h"
++
++NS_ASSUME_NONNULL_BEGIN
++
++RTC_OBJC_EXPORT
++@interface RTC_OBJC_TYPE (RTCVideoEncoderFactorySimulcast) : NSObject <RTC_OBJC_TYPE(RTCVideoEncoderFactory)>
++
++- (instancetype)initWithPrimary:(id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)primary
++                       fallback:(id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)fallback;
++
++@end
++
++NS_ASSUME_NONNULL_END
+\ No newline at end of file
+diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.mm b/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.mm
+new file mode 100644
+index 0000000000..7ce2a4eaba
+--- /dev/null
++++ b/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.mm
+@@ -0,0 +1,36 @@
++#import <Foundation/Foundation.h>
++
++#import "RTCMacros.h"
++#import "RTCVideoCodecInfo.h"
++#import "RTCVideoEncoderFactorySimulcast.h"
++#import "api/video_codec/RTCVideoEncoderSimulcast.h"
++
++@interface RTC_OBJC_TYPE (RTCVideoEncoderFactorySimulcast) ()
++
++@property id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)> primary;
++@property id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)> fallback;
++
++@end
++
++
++@implementation RTC_OBJC_TYPE (RTCVideoEncoderFactorySimulcast)
++
++- (instancetype)initWithPrimary:(id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)primary
++                       fallback:(id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)fallback {
++    if (self = [super init]) {
++        _primary = primary;
++        _fallback = fallback;
++    }
++    return self;
++}
++
++- (nullable id<RTC_OBJC_TYPE(RTCVideoEncoder)>)createEncoder: (RTC_OBJC_TYPE(RTCVideoCodecInfo) *)info {
++    return [RTCVideoEncoderSimulcast simulcastEncoderWithPrimary: _primary fallback: _fallback videoCodecInfo: info];
++}
++
++- (NSArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *)supportedCodecs {
++    return [[_primary supportedCodecs] arrayByAddingObjectsFromArray: [_fallback supportedCodecs]];
++}
++
++
++@end
+\ No newline at end of file

@@ -26,10 +26,12 @@ pushd $SOURCE_DIR/webrtc
 popd
 
 pushd $SOURCE_DIR/webrtc/src
+  patch -p1 < $SCRIPT_DIR/patches/add_dep_zlib.patch
   patch -p2 < $SCRIPT_DIR/patches/4k.patch
   patch -p2 < $SCRIPT_DIR/patches/macos_h264_encoder.patch
   patch -p1 < $SCRIPT_DIR/patches/macos_simulcast.patch
   patch -p1 < $SCRIPT_DIR/patches/ios_manual_audio_input.patch
+  patch -p1 < $SCRIPT_DIR/patches/ios_simulcast.patch
 popd
 
 for build_config in $TARGET_BUILD_CONFIGS; do
