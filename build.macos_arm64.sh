@@ -27,6 +27,7 @@ pushd $SOURCE_DIR/webrtc/src
   patch -p2 < $SCRIPT_DIR/patches/macos_av1.patch
   patch -p2 < $SCRIPT_DIR/patches/macos_screen_capture.patch
   patch -p1 < $SCRIPT_DIR/patches/macos_simulcast.patch
+  patch -p1 < $SCRIPT_DIR/patches/ios_simulcast.patch
 popd
 
 pushd $SOURCE_DIR/webrtc/src
