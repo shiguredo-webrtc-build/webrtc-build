@@ -130,7 +130,7 @@ new file mode 100644
 index 0000000000..7ce2a4eaba
 --- /dev/null
 +++ b/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.mm
-@@ -0,0 +1,36 @@
+@@ -0,0 +1,39 @@
 +#import <Foundation/Foundation.h>
 +
 +#import "RTCMacros.h"
@@ -147,6 +147,9 @@ index 0000000000..7ce2a4eaba
 +
 +
 +@implementation RTC_OBJC_TYPE (RTCVideoEncoderFactorySimulcast)
++
++@synthesize primary = _primary;
++@synthesize fallback = _fallback;
 +
 +- (instancetype)initWithPrimary:(id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)primary
 +                       fallback:(id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)fallback {
