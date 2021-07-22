@@ -14,17 +14,17 @@ index 113806489c..3372508d82 100644
      return WEBRTC_VIDEO_CODEC_UNINITIALIZED;
    }
 diff --git a/sdk/objc/native/src/objc_video_encoder_factory.mm b/sdk/objc/native/src/objc_video_encoder_factory.mm
-index e51fc9d319..b4cfbf21ae 100644
+index b66554b1a4..a30d51f1a4 100644
 --- a/sdk/objc/native/src/objc_video_encoder_factory.mm
 +++ b/sdk/objc/native/src/objc_video_encoder_factory.mm
-@@ -50,6 +50,10 @@ int32_t InitEncode(const VideoCodec *codec_settings, const Settings &encoder_set
-   int32_t RegisterEncodeCompleteCallback(EncodedImageCallback *callback) override {
-     [encoder_ setCallback:^BOOL(RTC_OBJC_TYPE(RTCEncodedImage) * _Nonnull frame,
-                                 id<RTC_OBJC_TYPE(RTCCodecSpecificInfo)> _Nonnull info) {
-+      if (callback == nullptr) {
-+        return FALSE;
-+      }
+@@ -51,6 +51,10 @@ class ObjCVideoEncoder : public VideoEncoder {
+     if (callback) {
+       [encoder_ setCallback:^BOOL(RTC_OBJC_TYPE(RTCEncodedImage) * _Nonnull frame,
+                                   id<RTC_OBJC_TYPE(RTCCodecSpecificInfo)> _Nonnull info) {
++        if (callback == nullptr) {
++          return FALSE;
++        }
 +
-       EncodedImage encodedImage = [frame nativeEncodedImage];
+         EncodedImage encodedImage = [frame nativeEncodedImage];
  
-       // Handle types that can be converted into one of CodecSpecificInfo's hard coded cases.
+         // Handle types that can be converted into one of CodecSpecificInfo's hard coded cases.
