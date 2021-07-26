@@ -33,14 +33,12 @@ COPY patches/android_webrtc_version.patch /root/patches/
 COPY patches/android_fixsegv.patch /root/patches/
 COPY patches/android_simulcast.patch /root/patches/
 COPY android/WebrtcBuildVersion.java $SOURCE_DIR/webrtc/src/sdk/android/api/org/webrtc/
-COPY patches/android_onremovetrack.patch /root/patches/
 RUN cd $SOURCE_DIR/webrtc/src \
   && patch -p1 < /root/patches/add_dep_zlib.patch \
   && patch -p2 < /root/patches/4k.patch \
   && patch -p1 < /root/patches/android_webrtc_version.patch \
   && patch -p1 < /root/patches/android_fixsegv.patch \
-  && patch -p1 < /root/patches/android_simulcast.patch \
-  && patch -p1 < /root/patches/android_onremovetrack.patch
+  && patch -p1 < /root/patches/android_simulcast.patch
 
 # aar
 RUN cd /root/_source/android/webrtc/src \
