@@ -1,5 +1,5 @@
 # syntax = docker/dockerfile:experimental
-FROM ubuntu:18.04 AS builder
+FROM ubuntu:20.04 AS builder
 
 ARG PACKAGE_NAME=android
 
@@ -101,6 +101,6 @@ RUN /root/scripts/package_webrtc_android.sh $STATIC_DIR $SOURCE_DIR $BUILD_DIR $
 
 RUN mv $PACKAGE_DIR/webrtc.tar.gz /
 
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 COPY --from=builder /webrtc.tar.gz /
