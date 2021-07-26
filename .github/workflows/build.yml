@@ -64,7 +64,7 @@ jobs:
           - ubuntu-18.04_x86_64
           - ubuntu-20.04_x86_64
           - android
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
     - name: Disk Cleanup
@@ -89,7 +89,7 @@ jobs:
       - build-windows
       - build-macos
       - build-linux
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
     - name: Create Release
       id: create_release
