@@ -55,6 +55,7 @@ pushd $SOURCE_DIR/webrtc/src
       rtc_use_h264=false \
       use_rtti=true \
       libcxx_abi_unstable=false \
+      enable_dsyms=true \
     "
     _branch="M`echo $WEBRTC_VERSION | cut -d'.' -f1`"
     _commit="`echo $WEBRTC_VERSION | cut -d'.' -f3`"
