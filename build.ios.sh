@@ -62,7 +62,7 @@ pushd $SOURCE_DIR/webrtc/src
     _revision=$WEBRTC_COMMIT
     _maint="`echo $WEBRTC_BUILD_VERSION | cut -d'.' -f4`"
 
-    cat <<EOF > $BUILD_DIR/webrtc/$build_config/WebRTC.framework/build_info.json
+    cat <<EOF > $BUILD_DIR/webrtc/$build_config/WebRTC.xcframework/build_info.json
 {
     "webrtc_version": "$_branch",
     "webrtc_commit": "$_commit",
