@@ -1,5 +1,5 @@
 # syntax = docker/dockerfile:experimental
-FROM ubuntu:18.04 AS builder
+FROM ubuntu:20.04 AS builder
 
 ARG PACKAGE_NAME=android
 
@@ -33,14 +33,12 @@ COPY patches/android_webrtc_version.patch /root/patches/
 COPY patches/android_fixsegv.patch /root/patches/
 COPY patches/android_simulcast.patch /root/patches/
 COPY android/WebrtcBuildVersion.java $SOURCE_DIR/webrtc/src/sdk/android/api/org/webrtc/
-COPY patches/android_onremovetrack.patch /root/patches/
 RUN cd $SOURCE_DIR/webrtc/src \
   && patch -p1 < /root/patches/add_dep_zlib.patch \
   && patch -p2 < /root/patches/4k.patch \
   && patch -p1 < /root/patches/android_webrtc_version.patch \
   && patch -p1 < /root/patches/android_fixsegv.patch \
-  && patch -p1 < /root/patches/android_simulcast.patch \
-  && patch -p1 < /root/patches/android_onremovetrack.patch
+  && patch -p1 < /root/patches/android_simulcast.patch
 
 # aar
 RUN cd /root/_source/android/webrtc/src \
@@ -101,6 +99,6 @@ RUN /root/scripts/package_webrtc_android.sh $STATIC_DIR $SOURCE_DIR $BUILD_DIR $
 
 RUN mv $PACKAGE_DIR/webrtc.tar.gz /
 
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 COPY --from=builder /webrtc.tar.gz /
