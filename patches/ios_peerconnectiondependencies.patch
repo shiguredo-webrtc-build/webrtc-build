@@ -1,59 +1,8 @@
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index bcd8056cfc..6934861068 100644
+index 358338f447..11714e391e 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
-@@ -652,6 +652,8 @@ if (is_ios || is_mac) {
-         ":videotoolbox_objc",
-         ":vp8",
-         ":vp9",
-+        ":libaom_av1",
-+        ":simulcast",
-         ":vpx_codec_constants",
-       ]
-     }
-@@ -704,6 +706,41 @@ if (is_ios || is_mac) {
-       ]
-     }
- 
-+    rtc_library("libaom_av1") {
-+      visibility = [ "*" ]
-+      allow_poison = [ "software_video_codecs" ]
-+      sources = [
-+        "objc/api/video_codec/RTCVideoDecoderAV1.h",
-+        "objc/api/video_codec/RTCVideoDecoderAV1.mm",
-+        "objc/api/video_codec/RTCVideoEncoderAV1.h",
-+        "objc/api/video_codec/RTCVideoEncoderAV1.mm",
-+      ]
-+
-+      deps = [
-+        ":base_objc",
-+        ":wrapped_native_codec_objc",
-+        "../media:rtc_media_base",
-+        "../modules/video_coding/codecs/av1:libaom_av1_decoder",
-+        "../modules/video_coding/codecs/av1:libaom_av1_encoder",
-+      ]
-+    }
-+
-+    rtc_library("simulcast") {
-+      sources = [
-+        "objc/components/video_codec/RTCVideoEncoderFactorySimulcast.h",
-+        "objc/components/video_codec/RTCVideoEncoderFactorySimulcast.mm",
-+        "objc/api/video_codec/RTCVideoEncoderSimulcast.h",
-+        "objc/api/video_codec/RTCVideoEncoderSimulcast.mm",
-+      ]
-+
-+      deps = [
-+        ":base_objc",
-+        ":wrapped_native_codec_objc",
-+        "../media:rtc_media_base",
-+        "../media:rtc_simulcast_encoder_adapter",
-+      ]
-+    }
-+
-     # Build the PeerConnectionFactory without audio/video support.
-     # This target depends on the objc_peeerconnectionfactory_base which still
-     # includes some audio/video related objects such as RTCAudioSource because
-@@ -885,6 +922,8 @@ if (is_ios || is_mac) {
+@@ -914,6 +914,8 @@ if (is_ios || is_mac) {
          "objc/api/peerconnection/RTCPeerConnection+Stats.mm",
          "objc/api/peerconnection/RTCPeerConnection.h",
          "objc/api/peerconnection/RTCPeerConnection.mm",
@@ -62,7 +11,7 @@ index bcd8056cfc..6934861068 100644
          "objc/api/peerconnection/RTCPeerConnectionFactory+Native.h",
          "objc/api/peerconnection/RTCPeerConnectionFactory+Private.h",
          "objc/api/peerconnection/RTCPeerConnectionFactory.h",
-@@ -927,6 +966,7 @@ if (is_ios || is_mac) {
+@@ -956,6 +958,7 @@ if (is_ios || is_mac) {
          "objc/api/peerconnection/RTCSessionDescription+Private.h",
          "objc/api/peerconnection/RTCSessionDescription.h",
          "objc/api/peerconnection/RTCSessionDescription.mm",
@@ -70,7 +19,7 @@ index bcd8056cfc..6934861068 100644
          "objc/api/peerconnection/RTCStatisticsReport+Private.h",
          "objc/api/peerconnection/RTCStatisticsReport.h",
          "objc/api/peerconnection/RTCStatisticsReport.mm",
-@@ -1219,6 +1259,7 @@ if (is_ios || is_mac) {
+@@ -1250,6 +1253,7 @@ if (is_ios || is_mac) {
            "objc/components/video_codec/RTCVideoDecoderH264.h",
            "objc/components/video_codec/RTCVideoEncoderFactoryH264.h",
            "objc/components/video_codec/RTCVideoEncoderH264.h",
@@ -78,31 +27,8 @@ index bcd8056cfc..6934861068 100644
            "objc/components/video_frame_buffer/RTCCVPixelBuffer.h",
            "objc/helpers/RTCCameraPreviewView.h",
            "objc/helpers/RTCDispatcher.h",
-@@ -1261,8 +1302,11 @@ if (is_ios || is_mac) {
-           "objc/api/video_codec/RTCVideoCodecConstants.h",
-           "objc/api/video_codec/RTCVideoDecoderVP8.h",
-           "objc/api/video_codec/RTCVideoDecoderVP9.h",
-+          "objc/api/video_codec/RTCVideoDecoderAV1.h",
-           "objc/api/video_codec/RTCVideoEncoderVP8.h",
-           "objc/api/video_codec/RTCVideoEncoderVP9.h",
-+          "objc/api/video_codec/RTCVideoEncoderAV1.h",
-+          "objc/api/video_codec/RTCVideoEncoderSimulcast.h",
-           "objc/api/video_frame_buffer/RTCNativeI420Buffer.h",
-           "objc/api/video_frame_buffer/RTCNativeMutableI420Buffer.h",
-         ]
-@@ -1370,8 +1414,10 @@ if (is_ios || is_mac) {
-           "objc/api/peerconnection/RTCVideoTrack.h",
-           "objc/api/video_codec/RTCVideoDecoderVP8.h",
-           "objc/api/video_codec/RTCVideoDecoderVP9.h",
-+          "objc/api/video_codec/RTCVideoDecoderAV1.h",
-           "objc/api/video_codec/RTCVideoEncoderVP8.h",
-           "objc/api/video_codec/RTCVideoEncoderVP9.h",
-+          "objc/api/video_codec/RTCVideoEncoderAV1.h",
-           "objc/api/video_frame_buffer/RTCNativeI420Buffer.h",
-           "objc/api/video_frame_buffer/RTCNativeMutableI420Buffer.h",
-           "objc/base/RTCCodecSpecificInfo.h",
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnection+Private.h b/sdk/objc/api/peerconnection/RTCPeerConnection+Private.h
-index 735881025a..b5154441b6 100644
+index 558cf07dce..2f530b5d22 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnection+Private.h
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnection+Private.h
 @@ -12,6 +12,8 @@
@@ -114,46 +40,47 @@ index 735881025a..b5154441b6 100644
  NS_ASSUME_NONNULL_BEGIN
  
  namespace webrtc {
-@@ -82,6 +84,12 @@ class PeerConnectionDelegateAdapter : public PeerConnectionObserver {
-                     constraints:(RTC_OBJC_TYPE(RTCMediaConstraints) *)constraints
-                        delegate:(nullable id<RTC_OBJC_TYPE(RTCPeerConnectionDelegate)>)delegate;
+@@ -83,6 +85,12 @@ class PeerConnectionDelegateAdapter : public PeerConnectionObserver {
+                                 delegate:
+                                     (nullable id<RTC_OBJC_TYPE(RTCPeerConnectionDelegate)>)delegate;
  
-+- (instancetype)initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
-+                  configuration:(RTC_OBJC_TYPE(RTCConfiguration) *)configuration
-+                    constraints:(RTC_OBJC_TYPE(RTCMediaConstraints) *)constraints
-+                   dependencies:(RTC_OBJC_TYPE(RTCPeerConnectionDependencies) *)dependencies
-+                       delegate:(nullable id<RTC_OBJC_TYPE(RTCPeerConnectionDelegate)>)delegate;
++- (nullable instancetype)initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
++                           configuration:(RTC_OBJC_TYPE(RTCConfiguration) *)configuration
++                             constraints:(RTC_OBJC_TYPE(RTCMediaConstraints) *)constraints
++                            dependencies:(RTC_OBJC_TYPE(RTCPeerConnectionDependencies) *)dependencies
++                                delegate:(nullable id<RTC_OBJC_TYPE(RTCPeerConnectionDelegate)>)delegate;
 +
  /** Initialize an RTCPeerConnection with a configuration, constraints,
   *  delegate and PeerConnectionDependencies.
   */
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnection.mm b/sdk/objc/api/peerconnection/RTCPeerConnection.mm
-index 9288a13745..93d1bdc2f4 100644
+index 05fe581d08..ee315ecae6 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnection.mm
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnection.mm
-@@ -321,6 +321,22 @@ - (instancetype)initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)facto
+@@ -328,6 +328,23 @@ - (nullable instancetype)initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory
                             delegate:delegate];
  }
  
-+- (instancetype)initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
-+                  configuration:(RTC_OBJC_TYPE(RTCConfiguration) *)configuration
-+                    constraints:(RTC_OBJC_TYPE(RTCMediaConstraints) *)constraints
-+                   dependencies:(RTC_OBJC_TYPE(RTCPeerConnectionDependencies) *)dependencies
-+                       delegate:(nullable id<RTC_OBJC_TYPE(RTCPeerConnectionDelegate)>)delegate {
-+    NSParameterAssert(factory);
-+    std::unique_ptr<webrtc::PeerConnectionDependencies> nativeDependencies =
-+        std::make_unique<webrtc::PeerConnectionDependencies>(nullptr);
-+    // TODO: dependencies
-+    return [self initWithDependencies:factory
-+                        configuration:configuration
-+                          constraints:constraints
-+                         dependencies:std::move(nativeDependencies)
-+                             delegate:delegate];
++- (nullable instancetype)
++    initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
++      configuration:(RTC_OBJC_TYPE(RTCConfiguration) *)configuration
++        constraints:(RTC_OBJC_TYPE(RTCMediaConstraints) *)constraints
++       dependencies:(RTC_OBJC_TYPE(RTCPeerConnectionDependencies) *)dependencies
++           delegate:(nullable id<RTC_OBJC_TYPE(RTCPeerConnectionDelegate)>)delegate {
++  NSParameterAssert(factory);
++  std::unique_ptr<webrtc::PeerConnectionDependencies> nativeDependencies =
++    std::make_unique<webrtc::PeerConnectionDependencies>(nullptr);
++  // TODO: dependencies を native に変換する
++  return [self initWithDependencies:factory
++                      configuration:configuration
++                        constraints:constraints
++                       dependencies:std::move(nativeDependencies)
++                           delegate:delegate];
 +}
 +
- - (instancetype)initWithDependencies:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
-                        configuration:(RTC_OBJC_TYPE(RTCConfiguration) *)configuration
-                          constraints:(RTC_OBJC_TYPE(RTCMediaConstraints) *)constraints
+ - (nullable instancetype)
+     initWithDependencies:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
+            configuration:(RTC_OBJC_TYPE(RTCConfiguration) *)configuration
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionDependencies.h b/sdk/objc/api/peerconnection/RTCPeerConnectionDependencies.h
 new file mode 100644
 index 0000000000..9ec6d4ab2a
@@ -203,7 +130,7 @@ index 0000000000..fdf74819e7
 +
 +@end
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h
-index 3dcd3b6495..07b0197cb1 100644
+index 2b0489885f..516c30e8df 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h
 @@ -22,6 +22,7 @@ NS_ASSUME_NONNULL_BEGIN
@@ -221,22 +148,22 @@ index 3dcd3b6495..07b0197cb1 100644
 +- (RTC_OBJC_TYPE(RTCPeerConnection) *)
 +    peerConnectionWithConfiguration:(RTC_OBJC_TYPE(RTCConfiguration) *)configuration
 +                        constraints:(RTC_OBJC_TYPE(RTCMediaConstraints) *)constraints
-+                dependencies:(RTC_OBJC_TYPE(RTCPeerConnectionDependencies) *)dependencies
++                       dependencies:(RTC_OBJC_TYPE(RTCPeerConnectionDependencies) *)dependencies
 +                           delegate:(nullable id<RTC_OBJC_TYPE(RTCPeerConnectionDelegate)>)delegate;
 +
  /** Set the options to be used for subsequently created RTCPeerConnections */
  - (void)setOptions:(nonnull RTC_OBJC_TYPE(RTCPeerConnectionFactoryOptions) *)options;
- 
+
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
-index e466f99b99..78a7525488 100644
+index 2f324f7289..d089921223 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
-@@ -267,6 +267,18 @@ - (instancetype)initWithNativeAudioEncoderFactory:
-                                                           delegate:delegate];
+@@ -279,6 +279,18 @@ - (instancetype)initWithNativeAudioEncoderFactory:
+                                                                delegate:delegate];
  }
  
 +- (RTC_OBJC_TYPE(RTCPeerConnection) *)
-+peerConnectionWithConfiguration:(RTC_OBJC_TYPE(RTCConfiguration) *)configuration
++    peerConnectionWithConfiguration:(RTC_OBJC_TYPE(RTCConfiguration) *)configuration
 +        constraints:(RTC_OBJC_TYPE(RTCMediaConstraints) *)constraints
 +        dependencies:(RTC_OBJC_TYPE(RTCPeerConnectionDependencies) *)dependencies
 +        delegate:(nullable id<RTC_OBJC_TYPE(RTCPeerConnectionDelegate)>)delegate {
@@ -247,9 +174,10 @@ index e466f99b99..78a7525488 100644
 +                                                            delegate:delegate];
 +}
 +
- - (RTC_OBJC_TYPE(RTCPeerConnection) *)
-     peerConnectionWithDependencies:(RTC_OBJC_TYPE(RTCConfiguration) *)configuration
-                        constraints:(RTC_OBJC_TYPE(RTCMediaConstraints) *)constraints
+ - (void)setOptions:(nonnull RTC_OBJC_TYPE(RTCPeerConnectionFactoryOptions) *)options {
+   RTC_DCHECK(options != nil);
+   _nativeFactory->SetOptions(options.nativeOptions);
+
 diff --git a/sdk/objc/api/peerconnection/RTCSSLCertificateVerifier.h b/sdk/objc/api/peerconnection/RTCSSLCertificateVerifier.h
 new file mode 100644
 index 0000000000..1a7047f4e3
