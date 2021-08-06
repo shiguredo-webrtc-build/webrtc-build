@@ -54,10 +54,56 @@ index 558cf07dce..2f530b5d22 100644
   *  delegate and PeerConnectionDependencies.
   */
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnection.mm b/sdk/objc/api/peerconnection/RTCPeerConnection.mm
-index 05fe581d08..ee315ecae6 100644
+index 05fe581d08..ffbaf11605 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnection.mm
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnection.mm
-@@ -328,6 +328,23 @@ - (nullable instancetype)initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory
+@@ -22,6 +22,7 @@
+ #import "RTCRtpSender+Private.h"
+ #import "RTCRtpTransceiver+Private.h"
+ #import "RTCSessionDescription+Private.h"
++#import "RTCSSLCertificateVerifier.h"
+ #import "base/RTCLogging.h"
+ #import "helpers/NSString+StdString.h"
+ 
+@@ -33,6 +34,7 @@
+ #include "api/set_remote_description_observer_interface.h"
+ #include "rtc_base/checks.h"
+ #include "rtc_base/numerics/safe_conversions.h"
++#include "rtc_base/ssl_certificate.h"
+ 
+ NSString *const kRTCPeerConnectionErrorDomain = @"org.webrtc.RTC_OBJC_TYPE(RTCPeerConnection)";
+ int const kRTCPeerConnnectionSessionDescriptionError = -1;
+@@ -300,6 +302,29 @@ void OnFailure(RTCError error) override {
+   }
+ }
+ 
++class SSLCertificateVerifierAdapter : public rtc::SSLCertificateVerifier {
++
++ public:
++  SSLCertificateVerifierAdapter(bool insecure, id<RTCSSLCertificateVerifier> verifier) :
++    insecure_(insecure), verifier_(verifier) {}
++
++  bool Verify(const rtc::SSLCertificate& certificate) override {
++    if (insecure_) {
++      return true;
++    }
++
++    rtc::Buffer buffer;
++    certificate.ToDER(&buffer);
++    NSData *data = [[NSData alloc] initWithBytesNoCopy:&buffer length: buffer.size()];
++    return [verifier_ verifyCertificate:data] ? true : false;
++  }
++
++  private:
++    bool insecure_;
++    id<RTCSSLCertificateVerifier> verifier_;
++
++};
++
+ }  // namespace webrtc
+ 
+ @implementation RTC_OBJC_TYPE (RTCPeerConnection) {
+@@ -328,6 +353,23 @@ - (nullable instancetype)initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory
                             delegate:delegate];
  }
  
@@ -70,7 +116,7 @@ index 05fe581d08..ee315ecae6 100644
 +  NSParameterAssert(factory);
 +  std::unique_ptr<webrtc::PeerConnectionDependencies> nativeDependencies =
 +    std::make_unique<webrtc::PeerConnectionDependencies>(nullptr);
-+  // TODO: dependencies を native に変換する
++  // TODO: SSLCertificateVerifierAdapter を使う
 +  return [self initWithDependencies:factory
 +                      configuration:configuration
 +                        constraints:constraints
@@ -83,7 +129,7 @@ index 05fe581d08..ee315ecae6 100644
             configuration:(RTC_OBJC_TYPE(RTCConfiguration) *)configuration
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionDependencies.h b/sdk/objc/api/peerconnection/RTCPeerConnectionDependencies.h
 new file mode 100644
-index 0000000000..9ec6d4ab2a
+index 0000000000..d55a9aa669
 --- /dev/null
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionDependencies.h
 @@ -0,0 +1,18 @@
@@ -91,23 +137,23 @@ index 0000000000..9ec6d4ab2a
 +
 +#import "RTCMacros.h"
 +
-+@class RTC_OBJC_TYPE(RTCSSLCertificateVerifier);
++@protocol RTC_OBJC_TYPE(RTCSSLCertificateVerifier);
 +
 +NS_ASSUME_NONNULL_BEGIN
 +
 +RTC_OBJC_EXPORT
 +@interface RTC_OBJC_TYPE (RTCPeerConnectionDependencies) : NSObject
 +
-+@property (readonly, nonatomic) RTC_OBJC_TYPE(RTCSSLCertificateVerifier) *sslCertificateVerifier;
++@property (readonly, nonatomic) id<RTC_OBJC_TYPE(RTCSSLCertificateVerifier)> sslCertificateVerifier;
 +
-+- (instancetype)initWithSSLCertificateVerifier:(RTC_OBJC_TYPE(RTCSSLCertificateVerifier) *)sslCertificateVerifier;
++- (instancetype)initWithSSLCertificateVerifier:(id<RTC_OBJC_TYPE(RTCSSLCertificateVerifier)>)sslCertificateVerifier;
 +
 +@end
 +
 +NS_ASSUME_NONNULL_END
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionDependencies.mm b/sdk/objc/api/peerconnection/RTCPeerConnectionDependencies.mm
 new file mode 100644
-index 0000000000..fdf74819e7
+index 0000000000..85cdd2e832
 --- /dev/null
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionDependencies.mm
 @@ -0,0 +1,18 @@
@@ -115,13 +161,13 @@ index 0000000000..fdf74819e7
 +
 +@interface RTC_OBJC_TYPE (RTCPeerConnectionDependencies) ()
 +
-+@property (nonatomic) RTC_OBJC_TYPE(RTCSSLCertificateVerifier) *sslCertificateVerifier;
++@property (nonatomic) id<RTC_OBJC_TYPE(RTCSSLCertificateVerifier)> sslCertificateVerifier;
 +
 +@end
 +
 +@implementation RTC_OBJC_TYPE (RTCPeerConnectionDependencies)
 +
-+- (instancetype)initWithSSLCertificateVerifier:(RTC_OBJC_TYPE(RTCSSLCertificateVerifier) *)sslCertificateVerifier {
++- (instancetype)initWithSSLCertificateVerifier:(id<RTC_OBJC_TYPE(RTCSSLCertificateVerifier)>)sslCertificateVerifier {
 +    if (self = [super init]) {
 +        self.sslCertificateVerifier = sslCertificateVerifier;
 +    }
@@ -153,7 +199,7 @@ index 2b0489885f..516c30e8df 100644
 +
  /** Set the options to be used for subsequently created RTCPeerConnections */
  - (void)setOptions:(nonnull RTC_OBJC_TYPE(RTCPeerConnectionFactoryOptions) *)options;
-
+ 
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
 index 2f324f7289..d089921223 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
@@ -177,10 +223,9 @@ index 2f324f7289..d089921223 100644
  - (void)setOptions:(nonnull RTC_OBJC_TYPE(RTCPeerConnectionFactoryOptions) *)options {
    RTC_DCHECK(options != nil);
    _nativeFactory->SetOptions(options.nativeOptions);
-
 diff --git a/sdk/objc/api/peerconnection/RTCSSLCertificateVerifier.h b/sdk/objc/api/peerconnection/RTCSSLCertificateVerifier.h
 new file mode 100644
-index 0000000000..1a7047f4e3
+index 0000000000..f4355d7cbe
 --- /dev/null
 +++ b/sdk/objc/api/peerconnection/RTCSSLCertificateVerifier.h
 @@ -0,0 +1,14 @@
@@ -191,7 +236,7 @@ index 0000000000..1a7047f4e3
 +NS_ASSUME_NONNULL_BEGIN
 +
 +RTC_OBJC_EXPORT
-+@protocol RTC_OBJC_TYPE (RTCSSLCertificateVerifier)
++@protocol RTC_OBJC_TYPE (RTCSSLCertificateVerifier) <NSObject>
 +
 +- (BOOL)verifyCertificate:(NSData *)certificate;
 +
