@@ -1,5 +1,5 @@
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index 358338f447..11714e391e 100644
+index 358338f447..42b5fd0f05 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
 @@ -914,6 +914,8 @@ if (is_ios || is_mac) {
@@ -19,14 +19,38 @@ index 358338f447..11714e391e 100644
          "objc/api/peerconnection/RTCStatisticsReport+Private.h",
          "objc/api/peerconnection/RTCStatisticsReport.h",
          "objc/api/peerconnection/RTCStatisticsReport.mm",
-@@ -1250,6 +1253,7 @@ if (is_ios || is_mac) {
-           "objc/components/video_codec/RTCVideoDecoderH264.h",
-           "objc/components/video_codec/RTCVideoEncoderFactoryH264.h",
-           "objc/components/video_codec/RTCVideoEncoderH264.h",
-+          "objc/components/video_codec/RTCVideoEncoderFactorySimulcast.h",
-           "objc/components/video_frame_buffer/RTCCVPixelBuffer.h",
-           "objc/helpers/RTCCameraPreviewView.h",
-           "objc/helpers/RTCDispatcher.h",
+@@ -1270,6 +1273,7 @@ if (is_ios || is_mac) {
+           "objc/api/peerconnection/RTCMetrics.h",
+           "objc/api/peerconnection/RTCMetricsSampleInfo.h",
+           "objc/api/peerconnection/RTCPeerConnection.h",
++          "objc/api/peerconnection/RTCPeerConnectionDependencies.h",
+           "objc/api/peerconnection/RTCPeerConnectionFactory.h",
+           "objc/api/peerconnection/RTCPeerConnectionFactoryOptions.h",
+           "objc/api/peerconnection/RTCRtcpParameters.h",
+@@ -1282,6 +1286,7 @@ if (is_ios || is_mac) {
+           "objc/api/peerconnection/RTCRtpTransceiver.h",
+           "objc/api/peerconnection/RTCDtmfSender.h",
+           "objc/api/peerconnection/RTCSSLAdapter.h",
++          "objc/api/peerconnection/RTCSSLCertificateVerifier.h",
+           "objc/api/peerconnection/RTCSessionDescription.h",
+           "objc/api/peerconnection/RTCStatisticsReport.h",
+           "objc/api/peerconnection/RTCTracing.h",
+@@ -1384,6 +1389,7 @@ if (is_ios || is_mac) {
+           "objc/api/peerconnection/RTCMetrics.h",
+           "objc/api/peerconnection/RTCMetricsSampleInfo.h",
+           "objc/api/peerconnection/RTCPeerConnection.h",
++          "objc/api/peerconnection/RTCPeerConnectionDependencies.h",
+           "objc/api/peerconnection/RTCPeerConnectionFactory.h",
+           "objc/api/peerconnection/RTCPeerConnectionFactoryOptions.h",
+           "objc/api/peerconnection/RTCRtcpParameters.h",
+@@ -1395,6 +1401,7 @@ if (is_ios || is_mac) {
+           "objc/api/peerconnection/RTCRtpSender.h",
+           "objc/api/peerconnection/RTCRtpTransceiver.h",
+           "objc/api/peerconnection/RTCSSLAdapter.h",
++          "objc/api/peerconnection/RTCSSLCertificateVerifier.h",
+           "objc/api/peerconnection/RTCSessionDescription.h",
+           "objc/api/peerconnection/RTCTracing.h",
+           "objc/api/peerconnection/RTCVideoSource.h",
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnection+Private.h b/sdk/objc/api/peerconnection/RTCPeerConnection+Private.h
 index 558cf07dce..2f530b5d22 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnection+Private.h
@@ -54,18 +78,19 @@ index 558cf07dce..2f530b5d22 100644
   *  delegate and PeerConnectionDependencies.
   */
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnection.mm b/sdk/objc/api/peerconnection/RTCPeerConnection.mm
-index 05fe581d08..ffbaf11605 100644
+index 05fe581d08..eba5520686 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnection.mm
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnection.mm
-@@ -22,6 +22,7 @@
+@@ -22,6 +22,8 @@
  #import "RTCRtpSender+Private.h"
  #import "RTCRtpTransceiver+Private.h"
  #import "RTCSessionDescription+Private.h"
++#import "RTCPeerConnectionDependencies.h"
 +#import "RTCSSLCertificateVerifier.h"
  #import "base/RTCLogging.h"
  #import "helpers/NSString+StdString.h"
  
-@@ -33,6 +34,7 @@
+@@ -33,6 +35,7 @@
  #include "api/set_remote_description_observer_interface.h"
  #include "rtc_base/checks.h"
  #include "rtc_base/numerics/safe_conversions.h"
@@ -73,7 +98,7 @@ index 05fe581d08..ffbaf11605 100644
  
  NSString *const kRTCPeerConnectionErrorDomain = @"org.webrtc.RTC_OBJC_TYPE(RTCPeerConnection)";
  int const kRTCPeerConnnectionSessionDescriptionError = -1;
-@@ -300,6 +302,29 @@ void OnFailure(RTCError error) override {
+@@ -300,6 +303,30 @@ void OnFailure(RTCError error) override {
    }
  }
  
@@ -84,6 +109,7 @@ index 05fe581d08..ffbaf11605 100644
 +    insecure_(insecure), verifier_(verifier) {}
 +
 +  bool Verify(const rtc::SSLCertificate& certificate) override {
++    NSLog(@"# SSLCertificateVerifierAdapter.Verify");
 +    if (insecure_) {
 +      return true;
 +    }
@@ -96,14 +122,14 @@ index 05fe581d08..ffbaf11605 100644
 +
 +  private:
 +    bool insecure_;
-+    id<RTCSSLCertificateVerifier> verifier_;
++    __weak id<RTCSSLCertificateVerifier> verifier_;
 +
 +};
 +
  }  // namespace webrtc
  
  @implementation RTC_OBJC_TYPE (RTCPeerConnection) {
-@@ -328,6 +353,23 @@ - (nullable instancetype)initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory
+@@ -328,6 +355,28 @@ - (nullable instancetype)initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory
                             delegate:delegate];
  }
  
@@ -116,7 +142,12 @@ index 05fe581d08..ffbaf11605 100644
 +  NSParameterAssert(factory);
 +  std::unique_ptr<webrtc::PeerConnectionDependencies> nativeDependencies =
 +    std::make_unique<webrtc::PeerConnectionDependencies>(nullptr);
-+  // TODO: SSLCertificateVerifierAdapter を使う
++  if (dependencies.sslCertificateVerifier != nil) {
++    std::unique_ptr<webrtc::SSLCertificateVerifierAdapter> verifierAdapter = 
++      std::make_unique<webrtc::SSLCertificateVerifierAdapter>(dependencies.allowsInsecureCertificate,
++                                                              dependencies.sslCertificateVerifier);
++    nativeDependencies->tls_cert_verifier = std::move(verifierAdapter);
++  }
 +  return [self initWithDependencies:factory
 +                      configuration:configuration
 +                        constraints:constraints
@@ -129,10 +160,10 @@ index 05fe581d08..ffbaf11605 100644
             configuration:(RTC_OBJC_TYPE(RTCConfiguration) *)configuration
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionDependencies.h b/sdk/objc/api/peerconnection/RTCPeerConnectionDependencies.h
 new file mode 100644
-index 0000000000..d55a9aa669
+index 0000000000..e919240e42
 --- /dev/null
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionDependencies.h
-@@ -0,0 +1,18 @@
+@@ -0,0 +1,19 @@
 +#import <Foundation/Foundation.h>
 +
 +#import "RTCMacros.h"
@@ -144,32 +175,29 @@ index 0000000000..d55a9aa669
 +RTC_OBJC_EXPORT
 +@interface RTC_OBJC_TYPE (RTCPeerConnectionDependencies) : NSObject
 +
-+@property (readonly, nonatomic) id<RTC_OBJC_TYPE(RTCSSLCertificateVerifier)> sslCertificateVerifier;
++@property (readwrite, nonatomic, nullable) id<RTC_OBJC_TYPE(RTCSSLCertificateVerifier)> sslCertificateVerifier;
++@property (readwrite, nonatomic) BOOL allowsInsecureCertificate;
 +
-+- (instancetype)initWithSSLCertificateVerifier:(id<RTC_OBJC_TYPE(RTCSSLCertificateVerifier)>)sslCertificateVerifier;
++- (instancetype)init;
 +
 +@end
 +
 +NS_ASSUME_NONNULL_END
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionDependencies.mm b/sdk/objc/api/peerconnection/RTCPeerConnectionDependencies.mm
 new file mode 100644
-index 0000000000..85cdd2e832
+index 0000000000..1e970138a5
 --- /dev/null
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionDependencies.mm
-@@ -0,0 +1,18 @@
+@@ -0,0 +1,14 @@
 +#import "RTCPeerConnectionDependencies.h"
-+
-+@interface RTC_OBJC_TYPE (RTCPeerConnectionDependencies) ()
-+
-+@property (nonatomic) id<RTC_OBJC_TYPE(RTCSSLCertificateVerifier)> sslCertificateVerifier;
-+
-+@end
 +
 +@implementation RTC_OBJC_TYPE (RTCPeerConnectionDependencies)
 +
-+- (instancetype)initWithSSLCertificateVerifier:(id<RTC_OBJC_TYPE(RTCSSLCertificateVerifier)>)sslCertificateVerifier {
++- (instancetype)init
++{
 +    if (self = [super init]) {
-+        self.sslCertificateVerifier = sslCertificateVerifier;
++        self.allowsInsecureCertificate = false;
++        self.sslCertificateVerifier = nil;
 +    }
 +    return self;
 +}
