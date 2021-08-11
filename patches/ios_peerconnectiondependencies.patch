@@ -116,7 +116,7 @@ index 05fe581d08..eba5520686 100644
 +
 +    rtc::Buffer buffer;
 +    certificate.ToDER(&buffer);
-+    NSData *data = [[NSData alloc] initWithBytesNoCopy:&buffer length: buffer.size()];
++    NSData *data = [[NSData alloc] initWithBytesNoCopy:&buffer length: buffer.size() freeWhenDone: NO];
 +    return [verifier_ verifyCertificate:data] ? true : false;
 +  }
 +
