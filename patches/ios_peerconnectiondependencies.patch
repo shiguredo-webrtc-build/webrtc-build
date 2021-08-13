@@ -125,7 +125,7 @@ index 05fe581d08..eba5520686 100644
 +
 +  private:
 +    bool insecure_;
-+    __weak id<RTCSSLCertificateVerifier> verifier_;
++    id<RTCSSLCertificateVerifier> verifier_;
 +
 +};
 +
