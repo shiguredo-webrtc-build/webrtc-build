@@ -113,6 +113,9 @@ index 05fe581d08..eba5520686 100644
 +    if (insecure_) {
 +      return true;
 +    }
++    if (verifier_ == nil) {
++      return false;
++    }
 +
 +    rtc::Buffer buffer;
 +    certificate.ToDER(&buffer);
