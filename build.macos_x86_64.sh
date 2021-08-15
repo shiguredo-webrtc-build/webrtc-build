@@ -22,6 +22,7 @@ export PATH="$SOURCE_DIR/depot_tools:$PATH"
 ./scripts/prepare_webrtc.sh $SOURCE_DIR $WEBRTC_COMMIT
 
 pushd $SOURCE_DIR/webrtc/src
+  patch -p1 < $SCRIPT_DIR/patches/add_dep_zlib.patch
   patch -p2 < $SCRIPT_DIR/patches/4k.patch
   patch -p2 < $SCRIPT_DIR/patches/macos_h264_encoder.patch
   patch -p2 < $SCRIPT_DIR/patches/macos_screen_capture.patch
