@@ -78,7 +78,7 @@ index 558cf07dce..2f530b5d22 100644
   *  delegate and PeerConnectionDependencies.
   */
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnection.mm b/sdk/objc/api/peerconnection/RTCPeerConnection.mm
-index 05fe581d08..eba5520686 100644
+index 05fe581d08..a3459670ba 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnection.mm
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnection.mm
 @@ -22,6 +22,8 @@
@@ -98,7 +98,7 @@ index 05fe581d08..eba5520686 100644
  
  NSString *const kRTCPeerConnectionErrorDomain = @"org.webrtc.RTC_OBJC_TYPE(RTCPeerConnection)";
  int const kRTCPeerConnnectionSessionDescriptionError = -1;
-@@ -300,6 +303,30 @@ void OnFailure(RTCError error) override {
+@@ -300,6 +303,32 @@ void OnFailure(RTCError error) override {
    }
  }
  
@@ -109,7 +109,6 @@ index 05fe581d08..eba5520686 100644
 +    insecure_(insecure), verifier_(verifier) {}
 +
 +  bool Verify(const rtc::SSLCertificate& certificate) override {
-+    NSLog(@"# SSLCertificateVerifierAdapter.Verify");
 +    if (insecure_) {
 +      return true;
 +    }
@@ -132,7 +131,7 @@ index 05fe581d08..eba5520686 100644
  }  // namespace webrtc
  
  @implementation RTC_OBJC_TYPE (RTCPeerConnection) {
-@@ -328,6 +355,28 @@ - (nullable instancetype)initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory
+@@ -328,6 +357,28 @@ - (nullable instancetype)initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory
                             delegate:delegate];
  }
  
