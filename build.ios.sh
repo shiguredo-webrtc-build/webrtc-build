@@ -50,12 +50,14 @@ pushd $SOURCE_DIR/webrtc/src
     fi
 
     ./tools_webrtc/ios/build_ios_libs.sh -o $BUILD_DIR/webrtc/$build_config --build_config $build_config --arch $TARGET_ARCHS $_bitcode --extra-gn-args " \
+      use_xcode_clang=false \
       rtc_libvpx_build_vp9=true \
       rtc_include_tests=false \
       rtc_build_examples=false \
       rtc_use_h264=false \
       use_rtti=true \
       libcxx_abi_unstable=false \
+      enable_dsyms=true \
     "
     _branch="M`echo $WEBRTC_VERSION | cut -d'.' -f1`"
     _commit="`echo $WEBRTC_VERSION | cut -d'.' -f3`"
@@ -76,7 +78,7 @@ popd
 
 pushd $SOURCE_DIR/webrtc/src
   pushd ./tools_webrtc/ios/
-    IOS_DEPLOYMENT_TARGET=`python -c 'from build_ios_libs import IOS_DEPLOYMENT_TARGET; print(IOS_DEPLOYMENT_TARGET)'`
+    IOS_DEPLOYMENT_TARGET=`python -c 'from build_ios_libs import IOS_DEPLOYMENT_TARGET; print(IOS_DEPLOYMENT_TARGET["device"])'`
   popd
 
   for build_config in $TARGET_BUILD_CONFIGS; do
@@ -94,11 +96,12 @@ pushd $SOURCE_DIR/webrtc/src
         target_os=\"ios\"
         target_cpu=\"$arch\"
         ios_enable_code_signing=false
-        use_xcode_clang=true
+        use_xcode_clang=false
         is_component_build=false
         ios_deployment_target=\"$IOS_DEPLOYMENT_TARGET\"
         rtc_libvpx_build_vp9=true
         rtc_enable_symbol_export=true
+        rtc_enable_objc_symbol_export=false
         is_debug=$_is_debug
         enable_ios_bitcode=$_is_debug
         enable_dsyms=$_is_debug
