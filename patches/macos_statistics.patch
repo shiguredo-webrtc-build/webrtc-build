@@ -1,0 +1,12 @@
+diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
+index e01ab97a6e..2c7689ebfe 100644
+--- a/sdk/BUILD.gn
++++ b/sdk/BUILD.gn
+@@ -1387,6 +1406,7 @@ if (is_ios || is_mac) {
+           "objc/api/peerconnection/RTCRtpTransceiver.h",
+           "objc/api/peerconnection/RTCSSLAdapter.h",
+           "objc/api/peerconnection/RTCSessionDescription.h",
++          "objc/api/peerconnection/RTCStatisticsReport.h",
+           "objc/api/peerconnection/RTCTracing.h",
+           "objc/api/peerconnection/RTCVideoSource.h",
+           "objc/api/peerconnection/RTCVideoTrack.h",
