@@ -22,9 +22,9 @@ export PATH="$SOURCE_DIR/depot_tools:$PATH"
 ./scripts/prepare_webrtc.sh $SOURCE_DIR $WEBRTC_COMMIT
 
 pushd $SOURCE_DIR/webrtc/src
+  patch -p1 < $SCRIPT_DIR/patches/add_dep_zlib.patch
   patch -p2 < $SCRIPT_DIR/patches/4k.patch
   patch -p2 < $SCRIPT_DIR/patches/macos_h264_encoder.patch
-  patch -p2 < $SCRIPT_DIR/patches/macos_av1.patch
   patch -p2 < $SCRIPT_DIR/patches/macos_screen_capture.patch
   patch -p1 < $SCRIPT_DIR/patches/macos_simulcast.patch
   patch -p1 < $SCRIPT_DIR/patches/ios_simulcast.patch
@@ -56,6 +56,7 @@ pushd $SOURCE_DIR/webrtc/src
       rtc_use_h264=false
       rtc_libvpx_build_vp9=true
       rtc_enable_symbol_export=true
+      rtc_enable_objc_symbol_export=false
       is_component_build=false
       use_rtti=true
       libcxx_abi_unstable=false

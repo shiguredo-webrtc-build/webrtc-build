@@ -17,6 +17,7 @@ apt-get -y install \
   gtk+-3.0 \
   lbzip2 \
   libgtk-3-dev \
+  libstdc++6 \
   lsb-release \
   multistrap \
   python \
