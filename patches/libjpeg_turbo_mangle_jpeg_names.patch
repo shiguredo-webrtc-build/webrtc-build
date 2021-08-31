@@ -1,0 +1,24 @@
+diff --git a/BUILD.gn b/BUILD.gn
+index d566340..ebc4719 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -175,7 +175,10 @@ static_library("simd") {
+       ]
+     }
+ 
+-    defines = [ "NEON_INTRINSICS" ]
++    defines = [
++      "NEON_INTRINSICS",
++      "MANGLE_JPEG_NAMES",
++    ]
+ 
+     configs -= [ "//build/config/compiler:default_optimization" ]
+     configs += [ "//build/config/compiler:optimize_speed" ]
+@@ -190,6 +193,7 @@ static_library("simd") {
+ 
+ config("libjpeg_config") {
+   include_dirs = [ "." ]
++  defines = [ "MANGLE_JPEG_NAMES" ]
+ }
+ 
+ static_library("libjpeg") {

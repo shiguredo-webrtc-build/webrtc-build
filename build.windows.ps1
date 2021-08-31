@@ -103,6 +103,10 @@ Push-Location $WEBRTC_DIR\src
   git apply -p2 --ignore-space-change --ignore-whitespace --whitespace=nowarn $SCRIPT_DIR\patches\4k.patch
   git apply -p1 --ignore-space-change --ignore-whitespace --whitespace=nowarn $SCRIPT_DIR\patches\windows_add_deps.patch
 
+  Push-Location third_party/libjpeg_turbo
+    git apply --ignore-space-change --ignore-whitespace --whitespace=nowarn $SCRIPT_DIR\patches\libjpeg_turbo_mangle_jpeg_names.patch
+  Pop-Location
+
   # WebRTC ビルド
   gn gen $WEBRTC_BUILD_DIR\debug --args='is_debug=true rtc_include_tests=false rtc_use_h264=false is_component_build=false use_rtti=true use_custom_libcxx=false'
   ninja -C "$WEBRTC_BUILD_DIR\debug"
