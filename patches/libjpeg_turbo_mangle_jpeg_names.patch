@@ -1,24 +1,24 @@
 diff --git a/BUILD.gn b/BUILD.gn
-index d566340..ebc4719 100644
+index d566340..8885a52 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
-@@ -175,7 +175,10 @@ static_library("simd") {
-       ]
-     }
+@@ -12,6 +12,10 @@ if (current_cpu == "arm" || current_cpu == "arm64") {
  
--    defines = [ "NEON_INTRINSICS" ]
-+    defines = [
-+      "NEON_INTRINSICS",
-+      "MANGLE_JPEG_NAMES",
-+    ]
+ assert(!is_ios, "This is not used on iOS, don't drag it in unintentionally")
  
-     configs -= [ "//build/config/compiler:default_optimization" ]
-     configs += [ "//build/config/compiler:optimize_speed" ]
-@@ -190,6 +193,7 @@ static_library("simd") {
- 
- config("libjpeg_config") {
-   include_dirs = [ "." ]
++config("libjpeg_headers_config") {
 +  defines = [ "MANGLE_JPEG_NAMES" ]
++}
++
+ source_set("libjpeg_headers") {
+   sources = [
+     "jconfig.h",
+@@ -21,7 +25,7 @@ source_set("libjpeg_headers") {
+     "jpeglib.h",
+     "jpeglibmangler.h",
+   ]
+-  defines = [ "MANGLE_JPEG_NAMES" ]
++  public_configs = [ ":libjpeg_headers_config" ]
  }
  
- static_library("libjpeg") {
+ if (current_cpu == "x86" || current_cpu == "x64") {
