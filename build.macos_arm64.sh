@@ -94,6 +94,11 @@ EOF
     popd
 
     python2 tools_webrtc/libs/generate_licenses.py --target //sdk:mac_framework_objc $_libs_dir/WebRTC.framework/Resources $_libs_dir
+
+    # xcframeworkの作成
+    xcodebuild -create-xcframework \
+          -framework $BUILD_DIR/webrtc/${_build_config}/WebRTC.framework -debug-symbols $BUILD_DIR/webrtc/$_build_config/WebRTC.dSYM \
+          -output $BUILD_DIR/webrtc/${_build_config}/WebRTC.xcframework
   done
 popd
 
