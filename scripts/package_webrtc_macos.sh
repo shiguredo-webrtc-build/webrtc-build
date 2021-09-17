@@ -32,9 +32,7 @@ for _build_config in $TARGET_BUILD_CONFIGS; do
   cp -R $BUILD_DIR/webrtc/${_build_config}/WebRTC.framework "$BUILD_DIR/package/webrtc/${_build_config}/WebRTC.framework"
 
   # WebRTC.dSYM
-  if [ $_build_config = "debug" ]; then
-    cp -R $BUILD_DIR/webrtc/$_build_config/WebRTC.dSYM "$BUILD_DIR/package/webrtc/$_build_config/WebRTC.dSYM"
-  fi
+  cp -R $BUILD_DIR/webrtc/$_build_config/WebRTC.dSYM "$BUILD_DIR/package/webrtc/$_build_config/WebRTC.dSYM"
 
   # 各種情報を拾ってくる
   cp $VERSION_FILE $BUILD_DIR/package/webrtc/$_build_config/VERSIONS

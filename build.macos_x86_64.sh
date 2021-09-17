@@ -39,10 +39,8 @@ pushd $SOURCE_DIR/webrtc/src
 
     if [ $_build_config = "release" ]; then
       _is_debug="false"
-      _enable_dsyms="false"
     else
       _is_debug="true"
-      _enable_dsyms="true"
     fi
 
     gn gen $_libs_dir --args="
@@ -50,7 +48,7 @@ pushd $SOURCE_DIR/webrtc/src
       target_cpu=\"$TARGET_ARCH\"
       mac_deployment_target=\"$MAC_DEPLOYMENT_TARGET\"
       enable_stripping=true
-      enable_dsyms=$_enable_dsyms
+      enable_dsyms=true
       is_debug=$_is_debug
       rtc_include_tests=false
       rtc_build_examples=false
