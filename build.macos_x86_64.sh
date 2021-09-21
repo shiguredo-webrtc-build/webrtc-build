@@ -39,10 +39,8 @@ pushd $SOURCE_DIR/webrtc/src
 
     if [ $_build_config = "release" ]; then
       _is_debug="false"
-      _enable_dsyms="false"
     else
       _is_debug="true"
-      _enable_dsyms="true"
     fi
 
     gn gen $_libs_dir --args="
@@ -50,7 +48,7 @@ pushd $SOURCE_DIR/webrtc/src
       target_cpu=\"$TARGET_ARCH\"
       mac_deployment_target=\"$MAC_DEPLOYMENT_TARGET\"
       enable_stripping=true
-      enable_dsyms=$_enable_dsyms
+      enable_dsyms=true
       is_debug=$_is_debug
       rtc_include_tests=false
       rtc_build_examples=false
@@ -97,6 +95,11 @@ EOF
     popd
 
     python2 tools_webrtc/libs/generate_licenses.py --target //sdk:mac_framework_objc $_libs_dir/WebRTC.framework/Resources $_libs_dir
+
+    # xcframeworkの作成
+    xcodebuild -create-xcframework \
+          -framework $BUILD_DIR/webrtc/${_build_config}/WebRTC.framework -debug-symbols $BUILD_DIR/webrtc/$_build_config/WebRTC.dSYM \
+          -output $BUILD_DIR/webrtc/${_build_config}/WebRTC.xcframework
   done
 popd
 
