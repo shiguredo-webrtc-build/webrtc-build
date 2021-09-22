@@ -28,9 +28,12 @@ RUN /root/scripts/install_webrtc_build_deps.sh $SOURCE_DIR arm
 
 COPY patches/add_dep_zlib.patch /root/patches/
 COPY patches/4k.patch /root/patches/
+COPY patches/libjpeg_turbo_mangle_jpeg_names.patch /root/patches/
 RUN cd $SOURCE_DIR/webrtc/src \
   && patch -p1 < /root/patches/add_dep_zlib.patch \
-  && patch -p2 < /root/patches/4k.patch
+  && patch -p2 < /root/patches/4k.patch \
+  && cd $SOURCE_DIR/webrtc/src/third_party/libjpeg_turbo \
+  && patch < /root/patches/libjpeg_turbo_mangle_jpeg_names.patch
 
 RUN cd $SOURCE_DIR/webrtc/src \
   && gn gen $BUILD_DIR/webrtc --args=' \

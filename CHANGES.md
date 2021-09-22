@@ -16,6 +16,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 - [CHANGE] libwebrtc_onremovetrack.aar を廃止して、 libwebrtc.aar に android_onremovetrack.patch を適用する
     - @enm10k
+- [FIX] third_party/libjpeg_turbo の jpeglibmangler.h が機能していない問題を修正するパッチを追加する
+    - @enm10k
 
 ## m91.4472.9.3
 
