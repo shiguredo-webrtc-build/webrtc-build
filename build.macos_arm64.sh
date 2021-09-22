@@ -12,8 +12,9 @@ PACKAGE_DIR="`pwd`/_package/$PACKAGE_NAME"
 set -ex
 
 # ======= ここまでは全ての build.*.sh で共通（PACKAGE_NAME だけ変える）
-
+TARGET_ARCH=arm64
 TARGET_BUILD_CONFIGS="debug release"
+MAC_DEPLOYMENT_TARGET=10.11
 
 ./scripts/get_depot_tools.sh $SOURCE_DIR
 export PATH="$SOURCE_DIR/depot_tools:$PATH"
@@ -24,7 +25,6 @@ pushd $SOURCE_DIR/webrtc/src
   patch -p1 < $SCRIPT_DIR/patches/add_dep_zlib.patch
   patch -p2 < $SCRIPT_DIR/patches/4k.patch
   patch -p2 < $SCRIPT_DIR/patches/macos_h264_encoder.patch
-  patch -p2 < $SCRIPT_DIR/patches/macos_av1.patch
   patch -p2 < $SCRIPT_DIR/patches/macos_screen_capture.patch
   patch -p1 < $SCRIPT_DIR/patches/macos_simulcast.patch
   patch -p1 < $SCRIPT_DIR/patches/ios_simulcast.patch
@@ -47,17 +47,19 @@ pushd $SOURCE_DIR/webrtc/src
       _is_debug="true"
     fi
 
-
     gn gen $_libs_dir --args="
       target_os=\"mac\"
-      target_cpu=\"arm64\"
+      target_cpu=\"$TARGET_ARCH\"
+      mac_deployment_target=\"$MAC_DEPLOYMENT_TARGET\"
       enable_stripping=true
       enable_dsyms=true
       is_debug=$_is_debug
       rtc_include_tests=false
       rtc_build_examples=false
       rtc_use_h264=false
+      rtc_libvpx_build_vp9=true
       rtc_enable_symbol_export=true
+      rtc_enable_objc_symbol_export=false
       is_component_build=false
       use_rtti=true
       libcxx_abi_unstable=false
