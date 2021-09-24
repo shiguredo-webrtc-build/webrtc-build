@@ -94,6 +94,8 @@ jobs:
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1.0.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ github.ref }}
         release_name: Release ${{ github.ref }}
@@ -145,6 +147,8 @@ jobs:
       id: env
     - name: Upload ${{ matrix.name }} Release Asset
       uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.env.outputs.upload_url }}
         asset_path: webrtc.${{ matrix.name }}.tar.gz/webrtc.tar.gz
@@ -175,6 +179,8 @@ jobs:
       id: env
     - name: Upload windows Release Asset
       uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.env.outputs.upload_url }}
         asset_path: webrtc.windows.zip/webrtc.zip
