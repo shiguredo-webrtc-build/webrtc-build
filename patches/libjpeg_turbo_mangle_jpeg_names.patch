@@ -1,0 +1,29 @@
+diff --git a/BUILD.gn b/BUILD.gn
+index d566340..4cf5cd3 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -21,7 +21,6 @@ source_set("libjpeg_headers") {
+     "jpeglib.h",
+     "jpeglibmangler.h",
+   ]
+-  defines = [ "MANGLE_JPEG_NAMES" ]
+ }
+ 
+ if (current_cpu == "x86" || current_cpu == "x64") {
+@@ -175,7 +174,7 @@ static_library("simd") {
+       ]
+     }
+ 
+-    defines = [ "NEON_INTRINSICS" ]
++    defines = [ "NEON_INTRINSICS", "MANGLE_JPEG_NAMES" ]
+ 
+     configs -= [ "//build/config/compiler:default_optimization" ]
+     configs += [ "//build/config/compiler:optimize_speed" ]
+@@ -190,6 +189,7 @@ static_library("simd") {
+ 
+ config("libjpeg_config") {
+   include_dirs = [ "." ]
++  defines = [ "MANGLE_JPEG_NAMES" ]
+ }
+ 
+ static_library("libjpeg") {
