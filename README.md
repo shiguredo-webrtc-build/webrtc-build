@@ -45,6 +45,13 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
 - android
 - ios
 
+## 今後提供を検討しているビルド
+
+**有償での優先実装を検討可能です**
+
+- windows_arm64
+- ubuntu-20.04_armv8
+
 ## ライセンス
 
 Apache License 2.0
