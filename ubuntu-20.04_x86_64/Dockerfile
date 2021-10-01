@@ -20,8 +20,10 @@ COPY scripts/prepare_webrtc.sh /root/scripts/
 RUN /root/scripts/prepare_webrtc.sh $SOURCE_DIR $WEBRTC_COMMIT
 
 COPY patches/4k.patch /root/patches/
+COPY patches/ssl_verify_callback_with_native_handle.patch /root/patches/
 RUN cd $SOURCE_DIR/webrtc/src \
-  && patch -p2 < /root/patches/4k.patch
+  && patch -p2 < /root/patches/4k.patch \
+  && patch -p1 < /root/patches/ssl_verify_callback_with_native_handle.patch
 
 COPY scripts/install_webrtc_build_deps.sh /root/scripts/
 RUN /root/scripts/install_webrtc_build_deps.sh $SOURCE_DIR x86_64
