@@ -29,6 +29,7 @@ RUN /root/scripts/install_webrtc_build_deps.sh $SOURCE_DIR android
 
 COPY patches/add_dep_zlib.patch /root/patches/
 COPY patches/4k.patch /root/patches/
+COPY patches/ssl_verify_callback_with_native_handle.patch /root/patches/
 COPY patches/android_webrtc_version.patch /root/patches/
 COPY patches/android_fixsegv.patch /root/patches/
 COPY patches/android_simulcast.patch /root/patches/
@@ -36,6 +37,7 @@ COPY android/WebrtcBuildVersion.java $SOURCE_DIR/webrtc/src/sdk/android/api/org/
 RUN cd $SOURCE_DIR/webrtc/src \
   && patch -p1 < /root/patches/add_dep_zlib.patch \
   && patch -p2 < /root/patches/4k.patch \
+  && patch -p1 < /root/patches/ssl_verify_callback_with_native_handle.patch \
   && patch -p1 < /root/patches/android_webrtc_version.patch \
   && patch -p1 < /root/patches/android_fixsegv.patch \
   && patch -p1 < /root/patches/android_simulcast.patch

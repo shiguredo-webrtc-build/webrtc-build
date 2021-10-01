@@ -20,9 +20,11 @@ COPY scripts/prepare_webrtc.sh /root/scripts/
 RUN /root/scripts/prepare_webrtc.sh $SOURCE_DIR $WEBRTC_COMMIT
 
 COPY patches/4k.patch /root/patches/
+COPY patches/ssl_verify_callback_with_native_handle.patch /root/patches/
 COPY patches/libjpeg_turbo_mangle_jpeg_names.patch /root/patches/
 RUN cd $SOURCE_DIR/webrtc/src \
   && patch -p2 < /root/patches/4k.patch \
+  && patch -p1 < /root/patches/ssl_verify_callback_with_native_handle.patch \
   && cd $SOURCE_DIR/webrtc/src/third_party/libjpeg_turbo \
   && patch < /root/patches/libjpeg_turbo_mangle_jpeg_names.patch
 

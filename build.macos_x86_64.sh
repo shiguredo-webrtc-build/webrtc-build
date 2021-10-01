@@ -29,6 +29,7 @@ pushd $SOURCE_DIR/webrtc/src
   patch -p1 < $SCRIPT_DIR/patches/macos_simulcast.patch
   patch -p1 < $SCRIPT_DIR/patches/ios_simulcast.patch
   patch -p1 < $SCRIPT_DIR/patches/macos_statistics.patch
+  patch -p1 < $SCRIPT_DIR/patches/ssl_verify_callback_with_native_handle.patch
 
   pushd third_party/libjpeg_turbo
     patch < $SCRIPT_DIR/patches/libjpeg_turbo_mangle_jpeg_names.patch
