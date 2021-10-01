@@ -102,6 +102,7 @@ Push-Location $WEBRTC_DIR\src
   # patch の適用
   git apply -p2 --ignore-space-change --ignore-whitespace --whitespace=nowarn $SCRIPT_DIR\patches\4k.patch
   git apply -p1 --ignore-space-change --ignore-whitespace --whitespace=nowarn $SCRIPT_DIR\patches\windows_add_deps.patch
+  git apply -p1 --ignore-space-change --ignore-whitespace --whitespace=nowarn $SCRIPT_DIR\patches\ssl_verify_callback_with_native_handle.patch
 
   Push-Location third_party/libjpeg_turbo
     git apply --ignore-space-change --ignore-whitespace --whitespace=nowarn $SCRIPT_DIR\patches\libjpeg_turbo_mangle_jpeg_names.patch
