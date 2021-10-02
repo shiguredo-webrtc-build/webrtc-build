@@ -39,7 +39,7 @@ index 40a4bd8f38..409698a0dd 100644
  
  }  // namespace rtc
 diff --git a/rtc_base/openssl_adapter.cc b/rtc_base/openssl_adapter.cc
-index d6e1a60d5f..1d56f0b1f3 100644
+index d6e1a60d5f..781a4bd6e9 100644
 --- a/rtc_base/openssl_adapter.cc
 +++ b/rtc_base/openssl_adapter.cc
 @@ -837,7 +837,7 @@ enum ssl_verify_result_t OpenSSLAdapter::SSLVerifyInternal(SSL* ssl,
@@ -51,6 +51,15 @@ index d6e1a60d5f..1d56f0b1f3 100644
    if (!ssl_cert_verifier_->Verify(cert)) {
      RTC_LOG(LS_WARNING) << "Failed to verify certificate using custom callback";
      return ssl_verify_invalid;
+@@ -903,7 +903,7 @@ int OpenSSLAdapter::SSLVerifyInternal(int ok, SSL* ssl, X509_STORE_CTX* store) {
+     RTC_LOG(LS_ERROR) << "Failed to allocate CRYPTO_BUFFER.";
+     return ok;
+   }
+-  const BoringSSLCertificate cert(std::move(crypto_buffer));
++  const BoringSSLCertificate cert(std::move(crypto_buffer), ssl);
+ #else
+   const OpenSSLCertificate cert(X509_STORE_CTX_get_current_cert(store));
+ #endif
 diff --git a/rtc_base/openssl_stream_adapter.cc b/rtc_base/openssl_stream_adapter.cc
 index 76da464de9..dfb73cf0c5 100644
 --- a/rtc_base/openssl_stream_adapter.cc
