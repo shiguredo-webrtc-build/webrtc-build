@@ -1,38 +1,38 @@
 diff --git a/rtc_base/boringssl_certificate.cc b/rtc_base/boringssl_certificate.cc
-index e1bcd61070..8dee9d6489 100644
+index e1bcd61070..bf1345c71d 100644
 --- a/rtc_base/boringssl_certificate.cc
 +++ b/rtc_base/boringssl_certificate.cc
-@@ -248,8 +248,8 @@ static bssl::UniquePtr<CRYPTO_BUFFER> MakeCertificate(
- }  // namespace
- 
- BoringSSLCertificate::BoringSSLCertificate(
--    bssl::UniquePtr<CRYPTO_BUFFER> cert_buffer)
--    : cert_buffer_(std::move(cert_buffer)) {
-+    bssl::UniquePtr<CRYPTO_BUFFER> cert_buffer, SSL* ssl)
-+    : cert_buffer_(std::move(cert_buffer)), ssl_(ssl) {
+@@ -252,6 +252,11 @@ BoringSSLCertificate::BoringSSLCertificate(
+     : cert_buffer_(std::move(cert_buffer)) {
    RTC_DCHECK(cert_buffer_ != nullptr);
  }
++BoringSSLCertificate::BoringSSLCertificate(
++    bssl::UniquePtr<CRYPTO_BUFFER> cert_buffer, SSL* ssl)
++    : cert_buffer_(std::move(cert_buffer)), ssl_(ssl) {
++  RTC_DCHECK(cert_buffer_ != nullptr);
++}
  
+ std::unique_ptr<BoringSSLCertificate> BoringSSLCertificate::Generate(
+     OpenSSLKeyPair* key_pair,
 diff --git a/rtc_base/boringssl_certificate.h b/rtc_base/boringssl_certificate.h
-index 40a4bd8f38..409698a0dd 100644
+index 40a4bd8f38..c969ec343c 100644
 --- a/rtc_base/boringssl_certificate.h
 +++ b/rtc_base/boringssl_certificate.h
-@@ -33,7 +33,7 @@ class OpenSSLKeyPair;
- // object.
+@@ -34,6 +34,7 @@ class OpenSSLKeyPair;
  class BoringSSLCertificate final : public SSLCertificate {
   public:
--  explicit BoringSSLCertificate(bssl::UniquePtr<CRYPTO_BUFFER> cert_buffer);
-+  explicit BoringSSLCertificate(bssl::UniquePtr<CRYPTO_BUFFER> cert_buffer, SSL* ssl);
+   explicit BoringSSLCertificate(bssl::UniquePtr<CRYPTO_BUFFER> cert_buffer);
++  BoringSSLCertificate(bssl::UniquePtr<CRYPTO_BUFFER> cert_buffer, SSL* ssl);
  
    static std::unique_ptr<BoringSSLCertificate> Generate(
        OpenSSLKeyPair* key_pair,
-@@ -73,6 +73,11 @@ class BoringSSLCertificate final : public SSLCertificate {
+@@ -73,6 +74,11 @@ class BoringSSLCertificate final : public SSLCertificate {
    // A handle to the DER encoded certificate data.
    bssl::UniquePtr<CRYPTO_BUFFER> cert_buffer_;
    RTC_DISALLOW_COPY_AND_ASSIGN(BoringSSLCertificate);
 +
 + private:
-+  SSL* ssl_;
++  SSL* ssl_ = nullptr;
 + public:
 +  SSL* ssl() const { return ssl_; }
  };
