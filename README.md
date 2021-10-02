@@ -45,6 +45,13 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
 - android
 - ios
 
+## 今後提供を検討しているビルド
+
+**有償での優先実装を検討可能です**
+
+- windows_arm64
+- ubuntu-20.04_armv8
+
 ## ライセンス
 
 Apache License 2.0
@@ -90,7 +97,7 @@ limitations under the License.
     - stable リリースまでは feature 上でタグを打ちます
 - stable リリースされたら master にマージします
     - ブランチから変更が無ければタグを打つ必要はありません
-- libwebrtc のコミットポジションは変更せずに何か変更がある場合は一番右のの数値を増やします
+- libwebrtc のコミットポジションは変更せずに何か変更がある場合は一番右の数値を増やします
     - m94.4606.0.0 から m94.4606.0.1 のようにする
 
 ## パッチ運用について
