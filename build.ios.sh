@@ -88,8 +88,10 @@ pushd $SOURCE_DIR/webrtc/src
 
     if [ $build_config = "release" ]; then
       _is_debug="false"
+      _enable_bitcode="true"
     else
       _is_debug="true"
+      _enable_bitcode="false"
     fi
 
     for arch in $TARGET_ARCHS; do
@@ -104,7 +106,7 @@ pushd $SOURCE_DIR/webrtc/src
         rtc_enable_symbol_export=true
         rtc_enable_objc_symbol_export=false
         is_debug=$_is_debug
-        enable_ios_bitcode=$_is_debug
+        enable_ios_bitcode=$_enable_bitcode
         enable_dsyms=$_is_debug
         enable_stripping=true
 
