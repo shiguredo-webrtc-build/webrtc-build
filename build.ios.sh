@@ -107,7 +107,7 @@ pushd $SOURCE_DIR/webrtc/src
         rtc_enable_objc_symbol_export=false
         is_debug=$_is_debug
         enable_ios_bitcode=$_enable_bitcode
-        enable_dsyms=$_is_debug
+        enable_dsyms=true
         enable_stripping=true
 
         rtc_include_tests=false
