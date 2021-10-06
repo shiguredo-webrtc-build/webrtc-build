@@ -49,7 +49,7 @@ pushd $SOURCE_DIR/webrtc/src
     fi
 
     ./tools_webrtc/ios/build_ios_libs.sh -o $BUILD_DIR/webrtc/$build_config --build_config $build_config --arch $TARGET_ARCHS --bitcode --extra-gn-args " \
-      use_xcode_clang=false \
+      use_xcode_clang=true \
       rtc_libvpx_build_vp9=true \
       rtc_include_tests=false \
       rtc_build_examples=false \
@@ -95,7 +95,7 @@ pushd $SOURCE_DIR/webrtc/src
         target_os=\"ios\"
         target_cpu=\"$arch\"
         ios_enable_code_signing=false
-        use_xcode_clang=false
+        use_xcode_clang=true
         is_component_build=false
         ios_deployment_target=\"$IOS_DEPLOYMENT_TARGET\"
         rtc_libvpx_build_vp9=true
