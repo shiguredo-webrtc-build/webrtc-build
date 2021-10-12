@@ -24,12 +24,9 @@ RUN /root/scripts/install_webrtc_build_deps.sh $SOURCE_DIR x86_64
 
 COPY patches/4k.patch /root/patches/
 COPY patches/ssl_verify_callback_with_native_handle.patch /root/patches/
-COPY patches/libjpeg_turbo_mangle_jpeg_names.patch /root/patches/
 RUN cd $SOURCE_DIR/webrtc/src \
   && patch -p2 < /root/patches/4k.patch \
-  && patch -p1 < /root/patches/ssl_verify_callback_with_native_handle.patch \
-  && cd $SOURCE_DIR/webrtc/src/third_party/libjpeg_turbo \
-  && patch < /root/patches/libjpeg_turbo_mangle_jpeg_names.patch
+  && patch -p1 < /root/patches/ssl_verify_callback_with_native_handle.patch
 
 RUN cd $SOURCE_DIR/webrtc/src \
   && gn gen $BUILD_DIR/webrtc --args=' \
