@@ -101,6 +101,7 @@ pushd $SOURCE_DIR/webrtc/src
         target_cpu=\"$arch\"
         ios_enable_code_signing=false
         use_xcode_clang=true
+        use_lld=false
         is_component_build=false
         ios_deployment_target=\"$IOS_DEPLOYMENT_TARGET\"
         rtc_libvpx_build_vp9=true
