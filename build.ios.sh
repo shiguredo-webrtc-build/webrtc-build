@@ -50,6 +50,7 @@ pushd $SOURCE_DIR/webrtc/src
 
     ./tools_webrtc/ios/build_ios_libs.sh -o $BUILD_DIR/webrtc/$build_config --build_config $build_config --arch $TARGET_ARCHS --bitcode --extra-gn-args " \
       use_xcode_clang=true \
+      use_lld=false \
       rtc_libvpx_build_vp9=true \
       rtc_include_tests=false \
       rtc_build_examples=false \
