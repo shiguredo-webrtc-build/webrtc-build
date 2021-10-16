@@ -33,6 +33,10 @@ pushd $SOURCE_DIR/webrtc/src
   patch -p1 < $SCRIPT_DIR/patches/ios_manual_audio_input.patch
   patch -p1 < $SCRIPT_DIR/patches/ios_simulcast.patch
   patch -p1 < $SCRIPT_DIR/patches/ssl_verify_callback_with_native_handle.patch
+
+  pushd build
+    patch -p1 < $SCRIPT_DIR/patches/ios_bitcode.patch
+  popd
 popd
 
 for build_config in $TARGET_BUILD_CONFIGS; do

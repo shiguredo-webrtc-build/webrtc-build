@@ -1,0 +1,90 @@
+diff --git a/config/compiler/BUILD.gn b/config/compiler/BUILD.gn
+index 219a2be0e..f02725e9e 100644
+--- a/config/compiler/BUILD.gn
++++ b/config/compiler/BUILD.gn
+@@ -2407,14 +2407,18 @@ config("symbols") {
+       cflags += [ "-g2" ]
+     }
+ 
+-    if (!is_nacl && is_clang && !is_tsan && !is_asan) {
+-      # gcc generates dwarf-aranges by default on -g1 and -g2. On clang it has
+-      # to be manually enabled.
+-      #
+-      # It is skipped in tsan and asan because enabling it causes some
+-      # formatting changes in the output which would require fixing bunches
+-      # of expectation regexps.
+-      cflags += [ "-gdwarf-aranges" ]
++    # -gdwarf-aranges と -fembed-bitcode は共存できないため、
++    # bitcode 有効化時には -gdwarf-aranges を追加しない
++    if (!(use_xcode_clang && is_ios && enable_ios_bitcode)) {
++      if (!is_nacl && is_clang && !is_tsan && !is_asan) {
++        # gcc generates dwarf-aranges by default on -g1 and -g2. On clang it has
++        # to be manually enabled.
++        #
++        # It is skipped in tsan and asan because enabling it causes some
++        # formatting changes in the output which would require fixing bunches
++        # of expectation regexps.
++        cflags += [ "-gdwarf-aranges" ]
++      }
+     }
+ 
+     if (is_apple) {
+@@ -2518,9 +2522,11 @@ config("minimal_symbols") {
+       cflags += [ "-g1" ]
+     }
+ 
+-    if (!is_nacl && is_clang && !is_tsan && !is_asan) {
+-      # See comment for -gdwarf-aranges in config("symbols").
+-      cflags += [ "-gdwarf-aranges" ]
++    if (!(use_xcode_clang && is_ios && enable_ios_bitcode)) {
++      if (!is_nacl && is_clang && !is_tsan && !is_asan) {
++        # See comment for -gdwarf-aranges in config("symbols").
++        cflags += [ "-gdwarf-aranges" ]
++      }
+     }
+ 
+     ldflags = []
+diff --git a/config/ios/BUILD.gn b/config/ios/BUILD.gn
+index 2ed614921..52fbf79b9 100644
+--- a/config/ios/BUILD.gn
++++ b/config/ios/BUILD.gn
+@@ -7,18 +7,6 @@ import("//build/toolchain/goma.gni")
+ import("//build/toolchain/toolchain.gni")
+ import("//build_overrides/build.gni")
+ 
+-declare_args() {
+-  # Enabling this option makes clang compile to an intermediate
+-  # representation ("bitcode"), and not to native code. This is preferred
+-  # when including WebRTC in the apps that will be sent to Apple's App Store
+-  # and mandatory for the apps that run on watchOS or tvOS.
+-  # The option only works when building with Xcode (use_xcode_clang = true).
+-  # Mimicking how Xcode handles it, the production builds (is_debug = false)
+-  # get real bitcode sections added, while the debug builds (is_debug = true)
+-  # only get bitcode-section "markers" added in them.
+-  enable_ios_bitcode = false
+-}
+-
+ # This is included by reference in the //build/config/compiler config that
+ # is applied to all targets. It is here to separate out the logic.
+ config("compiler") {
+diff --git a/config/ios/ios_sdk.gni b/config/ios/ios_sdk.gni
+index ffff5921d..4d8080c23 100644
+--- a/config/ios/ios_sdk.gni
++++ b/config/ios/ios_sdk.gni
+@@ -62,6 +62,16 @@ declare_args() {
+   # You can also pass the value via "--args" parameter for "gn gen" command by
+   # using the syntax --args='additional_target_cpus=["arm"] target_cpu="arm64"'.
+   additional_target_cpus = []
++
++  # Enabling this option makes clang compile to an intermediate
++  # representation ("bitcode"), and not to native code. This is preferred
++  # when including WebRTC in the apps that will be sent to Apple's App Store
++  # and mandatory for the apps that run on watchOS or tvOS.
++  # The option only works when building with Xcode (use_xcode_clang = true).
++  # Mimicking how Xcode handles it, the production builds (is_debug = false)
++  # get real bitcode sections added, while the debug builds (is_debug = true)
++  # only get bitcode-section "markers" added in them.
++  enable_ios_bitcode = false
+ }
+ 
+ declare_args() {
