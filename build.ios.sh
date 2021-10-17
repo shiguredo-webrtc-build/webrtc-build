@@ -33,6 +33,10 @@ pushd $SOURCE_DIR/webrtc/src
   patch -p1 < $SCRIPT_DIR/patches/ios_manual_audio_input.patch
   patch -p1 < $SCRIPT_DIR/patches/ios_simulcast.patch
   patch -p1 < $SCRIPT_DIR/patches/ssl_verify_callback_with_native_handle.patch
+
+  pushd build
+    patch -p1 < $SCRIPT_DIR/patches/ios_bitcode.patch
+  popd
 popd
 
 for build_config in $TARGET_BUILD_CONFIGS; do
@@ -48,8 +52,13 @@ pushd $SOURCE_DIR/webrtc/src
       _is_debug="true"
     fi
 
+    # M92-M93 あたりで clang++: error: -gdwarf-aranges is not supported with -fembed-bitcode がでていたので use_code_clang=false をすることで修正
+    # M94 で use_xcode_clang=true かつ --bitcode を有効にしてビルドが通り bitcode が有効になってることを確認
+    # M95 で再度 clang++: error: -gdwarf-aranges is not supported with -fembed-bitcode エラーがでるようになった
+    # https://webrtc-review.googlesource.com/c/src/+/232600 が影響している可能性があるため use_lld=false を追加
     ./tools_webrtc/ios/build_ios_libs.sh -o $BUILD_DIR/webrtc/$build_config --build_config $build_config --arch $TARGET_ARCHS --bitcode --extra-gn-args " \
       use_xcode_clang=true \
+      use_lld=false \
       rtc_libvpx_build_vp9=true \
       rtc_include_tests=false \
       rtc_build_examples=false \
