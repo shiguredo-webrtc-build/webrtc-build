@@ -36,9 +36,6 @@
 ## macos_simulcast.patch
 
 
-## macos_statistics.patch
-
-
 ## nacl_armv6_2.patch
 
 ## libjpeg_turbo_mangle_jpeg_names.patch
