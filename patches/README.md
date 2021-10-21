@@ -18,6 +18,21 @@
 ## android_webrtc_version.patch
 
 
+## ios_bitcode.patch
+
+M95からiOSビルド時に `-gdwarf-aranges` ビルドオプションが追加された。
+この `-gdwarf-aranges` はiOSでbitcodeを生成するためのビルドオプション `-fembed-bitcode` と両立できない。
+M94以前を用いたSora iOS SDKではbitcode出力設定をONにした状態でのビルドを行えるため、従来の設定を踏襲するためにパッチを当てている。
+
+問題の原因となる本家の変更: https://chromium-review.googlesource.com/c/chromium/src/+/3092732
+本家に対してパッチ送信済み: https://chromium-review.googlesource.com/c/chromium/src/+/3223221
+
+以下のいずれかの条件下にて本パッチは削除できます
+
+1. パッチが本家に取り込まれる
+2. 1.以外の方法で `-gdwarf-aranges` と `-fembed-bitcode` が両立できるように本家で対応される
+3. SDK提供時にbitcode出力が不要と判断される
+
 ## ios_manual_audio_input.patch
 
 
@@ -34,9 +49,6 @@
 
 
 ## macos_simulcast.patch
-
-
-## macos_statistics.patch
 
 
 ## nacl_armv6_2.patch
