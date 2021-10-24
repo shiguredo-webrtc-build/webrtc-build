@@ -10,7 +10,7 @@ import platform
 import argparse
 import collections
 import re
-from typing import Optional
+from typing import Optional, Dict
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -105,7 +105,7 @@ def download(url: str, output_dir: Optional[str] = None, filename: Optional[str]
     return output_path
 
 
-def read_version_file(path: str) -> dict[str, str]:
+def read_version_file(path: str) -> Dict[str, str]:
     versions = {}
 
     lines = open(path).readlines()
@@ -149,6 +149,7 @@ PATCH_INFO = {
     '4k.patch': (2, []),
     'macos_h264_encoder.patch': (2, []),
     'macos_screen_capture.patch': (2, []),
+    'ios_bitcode.patch': (1, ['build']),
 }
 
 PATCHES = {
@@ -184,8 +185,10 @@ PATCHES = {
         'macos_h264_encoder.patch',
         'macos_screen_capture.patch',
         'macos_simulcast.patch',
+        'ios_manual_audio_input.patch',
         'ios_simulcast.patch',
         'ssl_verify_callback_with_native_handle.patch',
+        'ios_bitcode.patch',
     ],
     'android': [
         'add_dep_zlib.patch',
@@ -291,6 +294,60 @@ def archive_objects(ar, dir, output):
         cmd([ar, '-rc', output, *files])
 
 
+MultistrapConfig = collections.namedtuple('MultistrapConfig', [
+    'config_file',
+    'arch',
+    'triplet'
+])
+MULTISTRAP_CONFIGS = {
+    'raspberry-pi-os_armv6': MultistrapConfig(
+        config_file=['raspberry-pi-os_armv6', 'rpi-raspbian.conf'],
+        arch='armhf',
+        triplet='arm-linux-gnueabihf'
+    ),
+    'raspberry-pi-os_armv7': MultistrapConfig(
+        config_file=['raspberry-pi-os_armv8', 'rpi-raspbian.conf'],
+        arch='armhf',
+        triplet='arm-linux-gnueabihf'
+    ),
+    'raspberry-pi-os_armv8': MultistrapConfig(
+        config_file=['raspberry-pi-os_armv8', 'rpi-raspbian.conf'],
+        arch='arm64',
+        triplet='aarch64-linux-gnu'
+    ),
+    'ubuntu-18.04_armv8': MultistrapConfig(
+        config_file=['ubuntu-18.04_armv8', 'arm64.conf'],
+        arch='arm64',
+        triplet='aarch64-linux-gnu'
+    ),
+}
+
+
+def init_rootfs(sysroot: str, config: MultistrapConfig, force=False):
+    if force:
+        rm_rf(sysroot)
+
+    if os.path.exists(sysroot):
+        return
+
+    cmd(['multistrap', '--no-auth', '-a', config.arch, '-d', sysroot, '-f', os.path.join(*config.config_file)])
+
+    lines = cmd(['find', f'{sysroot}/usr/lib/{config.triplet}', '-lname', '/*', '-printf', '%p %l\n'], capture_output=True, encoding='utf-8').stdout.splitlines()
+    for line in lines:
+        [link, target] = line.split()
+        cmd(['ln', '-snfv', f'{sysroot}{target}', link])
+
+    lines = cmd(['find', f'{sysroot}/usr/lib/gcc/{config.triplet}', '-lname', '/*', '-printf', '%p %l\n'], capture_output=True, encoding='utf-8').stdout.splitlines()
+    for line in lines:
+        [link, target] = line.split()
+        cmd(['ln', '-snfv', f'{sysroot}{target}', link])
+
+    lines = cmd(['find', f'{sysroot}/usr/lib/{config.triplet}/pkgconfig', '-printf', '%f\n'], capture_output=True, encoding='utf-8').stdout.splitlines()
+    for line in lines:
+        target = line.strip()
+        cmd(['ln', '-snfv', f'../../lib/{config.triplet}/pkgconfig/{target}', f'{sysroot}/usr/share/pkgconfig/{target}'])
+
+
 def build_webrtc_ios(source_dir, build_dir, debug=False, gen=False, no_build=False):
     pass
 
@@ -303,6 +360,9 @@ ANDROID_TARGET_CPU = {
 
 
 def build_webrtc_android(source_dir, build_dir, version_info: VersionInfo, debug=False, gen=False, no_build=False):
+    build_webrtc_dir = os.path.join(build_dir, 'webrtc')
+    mkdir_p(build_webrtc_dir)
+
     # Java ファイル作成
     branch = 'M' + version_info.webrtc_version.split('.')[0]
     commit = version_info.webrtc_version.split('.')[2]
@@ -331,34 +391,37 @@ def build_webrtc_android(source_dir, build_dir, version_info: VersionInfo, debug
     ]
 
     # aar 生成
-    mkdir_p(os.path.join(build_dir, 'aar'))
+    mkdir_p(os.path.join(build_webrtc_dir, 'aar'))
     gn_args = [*gn_args_base]
     with cd(os.path.join(source_dir, 'webrtc', 'src')):
         cmd(['python3', os.path.join(source_dir, 'webrtc', 'src', 'tools_webrtc', 'android', 'build_aar.py'),
-            '--build-dir', os.path.join(build_dir, 'aar'),
-            '--output', os.path.join(build_dir, 'aar', 'libwebrtc.aar'),
+            '--build-dir', os.path.join(build_webrtc_dir, 'aar'),
+            '--output', os.path.join(build_webrtc_dir, 'aar', 'libwebrtc.aar'),
             '--arch', *ANDROID_ARCHS,
             '--extra-gn-args', ' '.join(gn_args)])
 
     for arch in ANDROID_ARCHS:
-        if not os.path.exists(os.path.join(build_dir, arch, 'args.gn')) or gen:
+        if not os.path.exists(os.path.join(build_webrtc_dir, arch, 'args.gn')) or gen:
             gn_args = [
                 *gn_args_base,
                 'target_os="android"',
                 f'target_cpu="{ANDROID_TARGET_CPU[arch]}"',
             ]
             with cd(os.path.join(source_dir, 'webrtc', 'src')):
-                cmd(['gn', 'gen', os.path.join(build_dir, arch), '--args=' + ' '.join(gn_args)])
+                cmd(['gn', 'gen', os.path.join(build_webrtc_dir, arch), '--args=' + ' '.join(gn_args)])
         if not no_build:
-            cmd(['ninja', '-C', os.path.join(build_dir, arch)])
-            cmd(['ninja', '-C', os.path.join(build_dir, arch), 'native_api'])
+            cmd(['ninja', '-C', os.path.join(build_webrtc_dir, arch)])
+            cmd(['ninja', '-C', os.path.join(build_webrtc_dir, arch), 'native_api'])
             ar = os.path.join(source_dir, 'webrtc/src/third_party/llvm-build/Release+Asserts/bin/llvm-ar')
-            archive_objects(ar, os.path.join(build_dir, arch), 'libwebrtc.a')
+            archive_objects(ar, os.path.join(build_webrtc_dir, arch), 'libwebrtc.a')
 
 
 def build_webrtc(source_dir, build_dir, target: str, version_info: VersionInfo, debug=False, gen=False, no_build=False):
+    build_webrtc_dir = os.path.join(build_dir, 'webrtc')
+    mkdir_p(build_webrtc_dir)
+
     # ビルド
-    if not os.path.exists(os.path.join(build_dir, 'args.gn')) or gen:
+    if not os.path.exists(os.path.join(build_webrtc_dir, 'args.gn')) or gen:
         gn_args = [
             f"is_debug={'true' if debug else 'false'}",
             "rtc_include_tests=false",
@@ -383,23 +446,33 @@ def build_webrtc(source_dir, build_dir, target: str, version_info: VersionInfo, 
                 'rtc_enable_objc_symbol_export=false',
                 'libcxx_abi_unstable=false',
             ]
-        elif target == 'ubuntu-20.04_x86_64':
+        elif target.startswith('raspberry-pi-os') or target == 'ubuntu-18.04_armv8':
+            sysroot = os.path.join(source_dir, 'rootfs')
+            gn_args += [
+                'target_os="linux"',
+                f'target_cpu="{"arm64" if target.endswith("armv8") else "arm"}"',
+                f'target_sysroot="{sysroot}"',
+                'rtc_use_pipewire=false',
+            ]
+        elif target == 'ubuntu-18.04_x86_64' or target == 'ubuntu-20.04_x86_64':
             gn_args += [
                 'target_os="linux"',
                 'rtc_use_pipewire=false',
             ]
+        else:
+            raise Exception(f'Target {target} is not supported')
 
         with cd(os.path.join(source_dir, 'webrtc', 'src')):
-            cmd(['gn', 'gen', build_dir, '--args=' + ' '.join(gn_args)])
+            cmd(['gn', 'gen', build_webrtc_dir, '--args=' + ' '.join(gn_args)])
 
     if no_build:
         return
 
-    cmd(['ninja', '-C', build_dir])
+    cmd(['ninja', '-C', build_webrtc_dir])
     if target == 'windows':
         pass
     elif target.startswith('macos'):
-        cmd(['ninja', '-C', build_dir,
+        cmd(['ninja', '-C', build_webrtc_dir,
             'builtin_audio_decoder_factory',
             'default_task_queue_factory',
             'native_api',
@@ -414,7 +487,7 @@ def build_webrtc(source_dir, build_dir, target: str, version_info: VersionInfo, 
 
     # ar で libwebrtc.a を生成する
     if target != 'windows':
-        archive_objects(ar, build_dir, 'libwebrtc.a')
+        archive_objects(ar, build_webrtc_dir, 'libwebrtc.a')
 
     # macOS の場合は WebRTC.framework に追加情報を入れる
     if target.startswith('macos'):
@@ -423,21 +496,21 @@ def build_webrtc(source_dir, build_dir, target: str, version_info: VersionInfo, 
         info['commit'] = version_info.webrtc_version.split('.')[2]
         info['revision'] = version_info.webrtc_commit
         info['maint'] = version_info.webrtc_build_version.split('.')[3]
-        with open(os.path.join(build_dir, 'WebRTC.framework', 'Resources', 'build_info.json'), 'w') as f:
+        with open(os.path.join(build_webrtc_dir, 'WebRTC.framework', 'Resources', 'build_info.json'), 'w') as f:
             f.write(json.dumps(info, indent=4))
 
         # Info.plistの編集(tools_wertc/ios/build_ios_libs.py内の処理を踏襲)
-        info_plist_path = os.path.join(build_dir, 'WebRTC.framework', 'Resources', 'Info.plist')
+        info_plist_path = os.path.join(build_webrtc_dir, 'WebRTC.framework', 'Resources', 'Info.plist')
         ver = cmd(['/usr/libexec/PlistBuddy', '-c', 'Print :CFBundleShortVersionString', info_plist_path], resolve=False, capture_output=True, encoding='utf-8').stdout.strip()
         cmd(['/usr/libexec/PlistBuddy', '-c', f'Set :CFBundleVersion {ver}.0', info_plist_path], resolve=False, encoding='utf-8')
         cmd(['plutil', '-convert', 'binary1', info_plist_path])
 
         # xcframeworkの作成
-        rm_rf(os.path.join(build_dir, 'WebRTC.xcframework'))
+        rm_rf(os.path.join(build_webrtc_dir, 'WebRTC.xcframework'))
         cmd(['xcodebuild', '-create-xcframework',
-            '-framework', os.path.join(build_dir, 'WebRTC.framework'),
-            '-debug-symbols', os.path.join(build_dir, 'WebRTC.dSYM'),
-            '-output', os.path.join(build_dir, 'WebRTC.xcframework')])
+            '-framework', os.path.join(build_webrtc_dir, 'WebRTC.framework'),
+            '-debug-symbols', os.path.join(build_webrtc_dir, 'WebRTC.dSYM'),
+            '-output', os.path.join(build_webrtc_dir, 'WebRTC.xcframework')])
 
 
 
@@ -478,7 +551,7 @@ def generate_version_info(source_webrtc_dir, package_webrtc_dir):
 
 
 def package_webrtc(source_dir, base_build_dir, package_dir, target, configuration):
-    build_dir = os.path.join(base_build_dir, configuration)
+    build_webrtc_dir = os.path.join(base_build_dir, configuration, 'webrtc')
     source_webrtc_dir = os.path.join(source_dir, 'webrtc', 'src')
     package_webrtc_dir = os.path.join(package_dir, 'webrtc')
     rm_rf(package_webrtc_dir)
@@ -489,11 +562,11 @@ def package_webrtc(source_dir, base_build_dir, package_dir, target, configuratio
         dirs = []
         for arch in ANDROID_ARCHS:
             dirs += [
-                os.path.join(build_dir, arch),
-                os.path.join(build_dir, 'aar', arch) 
+                os.path.join(build_webrtc_dir, arch),
+                os.path.join(build_webrtc_dir, 'aar', arch) 
             ]
     else:
-        dirs = [build_dir]
+        dirs = [build_webrtc_dir]
     cmd(['python3', os.path.join(source_webrtc_dir, 'tools_webrtc', 'libs', 'generate_licenses.py'),
         '--target', ':webrtc', package_webrtc_dir, *dirs])
     os.rename(os.path.join(package_webrtc_dir, 'LICENSE.md'), os.path.join(package_webrtc_dir, 'NOTICE'))
@@ -516,12 +589,12 @@ def package_webrtc(source_dir, base_build_dir, package_dir, target, configuratio
         ]
     elif target == 'android':
         # aar を展開して classes.jar を取り出す
-        tmp = os.path.join(build_dir, 'tmp')
+        tmp = os.path.join(build_webrtc_dir, 'tmp')
         rm_rf(tmp)
         mkdir_p(tmp)
         with cd(tmp):
-            cmd(['unzip', os.path.join(build_dir, 'aar', 'libwebrtc.aar')])
-            dstpath = os.path.join(build_dir, 'aar', 'webrtc.jar')
+            cmd(['unzip', os.path.join(build_webrtc_dir, 'aar', 'libwebrtc.aar')])
+            dstpath = os.path.join(build_webrtc_dir, 'aar', 'webrtc.jar')
             rm_rf(dstpath)
             os.rename('classes.jar', dstpath)
         rm_rf(tmp)
@@ -539,7 +612,7 @@ def package_webrtc(source_dir, base_build_dir, package_dir, target, configuratio
     for src, dst in files:
         dstpath = os.path.join(package_webrtc_dir, *dst)
         mkdir_p(os.path.dirname(dstpath))
-        shutil.copy2(os.path.join(build_dir, *src), dstpath)
+        shutil.copy2(os.path.join(build_webrtc_dir, *src), dstpath)
 
     # 圧縮
     with cd(package_dir):
@@ -558,9 +631,47 @@ TARGETS = [
     'windows',
     'macos_x86_64',
     'macos_arm64',
+    'ubuntu-18.04_x86_64',
     'ubuntu-20.04_x86_64',
+    'ubuntu-18.04_armv8',
+    'raspberry-pi-os_armv6',
+    'raspberry-pi-os_armv7',
+    'raspberry-pi-os_armv8',
     'android',
+    'ios',
 ]
+
+def check_target(target):
+    if platform.system() == 'Windows':
+        return target == 'windows'
+    elif platform.system() == 'Darwin':
+        return target in ('macos_x86_64', 'macos_arm64', 'ios')
+    elif platform.system() == 'Linux':
+        release = read_version_file('/etc/os-release')
+        os = release['NAME']
+        if os != 'Ubuntu':
+            return False
+
+        # x86_64 環境以外ではビルド不可
+        arch = platform.machine()
+        if arch not in ('AMD64', 'x86_64'):
+            return False
+
+        # クロスコンパイルなので Ubuntu だったら任意のバージョンでビルド可能（なはず）
+        if target in ('ubuntu-18.04_armv8', 'raspberry-pi-os_armv6', 'raspberry-pi-os_armv7', 'raspberry-pi-os_armv8'):
+            return True
+
+        # x86_64 用ビルドはバージョンが合っている必要がある
+        osver = release['VERSION_ID']
+        if target == 'ubuntu-18.04_x86_64' and osver == '18.04':
+            return True
+        if target == 'ubuntu-20.04_x86_64' and osver == '20.04':
+            return True
+
+        return False
+    else:
+        return False
+
 
 def main():
     """
@@ -570,7 +681,7 @@ def main():
         - 引数無しで実行した場合、ビルドのみ行う
             - もし必要とするファイルが存在しなければ取得や生成を行うが、新しい更新があるかどうかは確認しない。
         - 各種引数を渡すと、更新や生成を行う。
-            - --fetch-depot-tools - depot_tools を更新する
+            - --fetch-depottools - depot_tools を更新する
             - --fetch - WebRTC のソースを更新する
                 - 既存の変更は全て破棄され、パッチのみが当たった状態になる
             - --fetch-force - 既存の WebRTC のソースを捨てて新しく取得し直す
@@ -584,7 +695,8 @@ def main():
     bp.set_defaults(op='build')
     bp.add_argument("target", choices=TARGETS)
     bp.add_argument("--debug", action='store_true')
-    bp.add_argument('--fetch-depot-tools', action='store_true')
+    bp.add_argument("--fetch-force-rootfs", action='store_true')
+    bp.add_argument('--fetch-depottools', action='store_true')
     bp.add_argument("--fetch", action='store_true')
     bp.add_argument("--fetch-force", action='store_true')
     bp.add_argument("--gen", action='store_true')
@@ -597,6 +709,9 @@ def main():
 
     if not hasattr(args, 'op'):
         parser.error('Required subcommand')
+
+    if not check_target(args.target):
+        raise Exception(f'Target {args.target} is not supported on your platform')
 
     configuration = 'debug' if args.debug else 'release'
 
@@ -642,7 +757,11 @@ def main():
         mkdir_p(build_dir)
 
         with cd(BASE_DIR):
-            dir = get_depot_tools(source_dir, enable_fetch=args.fetch_depot_tools)
+            if args.target in MULTISTRAP_CONFIGS:
+                sysroot = os.path.join(source_dir, 'rootfs')
+                init_rootfs(sysroot, MULTISTRAP_CONFIGS[args.target], args.fetch_force_rootfs)
+
+            dir = get_depot_tools(source_dir, enable_fetch=args.fetch_depottools)
             add_path(dir)
 
             # ソース取得
