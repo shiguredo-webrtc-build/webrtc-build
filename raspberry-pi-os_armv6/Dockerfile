@@ -47,6 +47,8 @@ RUN cd $SOURCE_DIR/webrtc/src \
     target_sysroot="/root/rootfs" \
     rtc_use_h264=false \
     rtc_include_tests=false \
+    rtc_build_examples=false \
+    rtc_build_tools=false \
     arm_version=6 \
     arm_arch="armv6" \
     arm_tune="arm1176jzf-s" \

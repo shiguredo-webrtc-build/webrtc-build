@@ -38,6 +38,8 @@ RUN cd $SOURCE_DIR/webrtc/src \
     rtc_include_tests=false \
     rtc_use_h264=false \
     rtc_use_pipewire=false \
+    rtc_build_examples=false \
+    rtc_build_tools=false \
     is_component_build=false \
     use_rtti=true \
   ' \

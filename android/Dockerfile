@@ -55,6 +55,7 @@ RUN cd /root/_source/android/webrtc/src \
         is_component_build=false \
         use_rtti=true \
         rtc_build_examples=false \
+        rtc_build_tools=false \
       '
 
 # armeabi-v7a 用の libwebrtc.a

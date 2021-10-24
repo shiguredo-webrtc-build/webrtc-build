@@ -46,6 +46,8 @@ RUN cd $SOURCE_DIR/webrtc/src \
     rtc_use_h264=false \
     rtc_include_tests=false \
     rtc_build_json=true \
+    rtc_build_examples=false \
+    rtc_build_tools=false \
     use_rtti=true \
     rtc_use_pipewire=false \
   ' \
@@ -68,6 +70,8 @@ RUN cd $SOURCE_DIR/webrtc/src \
     rtc_use_h264=false \
     rtc_include_tests=false \
     rtc_build_json=true \
+    rtc_build_examples=false \
+    rtc_build_tools=false \
     use_rtti=true \
     rtc_use_pipewire=false \
     use_custom_libcxx=false \

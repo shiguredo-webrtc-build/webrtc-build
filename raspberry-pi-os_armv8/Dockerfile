@@ -45,6 +45,8 @@ RUN cd $SOURCE_DIR/webrtc/src \
     target_sysroot="/root/rootfs" \
     rtc_use_h264=false \
     rtc_include_tests=false \
+    rtc_build_examples=false \
+    rtc_build_tools=false \
     rtc_use_pipewire=false \
     rtc_build_json=true \
     use_rtti=true \

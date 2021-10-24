@@ -109,10 +109,10 @@ Push-Location $WEBRTC_DIR\src
   Pop-Location
 
   # WebRTC ビルド
-  gn gen $WEBRTC_BUILD_DIR\debug --args='is_debug=true rtc_include_tests=false rtc_use_h264=false is_component_build=false use_rtti=true use_custom_libcxx=false'
+  gn gen $WEBRTC_BUILD_DIR\debug --args='is_debug=true rtc_include_tests=false rtc_use_h264=false is_component_build=false rtc_build_examples=false rtc_build_tools=false use_rtti=true use_custom_libcxx=false'
   ninja -C "$WEBRTC_BUILD_DIR\debug"
 
-  gn gen $WEBRTC_BUILD_DIR\release --args='is_debug=false rtc_include_tests=false rtc_use_h264=false is_component_build=false use_rtti=true use_custom_libcxx=false'
+  gn gen $WEBRTC_BUILD_DIR\release --args='is_debug=false rtc_include_tests=false rtc_use_h264=false is_component_build=false rtc_build_examples=false rtc_build_tools=false use_rtti=true use_custom_libcxx=false'
   ninja -C "$WEBRTC_BUILD_DIR\release"
 Pop-Location
 
