@@ -317,7 +317,7 @@ MULTISTRAP_CONFIGS = {
         triplet='arm-linux-gnueabihf'
     ),
     'raspberry-pi-os_armv7': MultistrapConfig(
-        config_file=['raspberry-pi-os_armv8', 'rpi-raspbian.conf'],
+        config_file=['raspberry-pi-os_armv7', 'rpi-raspbian.conf'],
         arch='armhf',
         triplet='arm-linux-gnueabihf'
     ),
