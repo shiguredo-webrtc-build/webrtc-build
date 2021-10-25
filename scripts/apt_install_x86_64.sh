@@ -22,6 +22,7 @@ apt-get -y install \
   libsdl2-dev \
   lsb-release \
   python \
+  python3 \
   rsync \
   sudo \
   vim \

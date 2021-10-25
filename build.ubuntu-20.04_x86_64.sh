@@ -5,18 +5,13 @@ source VERSION
 SCRIPT_DIR="`pwd`"
 
 PACKAGE_NAME=ubuntu-20.04_x86_64
-SOURCE_DIR="`pwd`/_source/$PACKAGE_NAME"
-BUILD_DIR="`pwd`/_build/$PACKAGE_NAME"
 PACKAGE_DIR="`pwd`/_package/$PACKAGE_NAME"
 
 set -ex
 
-# ======= ここまでは全ての build.*.sh で共通（PACKAGE_NAME だけ変える）
-
 IMAGE_NAME=webrtc/$PACKAGE_NAME:m${WEBRTC_VERSION}
 DOCKER_BUILDKIT=1 docker build \
   -t $IMAGE_NAME \
-  --build-arg WEBRTC_COMMIT=$WEBRTC_COMMIT \
   -f $PACKAGE_NAME/Dockerfile \
   .
 
