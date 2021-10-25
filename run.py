@@ -551,7 +551,7 @@ def build_webrtc(source_dir, build_dir, target: str, version_info: VersionInfo, 
             sysroot = os.path.join(source_dir, 'rootfs')
             gn_args += [
                 'target_os="linux"',
-                f'target_cpu="{"arm64" if target.endswith("armv8") else "arm"}"',
+                f'target_cpu="{"arm64" if target in ("raspberry-pi-os_armv8", "ubuntu-18.04_armv8") else "arm"}"',
                 f'target_sysroot="{sysroot}"',
                 'rtc_use_pipewire=false',
             ]
@@ -785,7 +785,7 @@ def check_target(target):
             return False
 
         # クロスコンパイルなので Ubuntu だったら任意のバージョンでビルド可能（なはず）
-        if target in ('ubuntu-18.04_armv8', 'raspberry-pi-os_armv6', 'raspberry-pi-os_armv7', 'raspberry-pi-os_armv8'):
+        if target in ('ubuntu-18.04_armv8', 'raspberry-pi-os_armv6', 'raspberry-pi-os_armv7', 'raspberry-pi-os_armv8', 'android'):
             return True
 
         # x86_64 用ビルドはバージョンが合っている必要がある
