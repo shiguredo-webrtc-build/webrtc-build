@@ -380,7 +380,7 @@ WEBRTC_BUILD_TARGETS = {
     'macos_x86_64': [*WEBRTC_BUILD_TARGETS_MACOS_COMMON, 'sdk:mac_framework_objc'],
     'macos_arm64': [*WEBRTC_BUILD_TARGETS_MACOS_COMMON, 'sdk:mac_framework_objc'],
     'ios': [*WEBRTC_BUILD_TARGETS_MACOS_COMMON, 'sdk:framework_objc'],
-    'android': ['sdk/android:libwebrtc', 'sdk/android:libjingle_peerconnection_so', 'sdk:native_api'],
+    'android': ['sdk/android:libwebrtc', 'sdk/android:libjingle_peerconnection_so', 'sdk/android:native_api'],
 }
 
 
@@ -451,7 +451,7 @@ def build_webrtc_ios(source_dir, build_dir, version_info, debug=False, gen=False
                 f"enable_stripping={'false' if debug else 'true'}",
                 *gn_args_base,
             ]
-            with cd(os.path.join(source_dir, 'webrtc', 'src')):
+            with cd(source_webrtc_dir):
                 cmd(['gn', 'gen', work_dir, '--args=' + ' '.join(gn_args)])
         if not nobuild:
             cmd(['ninja', '-C', work_dir, *get_build_targets('ios')])
@@ -472,6 +472,7 @@ ANDROID_TARGET_CPU = {
 def build_webrtc_android(source_dir, build_dir, version_info: VersionInfo, debug=False, gen=False, nobuild=False, nobuild_aar=False):
     build_webrtc_dir = os.path.join(build_dir, 'webrtc')
     mkdir_p(build_webrtc_dir)
+    source_webrtc_dir = os.path.join(source_dir, 'webrtc', 'src')
 
     # Java ファイル作成
     branch = 'M' + version_info.webrtc_version.split('.')[0]
@@ -487,7 +488,7 @@ def build_webrtc_android(source_dir, build_dir, version_info: VersionInfo, debug
     lines.append(f'    public static final String webrtc_revision = "{revision}";')
     lines.append(f'    public static final String maint_version = "{maint}";')
     lines.append(f'}}')
-    with open(os.path.join(source_dir, 'webrtc', 'src', 'sdk', 'android', 'api', 'org', 'webrtc', f'{name}.java'), 'wb') as f:
+    with open(os.path.join(source_webrtc_dir, 'sdk', 'android', 'api', 'org', 'webrtc', f'{name}.java'), 'wb') as f:
         f.writelines(map(lambda x: (x + '\n').encode('utf-8'), lines))
 
     gn_args_base = [
@@ -501,8 +502,8 @@ def build_webrtc_android(source_dir, build_dir, version_info: VersionInfo, debug
         work_dir = os.path.join(build_webrtc_dir, 'aar')
         mkdir_p(work_dir)
         gn_args = [*gn_args_base]
-        with cd(os.path.join(source_dir, 'webrtc', 'src')):
-            cmd(['python3', os.path.join(source_dir, 'webrtc', 'src', 'tools_webrtc', 'android', 'build_aar.py'),
+        with cd(source_webrtc_dir):
+            cmd(['python3', os.path.join(source_webrtc_dir, 'tools_webrtc', 'android', 'build_aar.py'),
                 '--build-dir', work_dir,
                 '--output', os.path.join(work_dir, 'libwebrtc.aar'),
                 '--arch', *ANDROID_ARCHS,
@@ -516,11 +517,11 @@ def build_webrtc_android(source_dir, build_dir, version_info: VersionInfo, debug
                 'target_os="android"',
                 f'target_cpu="{ANDROID_TARGET_CPU[arch]}"',
             ]
-            with cd(os.path.join(source_dir, 'webrtc', 'src')):
+            with cd(source_webrtc_dir):
                 cmd(['gn', 'gen', work_dir, '--args=' + ' '.join(gn_args)])
         if not nobuild:
             cmd(['ninja', '-C', work_dir, *get_build_targets('android')])
-            ar = os.path.join(source_dir, 'webrtc/src/third_party/llvm-build/Release+Asserts/bin/llvm-ar')
+            ar = os.path.join(source_webrtc_dir, 'third_party/llvm-build/Release+Asserts/bin/llvm-ar')
             archive_objects(ar, os.path.join(work_dir, 'obj'), os.path.join(work_dir, 'libwebrtc.a'))
 
 
