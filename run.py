@@ -763,18 +763,24 @@ TARGETS = [
 ]
 
 def check_target(target):
+    logging.debug(f'uname: {platform.uname()}')
+
     if platform.system() == 'Windows':
+        logging.info(f'OS: {platform.system()}')
         return target == 'windows'
     elif platform.system() == 'Darwin':
+        logging.info(f'OS: {platform.system()}')
         return target in ('macos_x86_64', 'macos_arm64', 'ios')
     elif platform.system() == 'Linux':
         release = read_version_file('/etc/os-release')
         os = release['NAME']
+        logging.info(f'OS: {os}')
         if os != 'Ubuntu':
             return False
 
         # x86_64 環境以外ではビルド不可
         arch = platform.machine()
+        logging.info(f'Arch: {arch}')
         if arch not in ('AMD64', 'x86_64'):
             return False
 
@@ -784,6 +790,7 @@ def check_target(target):
 
         # x86_64 用ビルドはバージョンが合っている必要がある
         osver = release['VERSION_ID']
+        logging.info(f'OS Version: {osver}')
         if target == 'ubuntu-18.04_x86_64' and osver == '18.04':
             return True
         if target == 'ubuntu-20.04_x86_64' and osver == '20.04':
@@ -857,6 +864,7 @@ def main():
 
     if args.target == 'windows':
         # Windows の WebRTC ビルドに必要な環境変数の設定
+        mkdir_p(base_build_dir)
         download("https://github.com/microsoft/vswhere/releases/download/2.8.4/vswhere.exe", base_build_dir)
         path = cmdcap([os.path.join(base_build_dir, 'vswhere.exe'), '-latest', '-products', '*', '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64', '-property', 'installationPath'])
         if len(path) == 0:
