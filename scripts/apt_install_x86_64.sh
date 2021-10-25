@@ -22,6 +22,7 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get -y install \
   git \
   libsdl2-dev \
+  locales \
   lsb-release \
   python \
   python-setuptools \
@@ -31,3 +32,5 @@ apt-get -y install \
   sudo \
   vim \
   wget
+
+locale-gen ja_JP.UTF-8

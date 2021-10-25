@@ -20,6 +20,7 @@ apt-get -y install \
   lbzip2 \
   libgtk-3-dev \
   libstdc++6 \
+  locales \
   lsb-release \
   multistrap \
   python \
@@ -41,3 +42,5 @@ sed -e 's/Apt::Get::AllowUnauthenticated=true/Apt::Get::AllowUnauthenticated=tru
 add-apt-repository -y ppa:ubuntu-toolchain-r/test
 apt update
 apt-get install -y --only-upgrade libstdc++6
+
+locale-gen ja_JP.UTF-8

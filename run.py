@@ -380,7 +380,7 @@ WEBRTC_BUILD_TARGETS = {
     'macos_x86_64': [*WEBRTC_BUILD_TARGETS_MACOS_COMMON, 'sdk:mac_framework_objc'],
     'macos_arm64': [*WEBRTC_BUILD_TARGETS_MACOS_COMMON, 'sdk:mac_framework_objc'],
     'ios': [*WEBRTC_BUILD_TARGETS_MACOS_COMMON, 'sdk:framework_objc'],
-    'android': ['sdk/android:libwebrtc', 'sd/android:libjingle_peerconnection_so', 'sdk:native_api'],
+    'android': ['sdk/android:libwebrtc', 'sdk/android:libjingle_peerconnection_so', 'sdk:native_api'],
 }
 
 
