@@ -83,107 +83,108 @@ jobs:
       with:
         name: webrtc.${{ matrix.name }}.tar.gz
         path: _package/${{ matrix.name }}/webrtc.tar.gz
-  create-release:
-    name: Create Release
-    if: contains(github.ref, 'tags/m')
-    needs:
-      - build-windows
-      - build-macos
-      - build-linux
-    runs-on: ubuntu-20.04
-    steps:
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1.0.0
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: false
-        prerelease: false
-    - name: Output upload url
-      shell: bash
-      run: echo "UPLOAD_URL='${{ steps.create_release.outputs.upload_url }}'" > create-release.env
-    - name: Upload create-release Environment
-      uses: actions/upload-artifact@v1
-      with:
-        name: create-release.env
-        path: create-release.env
-  upload-assets:
-    strategy:
-      fail-fast: false
-      matrix:
-        name:
-          - macos_arm64
-          - macos_x86_64
-          - ios
-          - raspberry-pi-os_armv6
-          - raspberry-pi-os_armv7
-          - raspberry-pi-os_armv8
-          - ubuntu-18.04_armv8
-          - ubuntu-18.04_x86_64
-          - ubuntu-20.04_x86_64
-          - android
-    name: Release ${{ matrix.name }}
-    if: contains(github.ref, 'tags/m')
-    needs:
-      - create-release
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-    - name: Download ${{ matrix.name }}
-      uses: actions/download-artifact@v1
-      with:
-        name: webrtc.${{ matrix.name }}.tar.gz
-    - uses: actions/download-artifact@v1
-      with:
-        name: create-release.env
-    - name: Env to output
-      shell: bash
-      run: |
-        source create-release.env/create-release.env
-        echo "::set-output name=upload_url::$UPLOAD_URL"
-      id: env
-    - name: Upload ${{ matrix.name }} Release Asset
-      uses: actions/upload-release-asset@v1.0.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.env.outputs.upload_url }}
-        asset_path: webrtc.${{ matrix.name }}.tar.gz/webrtc.tar.gz
-        asset_name: webrtc.${{ matrix.name }}.tar.gz
-        asset_content_type: application/gzip
-  # Windows だけ Content-Type が違うので別で記述する
-  upload-assets-windows:
-    name: Upload windows
-    if: contains(github.ref, 'tags/m')
-    needs:
-      - create-release
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-    - name: Download windows
-      uses: actions/download-artifact@v1
-      with:
-        name: webrtc.windows.zip
-    - uses: actions/download-artifact@v1
-      with:
-        name: create-release.env
-    - name: Env to output
-      shell: bash
-      run: |
-        source create-release.env/create-release.env
-        echo "::set-output name=upload_url::$UPLOAD_URL"
-      id: env
-    - name: Upload windows Release Asset
-      uses: actions/upload-release-asset@v1.0.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.env.outputs.upload_url }}
-        asset_path: webrtc.windows.zip/webrtc.zip
-        asset_name: webrtc.windows.zip
-        asset_content_type: application/zip
+#  create-release:
+#    name: Create Release
+#    if: contains(github.ref, 'tags/m')
+#    needs:
+#      - build-windows
+#      - build-macos
+#      - build-linux
+#    runs-on: ubuntu-20.04
+#    steps:
+#    - name: Create Release
+#      id: create_release
+#      uses: actions/create-release@v1.0.0
+#      env:
+#        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#      with:
+#        tag_name: ${{ github.ref }}
+#        release_name: Release ${{ github.ref }}
+#        draft: false
+#        prerelease: false
+#    - name: Output upload url
+#      shell: bash
+#      run: echo "UPLOAD_URL='${{ steps.create_release.outputs.upload_url }}'" > create-release.env
+#    - name: Upload create-release Environment
+#      uses: actions/upload-artifact@v1
+#      with:
+#        name: create-release.env
+#        path: create-release.env
+#  upload-assets:
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        name:
+#          - macos_arm64
+#          - macos_x86_64
+#          - ios
+#          - raspberry-pi-os_armv6
+#          - raspberry-pi-os_armv7
+#          - raspberry-pi-os_armv8
+#          - ubuntu-18.04_armv8
+#          - ubuntu-18.04_x86_64
+#          - ubuntu-20.04_x86_64
+#          - android
+#    name: Release ${{ matrix.name }}
+#    if: contains(github.ref, 'tags/m')
+#    needs:
+#      - create-release
+#    runs-on: ubuntu-latest
+#    steps:
+#    - name: Checkout code
+#      uses: actions/checkout@v2
+#    - name: Download ${{ matrix.name }}
+#      uses: actions/download-artifact@v1
+#      with:
+#        name: webrtc.${{ matrix.name }}.tar.gz
+#    - uses: actions/download-artifact@v1
+#      with:
+#        name: create-release.env
+#    - name: Env to output
+#      shell: bash
+#      run: |
+#        source create-release.env/create-release.env
+#        echo "::set-output name=upload_url::$UPLOAD_URL"
+#      id: env
+#    - name: Upload ${{ matrix.name }} Release Asset
+#      uses: actions/upload-release-asset@v1.0.1
+#      env:
+#        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#      with:
+#        upload_url: ${{ steps.env.outputs.upload_url }}
+#        asset_path: webrtc.${{ matrix.name }}.tar.gz/webrtc.tar.gz
+#        asset_name: webrtc.${{ matrix.name }}.tar.gz
+#        asset_content_type: application/gzip
+#  # Windows だけ Content-Type が違うので別で記述する
+#  upload-assets-windows:
+#    name: Upload windows
+#    if: contains(github.ref, 'tags/m')
+#    needs:
+#      - create-release
+#    runs-on: ubuntu-latest
+#    steps:
+#    - name: Checkout code
+#      uses: actions/checkout@v2
+#    - name: Download windows
+#      uses: actions/download-artifact@v1
+#      with:
+#        name: webrtc.windows.zip
+#    - uses: actions/download-artifact@v1
+#      with:
+#        name: create-release.env
+#    - name: Env to output
+#      shell: bash
+#      run: |
+#        source create-release.env/create-release.env
+#        echo "::set-output name=upload_url::$UPLOAD_URL"
+#      id: env
+#    - name: Upload windows Release Asset
+#      uses: actions/upload-release-asset@v1.0.1
+#      env:
+#        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#      with:
+#        upload_url: ${{ steps.env.outputs.upload_url }}
+#        asset_path: webrtc.windows.zip/webrtc.zip
+#        asset_name: webrtc.windows.zip
+#        asset_content_type: application/zip
+#
