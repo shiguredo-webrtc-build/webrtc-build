@@ -6,6 +6,7 @@ ARG PACKAGE_NAME=raspberry-pi-os_armv6
 ENV PACKAGE_DIR "/root/_package/$PACKAGE_NAME"
 
 COPY run.py /root/
+COPY VERSION /root/
 COPY patches/ /root/patches/
 COPY scripts/ /root/scripts/
 COPY $PACKAGE_NAME/ /root/$PACKAGE_NAME/

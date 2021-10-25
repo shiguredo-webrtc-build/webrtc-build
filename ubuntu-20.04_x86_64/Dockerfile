@@ -6,6 +6,7 @@ ARG PACKAGE_NAME=ubuntu-20.04_x86_64
 ENV PACKAGE_DIR "/root/_package/$PACKAGE_NAME"
 
 COPY run.py /root/
+COPY VERSION /root/
 COPY patches/ /root/patches/
 COPY scripts/ /root/scripts/
 COPY $PACKAGE_NAME/ /root/$PACKAGE_NAME/
