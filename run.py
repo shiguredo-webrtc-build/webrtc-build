@@ -51,7 +51,10 @@ def cmd(args, **kwargs):
 
 # 標準出力をキャプチャするコマンド実行。シェルの `cmd ...` や $(cmd ...) と同じ
 def cmdcap(args, **kwargs):
-    kwargs['capture_output'] = True
+    # 3.7 でしか使えない
+    # kwargs['capture_output'] = True
+    kwargs['stdout'] = subprocess.PIPE
+    kwargs['stderr'] = subprocess.PIPE
     kwargs['encoding'] = 'utf-8'
     return cmd(args, **kwargs).stdout.strip()
 
