@@ -31,5 +31,6 @@ apt-get -y install \
   python3-setuptools \
   rsync \
   sudo \
+  unzip \
   vim \
   wget

@@ -30,6 +30,7 @@ apt-get -y install \
   rsync \
   software-properties-common \
   sudo \
+  unzip \
   vim \
   xz-utils
 
