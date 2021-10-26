@@ -494,6 +494,8 @@ def build_webrtc_android(source_dir, build_dir, version_info: VersionInfo, debug
     gn_args_base = [
         f"is_debug={'true' if debug else 'false'}",
         f"is_java_debug={'true' if debug else 'false'}",
+        # Docker 上でビルドするとなぜか警告が出るので無効化する
+        'treat_warnings_as_errors=false',
         *COMMON_GN_ARGS
     ]
 
