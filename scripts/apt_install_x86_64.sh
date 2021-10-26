@@ -20,6 +20,7 @@ apt-get install -y snapcraft
 export DEBIAN_FRONTEND=noninteractive
 
 apt-get -y install \
+  binutils \
   git \
   libsdl2-dev \
   locales \
@@ -32,5 +33,3 @@ apt-get -y install \
   sudo \
   vim \
   wget
-
-locale-gen ja_JP.UTF-8
