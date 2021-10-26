@@ -41,9 +41,10 @@ python3 run.py build <target> --webrtc-fetch
 ```
 
 これで WebRTC のソースは `VERSION` ファイルの `WEBRTC_COMMIT` に書かれた内容になり、その上でパッチを当てた状態でビルドされる。
+
 ソースを手で書き換えた部分や追加したファイルも含め、全て元に戻るので注意すること。
 
-なお既存のソースを全て破棄して取得し直す `--webrtc-fetch-force` コマンドも存在する。
+なお既存のソースを全て破棄して取得し直す `--webrtc-fetch-force` 引数も存在する。
 
 ### --webrtc-gen
 
@@ -55,7 +56,7 @@ python3 run.py build <target> --webrtc-gen
 
 これで gn gen を実行し直した上でビルドされる。
 
-なお既存のビルドディレクトリを全て破棄して生成し直す `--webrtc-gen-force` コマンドも存在する。
+なお既存のビルドディレクトリを全て破棄して生成し直す `--webrtc-gen-force` 引数も存在する。
 
 ### iOS, Android のビルド
 
