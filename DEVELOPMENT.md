@@ -68,22 +68,48 @@ iOS の `WebRTC.xcframework`、Android の `webrtc.aar` は、他の場合と変
 
 ### ディレクトリ構成
 
-- ソースは `_source` 以下に、ビルドで生成されたファイルは `_build` 以下にある。
+- ソースは `_source` 以下に、ビルド成果物は `_build` 以下に配置される。
 - `_source/<target>/` や `_build/<target>/` のように、`_source` と `_build` のどちらも、ターゲットごとに別のディレクトリに分けられる。
 - `_build/<target>/<configuration>` のように、`_build` はデバッグビルドかリリースビルドかで別のディレクトリに分けられる。
 
-つまり以下のようになる。
+つまりデフォルトでは以下のような配置になる。
 
 ```
-webrtc-build/_source/ubuntu-20.04_x86_64/webrtc/...
-webrtc-build/_source/android/webrtc/...
-webrtc-build/_build/ubuntu-20.04_x86_64/debug/webrtc/...
-webrtc-build/_build/ubuntu-20.04_x86_64/release/webrtc/...
-webrtc-build/_build/android/debug/webrtc/...
-webrtc-build/_build/android/release/webrtc/...
+webrtc-build/
+|-- _source/
+|   |-- ubuntu-20.04_x86_64/
+|   |   |-- depot_tools/...
+|   |   `-- webrtc/...
+|   `-- android/
+|       |-- depot_tools/...
+|       `-- webrtc/...
+`-- _build/
+    |-- ubuntu-20.04_x86_64/
+    |   |-- debug/
+    |   |   `-- webrtc/...
+    |   `-- release/
+    |       `-- webrtc/...
+    `-- android/
+        |-- debug/
+        |   `-- webrtc/...
+        `-- release/
+            `-- webrtc/...
 ```
 
-ソースディレクトリやビルドディレクトリを手で指定可能な仕組みは現在存在しないが、必要なら作るかもしれない。
+また、ソースディレクトリやビルドディレクトリは以下のオプションを指定することで任意の場所に変更できる。
+
+- `--source-dir`: ソースディレクトリ
+  - デフォルトは `<run.pyのあるディレクトリ>/_source/<target名>` 
+  - ただし Windows の場合は `C:\webrtc` になる（パスが長いとビルドエラーになってしまうため）
+- `--webrtc-source-dir`: WebRTC のソースを配置するディレクトリ。`--source-dir` よりもこちらの設定を優先する。
+  - デフォルトは `<source-dir>/webrtc` 
+- `--build-dir`: ビルドディレクトリ
+  - デフォルトは `<run.pyのあるディレクトリ>/_build/<target名>/<configuration>` 
+  - Windows の場合は `C:\webrtc-build\<configuration>`
+- `--webrtc-build-dir`: WebRTC のビルド成果物を配置するディレクトリ。`--build-dir` よりもこちらの設定を優先する。
+  - デフォルトは `<build-dir>/webrtc` 
+
+これらのディレクトリは、カレントディレクトリからの相対パスで指定可能となっている。
 
 ### 制限
 

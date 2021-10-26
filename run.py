@@ -10,7 +10,7 @@ import platform
 import argparse
 import collections
 import re
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
 
 logging.basicConfig(level=logging.INFO)
@@ -265,14 +265,16 @@ def apply_patch(patch, dir, depth):
                 cmd(['patch', f'-p{depth}'], stdin=stdin)
 
 
-def get_webrtc(source_dir, patch_dir, version, target, force=False, fetch=False):
-    webrtc_dir = os.path.join(source_dir, 'webrtc')
+def get_webrtc(source_dir, patch_dir, version, target,
+               webrtc_source_dir=None, force=False, fetch=False):
+    if webrtc_source_dir is None:
+        webrtc_source_dir = os.path.join(source_dir, 'webrtc')
     if force:
-        rm_rf(webrtc_dir)
+        rm_rf(webrtc_source_dir)
 
-    mkdir_p(webrtc_dir)
-    if not os.path.exists(os.path.join(webrtc_dir, 'src')):
-        with cd(webrtc_dir):
+    mkdir_p(webrtc_source_dir)
+    if not os.path.exists(os.path.join(webrtc_source_dir, 'src')):
+        with cd(webrtc_source_dir):
             cmd(['gclient'])
             cmd(['fetch', 'webrtc'])
             if target == 'android':
@@ -283,7 +285,7 @@ def get_webrtc(source_dir, patch_dir, version, target, force=False, fetch=False)
                     f.write("target_os = [ 'ios' ]\n")
             fetch = True
 
-    src_dir = os.path.join(webrtc_dir, 'src')
+    src_dir = os.path.join(webrtc_source_dir, 'src')
     if fetch:
         with cd(src_dir):
             cmd(['git', 'checkout', '-f', version])
@@ -404,7 +406,7 @@ def get_build_targets(target):
 IOS_ARCHS = ['arm64', 'x64']
 
 
-def to_gn_args(gn_args: list[str], extra_gn_args: str) -> str:
+def to_gn_args(gn_args: List[str], extra_gn_args: str) -> str:
     s = ' '.join(gn_args)
     if len(extra_gn_args) == 0:
         return s
@@ -413,14 +415,20 @@ def to_gn_args(gn_args: list[str], extra_gn_args: str) -> str:
 
 def build_webrtc_ios(
         source_dir, build_dir, version_info: VersionInfo, extra_gn_args,
+        webrtc_source_dir=None, webrtc_build_dir=None,
         debug=False,
         gen=False, gen_force=False,
         nobuild=False, nobuild_framework=False):
-    build_webrtc_dir = os.path.join(build_dir, 'webrtc')
-    mkdir_p(build_webrtc_dir)
-    source_webrtc_dir = os.path.join(source_dir, 'webrtc', 'src')
+    if webrtc_source_dir is None:
+        webrtc_source_dir = os.path.join(source_dir, 'webrtc')
+    if webrtc_build_dir is None:
+        webrtc_build_dir = os.path.join(build_dir, 'webrtc')
 
-    mkdir_p(os.path.join(build_webrtc_dir, 'framework'))
+    webrtc_src_dir = os.path.join(webrtc_source_dir, 'src')
+
+    mkdir_p(webrtc_build_dir)
+
+    mkdir_p(os.path.join(webrtc_build_dir, 'framework'))
     # - M92-M93 あたりで clang++: error: -gdwarf-aranges is not supported with -fembed-bitcode
     #   がでていたので use_code_clang=false をすることで修正
     # - M94 で use_xcode_clang=true かつ --bitcode を有効にしてビルドが通り bitcode が有効になってることを確認
@@ -441,8 +449,8 @@ def build_webrtc_ios(
             *gn_args_base,
         ]
         cmd([
-            os.path.join(source_webrtc_dir, 'tools_webrtc', 'ios', 'build_ios_libs.sh'),
-            '-o', os.path.join(build_webrtc_dir, 'framework'),
+            os.path.join(webrtc_src_dir, 'tools_webrtc', 'ios', 'build_ios_libs.sh'),
+            '-o', os.path.join(webrtc_build_dir, 'framework'),
             '--build_config', 'debug' if debug else 'release',
             '--arch', *IOS_ARCHS,
             '--bitcode',
@@ -453,16 +461,16 @@ def build_webrtc_ios(
         info['commit'] = version_info.webrtc_version.split('.')[2]
         info['revision'] = version_info.webrtc_commit
         info['maint'] = version_info.webrtc_build_version.split('.')[3]
-        with open(os.path.join(build_webrtc_dir, 'framework', 'WebRTC.xcframework', 'build_info.json'), 'w') as f:
+        with open(os.path.join(webrtc_build_dir, 'framework', 'WebRTC.xcframework', 'build_info.json'), 'w') as f:
             f.write(json.dumps(info, indent=4))
 
-    with cd(os.path.join(source_webrtc_dir, 'tools_webrtc', 'ios')):
+    with cd(os.path.join(webrtc_src_dir, 'tools_webrtc', 'ios')):
         ios_deployment_target = cmdcap(
             ['python3', '-c',
              'from build_ios_libs import IOS_DEPLOYMENT_TARGET; print(IOS_DEPLOYMENT_TARGET["device"])'])
 
     for arch in IOS_ARCHS:
-        work_dir = os.path.join(build_webrtc_dir, arch)
+        work_dir = os.path.join(webrtc_build_dir, arch)
         if gen_force:
             rm_rf(work_dir)
         if not os.path.exists(os.path.join(work_dir, 'args.gn')) or gen:
@@ -479,15 +487,15 @@ def build_webrtc_ios(
                 f"enable_stripping={'false' if debug else 'true'}",
                 *gn_args_base,
             ]
-            with cd(source_webrtc_dir):
+            with cd(webrtc_src_dir):
                 cmd(['gn', 'gen', work_dir, '--args=' + to_gn_args(gn_args, extra_gn_args)])
         if not nobuild:
             cmd(['ninja', '-C', work_dir, *get_build_targets('ios')])
             ar = '/usr/bin/ar'
             archive_objects(ar, os.path.join(work_dir, 'obj'), os.path.join(work_dir, 'libwebrtc.a'))
 
-    libs = [os.path.join(build_webrtc_dir, arch, 'libwebrtc.a') for arch in IOS_ARCHS]
-    cmd(['lipo', *libs, '-create', '-output', os.path.join(build_webrtc_dir, 'libwebrtc.a')])
+    libs = [os.path.join(webrtc_build_dir, arch, 'libwebrtc.a') for arch in IOS_ARCHS]
+    cmd(['lipo', *libs, '-create', '-output', os.path.join(webrtc_build_dir, 'libwebrtc.a')])
 
 
 ANDROID_ARCHS = ['armeabi-v7a', 'arm64-v8a']
@@ -499,12 +507,18 @@ ANDROID_TARGET_CPU = {
 
 def build_webrtc_android(
         source_dir, build_dir, version_info: VersionInfo, extra_gn_args,
+        webrtc_source_dir=None, webrtc_build_dir=None,
         debug=False,
         gen=False, gen_force=False,
         nobuild=False, nobuild_aar=False):
-    build_webrtc_dir = os.path.join(build_dir, 'webrtc')
-    mkdir_p(build_webrtc_dir)
-    source_webrtc_dir = os.path.join(source_dir, 'webrtc', 'src')
+    if webrtc_source_dir is None:
+        webrtc_source_dir = os.path.join(source_dir, 'webrtc')
+    if webrtc_build_dir is None:
+        webrtc_build_dir = os.path.join(build_dir, 'webrtc')
+
+    webrtc_src_dir = os.path.join(webrtc_source_dir, 'src')
+
+    mkdir_p(webrtc_build_dir)
 
     # Java ファイル作成
     branch = 'M' + version_info.webrtc_version.split('.')[0]
@@ -520,7 +534,7 @@ def build_webrtc_android(
     lines.append(f'    public static final String webrtc_revision = "{revision}";')
     lines.append(f'    public static final String maint_version = "{maint}";')
     lines.append('}')
-    with open(os.path.join(source_webrtc_dir, 'sdk', 'android', 'api', 'org', 'webrtc', f'{name}.java'), 'wb') as f:
+    with open(os.path.join(webrtc_src_dir, 'sdk', 'android', 'api', 'org', 'webrtc', f'{name}.java'), 'wb') as f:
         f.writelines(map(lambda x: (x + '\n').encode('utf-8'), lines))
 
     gn_args_base = [
@@ -531,18 +545,18 @@ def build_webrtc_android(
 
     # aar 生成
     if not nobuild_aar:
-        work_dir = os.path.join(build_webrtc_dir, 'aar')
+        work_dir = os.path.join(webrtc_build_dir, 'aar')
         mkdir_p(work_dir)
         gn_args = [*gn_args_base]
-        with cd(source_webrtc_dir):
-            cmd(['python3', os.path.join(source_webrtc_dir, 'tools_webrtc', 'android', 'build_aar.py'),
+        with cd(webrtc_src_dir):
+            cmd(['python3', os.path.join(webrtc_src_dir, 'tools_webrtc', 'android', 'build_aar.py'),
                 '--build-dir', work_dir,
                  '--output', os.path.join(work_dir, 'libwebrtc.aar'),
                  '--arch', *ANDROID_ARCHS,
                  '--extra-gn-args', to_gn_args(gn_args, extra_gn_args)])
 
     for arch in ANDROID_ARCHS:
-        work_dir = os.path.join(build_webrtc_dir, arch)
+        work_dir = os.path.join(webrtc_build_dir, arch)
         if gen_force:
             rm_rf(work_dir)
         if not os.path.exists(os.path.join(work_dir, 'args.gn')) or gen:
@@ -551,26 +565,33 @@ def build_webrtc_android(
                 'target_os="android"',
                 f'target_cpu="{ANDROID_TARGET_CPU[arch]}"',
             ]
-            with cd(source_webrtc_dir):
+            with cd(webrtc_src_dir):
                 cmd(['gn', 'gen', work_dir, '--args=' + to_gn_args(gn_args, extra_gn_args)])
         if not nobuild:
             cmd(['ninja', '-C', work_dir, *get_build_targets('android')])
-            ar = os.path.join(source_webrtc_dir, 'third_party/llvm-build/Release+Asserts/bin/llvm-ar')
+            ar = os.path.join(webrtc_src_dir, 'third_party/llvm-build/Release+Asserts/bin/llvm-ar')
             archive_objects(ar, os.path.join(work_dir, 'obj'), os.path.join(work_dir, 'libwebrtc.a'))
 
 
 def build_webrtc(
         source_dir, build_dir, target: str, version_info: VersionInfo, extra_gn_args,
+        webrtc_source_dir=None, webrtc_build_dir=None,
         debug=False,
         gen=False, gen_force=False,
         nobuild=False, nobuild_macos_framework=False):
-    build_webrtc_dir = os.path.join(build_dir, 'webrtc')
-    mkdir_p(build_webrtc_dir)
+    if webrtc_source_dir is None:
+        webrtc_source_dir = os.path.join(source_dir, 'webrtc')
+    if webrtc_build_dir is None:
+        webrtc_build_dir = os.path.join(build_dir, 'webrtc')
+
+    webrtc_src_dir = os.path.join(webrtc_source_dir, 'src')
+
+    mkdir_p(webrtc_build_dir)
 
     # ビルド
     if gen_force:
-        rm_rf(build_webrtc_dir)
-    if not os.path.exists(os.path.join(build_webrtc_dir, 'args.gn')) or gen:
+        rm_rf(webrtc_build_dir)
+    if not os.path.exists(os.path.join(webrtc_build_dir, 'args.gn')) or gen:
         gn_args = [
             f"is_debug={'true' if debug else 'false'}",
             *COMMON_GN_ARGS,
@@ -620,23 +641,23 @@ def build_webrtc(
         else:
             raise Exception(f'Target {target} is not supported')
 
-        with cd(os.path.join(source_dir, 'webrtc', 'src')):
-            cmd(['gn', 'gen', build_webrtc_dir, '--args=' + to_gn_args(gn_args, extra_gn_args)])
+        with cd(os.path.join(webrtc_src_dir)):
+            cmd(['gn', 'gen', webrtc_build_dir, '--args=' + to_gn_args(gn_args, extra_gn_args)])
 
     if nobuild:
         return
 
-    cmd(['ninja', '-C', build_webrtc_dir, *get_build_targets(target)])
+    cmd(['ninja', '-C', webrtc_build_dir, *get_build_targets(target)])
     if target == 'windows':
         pass
     elif target in ('macos_x86_64', 'macos_arm64'):
         ar = '/usr/bin/ar'
     else:
-        ar = os.path.join(source_dir, 'webrtc/src/third_party/llvm-build/Release+Asserts/bin/llvm-ar')
+        ar = os.path.join(webrtc_src_dir, 'third_party/llvm-build/Release+Asserts/bin/llvm-ar')
 
     # ar で libwebrtc.a を生成する
     if target != 'windows':
-        archive_objects(ar, os.path.join(build_webrtc_dir, 'obj'), os.path.join(build_webrtc_dir, 'libwebrtc.a'))
+        archive_objects(ar, os.path.join(webrtc_build_dir, 'obj'), os.path.join(webrtc_build_dir, 'libwebrtc.a'))
 
     # macOS の場合は WebRTC.framework に追加情報を入れる
     if (target in ('macos_x86_64', 'macos_arm64')) and not nobuild_macos_framework:
@@ -645,11 +666,11 @@ def build_webrtc(
         info['commit'] = version_info.webrtc_version.split('.')[2]
         info['revision'] = version_info.webrtc_commit
         info['maint'] = version_info.webrtc_build_version.split('.')[3]
-        with open(os.path.join(build_webrtc_dir, 'WebRTC.framework', 'Resources', 'build_info.json'), 'w') as f:
+        with open(os.path.join(webrtc_build_dir, 'WebRTC.framework', 'Resources', 'build_info.json'), 'w') as f:
             f.write(json.dumps(info, indent=4))
 
         # Info.plistの編集(tools_wertc/ios/build_ios_libs.py内の処理を踏襲)
-        info_plist_path = os.path.join(build_webrtc_dir, 'WebRTC.framework', 'Resources', 'Info.plist')
+        info_plist_path = os.path.join(webrtc_build_dir, 'WebRTC.framework', 'Resources', 'Info.plist')
         ver = cmdcap(['/usr/libexec/PlistBuddy', '-c', 'Print :CFBundleShortVersionString', info_plist_path],
                      resolve=False)
         cmd(['/usr/libexec/PlistBuddy', '-c',
@@ -657,28 +678,28 @@ def build_webrtc(
         cmd(['plutil', '-convert', 'binary1', info_plist_path])
 
         # xcframeworkの作成
-        rm_rf(os.path.join(build_webrtc_dir, 'WebRTC.xcframework'))
+        rm_rf(os.path.join(webrtc_build_dir, 'WebRTC.xcframework'))
         cmd(['xcodebuild', '-create-xcframework',
-            '-framework', os.path.join(build_webrtc_dir, 'WebRTC.framework'),
-             '-debug-symbols', os.path.join(build_webrtc_dir, 'WebRTC.dSYM'),
-             '-output', os.path.join(build_webrtc_dir, 'WebRTC.xcframework')])
+            '-framework', os.path.join(webrtc_build_dir, 'WebRTC.framework'),
+             '-debug-symbols', os.path.join(webrtc_build_dir, 'WebRTC.dSYM'),
+             '-output', os.path.join(webrtc_build_dir, 'WebRTC.xcframework')])
 
 
-def copy_headers(source_webrtc_dir, package_webrtc_dir, target):
+def copy_headers(webrtc_src_dir, webrtc_package_dir, target):
     if target == 'windows':
         # robocopy の戻り値は特殊なので、check=False にしてうまくエラーハンドリングする
         # https://docs.microsoft.com/ja-jp/troubleshoot/windows-server/backup-and-storage/return-codes-used-robocopy-utility
-        r = cmd(['robocopy', source_webrtc_dir, os.path.join(package_webrtc_dir, 'include'),
+        r = cmd(['robocopy', webrtc_src_dir, os.path.join(webrtc_package_dir, 'include'),
                 '*.h', '*.hpp', '/S', '/NP', '/NFL', '/NDL'], check=False)
         if r.returncode >= 4:
             raise Exception('robocopy failed')
     else:
-        mkdir_p(os.path.join(package_webrtc_dir, 'include'))
+        mkdir_p(os.path.join(webrtc_package_dir, 'include'))
         cmd(['rsync', '-amv', '--include=*/', '--include=*.h', '--include=*.hpp', '--exclude=*',
-            os.path.join(source_webrtc_dir, '.'), os.path.join(package_webrtc_dir, 'include', '.')])
+            os.path.join(webrtc_src_dir, '.'), os.path.join(webrtc_package_dir, 'include', '.')])
 
 
-def generate_version_info(source_webrtc_dir, package_webrtc_dir):
+def generate_version_info(webrtc_src_dir, webrtc_package_dir):
     lines = []
     GIT_INFOS = [
         (['.'], ''),
@@ -691,54 +712,61 @@ def generate_version_info(source_webrtc_dir, package_webrtc_dir):
         (['tools'], 'TOOLS'),
     ]
     for dirs, name in GIT_INFOS:
-        url, rev = git_get_url_and_revision(os.path.join(source_webrtc_dir, *dirs))
+        url, rev = git_get_url_and_revision(os.path.join(webrtc_src_dir, *dirs))
         prefix = 'WEBRTC_SRC_' + (f'{name}_' if len(name) != 0 else '')
         lines += [
             f'{prefix}URL={url}',
             f'{prefix}COMMIT={rev}',
         ]
-    shutil.copyfile('VERSION', os.path.join(package_webrtc_dir, 'VERSIONS'))
-    with open(os.path.join(package_webrtc_dir, 'VERSIONS'), 'ab') as f:
+    shutil.copyfile('VERSION', os.path.join(webrtc_package_dir, 'VERSIONS'))
+    with open(os.path.join(webrtc_package_dir, 'VERSIONS'), 'ab') as f:
         f.writelines(map(lambda x: (x + '\n').encode('utf-8'), lines))
 
 
-def package_webrtc(source_dir, base_build_dir, package_dir, target, configuration):
-    build_webrtc_dir = os.path.join(base_build_dir, configuration, 'webrtc')
-    source_webrtc_dir = os.path.join(source_dir, 'webrtc', 'src')
-    package_webrtc_dir = os.path.join(package_dir, 'webrtc')
-    rm_rf(package_webrtc_dir)
-    mkdir_p(package_webrtc_dir)
+def package_webrtc(source_dir, build_dir, package_dir, target,
+                   webrtc_source_dir=None, webrtc_build_dir=None, webrtc_package_dir=None):
+    if webrtc_source_dir is None:
+        webrtc_source_dir = os.path.join(source_dir, 'webrtc')
+    if webrtc_build_dir is None:
+        webrtc_build_dir = os.path.join(build_dir, 'webrtc')
+    if webrtc_package_dir is None:
+        webrtc_package_dir = os.path.join(package_dir, 'webrtc')
+
+    webrtc_src_dir = os.path.join(webrtc_source_dir, 'src')
+
+    rm_rf(webrtc_package_dir)
+    mkdir_p(webrtc_package_dir)
 
     # ライセンス生成
     if target == 'android':
         dirs = []
         for arch in ANDROID_ARCHS:
             dirs += [
-                os.path.join(build_webrtc_dir, arch),
-                os.path.join(build_webrtc_dir, 'aar', arch)
+                os.path.join(webrtc_build_dir, arch),
+                os.path.join(webrtc_build_dir, 'aar', arch)
             ]
     elif target == 'ios':
         dirs = []
         for arch in IOS_ARCHS:
-            dirs += [os.path.join(build_webrtc_dir, arch),
-                     os.path.join(build_webrtc_dir,
+            dirs += [os.path.join(webrtc_build_dir, arch),
+                     os.path.join(webrtc_build_dir,
                                   'framework',
                                   f'{"device" if arch == "arm64" else "simulator"}',
                                   f'{arch}_libs')]
     else:
-        dirs = [build_webrtc_dir]
+        dirs = [webrtc_build_dir]
     ts = []
     for t in get_build_targets(target):
         ts += ['--target', t]
-    cmd(['python3', os.path.join(source_webrtc_dir, 'tools_webrtc', 'libs', 'generate_licenses.py'),
-        *ts, package_webrtc_dir, *dirs])
-    os.rename(os.path.join(package_webrtc_dir, 'LICENSE.md'), os.path.join(package_webrtc_dir, 'NOTICE'))
+    cmd(['python3', os.path.join(webrtc_src_dir, 'tools_webrtc', 'libs', 'generate_licenses.py'),
+        *ts, webrtc_package_dir, *dirs])
+    os.rename(os.path.join(webrtc_package_dir, 'LICENSE.md'), os.path.join(webrtc_package_dir, 'NOTICE'))
 
     # ヘッダーファイルをコピー
-    copy_headers(source_webrtc_dir, package_webrtc_dir, target)
+    copy_headers(webrtc_src_dir, webrtc_package_dir, target)
 
     # バージョン情報
-    generate_version_info(source_webrtc_dir, package_webrtc_dir)
+    generate_version_info(webrtc_src_dir, webrtc_package_dir)
 
     # ライブラリ
     if target == 'windows':
@@ -757,12 +785,12 @@ def package_webrtc(source_dir, base_build_dir, package_dir, target, configuratio
         ]
     elif target == 'android':
         # aar を展開して classes.jar を取り出す
-        tmp = os.path.join(build_webrtc_dir, 'tmp')
+        tmp = os.path.join(webrtc_build_dir, 'tmp')
         rm_rf(tmp)
         mkdir_p(tmp)
         with cd(tmp):
-            cmd(['unzip', os.path.join(build_webrtc_dir, 'aar', 'libwebrtc.aar')])
-            dstpath = os.path.join(build_webrtc_dir, 'aar', 'webrtc.jar')
+            cmd(['unzip', os.path.join(webrtc_build_dir, 'aar', 'libwebrtc.aar')])
+            dstpath = os.path.join(webrtc_build_dir, 'aar', 'webrtc.jar')
             rm_rf(dstpath)
             os.rename('classes.jar', dstpath)
         rm_rf(tmp)
@@ -778,13 +806,13 @@ def package_webrtc(source_dir, base_build_dir, package_dir, target, configuratio
             (['libwebrtc.a'], ['lib', 'libwebrtc.a']),
         ]
     for src, dst in files:
-        dstpath = os.path.join(package_webrtc_dir, *dst)
+        dstpath = os.path.join(webrtc_package_dir, *dst)
         mkdir_p(os.path.dirname(dstpath))
-        srcpath = os.path.join(build_webrtc_dir, *src)
+        srcpath = os.path.join(webrtc_build_dir, *src)
         if os.path.isdir(srcpath):
             shutil.copytree(srcpath, dstpath)
         else:
-            shutil.copy2(os.path.join(build_webrtc_dir, *src), dstpath)
+            shutil.copy2(os.path.join(webrtc_build_dir, *src), dstpath)
 
     # 圧縮
     with cd(package_dir):
@@ -877,6 +905,8 @@ def main():
     bp.set_defaults(op='build')
     bp.add_argument("target", choices=TARGETS)
     bp.add_argument("--debug", action='store_true')
+    bp.add_argument("--source-dir")
+    bp.add_argument("--build-dir")
     bp.add_argument("--rootfs-fetch-force", action='store_true')
     bp.add_argument('--depottools-fetch', action='store_true')
     bp.add_argument("--webrtc-fetch", action='store_true')
@@ -887,10 +917,20 @@ def main():
     bp.add_argument("--webrtc-nobuild", action='store_true')
     bp.add_argument("--webrtc-nobuild-ios-framework", action='store_true')
     bp.add_argument("--webrtc-nobuild-android-aar", action='store_true')
+    bp.add_argument("--webrtc-build-dir")
+    bp.add_argument("--webrtc-source-dir")
+    # 現在 build と package を分ける意味は無いのだけど、
+    # 今後複数のビルドを纏めてパッケージングする時に備えて別コマンドにしておく
     pp = sp.add_parser('package')
     pp.set_defaults(op='package')
     pp.add_argument("target", choices=TARGETS)
     pp.add_argument("--debug", action='store_true')
+    pp.add_argument("--source-dir")
+    pp.add_argument("--build-dir")
+    pp.add_argument("--package-dir")
+    pp.add_argument("--webrtc-build-dir")
+    pp.add_argument("--webrtc-source-dir")
+    pp.add_argument("--webrtc-package-dir")
     args = parser.parse_args()
 
     if not hasattr(args, 'op'):
@@ -908,21 +948,31 @@ def main():
         source_dir = 'C:\\webrtc'
         # また、WebRTC のビルドしたファイルは同じドライブに無いといけないっぽいので、
         # BUILD_DIR とは別で用意する
-        base_build_dir = 'C:\\webrtc-build'
+        build_dir = os.path.join('C:\\webrtc-build', configuration)
     else:
         source_dir = os.path.join(BASE_DIR, '_source', args.target)
-        base_build_dir = os.path.join(BASE_DIR, '_build', args.target)
+        build_dir = os.path.join(BASE_DIR, '_build', args.target, configuration)
     package_dir = os.path.join(BASE_DIR, '_package', args.target)
-
-    mkdir_p(source_dir)
-    mkdir_p(package_dir)
     patch_dir = os.path.join(BASE_DIR, 'patches')
+
+    if args.source_dir is not None:
+        source_dir = os.path.abspath(args.source_dir)
+    if args.build_dir is not None:
+        build_dir = os.path.abspath(args.build_dir)
+
+    webrtc_source_dir = os.path.abspath(args.webrtc_source_dir) if args.webrtc_source_dir is not None else None
+    webrtc_build_dir = os.path.abspath(args.webrtc_build_dir) if args.webrtc_build_dir is not None else None
+
+    if args.op == 'package':
+        if args.package_dir is not None:
+            package_dir = args.package_dir
+        webrtc_package_dir = os.path.abspath(args.webrtc_package_dir) if args.webrtc_package_dir is not None else None
 
     if args.target == 'windows':
         # Windows の WebRTC ビルドに必要な環境変数の設定
-        mkdir_p(base_build_dir)
-        download("https://github.com/microsoft/vswhere/releases/download/2.8.4/vswhere.exe", base_build_dir)
-        path = cmdcap([os.path.join(base_build_dir, 'vswhere.exe'), '-latest',
+        mkdir_p(build_dir)
+        download("https://github.com/microsoft/vswhere/releases/download/2.8.4/vswhere.exe", build_dir)
+        path = cmdcap([os.path.join(build_dir, 'vswhere.exe'), '-latest',
                        '-products', '*',
                        '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
                        '-property', 'installationPath'])
@@ -944,8 +994,7 @@ def main():
         webrtc_build_version=version_file['WEBRTC_BUILD_VERSION'])
 
     if args.op == 'build':
-        configuration = 'debug' if args.debug else 'release'
-        build_dir = os.path.join(base_build_dir, configuration)
+        mkdir_p(source_dir)
         mkdir_p(build_dir)
 
         with cd(BASE_DIR):
@@ -958,6 +1007,7 @@ def main():
 
             # ソース取得
             get_webrtc(source_dir, patch_dir, version_info.webrtc_commit, args.target,
+                       webrtc_source_dir=webrtc_source_dir,
                        fetch=args.webrtc_fetch, force=args.webrtc_fetch_force)
 
             # ビルド
@@ -966,22 +1016,28 @@ def main():
                 'build_dir': build_dir,
                 'version_info': version_info,
                 'extra_gn_args': args.webrtc_extra_gn_args,
+                'webrtc_source_dir': webrtc_source_dir,
+                'webrtc_build_dir': webrtc_build_dir,
                 'debug': args.debug,
                 'gen': args.webrtc_gen,
                 'gen_force': args.webrtc_gen_force,
                 'nobuild': args.webrtc_nobuild,
             }
-            # 特殊すぎるので別枠行き
+            # iOS と Android は特殊すぎるので別枠行き
             if args.target == 'ios':
-                build_webrtc_ios(nobuild_framework=args.webrtc_nobuild_ios_framework, **build_webrtc_args)
+                build_webrtc_ios(**build_webrtc_args, nobuild_framework=args.webrtc_nobuild_ios_framework)
             elif args.target == 'android':
-                build_webrtc_android(nobuild_aar=args.webrtc_nobuild_android_aar, **build_webrtc_args)
+                build_webrtc_android(**build_webrtc_args, nobuild_aar=args.webrtc_nobuild_android_aar)
             else:
-                build_webrtc(target=args.target, **build_webrtc_args)
+                build_webrtc(**build_webrtc_args, target=args.target)
 
     if args.op == 'package':
+        mkdir_p(package_dir)
         with cd(BASE_DIR):
-            package_webrtc(source_dir, base_build_dir, package_dir, args.target, configuration)
+            package_webrtc(source_dir, build_dir, package_dir, args.target,
+                           webrtc_source_dir=webrtc_source_dir,
+                           webrtc_build_dir=webrtc_build_dir,
+                           webrtc_package_dir=webrtc_package_dir)
 
 
 if __name__ == '__main__':
