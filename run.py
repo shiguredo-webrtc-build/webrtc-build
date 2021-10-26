@@ -72,7 +72,7 @@ def rm_rf(path: str):
 
 
 def mkdir_p(path: str):
-    if not os.path.exists(path):
+    if os.path.exists(path):
         logging.debug(f'mkdir -p {path} => already exists')
         return
     os.makedirs(path, exist_ok=True)
@@ -273,6 +273,7 @@ def get_webrtc(source_dir, patch_dir, version, target,
         rm_rf(webrtc_source_dir)
 
     mkdir_p(webrtc_source_dir)
+
     if not os.path.exists(os.path.join(webrtc_source_dir, 'src')):
         with cd(webrtc_source_dir):
             cmd(['gclient'])
