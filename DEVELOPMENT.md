@@ -11,13 +11,16 @@ python3 run.py build <target>
 ```
 
 `<target>` の部分には、`windows` や `ubuntu-20.04_x86_64` 等のターゲット名が入る。
+
 詳細は `python3 run.py --help` や `python3 run.py build --help` 等を参照すること。
 
 これで `_build` 以下のディレクトリに `libwebrtc.a` 等のライブラリが生成される。
-WebRTC のソースやツール、パッチの適用は初回実行時に自動的に行われる。
+
+WebRTC のソースやツールのダウンロード、パッチの適用は初回の build コマンド実行時に自動的に行われる。
 
 この後、2回目の build コマンドの実行では **ビルドのみ行う**。
-WebRTC ソースの更新や、gn gen の再実行は行わないため、取得した WebRTC のソースを任意に書き換えてビルドが楽に出来るようになっている。
+
+WebRTC ソースの更新や、gn gen の再実行は行われないため、取得した WebRTC のソースを任意に書き換えてビルドするのが楽に出来るようになっている。
 
 もう少し細かく書くと、build コマンドをオプション引数無しで実行した場合、以下のことを行なっている。
 
@@ -57,6 +60,7 @@ python3 run.py build <target> --webrtc-gen
 ### iOS, Android のビルド
 
 iOS の `WebRTC.xcframework`、Android の `webrtc.aar` は、他の場合と変わらず build コマンドで生成できる。
+
 ただし `--webrtc-gen` コマンドは効かず、常に gn gen が実行される。
 
 また、iOS や Android の `libwebrtc.a` が欲しいだけの状況で `WebRTC.xcframework` や `webrtc.aar` が生成されるのは無駄なので、
