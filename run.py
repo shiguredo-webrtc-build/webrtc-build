@@ -404,7 +404,8 @@ def get_build_targets(target):
     return [':default', *WEBRTC_BUILD_TARGETS.get(target, [])]
 
 
-IOS_ARCHS = ['arm64', 'x64']
+IOS_ARCHS = ['simulator:x64', 'device:arm64']
+IOS_FRAMEWORK_ARCHS = ['simulator:x64', 'simulator:arm64', 'device:arm64']
 
 
 def to_gn_args(gn_args: List[str], extra_gn_args: str) -> str:
@@ -414,12 +415,20 @@ def to_gn_args(gn_args: List[str], extra_gn_args: str) -> str:
     return s + ' ' + extra_gn_args
 
 
+def gn_gen(webrtc_src_dir: str, webrtc_build_dir: str, gn_args: List[str], extra_gn_args: str):
+    with cd(webrtc_src_dir):
+        args = ['gn', 'gen', webrtc_build_dir, '--args=' + to_gn_args(gn_args, extra_gn_args)]
+        logging.info(' '.join(args))
+        return cmd(args)
+
+
 def build_webrtc_ios(
         source_dir, build_dir, version_info: VersionInfo, extra_gn_args,
         webrtc_source_dir=None, webrtc_build_dir=None,
         debug=False,
         gen=False, gen_force=False,
-        nobuild=False, nobuild_framework=False):
+        nobuild=False, nobuild_framework=False,
+        overlap_build_dir=False):
     if webrtc_source_dir is None:
         webrtc_source_dir = os.path.join(source_dir, 'webrtc')
     if webrtc_build_dir is None:
@@ -440,20 +449,21 @@ def build_webrtc_ios(
         'rtc_libvpx_build_vp9=true',
         'libcxx_abi_unstable=false',
         'enable_dsyms=true',
+        'use_lld=false',
+        'rtc_enable_objc_symbol_export=true',
         *COMMON_GN_ARGS,
     ]
 
     # WebRTC.xcframework のビルド
     if not nobuild_framework:
         gn_args = [
-            'use_lld=false',
             *gn_args_base,
         ]
         cmd([
             os.path.join(webrtc_src_dir, 'tools_webrtc', 'ios', 'build_ios_libs.sh'),
             '-o', os.path.join(webrtc_build_dir, 'framework'),
             '--build_config', 'debug' if debug else 'release',
-            '--arch', *IOS_ARCHS,
+            '--arch', *IOS_FRAMEWORK_ARCHS,
             '--bitcode',
             '--extra-gn-args', to_gn_args(gn_args, extra_gn_args)
         ])
@@ -465,37 +475,40 @@ def build_webrtc_ios(
         with open(os.path.join(webrtc_build_dir, 'framework', 'WebRTC.xcframework', 'build_info.json'), 'w') as f:
             f.write(json.dumps(info, indent=4))
 
-    with cd(os.path.join(webrtc_src_dir, 'tools_webrtc', 'ios')):
-        ios_deployment_target = cmdcap(
-            ['python3', '-c',
-             'from build_ios_libs import IOS_DEPLOYMENT_TARGET; print(IOS_DEPLOYMENT_TARGET["device"])'])
-
-    for arch in IOS_ARCHS:
-        work_dir = os.path.join(webrtc_build_dir, arch)
+    libs = []
+    for device_arch in IOS_ARCHS:
+        [device, arch] = device_arch.split(':')
+        if overlap_build_dir:
+            work_dir = os.path.join(webrtc_build_dir, 'framework', device, f'{arch}_libs')
+        else:
+            work_dir = os.path.join(webrtc_build_dir, device, arch)
         if gen_force:
             rm_rf(work_dir)
-        if not os.path.exists(os.path.join(work_dir, 'args.gn')) or gen:
+
+        with cd(os.path.join(webrtc_src_dir, 'tools_webrtc', 'ios')):
+            ios_deployment_target = cmdcap(
+                ['python3', '-c',
+                 f'from build_ios_libs import IOS_DEPLOYMENT_TARGET; print(IOS_DEPLOYMENT_TARGET["{device}"])'])
+
+        if not os.path.exists(os.path.join(work_dir, 'args.gn')) or gen or overlap_build_dir:
             gn_args = [
                 f"is_debug={'true' if debug else 'false'}",
                 'target_os="ios"',
                 f'target_cpu="{arch}"',
-                f'target_environment="{"device" if arch == "arm64" else "simulator"}"',
+                f'target_environment="{device}"',
                 "ios_enable_code_signing=false",
                 f'ios_deployment_target="{ios_deployment_target}"',
-                'rtc_enable_symbol_export=true',
-                'rtc_enable_objc_symbol_export=false',
                 'enable_ios_bitcode=true',
                 f"enable_stripping={'false' if debug else 'true'}",
                 *gn_args_base,
             ]
-            with cd(webrtc_src_dir):
-                cmd(['gn', 'gen', work_dir, '--args=' + to_gn_args(gn_args, extra_gn_args)])
+            gn_gen(webrtc_src_dir, work_dir, gn_args, extra_gn_args)
         if not nobuild:
             cmd(['ninja', '-C', work_dir, *get_build_targets('ios')])
             ar = '/usr/bin/ar'
             archive_objects(ar, os.path.join(work_dir, 'obj'), os.path.join(work_dir, 'libwebrtc.a'))
+        libs.append(os.path.join(work_dir, 'libwebrtc.a'))
 
-    libs = [os.path.join(webrtc_build_dir, arch, 'libwebrtc.a') for arch in IOS_ARCHS]
     cmd(['lipo', *libs, '-create', '-output', os.path.join(webrtc_build_dir, 'libwebrtc.a')])
 
 
@@ -566,8 +579,7 @@ def build_webrtc_android(
                 'target_os="android"',
                 f'target_cpu="{ANDROID_TARGET_CPU[arch]}"',
             ]
-            with cd(webrtc_src_dir):
-                cmd(['gn', 'gen', work_dir, '--args=' + to_gn_args(gn_args, extra_gn_args)])
+            gn_gen(webrtc_src_dir, work_dir, gn_args, extra_gn_args)
         if not nobuild:
             cmd(['ninja', '-C', work_dir, *get_build_targets('android')])
             ar = os.path.join(webrtc_src_dir, 'third_party/llvm-build/Release+Asserts/bin/llvm-ar')
@@ -642,8 +654,7 @@ def build_webrtc(
         else:
             raise Exception(f'Target {target} is not supported')
 
-        with cd(os.path.join(webrtc_src_dir)):
-            cmd(['gn', 'gen', webrtc_build_dir, '--args=' + to_gn_args(gn_args, extra_gn_args)])
+        gn_gen(webrtc_src_dir, webrtc_build_dir, gn_args, extra_gn_args)
 
     if nobuild:
         return
@@ -725,7 +736,8 @@ def generate_version_info(webrtc_src_dir, webrtc_package_dir):
 
 
 def package_webrtc(source_dir, build_dir, package_dir, target,
-                   webrtc_source_dir=None, webrtc_build_dir=None, webrtc_package_dir=None):
+                   webrtc_source_dir=None, webrtc_build_dir=None, webrtc_package_dir=None,
+                   overlap_ios_build_dir=False):
     if webrtc_source_dir is None:
         webrtc_source_dir = os.path.join(source_dir, 'webrtc')
     if webrtc_build_dir is None:
@@ -748,12 +760,14 @@ def package_webrtc(source_dir, build_dir, package_dir, target,
             ]
     elif target == 'ios':
         dirs = []
-        for arch in IOS_ARCHS:
-            dirs += [os.path.join(webrtc_build_dir, arch),
-                     os.path.join(webrtc_build_dir,
-                                  'framework',
-                                  f'{"device" if arch == "arm64" else "simulator"}',
-                                  f'{arch}_libs')]
+        for device_arch in IOS_FRAMEWORK_ARCHS:
+            [device, arch] = device_arch.split(':')
+            dirs.append(os.path.join(webrtc_build_dir,
+                                     'framework', device, f'{arch}_libs'))
+        if not overlap_ios_build_dir:
+            for device_arch in IOS_ARCHS:
+                [device, arch] = device_arch.split(':')
+                dirs.append(os.path.join(webrtc_build_dir, device, arch))
     else:
         dirs = [webrtc_build_dir]
     ts = []
@@ -918,6 +932,7 @@ def main():
     bp.add_argument("--webrtc-nobuild", action='store_true')
     bp.add_argument("--webrtc-nobuild-ios-framework", action='store_true')
     bp.add_argument("--webrtc-nobuild-android-aar", action='store_true')
+    bp.add_argument("--webrtc-overlap-ios-build-dir", action='store_true')
     bp.add_argument("--webrtc-build-dir")
     bp.add_argument("--webrtc-source-dir")
     # 現在 build と package を分ける意味は無いのだけど、
@@ -932,6 +947,7 @@ def main():
     pp.add_argument("--webrtc-build-dir")
     pp.add_argument("--webrtc-source-dir")
     pp.add_argument("--webrtc-package-dir")
+    pp.add_argument("--webrtc-overlap-ios-build-dir", action='store_true')
     args = parser.parse_args()
 
     if not hasattr(args, 'op'):
@@ -1026,7 +1042,9 @@ def main():
             }
             # iOS と Android は特殊すぎるので別枠行き
             if args.target == 'ios':
-                build_webrtc_ios(**build_webrtc_args, nobuild_framework=args.webrtc_nobuild_ios_framework)
+                build_webrtc_ios(**build_webrtc_args,
+                                 nobuild_framework=args.webrtc_nobuild_ios_framework,
+                                 overlap_build_dir=args.webrtc_overlap_ios_build_dir)
             elif args.target == 'android':
                 build_webrtc_android(**build_webrtc_args, nobuild_aar=args.webrtc_nobuild_android_aar)
             else:
@@ -1038,7 +1056,8 @@ def main():
             package_webrtc(source_dir, build_dir, package_dir, args.target,
                            webrtc_source_dir=webrtc_source_dir,
                            webrtc_build_dir=webrtc_build_dir,
-                           webrtc_package_dir=webrtc_package_dir)
+                           webrtc_package_dir=webrtc_package_dir,
+                           overlap_ios_build_dir=args.webrtc_overlap_ios_build_dir)
 
 
 if __name__ == '__main__':
