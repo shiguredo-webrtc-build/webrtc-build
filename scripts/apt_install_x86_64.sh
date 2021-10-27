@@ -17,12 +17,20 @@ dpkg-reconfigure -f noninteractive tzdata
 echo 'db_get () { if [ "$@" = "snapcraft/snap-no-connectivity" ]; then RET="Skip"; else _db_cmd "GET $@"; fi }' >> /usr/share/debconf/confmodule
 apt-get install -y snapcraft
 
+export DEBIAN_FRONTEND=noninteractive
+
 apt-get -y install \
+  binutils \
   git \
   libsdl2-dev \
+  locales \
   lsb-release \
   python \
+  python-setuptools \
+  python3 \
+  python3-setuptools \
   rsync \
   sudo \
+  unzip \
   vim \
   wget
