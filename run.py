@@ -163,7 +163,6 @@ def get_depot_tools(source_dir, fetch=False):
 
 
 PATCH_INFO = {
-    'libjpeg_turbo_mangle_jpeg_names.patch': (1, ['third_party', 'libjpeg_turbo']),
     '4k.patch': (2, []),
     'macos_h264_encoder.patch': (2, []),
     'macos_screen_capture.patch': (2, []),
@@ -175,7 +174,6 @@ PATCHES = {
         '4k.patch',
         'windows_add_deps.patch',
         'ssl_verify_callback_with_native_handle.patch',
-        'libjpeg_turbo_mangle_jpeg_names.patch',
     ],
     'macos_x86_64': [
         'add_dep_zlib.patch',
@@ -185,7 +183,6 @@ PATCHES = {
         'macos_simulcast.patch',
         'ios_simulcast.patch',
         'ssl_verify_callback_with_native_handle.patch',
-        'libjpeg_turbo_mangle_jpeg_names.patch',
     ],
     'macos_arm64': [
         'add_dep_zlib.patch',
@@ -195,7 +192,6 @@ PATCHES = {
         'macos_simulcast.patch',
         'ios_simulcast.patch',
         'ssl_verify_callback_with_native_handle.patch',
-        'libjpeg_turbo_mangle_jpeg_names.patch',
     ],
     'ios': [
         'add_dep_zlib.patch',
@@ -221,35 +217,29 @@ PATCHES = {
         'add_dep_zlib.patch',
         '4k.patch',
         'ssl_verify_callback_with_native_handle.patch',
-        'libjpeg_turbo_mangle_jpeg_names.patch',
     ],
     'raspberry-pi-os_armv7': [
         'add_dep_zlib.patch',
         '4k.patch',
         'ssl_verify_callback_with_native_handle.patch',
-        'libjpeg_turbo_mangle_jpeg_names.patch',
     ],
     'raspberry-pi-os_armv8': [
         'add_dep_zlib.patch',
         '4k.patch',
         'ssl_verify_callback_with_native_handle.patch',
-        'libjpeg_turbo_mangle_jpeg_names.patch',
     ],
     'ubuntu-18.04_armv8': [
         'add_dep_zlib.patch',
         '4k.patch',
         'ssl_verify_callback_with_native_handle.patch',
-        'libjpeg_turbo_mangle_jpeg_names.patch',
     ],
     'ubuntu-18.04_x86_64': [
         '4k.patch',
         'ssl_verify_callback_with_native_handle.patch',
-        'libjpeg_turbo_mangle_jpeg_names.patch',
     ],
     'ubuntu-20.04_x86_64': [
         '4k.patch',
         'ssl_verify_callback_with_native_handle.patch',
-        'libjpeg_turbo_mangle_jpeg_names.patch',
     ]
 }
 
