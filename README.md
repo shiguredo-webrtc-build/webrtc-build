@@ -1,4 +1,4 @@
-# webrtc-build
+# WebRTC-Build
 
 [![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/shiguredo-webrtc-build/webrtc-build.svg)](https://github.com/shiguredo-webrtc-build/webrtc-build)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
@@ -45,6 +45,13 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
 - android
 - ios
 
+## 今後提供を検討しているビルド
+
+**有償での優先実装を検討可能です**
+
+- windows_arm64
+- ubuntu-20.04_armv8
+
 ## ライセンス
 
 Apache License 2.0
@@ -66,7 +73,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-### Contributing
+### コントリビューター
 
 - melpon - *Original Author*
     - Android サポート
@@ -82,3 +89,19 @@ limitations under the License.
     - iOS 向けデバッグビルド追加
 - soudegesu
     - macOS 向け ObjC ヘッダー追加
+
+## タグやブランチ運用について
+
+- feature/m94.4606 のようにブランチを切ります
+    - branch-heads のブランチは削除してはいけません
+    - stable リリースまでは feature 上でタグを打ちます
+- stable リリースされたら master にマージします
+    - ブランチから変更が無ければタグを打つ必要はありません
+- libwebrtc のコミットポジションは変更せずに何か変更がある場合は一番右の数値を増やします
+    - m94.4606.0.0 から m94.4606.0.1 のようにする
+
+## パッチ運用について
+
+- 最新版でパッチが動作しない場合はパッチ作成者が修正をしてください
+- 何かしらの理由でパッチ修正が難しい場合はパッチを削除します
+    - 時雨堂で必要と思ったパッチは時雨堂にて対応します
