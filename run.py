@@ -480,6 +480,12 @@ def build_webrtc_ios(
             '--bitcode',
             '--extra-gn-args', to_gn_args(gn_args, extra_gn_args)
         ])
+        # ライセンスの生成に支障が出るので通常のターゲットもビルドしておく
+        for device_arch in IOS_FRAMEWORK_ARCHS:
+            [device, arch] = device_arch.split(':')
+            work_dir = os.path.join(webrtc_build_dir, 'framework', device, f'{arch}_libs')
+            cmd(['ninja', '-C', work_dir, *get_build_targets('ios')])
+
         info = {}
         branch, commit, revision, maint = get_webrtc_version_info(version_info)
         info['branch'] = branch
