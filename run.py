@@ -281,6 +281,7 @@ def get_webrtc(source_dir, patch_dir, version, target,
     src_dir = os.path.join(webrtc_source_dir, 'src')
     if fetch:
         with cd(src_dir):
+            cmd(['git', 'fetch'])
             cmd(['git', 'checkout', '-f', version])
             cmd(['git', 'clean', '-df'])
             cmd(['gclient', 'sync', '-D', '--force', '--reset', '--with_branch_heads'])
@@ -394,7 +395,7 @@ WEBRTC_BUILD_TARGETS = {
 
 def get_build_targets(target):
     ts = [':default']
-    if target != 'windows':
+    if target not in ('windows', 'ios', 'macos_x86_64', 'macos_arm64'):
         ts += ['buildtools/third_party/libc++']
     ts += WEBRTC_BUILD_TARGETS.get(target, [])
     return ts
@@ -480,12 +481,6 @@ def build_webrtc_ios(
             '--bitcode',
             '--extra-gn-args', to_gn_args(gn_args, extra_gn_args)
         ])
-        # ライセンスの生成に支障が出るので通常のターゲットもビルドしておく
-        for device_arch in IOS_FRAMEWORK_ARCHS:
-            [device, arch] = device_arch.split(':')
-            work_dir = os.path.join(webrtc_build_dir, 'framework', device, f'{arch}_libs')
-            cmd(['ninja', '-C', work_dir, *get_build_targets('ios')])
-
         info = {}
         branch, commit, revision, maint = get_webrtc_version_info(version_info)
         info['branch'] = branch
