@@ -393,7 +393,7 @@ WEBRTC_BUILD_TARGETS = {
 
 
 def get_build_targets(target):
-    return [':default', *WEBRTC_BUILD_TARGETS.get(target, [])]
+    return [':default', 'buildtools/third_party/libc++', *WEBRTC_BUILD_TARGETS.get(target, [])]
 
 
 IOS_ARCHS = ['simulator:x64', 'device:arm64']
@@ -950,17 +950,8 @@ def main():
 
     configuration = 'debug' if args.debug else 'release'
 
-    if args.target == 'windows':
-        # $SOURCE_DIR の下に置きたいが、webrtc のパスが長すぎると動かない問題と、
-        # GitHub Actions の D:\ の容量が少なくてビルド出来ない問題があるので
-        # このパスにソースを配置する
-        source_dir = 'C:\\webrtc'
-        # また、WebRTC のビルドしたファイルは同じドライブに無いといけないっぽいので、
-        # BUILD_DIR とは別で用意する
-        build_dir = os.path.join('C:\\webrtc-build', configuration)
-    else:
-        source_dir = os.path.join(BASE_DIR, '_source', args.target)
-        build_dir = os.path.join(BASE_DIR, '_build', args.target, configuration)
+    source_dir = os.path.join(BASE_DIR, '_source', args.target)
+    build_dir = os.path.join(BASE_DIR, '_build', args.target, configuration)
     package_dir = os.path.join(BASE_DIR, '_package', args.target)
     patch_dir = os.path.join(BASE_DIR, 'patches')
 
@@ -1013,6 +1004,8 @@ def main():
 
             dir = get_depot_tools(source_dir, fetch=args.depottools_fetch)
             add_path(dir)
+            if args.target == 'windows':
+                cmd(['git', 'config', '--system', 'core.longpaths', 'true'])
 
             # ソース取得
             get_webrtc(source_dir, patch_dir, version_info.webrtc_commit, args.target,

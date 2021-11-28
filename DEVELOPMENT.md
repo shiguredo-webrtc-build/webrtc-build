@@ -99,12 +99,10 @@ webrtc-build/
 
 - `--source-dir`: ソースディレクトリ
   - デフォルトは `<run.pyのあるディレクトリ>/_source/<target名>` 
-  - ただし Windows の場合は `C:\webrtc` になる（パスが長いとビルドエラーになってしまうため）
 - `--webrtc-source-dir`: WebRTC のソースを配置するディレクトリ。`--source-dir` よりもこちらの設定を優先する。
   - デフォルトは `<source-dir>/webrtc` 
 - `--build-dir`: ビルドディレクトリ
   - デフォルトは `<run.pyのあるディレクトリ>/_build/<target名>/<configuration>` 
-  - Windows の場合は `C:\webrtc-build\<configuration>`
 - `--webrtc-build-dir`: WebRTC のビルド成果物を配置するディレクトリ。`--build-dir` よりもこちらの設定を優先する。
   - デフォルトは `<build-dir>/webrtc` 
 
