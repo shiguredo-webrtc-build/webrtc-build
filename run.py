@@ -393,7 +393,7 @@ WEBRTC_BUILD_TARGETS = {
 
 
 def get_build_targets(target):
-    return [':default', *WEBRTC_BUILD_TARGETS.get(target, [])]
+    return [':default', 'buildtools/third_party/libc++', *WEBRTC_BUILD_TARGETS.get(target, [])]
 
 
 IOS_ARCHS = ['simulator:x64', 'device:arm64']
