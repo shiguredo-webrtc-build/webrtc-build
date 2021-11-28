@@ -477,7 +477,7 @@ def build_webrtc_ios(
             '--extra-gn-args', to_gn_args(gn_args, extra_gn_args)
         ])
         info = {}
-        [branch, commit, revision, maint] = get_webrtc_version_info(version_info)
+        branch, commit, revision, maint = get_webrtc_version_info(version_info)
         info['branch'] = branch
         info['commit'] = commit
         info['revision'] = revision
@@ -545,7 +545,7 @@ def build_webrtc_android(
     mkdir_p(webrtc_build_dir)
 
     # Java ファイル作成
-    [branch, commit, revision, maint] = get_webrtc_version_info(version_info)
+    branch, commit, revision, maint = get_webrtc_version_info(version_info)
     name = 'WebrtcBuildVersion'
     lines = []
     lines.append('package org.webrtc;')
@@ -680,7 +680,7 @@ def build_webrtc(
 
     # macOS の場合は WebRTC.framework に追加情報を入れる
     if (target in ('macos_x86_64', 'macos_arm64')) and not nobuild_macos_framework:
-        [branch, commit, revision, maint] = get_webrtc_version_info(version_info)
+        branch, commit, revision, maint = get_webrtc_version_info(version_info)
         info = {}
         info['branch'] = branch
         info['commit'] = commit
