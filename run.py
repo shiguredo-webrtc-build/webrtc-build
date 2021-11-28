@@ -414,6 +414,23 @@ def gn_gen(webrtc_src_dir: str, webrtc_build_dir: str, gn_args: List[str], extra
         return cmd(args)
 
 
+def get_webrtc_version_info(version_info: VersionInfo):
+    xs = version_info.webrtc_version.split('.')
+    ys = version_info.webrtc_build_version.split('.')
+    if len(xs) >= 3 and len(ys) >= 4:
+        branch = 'M' + version_info.webrtc_version.split('.')[0]
+        commit = version_info.webrtc_version.split('.')[2]
+        revision = version_info.webrtc_commit
+        maint = version_info.webrtc_build_version.split('.')[3]
+    else:
+        # HEAD ビルドだと正しくバージョンが取れないので、その場合は適当に空文字を入れておく
+        branch = ''
+        commit = ''
+        revision = ''
+        maint = ''
+    return [branch, commit, revision, maint]
+
+
 def build_webrtc_ios(
         source_dir, build_dir, version_info: VersionInfo, extra_gn_args,
         webrtc_source_dir=None, webrtc_build_dir=None,
@@ -460,10 +477,11 @@ def build_webrtc_ios(
             '--extra-gn-args', to_gn_args(gn_args, extra_gn_args)
         ])
         info = {}
-        info['branch'] = 'M' + version_info.webrtc_version.split('.')[0]
-        info['commit'] = version_info.webrtc_version.split('.')[2]
-        info['revision'] = version_info.webrtc_commit
-        info['maint'] = version_info.webrtc_build_version.split('.')[3]
+        [branch, commit, revision, maint] = get_webrtc_version_info(version_info)
+        info['branch'] = branch
+        info['commit'] = commit
+        info['revision'] = revision
+        info['maint'] = maint
         with open(os.path.join(webrtc_build_dir, 'framework', 'WebRTC.xcframework', 'build_info.json'), 'w') as f:
             f.write(json.dumps(info, indent=4))
 
@@ -527,10 +545,7 @@ def build_webrtc_android(
     mkdir_p(webrtc_build_dir)
 
     # Java ファイル作成
-    branch = 'M' + version_info.webrtc_version.split('.')[0]
-    commit = version_info.webrtc_version.split('.')[2]
-    revision = version_info.webrtc_commit
-    maint = version_info.webrtc_build_version.split('.')[3]
+    [branch, commit, revision, maint] = get_webrtc_version_info(version_info)
     name = 'WebrtcBuildVersion'
     lines = []
     lines.append('package org.webrtc;')
@@ -665,11 +680,12 @@ def build_webrtc(
 
     # macOS の場合は WebRTC.framework に追加情報を入れる
     if (target in ('macos_x86_64', 'macos_arm64')) and not nobuild_macos_framework:
+        [branch, commit, revision, maint] = get_webrtc_version_info(version_info)
         info = {}
-        info['branch'] = 'M' + version_info.webrtc_version.split('.')[0]
-        info['commit'] = version_info.webrtc_version.split('.')[2]
-        info['revision'] = version_info.webrtc_commit
-        info['maint'] = version_info.webrtc_build_version.split('.')[3]
+        info['branch'] = branch
+        info['commit'] = commit
+        info['revision'] = revision
+        info['maint'] = maint
         with open(os.path.join(webrtc_build_dir, 'WebRTC.framework', 'Resources', 'build_info.json'), 'w') as f:
             f.write(json.dumps(info, indent=4))
 
