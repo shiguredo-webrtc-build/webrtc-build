@@ -77,10 +77,10 @@ index 0000000000..dee1c91fae
 +
 diff --git a/sdk/android/api/org/webrtc/SimulcastVideoEncoderFactory.java b/sdk/android/api/org/webrtc/SimulcastVideoEncoderFactory.java
 new file mode 100644
-index 0000000000..80f9a50606
+index 0000000000..848d65353a
 --- /dev/null
 +++ b/sdk/android/api/org/webrtc/SimulcastVideoEncoderFactory.java
-@@ -0,0 +1,43 @@
+@@ -0,0 +1,45 @@
 +/*
 + *  Copyright 2017 The WebRTC project authors. All Rights Reserved.
 + *
@@ -119,15 +119,16 @@ index 0000000000..80f9a50606
 +    public VideoCodecInfo[] getSupportedCodecs() {
 +        List<VideoCodecInfo> codecs = new ArrayList<VideoCodecInfo>();
 +        codecs.addAll(Arrays.asList(primary.getSupportedCodecs()));
-+        codecs.addAll(Arrays.asList(fallback.getSupportedCodecs()));
++        if (fallback != null) {
++            codecs.addAll(Arrays.asList(fallback.getSupportedCodecs()));
++        }
 +        return codecs.toArray(new VideoCodecInfo[codecs.size()]);
 +    }
 +
 +}
-
 diff --git a/sdk/android/src/jni/simulcast_video_encoder.cc b/sdk/android/src/jni/simulcast_video_encoder.cc
 new file mode 100644
-index 0000000000..2928cdab92
+index 0000000000..c43bef9dae
 --- /dev/null
 +++ b/sdk/android/src/jni/simulcast_video_encoder.cc
 @@ -0,0 +1,36 @@
@@ -157,7 +158,7 @@ index 0000000000..2928cdab92
 +    // https://github.com/shiguredo-webrtc-build/webrtc-build/pull/16#pullrequestreview-600675795
 +    return NativeToJavaPointer(std::make_unique<SimulcastEncoderAdapter>(
 +			    JavaToNativeVideoEncoderFactory(env, primary).release(),
-+			    JavaToNativeVideoEncoderFactory(env, fallback).release(),
++			    fallback != nullptr ? JavaToNativeVideoEncoderFactory(env, fallback).release() : nullptr,
 +			    format).release());
 +}
 +
