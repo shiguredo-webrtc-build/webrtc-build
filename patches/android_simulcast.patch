@@ -70,7 +70,7 @@ index 0000000000..dee1c91fae
 +
 +    @Override
 +    public boolean isHardwareEncoder() {
-+        return false;
++        return true;
 +    }
 +
 +}
