@@ -173,12 +173,14 @@ PATCH_INFO = {
 PATCHES = {
     'windows': [
         '4k.patch',
+        'add_license_dav1d.patch',
         'windows_add_deps.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'macos_x86_64': [
         'add_dep_zlib.patch',
         '4k.patch',
+        'add_license_dav1d.patch',
         'macos_h264_encoder.patch',
         'macos_screen_capture.patch',
         'macos_simulcast.patch',
@@ -188,6 +190,7 @@ PATCHES = {
     'macos_arm64': [
         'add_dep_zlib.patch',
         '4k.patch',
+        'add_license_dav1d.patch',
         'macos_h264_encoder.patch',
         'macos_screen_capture.patch',
         'macos_simulcast.patch',
@@ -197,6 +200,7 @@ PATCHES = {
     'ios': [
         'add_dep_zlib.patch',
         '4k.patch',
+        'add_license_dav1d.patch',
         'macos_h264_encoder.patch',
         'macos_screen_capture.patch',
         'macos_simulcast.patch',
@@ -209,6 +213,7 @@ PATCHES = {
     'android': [
         'add_dep_zlib.patch',
         '4k.patch',
+        'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
         'android_webrtc_version.patch',
         'android_fixsegv.patch',
@@ -218,29 +223,35 @@ PATCHES = {
         'nacl_armv6_2.patch',
         'add_dep_zlib.patch',
         '4k.patch',
+        'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'raspberry-pi-os_armv7': [
         'add_dep_zlib.patch',
         '4k.patch',
+        'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'raspberry-pi-os_armv8': [
         'add_dep_zlib.patch',
         '4k.patch',
+        'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'ubuntu-18.04_armv8': [
         'add_dep_zlib.patch',
         '4k.patch',
+        'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'ubuntu-18.04_x86_64': [
         '4k.patch',
+        'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'ubuntu-20.04_x86_64': [
         '4k.patch',
+        'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ]
 }
