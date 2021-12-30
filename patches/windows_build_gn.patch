@@ -10,6 +10,7 @@ index 533262e03b..9978e67db1 100644
 +    defines += [
 +      "WEBRTC_WIN",
 +      "_SILENCE_CXX17_RESULT_OF_DEPRECATION_WARNING",
++      "_SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING",
 +    ]
    }
    if (is_android) {

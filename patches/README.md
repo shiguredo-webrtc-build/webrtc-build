@@ -45,6 +45,8 @@
 
 modules/audio_device/include/test_audio_device.cc で使われている rtc_base/task_utils/repeating_task.h が std::result_of を使っているが C++17 で deprecated されているために _SILENCE_CXX17_RESULT_OF_DEPRECATION_WARNING を追加している。
 
+third_party/protobuf/src\google/protobuf/reflection.h が std::iterator を使っているが C++17 で deprecated されているために _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING を追加している。
+
 ## ssl_verify_callback_with_native_handle.patch
 
 WebRTC は Let's Encrypt のルート証明書を入れていないため、検証コールバックで検証する必要がある。
