@@ -166,7 +166,6 @@ PATCH_INFO = {
     '4k.patch': (2, []),
     'macos_h264_encoder.patch': (2, []),
     'macos_screen_capture.patch': (2, []),
-    'ios_bitcode.patch': (1, ['build']),
 }
 
 PATCHES = {

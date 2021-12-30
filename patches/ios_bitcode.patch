@@ -1,7 +1,7 @@
-diff --git a/config/compiler/BUILD.gn b/config/compiler/BUILD.gn
+diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
 index 8048ec5e8..c0bb45ac2 100644
---- a/config/compiler/BUILD.gn
-+++ b/config/compiler/BUILD.gn
+--- a/build/config/compiler/BUILD.gn
++++ b/build/config/compiler/BUILD.gn
 @@ -534,7 +534,7 @@ config("compiler") {
      ldflags += [ "-Wl,-z,keep-text-section-prefix" ]
    }
