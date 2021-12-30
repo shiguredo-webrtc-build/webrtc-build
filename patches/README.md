@@ -41,8 +41,9 @@
 ## ubuntu_nolibcxx.patch
 
 
-## windows_add_deps.patch
+## windows_build_gn.patch
 
+modules/audio_device/include/test_audio_device.cc で使われている rtc_base/task_utils/repeating_task.h が std::result_of を使っているが C++17 で deprecated されているために _SILENCE_CXX17_RESULT_OF_DEPRECATION_WARNING を追加している。
 
 ## ssl_verify_callback_with_native_handle.patch
 

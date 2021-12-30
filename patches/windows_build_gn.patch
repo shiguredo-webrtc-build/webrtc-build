@@ -2,6 +2,18 @@ diff --git a/BUILD.gn b/BUILD.gn
 index 533262e03b..9978e67db1 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
+@@ -198,7 +198,10 @@ config("common_inherited_config") {
+     defines += [ "WEBRTC_FUCHSIA" ]
+   }
+   if (is_win) {
+-    defines += [ "WEBRTC_WIN" ]
++    defines += [
++      "WEBRTC_WIN",
++      "_SILENCE_CXX17_RESULT_OF_DEPRECATION_WARNING",
++    ]
+   }
+   if (is_android) {
+     defines += [
 @@ -469,6 +469,8 @@ if (!build_with_chromium) {
        "rtc_base",
        "sdk",
