@@ -11,3 +11,17 @@ index 8048ec5e8..c0bb45ac2 100644
      cflags += [ "-fcrash-diagnostics-dir=" + clang_diagnostic_dir ]
  
      # TODO(hans): Remove this once Clang generates better optimized debug info
+diff --git a/third_party/dav1d/BUILD.gn b/third_party/dav1d/BUILD.gn
+index 933c8f2f566..3ab47cf0334 100644
+--- a/third_party/dav1d/BUILD.gn
++++ b/third_party/dav1d/BUILD.gn
+@@ -112,9 +112,6 @@ if (is_win) {
+   }
+ } else {
+   dav1d_copts += [ "-std=c99" ]
+-  if (needs_stack_alignment) {
+-    dav1d_copts += [ stackalign_flag ]
+-  }
+   if (is_mac || is_ios) {
+     dav1d_copts += [ "-D_DARWIN_C_SOURCE" ]
+   }
