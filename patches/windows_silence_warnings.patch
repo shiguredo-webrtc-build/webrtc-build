@@ -1,16 +1,13 @@
-diff --git a/BUILD.gn b/BUILD.gn
-index e60a909290..b5dfb22a0e 100644
---- a/BUILD.gn
-+++ b/BUILD.gn
-@@ -198,7 +198,10 @@ config("common_inherited_config") {
-     defines += [ "WEBRTC_FUCHSIA" ]
-   }
-   if (is_win) {
--    defines += [ "WEBRTC_WIN" ]
-+    defines += [
-+      "WEBRTC_WIN",
+diff --git a/config/compiler/BUILD.gn b/config/compiler/BUILD.gn
+index 8048ec5e8..4e00f7e53 100644
+--- a/config/compiler/BUILD.gn
++++ b/config/compiler/BUILD.gn
+@@ -1424,6 +1424,8 @@ config("default_warnings") {
+       # gethostbyname. Fires mostly in non-Chromium code. We probably
+       # want to remove this define eventually.
+       "_WINSOCK_DEPRECATED_NO_WARNINGS",
++
 +      "_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS",
-+    ]
-   }
-   if (is_android) {
-     defines += [
+     ]
+     if (!is_clang) {
+       # TODO(thakis): Remove this once
