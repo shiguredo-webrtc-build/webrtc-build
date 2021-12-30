@@ -166,7 +166,6 @@ PATCH_INFO = {
     '4k.patch': (2, []),
     'macos_h264_encoder.patch': (2, []),
     'macos_screen_capture.patch': (2, []),
-    'ios_bitcode.patch': (1, ['build']),
     'ios_disable_iossim.patch': (1, ['build']),
 }
 
@@ -207,7 +206,6 @@ PATCHES = {
         'ios_manual_audio_input.patch',
         'ios_simulcast.patch',
         'ssl_verify_callback_with_native_handle.patch',
-        'ios_bitcode.patch',
         'ios_disable_iossim.patch',
     ],
     'android': [
