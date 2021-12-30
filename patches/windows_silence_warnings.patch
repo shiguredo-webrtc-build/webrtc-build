@@ -1,7 +1,7 @@
-diff --git a/config/compiler/BUILD.gn b/config/compiler/BUILD.gn
+diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
 index 8048ec5e8..4e00f7e53 100644
---- a/config/compiler/BUILD.gn
-+++ b/config/compiler/BUILD.gn
+--- a/build/config/compiler/BUILD.gn
++++ b/build/config/compiler/BUILD.gn
 @@ -1424,6 +1424,8 @@ config("default_warnings") {
        # gethostbyname. Fires mostly in non-Chromium code. We probably
        # want to remove this define eventually.
