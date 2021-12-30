@@ -166,7 +166,6 @@ PATCH_INFO = {
     '4k.patch': (2, []),
     'macos_h264_encoder.patch': (2, []),
     'macos_screen_capture.patch': (2, []),
-    'ios_disable_iossim.patch': (1, ['build']),
 }
 
 PATCHES = {
@@ -206,7 +205,6 @@ PATCHES = {
         'ios_manual_audio_input.patch',
         'ios_simulcast.patch',
         'ssl_verify_callback_with_native_handle.patch',
-        'ios_disable_iossim.patch',
     ],
     'android': [
         'add_dep_zlib.patch',
@@ -468,7 +466,6 @@ def build_webrtc_ios(
     # - M95 で再度 clang++: error: -gdwarf-aranges is not supported with -fembed-bitcode エラーがでるようになった
     # - https://webrtc-review.googlesource.com/c/src/+/232600 が影響している可能性があるため use_lld=false を追加
     gn_args_base = [
-        'use_xcode_clang=true',
         'rtc_libvpx_build_vp9=true',
         'libcxx_abi_unstable=false',
         'enable_dsyms=true',
