@@ -292,7 +292,11 @@ def get_webrtc(source_dir, patch_dir, version, target,
     src_dir = os.path.join(webrtc_source_dir, 'src')
     if fetch:
         with cd(src_dir):
-            cmd(['git', 'checkout', '-f', version])
+            cmd(['git', 'fetch'])
+            if version == 'HEAD':
+                cmd(['git', 'checkout', '-f', 'origin/HEAD'])
+            else:
+                cmd(['git', 'checkout', '-f', version])
             cmd(['git', 'clean', '-df'])
             cmd(['gclient', 'sync', '-D', '--force', '--reset', '--with_branch_heads'])
             for patch in PATCHES[target]:
