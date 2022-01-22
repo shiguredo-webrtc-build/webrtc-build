@@ -45,12 +45,18 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
 - android
 - ios
 
-## 今後提供を検討しているビルド
+## 今後の予定
 
-**有償での優先実装を検討可能です**
+**2022 年 1 月時点**
 
-- windows_arm64
-- ubuntu-20.04_armv8
+- Ubuntu 22.04 x86_64 対応
+    - リリースご対応予定です
+- Ubuntu 18.04 x86_64 廃止
+    - 2023 年 4 月を持って廃止します
+- ARM 版 Windows 対応
+    - 現在そもそも実現できるか調査中です
+- macOS x86_64 廃止
+    - 2022 年 6 月を持って廃止します
 
 ## ライセンス
 
