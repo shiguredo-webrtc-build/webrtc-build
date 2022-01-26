@@ -31,7 +31,7 @@ jobs:
         Remove-Item -Recurse -Force $Env:JAVA_HOME_8_X64 -ErrorAction Ignore
         Get-PSDrive
     - run: Copy-Item VERSION.head VERSION
-    - run: "& .\\build.${{ name }}.ps1"
+    - run: "& .\\build.${{ matrix.name }}.ps1"
   build-macos:
     strategy:
       fail-fast: false
