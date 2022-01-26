@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         name:
-          - windows
+          - windows_x86_64
           - windows_arm64
     runs-on: windows-latest
     steps:
@@ -169,7 +169,7 @@ jobs:
       fail-fast: false
       matrix:
         name:
-          - windows
+          - windows_x86_64
           - windows_arm64
     name: Upload windows
     if: contains(github.ref, 'tags/m')
