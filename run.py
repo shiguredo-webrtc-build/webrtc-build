@@ -178,7 +178,9 @@ PATCHES = {
     ],
     'windows_arm64': [
         '4k.patch',
+        'add_license_dav1d.patch',
         'windows_add_deps.patch',
+        'windows_silence_warnings.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'macos_x86_64': [
