@@ -15,6 +15,12 @@ on:
 
 jobs:
   build-windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        name:
+          - windows
+          - windows_arm64
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
@@ -30,12 +36,12 @@ jobs:
         Remove-Item -Recurse -Force $Env:JAVA_HOME_11_X64 -ErrorAction Ignore
         Remove-Item -Recurse -Force $Env:JAVA_HOME_8_X64 -ErrorAction Ignore
         Get-PSDrive
-    - run: "& .\\build.windows.ps1"
+    - run: "& .\\build.${{ name }}.ps1"
     - name: Upload Artifact
       uses: actions/upload-artifact@v1
       with:
-        name: webrtc.windows.zip
-        path: _package\windows\webrtc.zip
+        name: webrtc.${{ name }}.zip
+        path: _package\${{ name }}\webrtc.zip
   build-macos:
     strategy:
       fail-fast: false
@@ -159,6 +165,12 @@ jobs:
         asset_content_type: application/gzip
   # Windows だけ Content-Type が違うので別で記述する
   upload-assets-windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        name:
+          - windows
+          - windows_arm64
     name: Upload windows
     if: contains(github.ref, 'tags/m')
     needs:
@@ -167,10 +179,10 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
-    - name: Download windows
+    - name: Download ${{ name }}
       uses: actions/download-artifact@v1
       with:
-        name: webrtc.windows.zip
+        name: webrtc.${{ name }}.zip
     - uses: actions/download-artifact@v1
       with:
         name: create-release.env
@@ -186,6 +198,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.env.outputs.upload_url }}
-        asset_path: webrtc.windows.zip/webrtc.zip
-        asset_name: webrtc.windows.zip
+        asset_path: webrtc.${{ name }}.zip/webrtc.zip
+        asset_name: webrtc.${{ name }}.zip
         asset_content_type: application/zip

@@ -7,6 +7,12 @@ on:
 
 jobs:
   build-windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        name:
+          - windows
+          - windows_arm64
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
@@ -25,7 +31,7 @@ jobs:
         Remove-Item -Recurse -Force $Env:JAVA_HOME_8_X64 -ErrorAction Ignore
         Get-PSDrive
     - run: Copy-Item VERSION.head VERSION
-    - run: "& .\\build.windows.ps1"
+    - run: "& .\\build.${{ name }}.ps1"
   build-macos:
     strategy:
       fail-fast: false

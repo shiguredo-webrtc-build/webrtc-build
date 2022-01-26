@@ -176,6 +176,11 @@ PATCHES = {
         'windows_silence_warnings.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
+    'windows_arm64': [
+        '4k.patch',
+        'windows_add_deps.patch',
+        'ssl_verify_callback_with_native_handle.patch',
+    ],
     'macos_x86_64': [
         'add_dep_zlib.patch',
         '4k.patch',
@@ -404,7 +409,7 @@ WEBRTC_BUILD_TARGETS = {
 
 def get_build_targets(target):
     ts = [':default']
-    if target not in ('windows', 'ios', 'macos_x86_64', 'macos_arm64'):
+    if target not in ('windows', 'windows_arm64', 'ios', 'macos_x86_64', 'macos_arm64'):
         ts += ['buildtools/third_party/libc++']
     ts += WEBRTC_BUILD_TARGETS.get(target, [])
     return ts
@@ -629,8 +634,10 @@ def build_webrtc(
             f"is_debug={'true' if debug else 'false'}",
             *COMMON_GN_ARGS,
         ]
-        if target == 'windows':
+        if target in ['windows', 'windows_arm64']:
             gn_args += [
+                'target_os="win"',
+                f'target_cpu="{"x64" if target == "windows" else "arm64"}"',
                 "use_custom_libcxx=false",
             ]
         elif target in ('macos_x86_64', 'macos_arm64'):
@@ -680,7 +687,7 @@ def build_webrtc(
         return
 
     cmd(['ninja', '-C', webrtc_build_dir, *get_build_targets(target)])
-    if target == 'windows':
+    if target in ['windows', 'windows_arm64']:
         pass
     elif target in ('macos_x86_64', 'macos_arm64'):
         ar = '/usr/bin/ar'
@@ -688,7 +695,7 @@ def build_webrtc(
         ar = os.path.join(webrtc_src_dir, 'third_party/llvm-build/Release+Asserts/bin/llvm-ar')
 
     # ar で libwebrtc.a を生成する
-    if target != 'windows':
+    if target not in ['windows', 'windows_arm64']:
         archive_objects(ar, os.path.join(webrtc_build_dir, 'obj'), os.path.join(webrtc_build_dir, 'libwebrtc.a'))
 
     # macOS の場合は WebRTC.framework に追加情報を入れる
@@ -719,7 +726,7 @@ def build_webrtc(
 
 
 def copy_headers(webrtc_src_dir, webrtc_package_dir, target):
-    if target == 'windows':
+    if target in ['windows', 'windows_arm64']:
         # robocopy の戻り値は特殊なので、check=False にしてうまくエラーハンドリングする
         # https://docs.microsoft.com/ja-jp/troubleshoot/windows-server/backup-and-storage/return-codes-used-robocopy-utility
         r = cmd(['robocopy', webrtc_src_dir, os.path.join(webrtc_package_dir, 'include'),
@@ -805,7 +812,7 @@ def package_webrtc(source_dir, build_dir, package_dir, target,
     generate_version_info(webrtc_src_dir, webrtc_package_dir)
 
     # ライブラリ
-    if target == 'windows':
+    if target in ['windows', 'windows_arm64']:
         files = [
             (['obj', 'webrtc.lib'], ['lib', 'webrtc.lib']),
         ]
@@ -852,7 +859,7 @@ def package_webrtc(source_dir, build_dir, package_dir, target,
 
     # 圧縮
     with cd(package_dir):
-        if target == 'windows':
+        if target in ['windows', 'windows_arm64']:
             with zipfile.ZipFile('webrtc.zip', 'w') as f:
                 for file in enum_all_files('webrtc', '.'):
                     f.write(filename=file, arcname=file)
@@ -865,6 +872,7 @@ def package_webrtc(source_dir, build_dir, package_dir, target,
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 TARGETS = [
     'windows',
+    'windows_arm64',
     'macos_x86_64',
     'macos_arm64',
     'ubuntu-18.04_x86_64',
@@ -883,7 +891,7 @@ def check_target(target):
 
     if platform.system() == 'Windows':
         logging.info(f'OS: {platform.system()}')
-        return target == 'windows'
+        return target in ['windows', 'windows_arm64']
     elif platform.system() == 'Darwin':
         logging.info(f'OS: {platform.system()}')
         return target in ('macos_x86_64', 'macos_arm64', 'ios')
@@ -997,7 +1005,7 @@ def main():
             package_dir = args.package_dir
         webrtc_package_dir = os.path.abspath(args.webrtc_package_dir) if args.webrtc_package_dir is not None else None
 
-    if args.target == 'windows':
+    if args.target in ['windows', 'windows_arm64']:
         # Windows の WebRTC ビルドに必要な環境変数の設定
         mkdir_p(build_dir)
         download("https://github.com/microsoft/vswhere/releases/download/2.8.4/vswhere.exe", build_dir)
@@ -1033,8 +1041,8 @@ def main():
 
             dir = get_depot_tools(source_dir, fetch=args.depottools_fetch)
             add_path(dir)
-            if args.target == 'windows':
-                cmd(['git', 'config', '--system', 'core.longpaths', 'true'])
+            if args.target in ['windows', 'windows_arm64']:
+                cmd(['git', 'config', '--global', 'core.longpaths', 'true'])
 
             # ソース取得
             get_webrtc(source_dir, patch_dir, version_info.webrtc_commit, args.target,
