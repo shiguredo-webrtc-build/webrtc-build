@@ -264,7 +264,7 @@ PATCHES = {
 
 def apply_patch(patch, dir, depth):
     with cd(dir):
-        if platform.system() == 'Windows_x86_64':
+        if platform.system() == 'Windows':
             cmd(['git', 'apply', f'-p{depth}',
                 '--ignore-space-change', '--ignore-whitespace', '--whitespace=nowarn',
                  patch])
