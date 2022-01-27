@@ -45,12 +45,25 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
 - android
 - ios
 
-## 今後提供を検討しているビルド
+## 今後の予定
 
-**有償での優先実装を検討可能です**
+**2022 年 1 月時点**
 
-- windows_arm64
-- ubuntu-20.04_armv8
+- Ubuntu 22.04 x86_64 対応
+    - リリースされ次第対応を検討します
+- ARM 版 Windows 対応
+    - 検討中です
+- Jetson 向け ARM 版 Ubuntu 20.04 対応
+    - リリースされ次第対応を検討します
+
+### 廃止
+
+- macOS x86_64 廃止
+    - 2022 年 6 月を持って廃止します
+- Ubuntu 18.04 x86_64 廃止
+    - 2023 年 4 月を持って廃止します
+- Jetson 向け ARM 版 Ubuntu 18.04 廃止
+    - 2023 年 4 月を持って廃止します
 
 ## ライセンス
 
@@ -94,8 +107,8 @@ limitations under the License.
 
 - feature/m94.4606 のようにブランチを切ります
     - branch-heads のブランチは削除してはいけません
-    - stable リリースまでは feature 上でタグを打ちます
-- stable リリースされたら master にマージします
+    - 次のリリースブランチが決まるまでは feature 上でタグを打ちます
+- 次のリリースブランチが確定したら master にマージします
     - ブランチから変更が無ければタグを打つ必要はありません
 - libwebrtc のコミットポジションは変更せずに何か変更がある場合は一番右の数値を増やします
     - m94.4606.0.0 から m94.4606.0.1 のようにする
@@ -105,3 +118,4 @@ limitations under the License.
 - 最新版でパッチが動作しない場合はパッチ作成者が修正をしてください
 - 何かしらの理由でパッチ修正が難しい場合はパッチを削除します
     - 時雨堂で必要と思ったパッチは時雨堂にて対応します
+
