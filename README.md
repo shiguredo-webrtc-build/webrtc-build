@@ -43,8 +43,8 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
     - Jetson AGX Xavier
 - ubuntu-18.04_x86_64
 - ubuntu-20.04_x86_64
-- android
-- ios
+- android_arm64
+- ios_arm64
 
 ## 今後の予定
 
