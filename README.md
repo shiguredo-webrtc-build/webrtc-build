@@ -52,7 +52,8 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
 - Ubuntu 22.04 x86_64 対応
     - リリースされ次第対応を検討します
 - ARM 版 Windows 対応
-    - 検討中です
+    - M99 版にてリリース予定です
+    - このバージョンは実験的機能として提供しリリース継続を保証しません
 - Jetson 向け ARM 版 Ubuntu 20.04 対応
     - リリースされ次第対応を検討します
 
