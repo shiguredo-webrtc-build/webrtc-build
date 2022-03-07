@@ -20,7 +20,7 @@
 
 ## ios_bitcode.patch
 
-先の `-gdwarf-aranges` フラグ周りの問題は既に本家に取り込まれたため削除した。
+**先の `-gdwarf-aranges` フラグ周りの問題は既に本家に取り込まれたため削除した。**
 
 現在は xcode の clang でなくても bitcode に対応したため xcode の clang 対応が落とされたが、その変更に伴う bitcode がらみのビルドエラーが生じているために、これを回避するパッチ。
 関連する問題として xcode 13.0 縛りが[入っている](https://source.chromium.org/chromium/chromium/src/+/main:build/config/ios/BUILD.gn;l=130)ために build.yml でも xcode 13.0 指定をおこなっている。様子を見て解除すること。
