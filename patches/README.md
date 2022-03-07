@@ -30,6 +30,15 @@
 
 ## ios_simulcast.patch
 
+iOS でのサイマルキャストのサポートを追加するパッチ。この実装は C++ の `SimulcastEncoderAdapter` の簡単なラッパーであり、既存の仕様に破壊的変更も行わない。
+
+以下の API を追加する。
+
+- `RTCVideoEncoderFactorySimulcast`
+- `RTCVideoEncoderSimulcast`
+
+同等の機能が本家に実装されるか、 PR を出して取り込まれたら削除する。
+
 
 ## macos_av1.patch
 
