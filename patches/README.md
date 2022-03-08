@@ -8,14 +8,32 @@
 
 ## android_fixsegv.patch
 
+Android にて映像フレームの処理時にクラッシュするいくつかの現象を修正するパッチ。
 
-## android_onremovetrack.patch
+同等の機能が本家に実装されるか、 PR を出して取り込まれたら削除する。
 
 
 ## android_simulcast.patch
 
+Android でのサイマルキャストのサポートを追加するパッチ。この実装は C++ の `SimulcastEncoderAdapter` の簡単なラッパーであり、既存の仕様に破壊的変更も行わない。
 
+以下の API を追加する。
+
+- `SimulcastVideoEncoder`
+- `SimulcastVideoEncoderFactory`
+
+同等の機能が本家に実装されるか、 PR を出して取り込まれたら削除する。
+
+ 
 ## android_webrtc_version.patch
+
+Android API に libwebrtc のビルド時のバージョンを取得する API を追加する。
+
+以下の API を追加する。
+
+- `WebrtcBuildVersion`
+
+同等の機能が本家に実装されるか、 PR を出して取り込まれたら削除する。
 
 
 ## ios_bitcode.patch
@@ -26,6 +44,10 @@
 関連する問題として xcode 13.0 縛りが[入っている](https://source.chromium.org/chromium/chromium/src/+/main:build/config/ios/BUILD.gn;l=130)ために build.yml でも xcode 13.0 指定をおこなっている。様子を見て解除すること。
 
 ## ios_manual_audio_input.patch
+
+iOS でのマイク不使用時のパーミッション要求を抑制するパッチ。詳細は `docs/patch_ios.md` を参照すること。
+
+同等の機能が本家に実装されるか PR を出して取り込まれたら削除するが、デフォルトの仕様の破壊的変更を含むので難しいと思われる。
 
 
 ## ios_simulcast.patch
