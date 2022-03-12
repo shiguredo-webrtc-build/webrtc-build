@@ -46,15 +46,16 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
 - android_arm64
 - ios_arm64
 
-## 今後の予定
+### hololens2 ビルドについて
 
-**2022 年 1 月時点**
+- ブランチは support/hololens2 になります
+- メインブランチへの追従は有償での対応のみとなります
+- バグ修正は有償での対応のみとなります
+
+## 今後の予定
 
 - Ubuntu 22.04 x86_64 対応
     - リリースされ次第対応を検討します
-- ARM 版 Windows 対応
-    - M99 版にてリリース予定です
-    - このバージョンは実験的機能として提供しリリース継続を保証しません
 - Jetson 向け ARM 版 Ubuntu 20.04 対応
     - リリースされ次第対応を検討します
 
