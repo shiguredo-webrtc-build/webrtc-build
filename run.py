@@ -857,15 +857,17 @@ def package_webrtc(source_dir, build_dir, package_dir, target,
         *ts, webrtc_package_dir, *dirs])
     os.rename(os.path.join(webrtc_package_dir, 'LICENSE.md'), os.path.join(webrtc_package_dir, 'NOTICE'))
 
-    with open(os.path.join(webrtc_package_dir, 'NOTICE'), 'a') as f:
-        notice_file = os.path.join(BASE_DIR, 'winuwp', 'NOTICE')
-        f.write('# MixedReality-WebRTC\n')
-        f.write('https://github.com/microsoft/MixedReality-WebRTC\n')
-        f.write('\n')
-        f.write('```\n')
-        f.write(open(notice_file).read())
-        f.write('\n')
-        f.write('```\n')
+    # HoloLens2 の場合、各種パッチや追加ファイルに対するライセンスを含める
+    if target == 'windows_hololens2':
+        with open(os.path.join(webrtc_package_dir, 'NOTICE'), 'a') as f:
+            notice_file = os.path.join(BASE_DIR, 'winuwp', 'NOTICE')
+            f.write('# MixedReality-WebRTC\n')
+            f.write('https://github.com/microsoft/MixedReality-WebRTC\n')
+            f.write('\n')
+            f.write('```\n')
+            f.write(open(notice_file).read())
+            f.write('\n')
+            f.write('```\n')
 
     # ヘッダーファイルをコピー
     copy_headers(webrtc_src_dir, webrtc_package_dir, target)
