@@ -48,9 +48,9 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
 
 ### hololens2 ビルドについて
 
-- ブランチは support/hololens2 になります
-- メインブランチへの追従は有償での対応のみとなります
-- バグ修正は有償での対応のみとなります
+- 対応ブランチは support/hololens2 です
+- 最新の libwebrtc 追従は有償で承っております
+- バグ修正は有償で承っております
 
 ## 今後の予定
 
