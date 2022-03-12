@@ -183,6 +183,13 @@ PATCHES = {
         'windows_silence_warnings.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
+    'windows_hololens2': [
+        '4k.patch',
+        'add_license_dav1d.patch',
+        'windows_add_deps.patch',
+        'windows_silence_warnings.patch',
+        'ssl_verify_callback_with_native_handle.patch',
+    ],
     'macos_x86_64': [
         'add_dep_zlib.patch',
         '4k.patch',
@@ -261,6 +268,19 @@ PATCHES = {
     ]
 }
 
+WINUWP_ADDITIONAL_PATCHES = [
+    '001-audio.patch',
+    '002-capturer.patch',
+    '003-build.patch',
+    '004-nogeneric.patch',
+    '005-h264.patch',
+]
+WINUWP_ADDITIONAL_DIRS = [
+    ['modules', 'audio_device', 'winuwp'],
+    ['modules', 'video_capture', 'winuwp'],
+    ['modules', 'video_coding', 'codecs', 'h264', 'winuwp'],
+]
+
 
 def apply_patch(patch, dir, depth):
     with cd(dir):
@@ -308,6 +328,18 @@ def get_webrtc(source_dir, patch_dir, version, target,
                 depth, dirs = PATCH_INFO.get(patch, (1, ['.']))
                 dir = os.path.join(src_dir, *dirs)
                 apply_patch(os.path.join(patch_dir, patch), dir, depth)
+
+            if target == 'windows_hololens2':
+                winuwp_dir = os.path.join(BASE_DIR, 'winuwp')
+                # 追加ファイルのコピー
+                for dir in WINUWP_ADDITIONAL_DIRS:
+                    srcdir = os.path.join(winuwp_dir, *dir)
+                    dstdir = os.path.join(src_dir, *dir)
+                    rm_rf(dstdir)
+                    shutil.copytree(srcdir, dstdir)
+                # 追加パッチの適用
+                for patch in WINUWP_ADDITIONAL_PATCHES:
+                    apply_patch(os.path.join(winuwp_dir, patch), src_dir, 1)
 
 
 def git_get_url_and_revision(dir):
@@ -414,7 +446,7 @@ WEBRTC_BUILD_TARGETS = {
 
 def get_build_targets(target):
     ts = [':default']
-    if target not in ('windows_x86_64', 'windows_arm64', 'ios', 'macos_x86_64', 'macos_arm64'):
+    if target not in ('windows_x86_64', 'windows_arm64', 'windows_hololens2', 'ios', 'macos_x86_64', 'macos_arm64'):
         ts += ['buildtools/third_party/libc++']
     ts += WEBRTC_BUILD_TARGETS.get(target, [])
     return ts
@@ -645,6 +677,21 @@ def build_webrtc(
                 f'target_cpu="{"x64" if target == "windows_x86_64" else "arm64"}"',
                 "use_custom_libcxx=false",
             ]
+        elif target in ['windows_hololens2']:
+            gn_args += [
+                'target_os="winuwp"',
+                'target_cpu="arm64"',
+                "use_custom_libcxx=false",
+                'use_lld=false',
+                'is_clang=false',
+                'rtc_win_video_capture_winrt=true',
+                'rtc_win_use_mf_h264=true',
+                'enable_libaom=false',
+                'rtc_enable_protobuf=false',
+                'treat_warnings_as_errors=false',
+                'rtc_enable_win_wgc=false',
+                'rtc_include_dav1d_in_internal_decoder_factory=false',
+            ]
         elif target in ('macos_x86_64', 'macos_arm64'):
             gn_args += [
                 'target_os="mac"',
@@ -692,7 +739,7 @@ def build_webrtc(
         return
 
     cmd(['ninja', '-C', webrtc_build_dir, *get_build_targets(target)])
-    if target in ['windows_x86_64', 'windows_arm64']:
+    if target in ['windows_x86_64', 'windows_arm64', 'windows_hololens2']:
         pass
     elif target in ('macos_x86_64', 'macos_arm64'):
         ar = '/usr/bin/ar'
@@ -700,7 +747,7 @@ def build_webrtc(
         ar = os.path.join(webrtc_src_dir, 'third_party/llvm-build/Release+Asserts/bin/llvm-ar')
 
     # ar で libwebrtc.a を生成する
-    if target not in ['windows_x86_64', 'windows_arm64']:
+    if target not in ['windows_x86_64', 'windows_arm64', 'windows_hololens2']:
         archive_objects(ar, os.path.join(webrtc_build_dir, 'obj'), os.path.join(webrtc_build_dir, 'libwebrtc.a'))
 
     # macOS の場合は WebRTC.framework に追加情報を入れる
@@ -731,7 +778,7 @@ def build_webrtc(
 
 
 def copy_headers(webrtc_src_dir, webrtc_package_dir, target):
-    if target in ['windows_x86_64', 'windows_arm64']:
+    if target in ['windows_x86_64', 'windows_arm64', 'windows_hololens2']:
         # robocopy の戻り値は特殊なので、check=False にしてうまくエラーハンドリングする
         # https://docs.microsoft.com/ja-jp/troubleshoot/windows-server/backup-and-storage/return-codes-used-robocopy-utility
         r = cmd(['robocopy', webrtc_src_dir, os.path.join(webrtc_package_dir, 'include'),
@@ -810,6 +857,16 @@ def package_webrtc(source_dir, build_dir, package_dir, target,
         *ts, webrtc_package_dir, *dirs])
     os.rename(os.path.join(webrtc_package_dir, 'LICENSE.md'), os.path.join(webrtc_package_dir, 'NOTICE'))
 
+    with open(os.path.join(webrtc_package_dir, 'NOTICE'), 'a') as f:
+        notice_file = os.path.join(BASE_DIR, 'winuwp', 'NOTICE')
+        f.write('# MixedReality-WebRTC\n')
+        f.write('https://github.com/microsoft/MixedReality-WebRTC\n')
+        f.write('\n')
+        f.write('```\n')
+        f.write(open(notice_file).read())
+        f.write('\n')
+        f.write('```\n')
+
     # ヘッダーファイルをコピー
     copy_headers(webrtc_src_dir, webrtc_package_dir, target)
 
@@ -817,7 +874,7 @@ def package_webrtc(source_dir, build_dir, package_dir, target,
     generate_version_info(webrtc_src_dir, webrtc_package_dir)
 
     # ライブラリ
-    if target in ['windows_x86_64', 'windows_arm64']:
+    if target in ['windows_x86_64', 'windows_arm64', 'windows_hololens2']:
         files = [
             (['obj', 'webrtc.lib'], ['lib', 'webrtc.lib']),
         ]
@@ -864,7 +921,7 @@ def package_webrtc(source_dir, build_dir, package_dir, target,
 
     # 圧縮
     with cd(package_dir):
-        if target in ['windows_x86_64', 'windows_arm64']:
+        if target in ['windows_x86_64', 'windows_arm64', 'windows_hololens2']:
             with zipfile.ZipFile('webrtc.zip', 'w') as f:
                 for file in enum_all_files('webrtc', '.'):
                     f.write(filename=file, arcname=file)
@@ -878,6 +935,7 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 TARGETS = [
     'windows_x86_64',
     'windows_arm64',
+    'windows_hololens2',
     'macos_x86_64',
     'macos_arm64',
     'ubuntu-18.04_x86_64',
@@ -896,7 +954,7 @@ def check_target(target):
 
     if platform.system() == 'Windows':
         logging.info(f'OS: {platform.system()}')
-        return target in ['windows_x86_64', 'windows_arm64']
+        return target in ['windows_x86_64', 'windows_arm64', 'windows_hololens2']
     elif platform.system() == 'Darwin':
         logging.info(f'OS: {platform.system()}')
         return target in ('macos_x86_64', 'macos_arm64', 'ios')
@@ -1010,7 +1068,7 @@ def main():
             package_dir = args.package_dir
         webrtc_package_dir = os.path.abspath(args.webrtc_package_dir) if args.webrtc_package_dir is not None else None
 
-    if args.target in ['windows_x86_64', 'windows_arm64']:
+    if args.target in ['windows_x86_64', 'windows_arm64', 'windows_hololens2']:
         # Windows の WebRTC ビルドに必要な環境変数の設定
         mkdir_p(build_dir)
         download("https://github.com/microsoft/vswhere/releases/download/2.8.4/vswhere.exe", build_dir)
@@ -1046,7 +1104,7 @@ def main():
 
             dir = get_depot_tools(source_dir, fetch=args.depottools_fetch)
             add_path(dir)
-            if args.target in ['windows_x86_64', 'windows_arm64']:
+            if args.target in ['windows_x86_64', 'windows_arm64', 'windows_hololens2']:
                 cmd(['git', 'config', '--global', 'core.longpaths', 'true'])
 
             # ソース取得

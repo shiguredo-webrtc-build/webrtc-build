@@ -1,0 +1,180 @@
+diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
+index 98edd93038..15da83cffa 100644
+--- a/rtc_base/BUILD.gn
++++ b/rtc_base/BUILD.gn
+@@ -143,7 +143,7 @@ rtc_library("rtc_base_approved") {
+     "zero_memory.h",
+   ]
+ 
+-  if (is_win) {
++  if (is_win && target_os != "winuwp") {
+     sources += [
+       "win/get_activation_factory.cc",
+       "win/get_activation_factory.h",
+@@ -898,6 +898,13 @@ if (is_win) {
+       "win32_window.h",
+     ]
+ 
++    if (current_os == "winuwp") {
++      sources -= [
++        "win32_window.cc",
++        "win32_window.h",
++      ]
++    }
++
+     deps = [
+       ":checks",
+       ":macromagic",
+diff --git a/rtc_base/file_rotating_stream.cc b/rtc_base/file_rotating_stream.cc
+index 5a004a937b..2885993436 100644
+--- a/rtc_base/file_rotating_stream.cc
++++ b/rtc_base/file_rotating_stream.cc
+@@ -83,7 +83,8 @@ bool DeleteFile(const std::string& file) {
+ }
+ 
+ bool MoveFile(const std::string& old_file, const std::string& new_file) {
+-  return ::MoveFileW(ToUtf16(old_file).c_str(), ToUtf16(new_file).c_str()) != 0;
++  return ::MoveFileExW(ToUtf16(old_file).c_str(), ToUtf16(new_file).c_str(),
++                     MOVEFILE_WRITE_THROUGH) != 0;
+ }
+ 
+ bool IsFile(const std::string& file) {
+diff --git a/rtc_base/platform_thread_types.cc b/rtc_base/platform_thread_types.cc
+index b0243b41dc..a755ab78b6 100644
+--- a/rtc_base/platform_thread_types.cc
++++ b/rtc_base/platform_thread_types.cc
+@@ -70,9 +70,7 @@ void SetCurrentThreadName(const char* name) {
+ #if defined(WEBRTC_WIN)
+   // The SetThreadDescription API works even if no debugger is attached.
+   // The names set with this API also show up in ETW traces. Very handy.
+-  static auto set_thread_description_func =
+-      reinterpret_cast<RTC_SetThreadDescription>(::GetProcAddress(
+-          ::GetModuleHandleA("Kernel32.dll"), "SetThreadDescription"));
++  static auto set_thread_description_func = &::SetThreadDescription;
+   if (set_thread_description_func) {
+     // Convert from ASCII to UTF-16.
+     wchar_t wide_thread_name[64];
+diff --git a/rtc_base/time_utils.cc b/rtc_base/time_utils.cc
+index 96282f06cf..0f0281681a 100644
+--- a/rtc_base/time_utils.cc
++++ b/rtc_base/time_utils.cc
+@@ -8,6 +8,9 @@
+  *  be found in the AUTHORS file in the root of the source tree.
+  */
+ 
++#include <winrt/base.h>
++#include <windows.h>
++
+ #include <stdint.h>
+ 
+ #if defined(WEBRTC_POSIX)
+@@ -53,7 +56,7 @@ class TimeHelper final {
+   static void SyncWithNtp(int64_t ntp_server_time_ms) {
+     auto& singleton = Singleton();
+     TIME_ZONE_INFORMATION time_zone;
+-    GetTimeZoneInformation(&time_zone);
++    ::GetTimeZoneInformation(&time_zone);
+     int64_t time_zone_bias_ns =
+         rtc::dchecked_cast<int64_t>(time_zone.Bias) * 60 * 1000 * 1000 * 1000;
+     singleton.app_start_time_ns_ =
+diff --git a/system_wrappers/source/clock.cc b/system_wrappers/source/clock.cc
+index 7784246fa4..5e44fd049a 100644
+--- a/system_wrappers/source/clock.cc
++++ b/system_wrappers/source/clock.cc
+@@ -131,7 +131,7 @@ class WinUwpRealTimeClock final : public RealTimeClock {
+     struct timeval tv;
+ 
+     tv.tv_sec = rtc::dchecked_cast<long>(nanos / 1000000000);
+-    tv.tv_usec = rtc::dchecked_cast<long>(nanos / 1000);
++    tv.tv_usec = rtc::dchecked_cast<long>((nanos % 1000000000) / 1000);
+ 
+     return tv;
+   }
+diff --git a/system_wrappers/source/denormal_disabler.cc b/system_wrappers/source/denormal_disabler.cc
+index fe8ec1afdc..403c8a0de2 100644
+--- a/system_wrappers/source/denormal_disabler.cc
++++ b/system_wrappers/source/denormal_disabler.cc
+@@ -20,7 +20,7 @@ namespace {
+ #endif
+ 
+ #if defined(WEBRTC_DENORMAL_DISABLER_X86_SUPPORTED) || \
+-    defined(WEBRTC_ARCH_ARM_FAMILY)
++    (defined(WEBRTC_ARCH_ARM_FAMILY) && !defined(WINUWP))
+ #define WEBRTC_DENORMAL_DISABLER_SUPPORTED
+ #endif
+ 
+diff --git a/build/config/win/BUILD.gn b/build/config/win/BUILD.gn
+index b254b3ac8..813a751a5 100644
+--- a/build/config/win/BUILD.gn
++++ b/build/config/win/BUILD.gn
+@@ -286,7 +286,7 @@ config("runtime_library") {
+ # manually override this config for their compiles.
+ config("winver") {
+   defines = [
+-    "NTDDI_VERSION=NTDDI_WIN10_VB",
++    "NTDDI_VERSION=NTDDI_WIN10_RS2",
+ 
+     # We can't say `=_WIN32_WINNT_WIN10` here because some files do
+     # `#if WINVER < 0x0600` without including windows.h before,
+diff --git a/third_party/boringssl/BUILD.gn b/third_party/boringssl/BUILD.gn
+index e31d092151a..e88bb4b8027 100644
+--- a/third_party/boringssl/BUILD.gn
++++ b/third_party/boringssl/BUILD.gn
+@@ -98,7 +98,7 @@ if (is_win && !is_msan && current_cpu != "arm64") {
+         # TODO(davidben): Rename all the file lists, etc., upstream from mac
+         # and ios to apple.
+         sources += crypto_sources_ios_aarch64
+-      } else if (is_win) {
++      } else if (is_win && current_os != "winuwp") {
+         sources += crypto_sources_win_aarch64
+       } else {
+         public_configs = [ ":no_asm_config" ]
+diff --git a/third_party/crc32c/BUILD.gn b/third_party/crc32c/BUILD.gn
+index 38024bbd8d0..a40772c21e1 100644
+--- a/third_party/crc32c/BUILD.gn
++++ b/third_party/crc32c/BUILD.gn
+@@ -40,7 +40,7 @@ config("crc32c_config") {
+     defines += [ "HAVE_BUILTIN_PREFETCH=0" ]
+   }
+ 
+-  if (current_cpu == "arm64") {
++  if (current_cpu == "arm64" && current_os != "winuwp") {
+     defines += [ "HAVE_ARM64_CRC32C=1" ]
+   } else {
+     defines += [ "HAVE_ARM64_CRC32C=0" ]
+@@ -106,7 +106,7 @@ source_set("crc32c_arm64") {
+   ]
+ 
+   configs += [ ":crc32c_config" ]
+-  if (current_cpu == "arm64") {
++  if (current_cpu == "arm64" && current_os != "winuwp") {
+     if (is_clang) {
+       cflags = [
+         "-march=armv8-a",
+diff --git a/third_party/libvpx/BUILD.gn b/third_party/libvpx/BUILD.gn
+index 758aca15407..60ef0074839 100644
+--- a/third_party/libvpx/BUILD.gn
++++ b/third_party/libvpx/BUILD.gn
+@@ -51,6 +51,8 @@ if (is_nacl) {
+   } else if (is_posix || is_fuchsia) {
+     # Should cover linux, fuchsia, mac, and the ios simulator.
+     os_category = "linux"
++  } else if (current_os == "winuwp") {
++    os_category = "win" 
+   } else {  # This should only match windows.
+     os_category = current_os
+   }
+diff --git a/third_party/pffft/BUILD.gn b/third_party/pffft/BUILD.gn
+index 0a1cf7a1f5e..7c32b610ffe 100644
+--- a/third_party/pffft/BUILD.gn
++++ b/third_party/pffft/BUILD.gn
+@@ -14,6 +14,9 @@ config("common_config") {
+       # Required to use math constants from math.h.
+       "_USE_MATH_DEFINES",
+     ]
++    if (current_os == "winuwp") {
++      cflags -= [ "-Wno-shadow" ]
++    }
+   }
+ 
+   # PFFFT doesn't support SIMD on some cpus, so build a scalar version.

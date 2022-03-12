@@ -1,0 +1,89 @@
+diff --git a/BUILD.gn b/BUILD.gn
+index 9c55478c25..6512ee25ea 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -467,7 +467,6 @@ if (!build_with_chromium) {
+       "rtc_base",
+       "sdk",
+       "video",
+-      "modules/audio_device:audio_device_module_from_input_and_output",
+       "//third_party/zlib",
+     ]
+ 
+diff --git a/modules/audio_device/BUILD.gn b/modules/audio_device/BUILD.gn
+index d441479b33..2925586b0e 100644
+--- a/modules/audio_device/BUILD.gn
++++ b/modules/audio_device/BUILD.gn
+@@ -306,10 +306,17 @@ rtc_library("audio_device_impl") {
+         ]
+       }
+       if (is_win) {
+-        sources += [
+-          "win/audio_device_core_win.cc",
+-          "win/audio_device_core_win.h",
+-        ]
++        if (target_os == "winuwp") {
++          sources += [
++            "winuwp/audio_device_core_win.cc",
++            "winuwp/audio_device_core_win.h",
++          ]
++        } else {
++          sources += [
++            "win/audio_device_core_win.cc",
++            "win/audio_device_core_win.h",
++          ]
++        }
+         libs = [
+           # Required for the built-in WASAPI AEC.
+           "dmoguids.lib",
+diff --git a/modules/audio_device/audio_device_impl.cc b/modules/audio_device/audio_device_impl.cc
+index 01a8a25c06..98eba26d0e 100644
+--- a/modules/audio_device/audio_device_impl.cc
++++ b/modules/audio_device/audio_device_impl.cc
+@@ -22,8 +22,12 @@
+ 
+ #if defined(_WIN32)
+ #if defined(WEBRTC_WINDOWS_CORE_AUDIO_BUILD)
++#if defined(WINUWP)
++#include "modules/audio_device/winuwp/audio_device_core_win.h"
++#else
+ #include "modules/audio_device/win/audio_device_core_win.h"
+ #endif
++#endif
+ #elif defined(WEBRTC_ANDROID)
+ #include <stdlib.h>
+ #if defined(WEBRTC_AUDIO_DEVICE_INCLUDE_ANDROID_AAUDIO)
+diff --git a/build/config/win/BUILD.gn b/build/config/win/BUILD.gn
+index 1e76a54cc..b254b3ac8 100644
+--- a/build/config/win/BUILD.gn
++++ b/build/config/win/BUILD.gn
+@@ -245,7 +245,15 @@ config("runtime_library") {
+     } else {
+       defines += [ "WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP" ]
+     }
+-    cflags_cc += [ "/EHsc" ]
++    cflags_cc += [
++      "/std:c++17",  # Required for having a wrapper using the WinRT/C++ projection.
++      "/EHsc",  # Required for having a wrapper using the WinRT/C++ projection.
++    ]
++    if (is_clang) {
++      cflags += [
++        "-Wno-microsoft-template",  # The audio module uses some templates Microsoft style.
++      ]
++    }
+ 
+     # This warning is given because the linker cannot tell the difference
+     # between consuming WinRT APIs versus authoring WinRT within static
+diff --git a/build/toolchain/win/BUILD.gn b/build/toolchain/win/BUILD.gn
+index bc69978da..fde82e18c 100644
+--- a/build/toolchain/win/BUILD.gn
++++ b/build/toolchain/win/BUILD.gn
+@@ -194,7 +194,7 @@ template("msvc_toolchain") {
+       # changing commandline flags.
+       show_includes = "/showIncludes:user"
+     } else {
+-      show_includes = "/showIncludes"
++      show_includes = ""
+     }
+ 
+     tool("cc") {

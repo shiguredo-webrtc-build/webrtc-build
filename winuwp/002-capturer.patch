@@ -1,0 +1,451 @@
+diff --git a/BUILD.gn b/BUILD.gn
+index 6512ee25ea..af50bdfeb3 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -260,6 +260,10 @@ config("common_config") {
+     defines += [ "WEBRTC_INCLUDE_INTERNAL_AUDIO_DEVICE" ]
+   }
+ 
++  if (rtc_win_video_capture_winrt) {
++    defines += [ "WEBRTC_VIDEO_CAPTURE_WINRT" ]
++  }
++
+   if (rtc_libvpx_build_vp9) {
+     defines += [ "RTC_ENABLE_VP9" ]
+   }
+diff --git a/common_video/libyuv/include/webrtc_libyuv.h b/common_video/libyuv/include/webrtc_libyuv.h
+index 905219b6a6..9c13e6352d 100644
+--- a/common_video/libyuv/include/webrtc_libyuv.h
++++ b/common_video/libyuv/include/webrtc_libyuv.h
+@@ -32,12 +32,17 @@ enum class VideoType {
+   kI420,
+   kIYUV,
+   kRGB24,
++  kABGR,
+   kARGB,
++  kARGB4444,
+   kRGB565,
++  kARGB1555,
+   kYUY2,
+   kYV12,
+   kUYVY,
+   kMJPEG,
++  kNV21,
++  kNV12,
+   kBGRA,
+ };
+ 
+diff --git a/common_video/libyuv/webrtc_libyuv.cc b/common_video/libyuv/webrtc_libyuv.cc
+index 2e10a60776..c4812fd1fc 100644
+--- a/common_video/libyuv/webrtc_libyuv.cc
++++ b/common_video/libyuv/webrtc_libyuv.cc
+@@ -25,6 +25,8 @@ size_t CalcBufferSize(VideoType type, int width, int height) {
+   size_t buffer_size = 0;
+   switch (type) {
+     case VideoType::kI420:
++    case VideoType::kNV12:
++    case VideoType::kNV21:
+     case VideoType::kIYUV:
+     case VideoType::kYV12: {
+       int half_width = (width + 1) >> 1;
+@@ -32,7 +34,9 @@ size_t CalcBufferSize(VideoType type, int width, int height) {
+       buffer_size = width * height + half_width * half_height * 2;
+       break;
+     }
++    case VideoType::kARGB4444:
+     case VideoType::kRGB565:
++    case VideoType::kARGB1555:
+     case VideoType::kYUY2:
+     case VideoType::kUYVY:
+       buffer_size = width * height * 2;
+@@ -93,6 +97,8 @@ int ConvertVideoType(VideoType video_type) {
+       return libyuv::FOURCC_YV12;
+     case VideoType::kRGB24:
+       return libyuv::FOURCC_24BG;
++    case VideoType::kABGR:
++      return libyuv::FOURCC_ABGR;
+     case VideoType::kRGB565:
+       return libyuv::FOURCC_RGBP;
+     case VideoType::kYUY2:
+@@ -101,10 +107,18 @@ int ConvertVideoType(VideoType video_type) {
+       return libyuv::FOURCC_UYVY;
+     case VideoType::kMJPEG:
+       return libyuv::FOURCC_MJPG;
++    case VideoType::kNV21:
++      return libyuv::FOURCC_NV21;
++    case VideoType::kNV12:
++      return libyuv::FOURCC_NV12;
+     case VideoType::kARGB:
+       return libyuv::FOURCC_ARGB;
+     case VideoType::kBGRA:
+       return libyuv::FOURCC_BGRA;
++    case VideoType::kARGB4444:
++      return libyuv::FOURCC_R444;
++    case VideoType::kARGB1555:
++      return libyuv::FOURCC_RGBO;
+   }
+   RTC_DCHECK_NOTREACHED();
+   return libyuv::FOURCC_ANY;
+diff --git a/modules/video_capture/BUILD.gn b/modules/video_capture/BUILD.gn
+index 75c2648cae..4d69578502 100644
+--- a/modules/video_capture/BUILD.gn
++++ b/modules/video_capture/BUILD.gn
+@@ -63,33 +63,48 @@ if (!build_with_chromium) {
+       deps += [ "../../media:rtc_media_base" ]
+     }
+     if (is_win) {
+-      sources = [
+-        "windows/device_info_ds.cc",
+-        "windows/device_info_ds.h",
+-        "windows/help_functions_ds.cc",
+-        "windows/help_functions_ds.h",
+-        "windows/sink_filter_ds.cc",
+-        "windows/sink_filter_ds.h",
+-        "windows/video_capture_ds.cc",
+-        "windows/video_capture_ds.h",
+-        "windows/video_capture_factory_windows.cc",
+-      ]
+-
+-      libs = [
+-        "ole32.lib",
+-        "oleaut32.lib",
+-        "strmiids.lib",
+-        "user32.lib",
+-      ]
++      if (rtc_win_video_capture_winrt) {
++        sources = [
++          "winuwp/device_info_winrt.cc",
++          "winuwp/device_info_winrt.h",
++          "winuwp/help_functions_winrt.cc",
++          "winuwp/help_functions_winrt.h",
++          "winuwp/video_capture_winrt.cc",
++          "winuwp/video_capture_winrt.h",
++        ]
++        libs = [ "windowsapp.lib" ] 
++      } else {
++        defines = [ "WEBRTC_VIDEO_CAPTURE_DSHOW" ]
++        sources = [
++          "windows/device_info_ds.cc",
++          "windows/device_info_ds.h",
++          "windows/help_functions_ds.cc",
++          "windows/help_functions_ds.h",
++          "windows/sink_filter_ds.cc",
++          "windows/sink_filter_ds.h",
++          "windows/video_capture_ds.cc",
++          "windows/video_capture_ds.h",
++        ]
+ 
+-      if (build_with_mozilla) {
+-        sources += [
+-          "windows/BaseFilter.cpp",
+-          "windows/BaseInputPin.cpp",
+-          "windows/BasePin.cpp",
+-          "windows/MediaType.cpp",
++        libs = [
++          "ole32.lib",
++          "oleaut32.lib",
++          "strmiids.lib",
++          "user32.lib",
+         ]
++
++        if (build_with_mozilla) {
++          sources += [
++            "windows/BaseFilter.cpp",
++            "windows/BaseInputPin.cpp",
++            "windows/BasePin.cpp",
++            "windows/MediaType.cpp",
++          ]
++        }
+       }
++      sources += [
++        "windows/video_capture_factory_windows.cc",
++      ] 
+     }
+ 
+     if (build_with_mozilla && is_android) {
+diff --git a/modules/video_capture/video_capture_defines.h b/modules/video_capture/video_capture_defines.h
+index 63534600a9..bf67709500 100644
+--- a/modules/video_capture/video_capture_defines.h
++++ b/modules/video_capture/video_capture_defines.h
+@@ -11,6 +11,10 @@
+ #ifndef MODULES_VIDEO_CAPTURE_VIDEO_CAPTURE_DEFINES_H_
+ #define MODULES_VIDEO_CAPTURE_VIDEO_CAPTURE_DEFINES_H_
+ 
++#if defined(WEBRTC_VIDEO_CAPTURE_WINRT)
++#include <wrl/client.h>
++#endif  // WEBRTC_VIDEO_CAPTURE_WINRT
++
+ #include "api/video/video_frame.h"
+ #include "common_video/libyuv/include/webrtc_libyuv.h"
+ 
+@@ -28,14 +32,25 @@ struct VideoCaptureCapability {
+   int32_t maxFPS;
+   VideoType videoType;
+   bool interlaced;
++#if defined(WEBRTC_VIDEO_CAPTURE_WINRT)
++  std::wstring profile_id;
++  ::Microsoft::WRL::ComPtr<::IUnknown> media_capture_video_profile;
++  ::Microsoft::WRL::ComPtr<::IUnknown> record_media_description;
++#endif  // WEBRTC_VIDEO_CAPTURE_WINRT
++
++  VideoCaptureCapability()
++      : width(0),
++        height(0),
++        maxFPS(0),
++        videoType(VideoType::kUnknown),
++        interlaced(false)
++#if defined(WEBRTC_VIDEO_CAPTURE_WINRT)
++        , profile_id(L"")
++        , media_capture_video_profile(nullptr)
++        , record_media_description(nullptr)
++#endif  // WEBRTC_VIDEO_CAPTURE_WINRT
++  {}
+ 
+-  VideoCaptureCapability() {
+-    width = 0;
+-    height = 0;
+-    maxFPS = 0;
+-    videoType = VideoType::kUnknown;
+-    interlaced = false;
+-  }
+   bool operator!=(const VideoCaptureCapability& other) const {
+     if (width != other.width)
+       return true;
+@@ -47,6 +62,16 @@ struct VideoCaptureCapability {
+       return true;
+     if (interlaced != other.interlaced)
+       return true;
++#if defined(WEBRTC_VIDEO_CAPTURE_WINRT)
++    if (profile_id != other.profile_id)
++      return true;
++    if (media_capture_video_profile.Get() !=
++        other.media_capture_video_profile.Get())
++      return true;
++    if (record_media_description.Get() != other.record_media_description.Get())
++      return true;
++#endif  // WEBRTC_VIDEO_CAPTURE_WINRT
++
+     return false;
+   }
+   bool operator==(const VideoCaptureCapability& other) const {
+diff --git a/modules/video_capture/video_capture_impl.cc b/modules/video_capture/video_capture_impl.cc
+index 6619d15924..26f3dfbea5 100644
+--- a/modules/video_capture/video_capture_impl.cc
++++ b/modules/video_capture/video_capture_impl.cc
+@@ -114,7 +114,10 @@ int32_t VideoCaptureImpl::DeliverCapturedFrame(VideoFrame& captureFrame) {
+   return 0;
+ }
+ 
+-int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
++int32_t VideoCaptureImpl::IncomingFrame(uint8_t* plane_y,
++                                        int32_t stride_y,
++                                        uint8_t* plane_uv,
++                                        int32_t stride_uv,
+                                         size_t videoFrameLength,
+                                         const VideoCaptureCapability& frameInfo,
+                                         int64_t captureTime /*=0*/) {
+@@ -125,16 +128,8 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
+ 
+   TRACE_EVENT1("webrtc", "VC::IncomingFrame", "capture_time", captureTime);
+ 
+-  // Not encoded, convert to I420.
+-  if (frameInfo.videoType != VideoType::kMJPEG &&
+-      CalcBufferSize(frameInfo.videoType, width, abs(height)) !=
+-          videoFrameLength) {
+-    RTC_LOG(LS_ERROR) << "Wrong incoming frame length.";
+-    return -1;
+-  }
+-
+-  int stride_y = width;
+-  int stride_uv = (width + 1) / 2;
++  int dst_stride_y = width;
++  int dst_stride_uv = (width + 1) / 2;
+   int target_width = width;
+   int target_height = abs(height);
+ 
+@@ -156,7 +151,7 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
+ 
+   // TODO(nisse): Use a pool?
+   rtc::scoped_refptr<I420Buffer> buffer = I420Buffer::Create(
+-      target_width, target_height, stride_y, stride_uv, stride_uv);
++      target_width, target_height, dst_stride_y, dst_stride_uv, dst_stride_uv);
+ 
+   libyuv::RotationMode rotation_mode = libyuv::kRotate0;
+   if (apply_rotation) {
+@@ -177,10 +172,11 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
+   }
+ 
+   const int conversionResult = libyuv::ConvertToI420(
+-      videoFrame, videoFrameLength, buffer.get()->MutableDataY(),
+-      buffer.get()->StrideY(), buffer.get()->MutableDataU(),
+-      buffer.get()->StrideU(), buffer.get()->MutableDataV(),
+-      buffer.get()->StrideV(), 0, 0,  // No Cropping
++      plane_y, videoFrameLength, stride_y, plane_uv, stride_uv,
++      buffer.get()->MutableDataY(), buffer.get()->StrideY(),
++      buffer.get()->MutableDataU(), buffer.get()->StrideU(),
++      buffer.get()->MutableDataV(), buffer.get()->StrideV(), 0,
++      0,  // No Cropping
+       width, height, target_width, target_height, rotation_mode,
+       ConvertVideoType(frameInfo.videoType));
+   if (conversionResult < 0) {
+diff --git a/modules/video_capture/video_capture_impl.h b/modules/video_capture/video_capture_impl.h
+index 9e4afe7ec1..34c1fc6150 100644
+--- a/modules/video_capture/video_capture_impl.h
++++ b/modules/video_capture/video_capture_impl.h
+@@ -62,7 +62,10 @@ class VideoCaptureImpl : public VideoCaptureModule {
+   const char* CurrentDeviceName() const override;
+ 
+   // `capture_time` must be specified in NTP time format in milliseconds.
+-  int32_t IncomingFrame(uint8_t* videoFrame,
++  int32_t IncomingFrame(uint8_t* plane_y,
++                        int32_t stride_y,
++                        uint8_t* plane_uv,
++                        int32_t stride_uv,
+                         size_t videoFrameLength,
+                         const VideoCaptureCapability& frameInfo,
+                         int64_t captureTime = 0);
+diff --git a/modules/video_capture/windows/sink_filter_ds.cc b/modules/video_capture/windows/sink_filter_ds.cc
+index 15f947a921..f2c4e09514 100644
+--- a/modules/video_capture/windows/sink_filter_ds.cc
++++ b/modules/video_capture/windows/sink_filter_ds.cc
+@@ -920,7 +920,10 @@ void CaptureSinkFilter::ProcessCapturedFrame(
+     size_t length,
+     const VideoCaptureCapability& frame_info) {
+   // Called on the capture thread.
+-  capture_observer_->IncomingFrame(buffer, length, frame_info);
++  capture_observer_->IncomingFrame(
++      buffer, frame_info.width,
++      buffer + (static_cast<size_t>(frame_info.width) * frame_info.height),
++      frame_info.width, length, frame_info);
+ }
+ 
+ void CaptureSinkFilter::NotifyEvent(long code,
+diff --git a/modules/video_capture/windows/video_capture_factory_windows.cc b/modules/video_capture/windows/video_capture_factory_windows.cc
+index 34cc982d7e..24b8a1f777 100644
+--- a/modules/video_capture/windows/video_capture_factory_windows.cc
++++ b/modules/video_capture/windows/video_capture_factory_windows.cc
+@@ -9,7 +9,14 @@
+  */
+ 
+ #include "api/scoped_refptr.h"
++
++#if defined(WEBRTC_VIDEO_CAPTURE_WINRT)
++#include "modules/video_capture/winuwp/device_info_winrt.h"
++#include "modules/video_capture/winuwp/video_capture_winrt.h"
++#else
+ #include "modules/video_capture/windows/video_capture_ds.h"
++#endif
++
+ #include "rtc_base/ref_counted_object.h"
+ 
+ namespace webrtc {
+@@ -17,8 +24,11 @@ namespace videocapturemodule {
+ 
+ // static
+ VideoCaptureModule::DeviceInfo* VideoCaptureImpl::CreateDeviceInfo() {
+-  // TODO(tommi): Use the Media Foundation version on Vista and up.
+-  return DeviceInfoDS::Create();
++#if defined(WEBRTC_VIDEO_CAPTURE_WINRT)
++  return DeviceInfoWinRT::Create();
++#else
++   return DeviceInfoDS::Create();
++#endif  // WEBRTC_VIDEO_CAPTURE_WINRT
+ }
+ 
+ rtc::scoped_refptr<VideoCaptureModule> VideoCaptureImpl::Create(
+@@ -26,8 +36,11 @@ rtc::scoped_refptr<VideoCaptureModule> VideoCaptureImpl::Create(
+   if (device_id == nullptr)
+     return nullptr;
+ 
+-  // TODO(tommi): Use Media Foundation implementation for Vista and up.
++#if defined(WEBRTC_VIDEO_CAPTURE_WINRT)
++  auto capture = rtc::make_ref_counted<VideoCaptureWinRT>();
++#else
+   auto capture = rtc::make_ref_counted<VideoCaptureDS>();
++#endif  // WEBRTC_VIDEO_CAPTURE_WINRT
+   if (capture->Init(device_id) != 0) {
+     return nullptr;
+   }
+diff --git a/webrtc.gni b/webrtc.gni
+index 6e81fc4285..71cfcabd02 100644
+--- a/webrtc.gni
++++ b/webrtc.gni
+@@ -227,6 +227,15 @@ declare_args() {
+ 
+   # Includes the dav1d decoder in the internal decoder factory when set to true.
+   rtc_include_dav1d_in_internal_decoder_factory = true
++
++  # Defines which API should be used by the video capture module on Windows.
++  # The following are the current options:
++  # False: It uses DirectShow APIs. DirectShow should be used on builds
++  #        that need to be compatible with old versions of Windows (Vista/7).
++  # True:  It uses the Windows::Media APIs. This option is recommended for
++  #        Windows 10. It is ok to use this option with any API family
++  #        (desktop (Win32), app (Store), ...).
++  rtc_win_video_capture_winrt = false
+ }
+ 
+ if (!build_with_mozilla) {
+diff --git a/third_party/libyuv/include/libyuv/convert.h b/third_party/libyuv/include/libyuv/convert.h
+index 93e7550b..b4064b47 100644
+--- a/third_party/libyuv/include/libyuv/convert.h
++++ b/third_party/libyuv/include/libyuv/convert.h
+@@ -837,6 +837,9 @@ int MJPGSize(const uint8_t* sample,
+ LIBYUV_API
+ int ConvertToI420(const uint8_t* sample,
+                   size_t sample_size,
++                  int src_stride_y,
++                  const uint8_t* src_uv,
++                  int src_stride_uv,
+                   uint8_t* dst_y,
+                   int dst_stride_y,
+                   uint8_t* dst_u,
+diff --git a/third_party/libyuv/source/convert_to_i420.cc b/third_party/libyuv/source/convert_to_i420.cc
+index 5869ecd7..b00044cc 100644
+--- a/third_party/libyuv/source/convert_to_i420.cc
++++ b/third_party/libyuv/source/convert_to_i420.cc
+@@ -27,6 +27,9 @@ extern "C" {
+ LIBYUV_API
+ int ConvertToI420(const uint8_t* sample,
+                   size_t sample_size,
++                  int src_stride_y,
++                  const uint8_t* src_uv,
++                  int src_stride_uv,
+                   uint8_t* dst_y,
+                   int dst_stride_y,
+                   uint8_t* dst_u,
+@@ -45,7 +47,7 @@ int ConvertToI420(const uint8_t* sample,
+   uint32_t format = CanonicalFourCC(fourcc);
+   int aligned_src_width = (src_width + 1) & ~1;
+   const uint8_t* src;
+-  const uint8_t* src_uv;
++  const uint8_t* src_uv_cropped;
+   const int abs_src_height = (src_height < 0) ? -src_height : src_height;
+   // TODO(nisse): Why allow crop_height < 0?
+   const int abs_crop_height = (crop_height < 0) ? -crop_height : crop_height;
+@@ -171,19 +175,17 @@ int ConvertToI420(const uint8_t* sample,
+       break;
+     // Biplanar formats
+     case FOURCC_NV12:
+-      src = sample + (src_width * crop_y + crop_x);
+-      src_uv = sample + (src_width * abs_src_height) +
+-               ((crop_y / 2) * aligned_src_width) + ((crop_x / 2) * 2);
+-      r = NV12ToI420Rotate(src, src_width, src_uv, aligned_src_width, dst_y,
++      src = sample + (src_stride_y * crop_y + crop_x);
++      src_uv_cropped = src_uv + ((crop_y / 2) * src_stride_uv) + ((crop_x / 2) * 2);
++      r = NV12ToI420Rotate(src, src_stride_y, src_uv_cropped, src_stride_uv, dst_y,
+                            dst_stride_y, dst_u, dst_stride_u, dst_v,
+                            dst_stride_v, crop_width, inv_crop_height, rotation);
+       break;
+     case FOURCC_NV21:
+-      src = sample + (src_width * crop_y + crop_x);
+-      src_uv = sample + (src_width * abs_src_height) +
+-               ((crop_y / 2) * aligned_src_width) + ((crop_x / 2) * 2);
++      src = sample + (src_stride_y * crop_y + crop_x);
++      src_uv_cropped = src_uv + ((crop_y / 2) * src_stride_uv) + ((crop_x / 2) * 2);
+       // Call NV12 but with dst_u and dst_v parameters swapped.
+-      r = NV12ToI420Rotate(src, src_width, src_uv, aligned_src_width, dst_y,
++      r = NV12ToI420Rotate(src, src_stride_y, src_uv_cropped, src_stride_uv, dst_y,
+                            dst_stride_y, dst_v, dst_stride_v, dst_u,
+                            dst_stride_u, crop_width, inv_crop_height, rotation);
+       break;
