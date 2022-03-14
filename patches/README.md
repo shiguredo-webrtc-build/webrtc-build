@@ -45,7 +45,7 @@ Android API に libwebrtc のビルド時のバージョンを取得する API �
 
 ## ios_manual_audio_input.patch
 
-iOS でのマイク不使用時のパーミッション要求を抑制するパッチ。詳細は `docs/patch_ios.md` を参照すること。
+iOS でのマイク不使用時のパーミッション要求を抑制するパッチ。詳細は `docs/patch_ios_manual_audio_input.md` を参照すること。
 
 同等の機能が本家に実装されるか PR を出して取り込まれたら削除するが、デフォルトの仕様の破壊的変更を含むので難しいと思われる。
 
