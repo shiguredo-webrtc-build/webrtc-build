@@ -223,6 +223,7 @@ PATCHES = {
         'android_webrtc_version.patch',
         'android_fixsegv.patch',
         'android_simulcast.patch',
+        'android_hardware_video_encoder.patch',
     ],
     'raspberry-pi-os_armv6': [
         'nacl_armv6_2.patch',
