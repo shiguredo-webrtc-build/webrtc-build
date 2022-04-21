@@ -36,7 +36,9 @@ Android API に libwebrtc のビルド時のバージョンを取得する API �
 ## android_hardware_video_encoder.patch
 
 解像度が16の倍数でない場合、 HardwareVideoEncoder 初期化時などのチェックでエラーが発生するようになった。  
-Android CTS では解像度が16の倍数のケースしかテストされておらず、かつ実際に問題が発生する端末があったことが理由で、上記のチェックが実装された。
+Android CTS では解像度が16の倍数のケースしかテストされておらず、かつ、解像度が16の倍数でない映像を受信した際に問題が発生する端末があったことが理由で、上記のチェックが実装された。
+
+参照: https://webrtc-review.googlesource.com/c/src/+/229460
 
 このパッチでは、 Sora Android SDK 側でチェックを無効化する選択肢を提供するために、 libwebrtc に実装されたチェックを無効化している。  
 チェックを無効化するオプションがメインストリームに実装された場合、このパッチは削除できる。  
