@@ -490,7 +490,6 @@ def build_webrtc_ios(
     # - https://webrtc-review.googlesource.com/c/src/+/232600 が影響している可能性があるため use_lld=false を追加
     gn_args_base = [
         'rtc_libvpx_build_vp9=true',
-        'libcxx_abi_unstable=false',
         'enable_dsyms=true',
         'use_lld=false',
         'rtc_enable_objc_symbol_export=true',
@@ -666,7 +665,6 @@ def build_webrtc(
                 'rtc_libvpx_build_vp9=true',
                 'rtc_enable_symbol_export=true',
                 'rtc_enable_objc_symbol_export=false',
-                'libcxx_abi_unstable=false',
             ]
         elif target in ('raspberry-pi-os_armv6',
                         'raspberry-pi-os_armv7',
