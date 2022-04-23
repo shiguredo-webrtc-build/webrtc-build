@@ -12,6 +12,11 @@
 VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 パッチやビルドの変更のみ記録すること。
 
+## 100.4896.1.2
+
+- [ADD] ubuntu-20.04_armv8 を追加
+    - @tnoho
+
 ## 96.4664.2.1
 
 - [FIX] android_simulcast.patch を修正して、 SimulcastVideoEncoderFactory の fallback に null を渡せるようにする
