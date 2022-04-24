@@ -1,0 +1,13 @@
+diff --git a/sdk/android/src/java/org/webrtc/HardwareVideoEncoder.java b/sdk/android/src/java/org/webrtc/HardwareVideoEncoder.java
+index e5062629c7..810935119e 100644
+--- a/sdk/android/src/java/org/webrtc/HardwareVideoEncoder.java
++++ b/sdk/android/src/java/org/webrtc/HardwareVideoEncoder.java
+@@ -55,7 +55,7 @@ class HardwareVideoEncoder implements VideoEncoder {
+   private static final int DEQUEUE_OUTPUT_BUFFER_TIMEOUT_US = 100000;
+ 
+   // Size of the input frames should be multiple of 16 for the H/W encoder.
+-  private static final int REQUIRED_RESOLUTION_ALIGNMENT = 16;
++  private static final int REQUIRED_RESOLUTION_ALIGNMENT = 1;
+ 
+   /**
+    * Keeps track of the number of output buffers that have been passed down the pipeline and not yet
