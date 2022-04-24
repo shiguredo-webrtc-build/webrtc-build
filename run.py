@@ -250,6 +250,12 @@ PATCHES = {
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
+    'ubuntu-20.04_armv8': [
+        'add_dep_zlib.patch',
+        '4k.patch',
+        'add_license_dav1d.patch',
+        'ssl_verify_callback_with_native_handle.patch',
+    ],
     'ubuntu-18.04_x86_64': [
         '4k.patch',
         'add_license_dav1d.patch',
@@ -355,6 +361,11 @@ MULTISTRAP_CONFIGS = {
     ),
     'ubuntu-18.04_armv8': MultistrapConfig(
         config_file=['ubuntu-18.04_armv8', 'arm64.conf'],
+        arch='arm64',
+        triplet='aarch64-linux-gnu'
+    ),
+    'ubuntu-20.04_armv8': MultistrapConfig(
+        config_file=['ubuntu-20.04_armv8', 'arm64.conf'],
         arch='arm64',
         triplet='aarch64-linux-gnu'
     ),
@@ -659,11 +670,12 @@ def build_webrtc(
         elif target in ('raspberry-pi-os_armv6',
                         'raspberry-pi-os_armv7',
                         'raspberry-pi-os_armv8',
-                        'ubuntu-18.04_armv8'):
+                        'ubuntu-18.04_armv8',
+                        'ubuntu-20.04_armv8'):
             sysroot = os.path.join(source_dir, 'rootfs')
             gn_args += [
                 'target_os="linux"',
-                f'target_cpu="{"arm64" if target in ("raspberry-pi-os_armv8", "ubuntu-18.04_armv8") else "arm"}"',
+                f'target_cpu="{"arm64" if target in ("raspberry-pi-os_armv8", "ubuntu-18.04_armv8", "ubuntu-20.04_armv8") else "arm"}"',
                 f'target_sysroot="{sysroot}"',
                 'rtc_use_pipewire=false',
             ]
@@ -882,6 +894,7 @@ TARGETS = [
     'ubuntu-18.04_x86_64',
     'ubuntu-20.04_x86_64',
     'ubuntu-18.04_armv8',
+    'ubuntu-20.04_armv8',
     'raspberry-pi-os_armv6',
     'raspberry-pi-os_armv7',
     'raspberry-pi-os_armv8',
@@ -914,6 +927,7 @@ def check_target(target):
 
         # クロスコンパイルなので Ubuntu だったら任意のバージョンでビルド可能（なはず）
         if target in ('ubuntu-18.04_armv8',
+                      'ubuntu-20.04_armv8',
                       'raspberry-pi-os_armv6',
                       'raspberry-pi-os_armv7',
                       'raspberry-pi-os_armv8',
