@@ -41,6 +41,8 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
     - Jetson Nano
     - Jetson Xavier NX
     - Jetson AGX Xavier
+- ubuntu-20.04_armv8
+    - Jetson AGX Orin
 - ubuntu-18.04_x86_64
 - ubuntu-20.04_x86_64
 - android_arm64
@@ -73,8 +75,9 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
 Apache License 2.0
 
 ```
-Copyright 2019-2021, Wandbox LLC (Original Author)
-Copyright 2019-2021, Shiguredo Inc.
+Copyright 2019-2022, Wandbox LLC (Original Author)
+Copyright 2019-2022, tnoho (Original Author)
+Copyright 2019-2022, Shiguredo Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

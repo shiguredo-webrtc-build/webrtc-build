@@ -12,7 +12,14 @@
 VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 パッチやビルドの変更のみ記録すること。
 
-## 96.4664.2.1
+## m101.4951.5.1
+
+- [ADD] ubuntu-20.04_armv8 を追加
+    - @tnoho
+- [FIX] Android の HardwareVideoEncoder に実装された解像度の制限を回避するパッチを追加する
+    - @enm10k
+
+## m96.4664.2.1
 
 - [FIX] android_simulcast.patch を修正して、 SimulcastVideoEncoderFactory の fallback に null を渡せるようにする
     - @enm10k

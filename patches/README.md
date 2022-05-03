@@ -12,7 +12,6 @@ Android にて映像フレームの処理時にクラッシュするいくつか
 
 同等の機能が本家に実装されるか、 PR を出して取り込まれたら削除する。
 
-
 ## android_simulcast.patch
 
 Android でのサイマルキャストのサポートを追加するパッチ。この実装は C++ の `SimulcastEncoderAdapter` の簡単なラッパーであり、既存の仕様に破壊的変更も行わない。
@@ -24,7 +23,6 @@ Android でのサイマルキャストのサポートを追加するパッチ。
 
 同等の機能が本家に実装されるか、 PR を出して取り込まれたら削除する。
 
- 
 ## android_webrtc_version.patch
 
 Android API に libwebrtc のビルド時のバージョンを取得する API を追加する。
@@ -35,6 +33,16 @@ Android API に libwebrtc のビルド時のバージョンを取得する API �
 
 同等の機能が本家に実装されるか、 PR を出して取り込まれたら削除する。
 
+## android_hardware_video_encoder.patch
+
+解像度が16の倍数でない場合、 HardwareVideoEncoder 初期化時などのチェックでエラーが発生するようになった。  
+Android CTS では解像度が16の倍数のケースしかテストされておらず、かつ、解像度が16の倍数でない映像を受信した際に問題が発生する端末があったことが理由で、上記のチェックが実装された。
+
+参照: https://webrtc-review.googlesource.com/c/src/+/229460
+
+このパッチでは、 Sora Android SDK 側でチェックを無効化する選択肢を提供するために、 libwebrtc に実装されたチェックを無効化している。  
+チェックを無効化するオプションがメインストリームに実装された場合、このパッチは削除できる。  
+https://bugs.chromium.org/p/webrtc/issues/detail?id=13973
 
 ## ios_bitcode.patch
 
@@ -47,7 +55,6 @@ iOS でのマイク不使用時のパーミッション要求を抑制するパ�
 
 同等の機能が本家に実装されるか PR を出して取り込まれたら削除するが、デフォルトの仕様の破壊的変更を含むので難しいと思われる。
 
-
 ## ios_simulcast.patch
 
 iOS でのサイマルキャストのサポートを追加するパッチ。この実装は C++ の `SimulcastEncoderAdapter` の簡単なラッパーであり、既存の仕様に破壊的変更も行わない。
@@ -58,7 +65,6 @@ iOS でのサイマルキャストのサポートを追加するパッチ。こ�
 - `RTCVideoEncoderSimulcast`
 
 同等の機能が本家に実装されるか、 PR を出して取り込まれたら削除する。
-
 
 ## macos_av1.patch
 

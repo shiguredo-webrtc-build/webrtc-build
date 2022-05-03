@@ -70,6 +70,7 @@ jobs:
           - raspberry-pi-os_armv7
           - raspberry-pi-os_armv8
           - ubuntu-18.04_armv8
+          - ubuntu-20.04_armv8
           - ubuntu-18.04_x86_64
           - ubuntu-20.04_x86_64
           - android
@@ -130,6 +131,7 @@ jobs:
           - raspberry-pi-os_armv7
           - raspberry-pi-os_armv8
           - ubuntu-18.04_armv8
+          - ubuntu-20.04_armv8
           - ubuntu-18.04_x86_64
           - ubuntu-20.04_x86_64
           - android
