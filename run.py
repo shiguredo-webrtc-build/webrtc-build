@@ -492,6 +492,7 @@ def build_webrtc_ios(
     gn_args_base = [
         'rtc_libvpx_build_vp9=true',
         'enable_dsyms=true',
+        'use_custom_libcxx=false',
         'use_lld=false',
         'rtc_enable_objc_symbol_export=true',
         *COMMON_GN_ARGS,

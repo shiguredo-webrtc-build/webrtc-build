@@ -1,5 +1,22 @@
+diff --git a/build/config/clang/clang.gni b/build/config/clang/clang.gni
+index 1e6621848..550b3e7e8 100644
+--- a/build/config/clang/clang.gni
++++ b/build/config/clang/clang.gni
+@@ -10,9 +10,9 @@ declare_args() {
+   # Indicates if the build should use the Chrome-specific plugins for enforcing
+   # coding guidelines, etc. Only used when compiling with Chrome's Clang, not
+   # Chrome OS's.
+-  clang_use_chrome_plugins =
+-      is_clang && !is_nacl && current_os != "zos" &&
+-      default_toolchain != "//build/toolchain/cros:target"
++  clang_use_chrome_plugins = false
++      # is_clang && !is_nacl && current_os != "zos" &&
++      # default_toolchain != "//build/toolchain/cros:target"
+ 
+   clang_base_path = default_clang_base_path
+ }
 diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
-index 8048ec5e8..c0bb45ac2 100644
+index 48aa424f8..817c1b2bc 100644
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
 @@ -534,7 +534,7 @@ config("compiler") {
@@ -11,6 +28,57 @@ index 8048ec5e8..c0bb45ac2 100644
      cflags += [ "-fcrash-diagnostics-dir=" + clang_diagnostic_dir ]
  
      # TODO(hans): Remove this once Clang generates better optimized debug info
+@@ -1540,10 +1540,10 @@ config("default_warnings") {
+         "-Wno-ignored-pragma-optimize",
+       ]
+ 
+-      if (!is_nacl) {
+-        # TODO(https://crbug.com/1300731) Clean up and enable.
+-        cflags += [ "-Wno-unqualified-std-cast-call" ]
+-      }
++      # if (!is_nacl) {
++      #   # TODO(https://crbug.com/1300731) Clean up and enable.
++      #   cflags += [ "-Wno-unqualified-std-cast-call" ]
++      # }
+ 
+       if (is_chromeos || default_toolchain == "//build/toolchain/cros:target") {
+         # TODO(https://crbug.com/1016945): Re-enable once ChromeOS toolchain is up to date
+@@ -1741,7 +1741,7 @@ config("no_chromium_code") {
+     if (!is_nacl) {
+       cflags += [
+         # Disabled for similar reasons as -Wunused-variable.
+-        "-Wno-unused-but-set-variable",
++        # "-Wno-unused-but-set-variable",
+ 
+         # TODO(https://crbug.com/1202159): Clean up and enable.
+         "-Wno-misleading-indentation",
+diff --git a/build/toolchain/apple/toolchain.gni b/build/toolchain/apple/toolchain.gni
+index 7221c8027..214c45b3e 100644
+--- a/build/toolchain/apple/toolchain.gni
++++ b/build/toolchain/apple/toolchain.gni
+@@ -106,7 +106,8 @@ template("apple_toolchain") {
+       toolchain_uses_lld = use_lld
+     }
+ 
+-    prefix = rebase_path("$clang_base_path/bin/", root_build_dir)
++    # prefix = rebase_path("$clang_base_path/bin/", root_build_dir)
++    prefix = invoker.bin_path
+     _cc = "${prefix}clang"
+     _cxx = "${prefix}clang++"
+ 
+diff --git a/build/toolchain/mac/BUILD.gn b/build/toolchain/mac/BUILD.gn
+index 0adce9400..d2b6a5b57 100644
+--- a/build/toolchain/mac/BUILD.gn
++++ b/build/toolchain/mac/BUILD.gn
+@@ -23,7 +23,7 @@ template("mac_toolchain") {
+ 
+       if (target_os == "ios") {
+         # Use LLD for the host part of a chrome/ios build.
+-        use_lld = true
++        use_lld = false
+ 
+         # Defined in //base, would trigger a warning if the build doesn't depend
+         # on it.
 diff --git a/third_party/dav1d/BUILD.gn b/third_party/dav1d/BUILD.gn
 index 933c8f2f566..d752194d95b 100644
 --- a/third_party/dav1d/BUILD.gn
