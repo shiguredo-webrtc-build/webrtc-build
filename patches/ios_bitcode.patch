@@ -133,3 +133,16 @@ index 933c8f2f566..d752194d95b 100644
 -
    deps = [ ":dav1d_headers" ]
  }
+diff --git a/third_party/nasm/BUILD.gn b/third_party/nasm/BUILD.gn
+index ebd8b7fe..20f6ff8a 100644
+--- a/third_party/nasm/BUILD.gn
++++ b/third_party/nasm/BUILD.gn
+@@ -80,7 +80,7 @@ config("nasm_config") {
+       "-Wno-uninitialized",
+ 
+       # NASM sometimes set variables but doesn't use them.
+-      "-Wno-unused-but-set-variable",
++      # "-Wno-unused-but-set-variable",
+     ]
+   } else if (is_win) {
+     # Please note that's a slightly different set of warnings.
