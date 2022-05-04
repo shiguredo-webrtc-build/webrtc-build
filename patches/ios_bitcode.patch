@@ -52,6 +52,47 @@ index 48aa424f8..817c1b2bc 100644
  
          # TODO(https://crbug.com/1202159): Clean up and enable.
          "-Wno-misleading-indentation",
+diff --git a/build/config/ios/BUILD.gn b/build/config/ios/BUILD.gn
+index b709c388a..774b460ca 100644
+--- a/build/config/ios/BUILD.gn
++++ b/build/config/ios/BUILD.gn
+@@ -126,22 +126,22 @@ config("runtime_library") {
+   # TODO(crbug.com/1223481): Temporarily use a different
+   # libclang_rt.iossim.a for arm64 simulator builds. This can be
+   # removed when an arm64 slice is added to upstream Clang.
+-  if (target_environment == "simulator" && current_cpu == "arm64") {
+-    if (xcode_version_int >= 1300 && xcode_version_int <= 1321) {
+-      _xcode_clang_version = "13.0.0"
+-    } else if (xcode_version_int == 1330) {
+-      _xcode_clang_version = "13.1.6"
+-    } else {
+-      assert(false)
+-    }
+-    ldflags += [
+-      "-lSystem",
+-      rebase_path("$ios_toolchains_path/usr/lib/clang/" + _xcode_clang_version +
+-                      "/lib/darwin/libclang_rt.iossim.a",
+-                  root_build_dir),
+-      "-nodefaultlibs",
+-    ]
+-  }
++  # if (target_environment == "simulator" && current_cpu == "arm64") {
++  #   if (xcode_version_int >= 1300 && xcode_version_int <= 1321) {
++  #     _xcode_clang_version = "13.0.0"
++  #   } else if (xcode_version_int == 1330) {
++  #     _xcode_clang_version = "13.1.6"
++  #   } else {
++  #     assert(false)
++  #   }
++  #   ldflags += [
++  #     "-lSystem",
++  #     rebase_path("$ios_toolchains_path/usr/lib/clang/" + _xcode_clang_version +
++  #                     "/lib/darwin/libclang_rt.iossim.a",
++  #                 root_build_dir),
++  #     "-nodefaultlibs",
++  #   ]
++  # }
+
 diff --git a/build/toolchain/apple/toolchain.gni b/build/toolchain/apple/toolchain.gni
 index 7221c8027..214c45b3e 100644
 --- a/build/toolchain/apple/toolchain.gni
