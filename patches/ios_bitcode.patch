@@ -93,6 +93,8 @@ index b709c388a..774b460ca 100644
 +  #   ]
 +  # }
 
+   # TODO(crbug.com/1259122): Temporarily use a different libclang_rt.osx.a
+   # for catalyst build. This can be removed when a catalyst slice is added
 diff --git a/build/toolchain/apple/toolchain.gni b/build/toolchain/apple/toolchain.gni
 index 7221c8027..214c45b3e 100644
 --- a/build/toolchain/apple/toolchain.gni
@@ -174,6 +176,7 @@ index 933c8f2f566..d752194d95b 100644
 -
    deps = [ ":dav1d_headers" ]
  }
+
 diff --git a/third_party/nasm/BUILD.gn b/third_party/nasm/BUILD.gn
 index ebd8b7fe..20f6ff8a 100644
 --- a/third_party/nasm/BUILD.gn
