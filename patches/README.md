@@ -54,6 +54,9 @@ iOS のビルドで発生した問題を修正するパッチ。
   - 参照: https://webrtchacks.com/the-webrtc-bitcode-soap-opera-saul-ibarra-corretge/
 - bitcode を有効にした際に発生したビルド・エラーの修正
 
+Xcode に含まれる clang を利用してビルドするオプションがメインストリームに実装された場合、このパッチは削除できる。  
+https://bugs.chromium.org/p/webrtc/issues/detail?id=13925
+
 ## ios_manual_audio_input.patch
 
 iOS でのマイク不使用時のパーミッション要求を抑制するパッチ。詳細は `docs/patch_ios_manual_audio_input.md` を参照すること。
