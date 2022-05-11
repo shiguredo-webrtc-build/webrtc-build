@@ -51,7 +51,7 @@ iOS のビルドで発生した問題を修正するパッチ。
 
 - ビルドに Xcode に含まれる clang を使用する
   - libwebrtc で指定されている clang を使用した場合、 bitcode を有効にしてビルドしたアプリが App Store に提出できなかった
-	- 参照: https://webrtchacks.com/the-webrtc-bitcode-soap-opera-saul-ibarra-corretge/
+  - 参照: https://webrtchacks.com/the-webrtc-bitcode-soap-opera-saul-ibarra-corretge/
 - bitcode を有効にした際に発生したビルド・エラーの修正
 
 ## ios_manual_audio_input.patch
