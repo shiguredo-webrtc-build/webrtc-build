@@ -213,7 +213,7 @@ PATCHES = {
         'ios_manual_audio_input.patch',
         'ios_simulcast.patch',
         'ssl_verify_callback_with_native_handle.patch',
-        'ios_bitcode.patch',
+        'ios_build.patch',
     ],
     'android': [
         'add_dep_zlib.patch',

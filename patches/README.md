@@ -44,10 +44,15 @@ Android CTS では解像度が16の倍数のケースしかテストされてお
 チェックを無効化するオプションがメインストリームに実装された場合、このパッチは削除できる。  
 https://bugs.chromium.org/p/webrtc/issues/detail?id=13973
 
-## ios_bitcode.patch
+## ios_build.patch
 
-現在は xcode の clang でなくても bitcode に対応したため xcode の clang 対応が落とされたが、その変更に伴う bitcode がらみのビルドエラーが生じているために、これを回避するパッチ。
-関連する問題として xcode 13.0 縛りが[入っている](https://source.chromium.org/chromium/chromium/src/+/main:build/config/ios/BUILD.gn;l=130)ために build.yml でも xcode 13.0 指定をおこなっている。様子を見て解除すること。
+iOS のビルドで発生した問題を修正するパッチ。  
+以下の変更が含まれている。
+
+- ビルドに Xcode に含まれる clang を使用する
+  - libwebrtc で指定されている clang を使用した場合、 bitcode を有効にしてビルドしたアプリが App Store に提出できなかった
+	- 参照: https://webrtchacks.com/the-webrtc-bitcode-soap-opera-saul-ibarra-corretge/
+- bitcode を有効にした際に発生したビルド・エラーの修正
 
 ## ios_manual_audio_input.patch
 
