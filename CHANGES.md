@@ -15,6 +15,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 ## develop
 
 - [FIX] iOS のビルドに、 Xcode に含まれる clang を使用する
+    - こちらのパッチを作成するにあたり、以下の記事とパッチを参考にしました
+    - https://webrtchacks.com/the-webrtc-bitcode-soap-opera-saul-ibarra-corretge/
+    - https://github.com/jitsi/webrtc/releases/tag/v100.0.0
     - @enm10k
 
 ## m101.4951.5.1
