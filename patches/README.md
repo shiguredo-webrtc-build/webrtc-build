@@ -52,6 +52,7 @@ iOS のビルドで発生した問題を修正するパッチ。
 - ビルドに Xcode に含まれる clang を使用する
   - libwebrtc で指定されている clang を使用した場合、 bitcode を有効にしてビルドしたアプリを App Store Connect にアップロードする際にエラーが発生する可能性がある
   - 参照: https://webrtchacks.com/the-webrtc-bitcode-soap-opera-saul-ibarra-corretge/
+  - こちらの修正には https://github.com/jitsi/webrtc/releases/tag/v100.0.0 で公開されている 001-build.diff を参考にした
 - bitcode を有効にした際に発生したビルド・エラーの修正
 
 Xcode に含まれる clang を利用してビルドするオプションがメインストリームに実装された場合、このパッチは削除できる。  
