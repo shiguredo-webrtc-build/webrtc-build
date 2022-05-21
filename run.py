@@ -163,7 +163,6 @@ def get_depot_tools(source_dir, fetch=False):
 
 
 PATCH_INFO = {
-    '4k.patch': (2, []),
     'macos_h264_encoder.patch': (2, []),
     'macos_screen_capture.patch': (2, []),
 }
