@@ -213,7 +213,7 @@ PATCHES = {
         'ios_manual_audio_input.patch',
         'ios_simulcast.patch',
         'ssl_verify_callback_with_native_handle.patch',
-        'ios_bitcode.patch',
+        'ios_build.patch',
     ],
     'android': [
         'add_dep_zlib.patch',
@@ -492,6 +492,7 @@ def build_webrtc_ios(
     gn_args_base = [
         'rtc_libvpx_build_vp9=true',
         'enable_dsyms=true',
+        'use_custom_libcxx=false',
         'use_lld=false',
         'rtc_enable_objc_symbol_export=true',
         *COMMON_GN_ARGS,
@@ -666,6 +667,9 @@ def build_webrtc(
                 'rtc_libvpx_build_vp9=true',
                 'rtc_enable_symbol_export=true',
                 'rtc_enable_objc_symbol_export=false',
+                'use_custom_libcxx=false',
+                'use_custom_libcxx_for_host=true',
+                'treat_warnings_as_errors=false',
             ]
         elif target in ('raspberry-pi-os_armv6',
                         'raspberry-pi-os_armv7',
