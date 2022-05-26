@@ -224,6 +224,7 @@ PATCHES = {
         'android_fixsegv.patch',
         'android_simulcast.patch',
         'android_hardware_video_encoder.patch',
+        'android_proxy.patch',
     ],
     'raspberry-pi-os_armv6': [
         'nacl_armv6_2.patch',
@@ -271,6 +272,7 @@ PATCHES = {
 
 def apply_patch(patch, dir, depth):
     with cd(dir):
+        logging.info(f'patch -p{depth} < {patch}')
         if platform.system() == 'Windows':
             cmd(['git', 'apply', f'-p{depth}',
                 '--ignore-space-change', '--ignore-whitespace', '--whitespace=nowarn',
