@@ -44,6 +44,21 @@ Android CTS では解像度が16の倍数のケースしかテストされてお
 チェックを無効化するオプションがメインストリームに実装された場合、このパッチは削除できる。  
 https://bugs.chromium.org/p/webrtc/issues/detail?id=13973
 
+## android_proxy.patch
+
+Android に Proxy を設定する機能を入れるパッチ。
+以下のように利用する。
+
+```java
+// Builder で setProxy を呼ぶことで Proxy を設定できる
+PeerConnectionDependencies dependencies = PeerConnectionDependencies
+    .builder(observer)
+    .setProxy(ProxyType.HTTPS, "user-agent", "192.168.100.11", 3456, "username", "password");
+    .createPeerConnectionDependencies();
+// あとはいつも通り PeerConnection を生成する
+PeerConnection pc = factory.createPeerConnection(rtcConfig, dependencies);
+```
+
 ## ios_build.patch
 
 iOS のビルドで発生した問題を修正するパッチ。  
