@@ -101,6 +101,12 @@ iOS でのサイマルキャストのサポートを追加するパッチ。こ�
 
 ## macos_simulcast.patch
 
+## macos_use_xcode_clang.patch
+
+大体 `ios_build.patch` と同じ内容のパッチ。
+
+WebRTC が用意している clang でビルドすると、M1 Mac で実行時エラーが発生してしまう。
+なので Xcode clang を利用してビルドするように修正する。
 
 ## nacl_armv6_2.patch
 

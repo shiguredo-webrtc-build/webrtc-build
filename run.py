@@ -166,6 +166,7 @@ PATCH_INFO = {
     '4k.patch': (2, []),
     'macos_h264_encoder.patch': (2, []),
     'macos_screen_capture.patch': (2, []),
+    'macos_use_xcode_clang.patch': (1, ['build']),
 }
 
 PATCHES = {
@@ -192,6 +193,7 @@ PATCHES = {
         'macos_simulcast.patch',
         'ios_simulcast.patch',
         'ssl_verify_callback_with_native_handle.patch',
+        'macos_use_xcode_clang.patch',
     ],
     'macos_arm64': [
         'add_dep_zlib.patch',
@@ -202,6 +204,7 @@ PATCHES = {
         'macos_simulcast.patch',
         'ios_simulcast.patch',
         'ssl_verify_callback_with_native_handle.patch',
+        'macos_use_xcode_clang.patch',
     ],
     'ios': [
         'add_dep_zlib.patch',
@@ -672,6 +675,8 @@ def build_webrtc(
                 'use_custom_libcxx=false',
                 'use_custom_libcxx_for_host=true',
                 'treat_warnings_as_errors=false',
+                'clang_use_chrome_plugins=false',
+                'use_lld=false',
             ]
         elif target in ('raspberry-pi-os_armv6',
                         'raspberry-pi-os_armv7',
