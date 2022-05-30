@@ -25,8 +25,6 @@ apt-get -y install \
   libsdl2-dev \
   locales \
   lsb-release \
-  python \
-  python-setuptools \
   python3 \
   python3-setuptools \
   rsync \
