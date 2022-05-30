@@ -269,6 +269,11 @@ PATCHES = {
         '4k.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
+    ],
+    'ubuntu-22.04_x86_64': [
+        '4k.patch',
+        'add_license_dav1d.patch',
+        'ssl_verify_callback_with_native_handle.patch',
     ]
 }
 
@@ -684,9 +689,10 @@ def build_webrtc(
                         'ubuntu-18.04_armv8',
                         'ubuntu-20.04_armv8'):
             sysroot = os.path.join(source_dir, 'rootfs')
+            arm64_set = ("raspberry-pi-os_armv8", "ubuntu-18.04_armv8", "ubuntu-20.04_armv8")
             gn_args += [
                 'target_os="linux"',
-                f'target_cpu="{"arm64" if target in ("raspberry-pi-os_armv8", "ubuntu-18.04_armv8", "ubuntu-20.04_armv8") else "arm"}"',
+                f'target_cpu="{"arm64" if target in arm64_set else "arm"}"',
                 f'target_sysroot="{sysroot}"',
                 'rtc_use_pipewire=false',
             ]
@@ -700,7 +706,7 @@ def build_webrtc(
                     'arm_use_neon=false',
                     'enable_libaom=false',
                 ]
-        elif target in ('ubuntu-18.04_x86_64', 'ubuntu-20.04_x86_64'):
+        elif target in ('ubuntu-18.04_x86_64', 'ubuntu-20.04_x86_64', 'ubuntu-22.04_x86_64'):
             gn_args += [
                 'target_os="linux"',
                 'rtc_use_pipewire=false',
@@ -904,6 +910,7 @@ TARGETS = [
     'macos_arm64',
     'ubuntu-18.04_x86_64',
     'ubuntu-20.04_x86_64',
+    'ubuntu-22.04_x86_64',
     'ubuntu-18.04_armv8',
     'ubuntu-20.04_armv8',
     'raspberry-pi-os_armv6',
@@ -951,6 +958,8 @@ def check_target(target):
         if target == 'ubuntu-18.04_x86_64' and osver == '18.04':
             return True
         if target == 'ubuntu-20.04_x86_64' and osver == '20.04':
+            return True
+        if target == 'ubuntu-22.04_x86_64' and osver == '22.04':
             return True
 
         return False
