@@ -14,6 +14,11 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## master
 
+## m102.5005.7.6
+
+- [FIX] Android の Proxy 対応で PeerConnectionFactoryProxy を使っていなかったのを修正
+    - @melpon
+
 ## m102.5005.7.5
 
 - [ADD] ubuntu-22.04_x86_64 追加
