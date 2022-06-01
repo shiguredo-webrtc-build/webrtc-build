@@ -228,20 +228,21 @@ index 7dc9443ea5..eb1dcc27a7 100644
  };
  
 diff --git a/sdk/android/src/jni/pc/peer_connection_factory.cc b/sdk/android/src/jni/pc/peer_connection_factory.cc
-index fafcad3caf..dab2e23ac6 100644
+index fafcad3caf..f685f8a7ac 100644
 --- a/sdk/android/src/jni/pc/peer_connection_factory.cc
 +++ b/sdk/android/src/jni/pc/peer_connection_factory.cc
-@@ -29,6 +29,9 @@
+@@ -29,6 +29,10 @@
  #include "media/engine/webrtc_media_engine.h"
  #include "modules/audio_device/include/audio_device.h"
  #include "modules/audio_processing/include/audio_processing.h"
 +#include "p2p/client/basic_port_allocator.h"
 +#include "pc/connection_context.h"
 +#include "pc/peer_connection_factory.h"
++#include "pc/peer_connection_factory_proxy.h"
  #include "rtc_base/event_tracer.h"
  #include "rtc_base/physical_socket_server.h"
  #include "rtc_base/thread.h"
-@@ -139,10 +142,11 @@ ScopedJavaLocalRef<jobject> NativeToScopedJavaPeerConnectionFactory(
+@@ -139,10 +143,11 @@ ScopedJavaLocalRef<jobject> NativeToScopedJavaPeerConnectionFactory(
      std::unique_ptr<rtc::SocketFactory> socket_factory,
      std::unique_ptr<rtc::Thread> network_thread,
      std::unique_ptr<rtc::Thread> worker_thread,
@@ -255,7 +256,7 @@ index fafcad3caf..dab2e23ac6 100644
  
    ScopedJavaLocalRef<jobject> j_pcf = Java_PeerConnectionFactory_Constructor(
        env, NativeToJavaPointer(owned_factory));
-@@ -178,10 +182,11 @@ jobject NativeToJavaPeerConnectionFactory(
+@@ -178,10 +183,11 @@ jobject NativeToJavaPeerConnectionFactory(
      std::unique_ptr<rtc::SocketFactory> socket_factory,
      std::unique_ptr<rtc::Thread> network_thread,
      std::unique_ptr<rtc::Thread> worker_thread,
@@ -269,7 +270,7 @@ index fafcad3caf..dab2e23ac6 100644
        .Release();
  }
  
-@@ -243,6 +248,35 @@ static void JNI_PeerConnectionFactory_ShutdownInternalTracer(JNIEnv* jni) {
+@@ -243,6 +249,35 @@ static void JNI_PeerConnectionFactory_ShutdownInternalTracer(JNIEnv* jni) {
    rtc::tracing::ShutdownInternalTracer();
  }
  
@@ -305,33 +306,45 @@ index fafcad3caf..dab2e23ac6 100644
  // Following parameters are optional:
  // `audio_device_module`, `jencoder_factory`, `jdecoder_factory`,
  // `audio_processor`, `fec_controller_factory`,
-@@ -320,8 +354,14 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
+@@ -320,9 +355,25 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
    dependencies.media_engine =
        cricket::CreateMediaEngine(std::move(media_dependencies));
  
 -  rtc::scoped_refptr<PeerConnectionFactoryInterface> factory =
 -      CreateModularPeerConnectionFactory(std::move(dependencies));
+-
 +  //rtc::scoped_refptr<PeerConnectionFactoryInterface> factory =
 +  //    CreateModularPeerConnectionFactory(std::move(dependencies));
-+  rtc::scoped_refptr<CustomPeerConnectionFactory> factory = dependencies.signaling_thread
-+                 ->Invoke<rtc::scoped_refptr<CustomPeerConnectionFactory>>(
-+                     RTC_FROM_HERE, [&dependencies]() {
-+                       return CustomPeerConnectionFactory::Create(
-+                           std::move(dependencies));
-+                     });
- 
++  using result_type =
++      std::pair<rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>,
++                rtc::scoped_refptr<webrtc::ConnectionContext>>;
++  auto p = dependencies.signaling_thread->Invoke<result_type>(
++      RTC_FROM_HERE, [&dependencies]() {
++        auto factory =
++            CustomPeerConnectionFactory::Create(std::move(dependencies));
++        if (factory == nullptr) {
++          return result_type(nullptr, nullptr);
++        }
++        auto context = factory->GetContext();
++        auto proxy = webrtc::PeerConnectionFactoryProxy::Create(
++            factory->signaling_thread(), factory->worker_thread(), factory);
++        return result_type(proxy, context);
++      });
++  auto factory = p.first;
++  auto context = p.second;
    RTC_CHECK(factory) << "Failed to create the peer connection factory; "
                          "WebRTC/libjingle init likely failed on this device";
-@@ -332,7 +372,7 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
+   // TODO(honghaiz): Maybe put the options as the argument of
+@@ -332,7 +383,7 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
  
    return NativeToScopedJavaPeerConnectionFactory(
        jni, factory, std::move(socket_server), std::move(network_thread),
 -      std::move(worker_thread), std::move(signaling_thread));
-+      std::move(worker_thread), std::move(signaling_thread), factory->GetContext());
++      std::move(worker_thread), std::move(signaling_thread), context);
  }
  
  static ScopedJavaLocalRef<jobject>
-@@ -433,13 +473,41 @@ static void JNI_PeerConnectionFactory_StopAecDump(JNIEnv* jni,
+@@ -433,13 +484,41 @@ static void JNI_PeerConnectionFactory_StopAecDump(JNIEnv* jni,
    PeerConnectionFactoryFromJava(native_factory)->StopAecDump();
  }
  
@@ -374,7 +387,7 @@ index fafcad3caf..dab2e23ac6 100644
    std::unique_ptr<PeerConnectionObserver> observer(
        reinterpret_cast<PeerConnectionObserver*>(observer_p));
  
-@@ -476,8 +544,49 @@ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
+@@ -476,8 +555,49 @@ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
              jni, j_sslCertificateVerifier);
    }
  
