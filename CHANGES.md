@@ -12,7 +12,34 @@
 VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 パッチやビルドの変更のみ記録すること。
 
-## develop
+## master
+
+## m102.5005.7.6
+
+- [FIX] Android の Proxy 対応で PeerConnectionFactoryProxy を使っていなかったのを修正
+    - @melpon
+
+## m102.5005.7.5
+
+- [ADD] ubuntu-22.04_x86_64 追加
+    - @melpon
+
+## m102.5005.7.4
+
+- [FIX] macOS のビルドでも Xcode Clang を利用する
+    - @melpon
+
+## m102.5005.7.3
+
+- [ADD] Android で Proxy を利用可能にする
+    - @melpon
+
+## m102.5005.7.2
+
+- [FIX] macOS はホストの libc++ を利用する
+    - @melpon
+
+## m102.5005.7.1
 
 - [FIX] iOS のビルドに、 Xcode に含まれる clang を使用する
     - こちらのパッチを作成するにあたり、以下の記事とパッチを参考にしました

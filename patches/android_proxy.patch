@@ -1,0 +1,464 @@
+diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
+index dda61cea08..645950d717 100644
+--- a/sdk/android/BUILD.gn
++++ b/sdk/android/BUILD.gn
+@@ -282,6 +283,7 @@ if (is_android) {
+       "api/org/webrtc/PeerConnection.java",
+       "api/org/webrtc/PeerConnectionDependencies.java",
+       "api/org/webrtc/PeerConnectionFactory.java",
++      "api/org/webrtc/ProxyType.java",
+       "api/org/webrtc/RTCStats.java",
+       "api/org/webrtc/RTCStatsCollectorCallback.java",
+       "api/org/webrtc/RTCStatsReport.java",
+diff --git a/sdk/android/api/org/webrtc/PeerConnectionDependencies.java b/sdk/android/api/org/webrtc/PeerConnectionDependencies.java
+index ac6c94bb11..e823f0e370 100644
+--- a/sdk/android/api/org/webrtc/PeerConnectionDependencies.java
++++ b/sdk/android/api/org/webrtc/PeerConnectionDependencies.java
+@@ -25,22 +25,54 @@ public final class PeerConnectionDependencies {
+   // Optional fields.
+   private final SSLCertificateVerifier sslCertificateVerifier;
+ 
++  private final ProxyType proxyType;
++  private final String proxyAgent;
++  private final String proxyHostname;
++  private final int proxyPort;
++  private final String proxyUsername;
++  private final String proxyPassword;
++
+   public static class Builder {
+     private PeerConnection.Observer observer;
+     private SSLCertificateVerifier sslCertificateVerifier;
+ 
++    private ProxyType proxyType;
++    private String proxyAgent;
++    private String proxyHostname;
++    private int proxyPort;
++    private String proxyUsername;
++    private String proxyPassword;
++
+     private Builder(PeerConnection.Observer observer) {
+       this.observer = observer;
++      this.proxyType = ProxyType.NONE;
++      this.proxyAgent = "";
++      this.proxyHostname = "";
++      this.proxyPort = 0;
++      this.proxyUsername = "";
++      this.proxyPassword = "";
+     }
+ 
+     public Builder setSSLCertificateVerifier(SSLCertificateVerifier sslCertificateVerifier) {
+       this.sslCertificateVerifier = sslCertificateVerifier;
+       return this;
+     }
++    public Builder setProxy(ProxyType proxyType, String proxyAgent, String proxyHostname,
++        int proxyPort, String proxyUsername, String proxyPassword) {
++      this.proxyType = proxyType;
++      this.proxyAgent = proxyAgent;
++      this.proxyHostname = proxyHostname;
++      this.proxyPort = proxyPort;
++      this.proxyUsername = proxyUsername;
++      this.proxyPassword = proxyPassword;
++      return this;
++    }
+ 
+     // Observer is a required dependency and so is forced in the construction of the object.
+     public PeerConnectionDependencies createPeerConnectionDependencies() {
+-      return new PeerConnectionDependencies(observer, sslCertificateVerifier);
++      return new PeerConnectionDependencies(observer, sslCertificateVerifier,
++        this.proxyType, this.proxyAgent, this.proxyHostname, this.proxyPort,
++        this.proxyUsername, this.proxyPassword);
+     }
+   }
+ 
+@@ -57,9 +89,36 @@ public final class PeerConnectionDependencies {
+     return sslCertificateVerifier;
+   }
+ 
++  ProxyType getProxyType() {
++    return proxyType;
++  }
++  String getProxyAgent() {
++    return proxyAgent;
++  }
++  String getProxyHostname() {
++    return proxyHostname;
++  }
++  int getProxyPort() {
++    return proxyPort;
++  }
++  String getProxyUsername() {
++    return proxyUsername;
++  }
++  String getProxyPassword() {
++    return proxyPassword;
++  }
++
+   private PeerConnectionDependencies(
+-      PeerConnection.Observer observer, SSLCertificateVerifier sslCertificateVerifier) {
++      PeerConnection.Observer observer, SSLCertificateVerifier sslCertificateVerifier,
++      ProxyType proxyType, String proxyAgent, String proxyHostname, int proxyPort,
++      String proxyUsername, String proxyPassword) {
+     this.observer = observer;
+     this.sslCertificateVerifier = sslCertificateVerifier;
++    this.proxyType = proxyType;
++    this.proxyAgent = proxyAgent;
++    this.proxyHostname = proxyHostname;
++    this.proxyPort = proxyPort;
++    this.proxyUsername = proxyUsername;
++    this.proxyPassword = proxyPassword;
+   }
+ }
+diff --git a/sdk/android/api/org/webrtc/PeerConnectionFactory.java b/sdk/android/api/org/webrtc/PeerConnectionFactory.java
+index ca67b3afc1..eee3e1ed51 100644
+--- a/sdk/android/api/org/webrtc/PeerConnectionFactory.java
++++ b/sdk/android/api/org/webrtc/PeerConnectionFactory.java
+@@ -369,14 +369,17 @@ public class PeerConnectionFactory {
+   @Nullable
+   PeerConnection createPeerConnectionInternal(PeerConnection.RTCConfiguration rtcConfig,
+       MediaConstraints constraints, PeerConnection.Observer observer,
+-      SSLCertificateVerifier sslCertificateVerifier) {
++      SSLCertificateVerifier sslCertificateVerifier,
++      ProxyType proxyType, String proxyAgent, String proxyHostname, int proxyPort,
++      String proxyUsername, String proxyPassword) {
+     checkPeerConnectionFactoryExists();
+     long nativeObserver = PeerConnection.createNativePeerConnectionObserver(observer);
+     if (nativeObserver == 0) {
+       return null;
+     }
+     long nativePeerConnection = nativeCreatePeerConnection(
+-        nativeFactory, rtcConfig, constraints, nativeObserver, sslCertificateVerifier);
++        nativeFactory, rtcConfig, constraints, nativeObserver, sslCertificateVerifier,
++        proxyType, proxyAgent, proxyHostname, proxyPort, proxyUsername, proxyPassword);
+     if (nativePeerConnection == 0) {
+       return null;
+     }
+@@ -392,7 +395,13 @@ public class PeerConnectionFactory {
+   public PeerConnection createPeerConnection(PeerConnection.RTCConfiguration rtcConfig,
+       MediaConstraints constraints, PeerConnection.Observer observer) {
+     return createPeerConnectionInternal(
+-        rtcConfig, constraints, observer, /* sslCertificateVerifier= */ null);
++        rtcConfig, constraints, observer, /* sslCertificateVerifier= */ null,
++        /* proxyType= */ ProxyType.NONE,
++        /* proxyAgent= */ "",
++        /* proxyHostname= */ "",
++        /* proxyPort= */ 0,
++        /* proxyUsername= */ "",
++        /* proxyPassword= */ "");
+   }
+ 
+   /**
+@@ -426,7 +435,13 @@ public class PeerConnectionFactory {
+   public PeerConnection createPeerConnection(
+       PeerConnection.RTCConfiguration rtcConfig, PeerConnectionDependencies dependencies) {
+     return createPeerConnectionInternal(rtcConfig, null /* constraints */,
+-        dependencies.getObserver(), dependencies.getSSLCertificateVerifier());
++        dependencies.getObserver(), dependencies.getSSLCertificateVerifier(),
++        dependencies.getProxyType(),
++        dependencies.getProxyAgent(),
++        dependencies.getProxyHostname(),
++        dependencies.getProxyPort(),
++        dependencies.getProxyUsername(),
++        dependencies.getProxyPassword());
+   }
+ 
+   public MediaStream createLocalMediaStream(String label) {
+@@ -599,7 +614,9 @@ public class PeerConnectionFactory {
+ 
+   private static native long nativeCreatePeerConnection(long factory,
+       PeerConnection.RTCConfiguration rtcConfig, MediaConstraints constraints, long nativeObserver,
+-      SSLCertificateVerifier sslCertificateVerifier);
++      SSLCertificateVerifier sslCertificateVerifier,
++      ProxyType proxyType, String proxyAgent, String proxyHostname, int proxyPort,
++      String proxyUsername, String proxyPassword);
+   private static native long nativeCreateLocalMediaStream(long factory, String label);
+   private static native long nativeCreateVideoSource(
+       long factory, boolean is_screencast, boolean alignTimestamps);
+diff --git a/sdk/android/src/jni/pc/owned_factory_and_threads.cc b/sdk/android/src/jni/pc/owned_factory_and_threads.cc
+index d595c481f8..8164fe2140 100644
+--- a/sdk/android/src/jni/pc/owned_factory_and_threads.cc
++++ b/sdk/android/src/jni/pc/owned_factory_and_threads.cc
+@@ -20,11 +20,13 @@ OwnedFactoryAndThreads::OwnedFactoryAndThreads(
+     std::unique_ptr<rtc::Thread> network_thread,
+     std::unique_ptr<rtc::Thread> worker_thread,
+     std::unique_ptr<rtc::Thread> signaling_thread,
++    rtc::scoped_refptr<webrtc::ConnectionContext> context,
+     const rtc::scoped_refptr<PeerConnectionFactoryInterface>& factory)
+     : socket_factory_(std::move(socket_factory)),
+       network_thread_(std::move(network_thread)),
+       worker_thread_(std::move(worker_thread)),
+       signaling_thread_(std::move(signaling_thread)),
++      context_(context),
+       factory_(factory) {}
+ 
+ }  // namespace jni
+diff --git a/sdk/android/src/jni/pc/owned_factory_and_threads.h b/sdk/android/src/jni/pc/owned_factory_and_threads.h
+index 7dc9443ea5..eb1dcc27a7 100644
+--- a/sdk/android/src/jni/pc/owned_factory_and_threads.h
++++ b/sdk/android/src/jni/pc/owned_factory_and_threads.h
+@@ -16,6 +16,7 @@
+ #include <utility>
+ 
+ #include "api/peer_connection_interface.h"
++#include "pc/connection_context.h"
+ #include "rtc_base/thread.h"
+ 
+ namespace webrtc {
+@@ -34,6 +35,7 @@ class OwnedFactoryAndThreads {
+       std::unique_ptr<rtc::Thread> network_thread,
+       std::unique_ptr<rtc::Thread> worker_thread,
+       std::unique_ptr<rtc::Thread> signaling_thread,
++      rtc::scoped_refptr<webrtc::ConnectionContext> context,
+       const rtc::scoped_refptr<PeerConnectionFactoryInterface>& factory);
+ 
+   ~OwnedFactoryAndThreads() = default;
+@@ -43,6 +45,7 @@ class OwnedFactoryAndThreads {
+   rtc::Thread* network_thread() { return network_thread_.get(); }
+   rtc::Thread* signaling_thread() { return signaling_thread_.get(); }
+   rtc::Thread* worker_thread() { return worker_thread_.get(); }
++  webrtc::ConnectionContext* connection_context() { return context_.get(); }
+ 
+  private:
+   // Usually implemented by the SocketServer associated with the network thread,
+@@ -51,6 +54,7 @@ class OwnedFactoryAndThreads {
+   const std::unique_ptr<rtc::Thread> network_thread_;
+   const std::unique_ptr<rtc::Thread> worker_thread_;
+   const std::unique_ptr<rtc::Thread> signaling_thread_;
++  const rtc::scoped_refptr<webrtc::ConnectionContext> context_;
+   const rtc::scoped_refptr<PeerConnectionFactoryInterface> factory_;
+ };
+ 
+diff --git a/sdk/android/src/jni/pc/peer_connection_factory.cc b/sdk/android/src/jni/pc/peer_connection_factory.cc
+index fafcad3caf..f685f8a7ac 100644
+--- a/sdk/android/src/jni/pc/peer_connection_factory.cc
++++ b/sdk/android/src/jni/pc/peer_connection_factory.cc
+@@ -29,6 +29,10 @@
+ #include "media/engine/webrtc_media_engine.h"
+ #include "modules/audio_device/include/audio_device.h"
+ #include "modules/audio_processing/include/audio_processing.h"
++#include "p2p/client/basic_port_allocator.h"
++#include "pc/connection_context.h"
++#include "pc/peer_connection_factory.h"
++#include "pc/peer_connection_factory_proxy.h"
+ #include "rtc_base/event_tracer.h"
+ #include "rtc_base/physical_socket_server.h"
+ #include "rtc_base/thread.h"
+@@ -139,10 +143,11 @@ ScopedJavaLocalRef<jobject> NativeToScopedJavaPeerConnectionFactory(
+     std::unique_ptr<rtc::SocketFactory> socket_factory,
+     std::unique_ptr<rtc::Thread> network_thread,
+     std::unique_ptr<rtc::Thread> worker_thread,
+-    std::unique_ptr<rtc::Thread> signaling_thread) {
++    std::unique_ptr<rtc::Thread> signaling_thread,
++    rtc::scoped_refptr<webrtc::ConnectionContext> context) {
+   OwnedFactoryAndThreads* owned_factory = new OwnedFactoryAndThreads(
+       std::move(socket_factory), std::move(network_thread),
+-      std::move(worker_thread), std::move(signaling_thread), pcf);
++      std::move(worker_thread), std::move(signaling_thread), context, pcf);
+ 
+   ScopedJavaLocalRef<jobject> j_pcf = Java_PeerConnectionFactory_Constructor(
+       env, NativeToJavaPointer(owned_factory));
+@@ -178,10 +183,11 @@ jobject NativeToJavaPeerConnectionFactory(
+     std::unique_ptr<rtc::SocketFactory> socket_factory,
+     std::unique_ptr<rtc::Thread> network_thread,
+     std::unique_ptr<rtc::Thread> worker_thread,
+-    std::unique_ptr<rtc::Thread> signaling_thread) {
++    std::unique_ptr<rtc::Thread> signaling_thread,
++    rtc::scoped_refptr<webrtc::ConnectionContext> context) {
+   return NativeToScopedJavaPeerConnectionFactory(
+              jni, pcf, std::move(socket_factory), std::move(network_thread),
+-             std::move(worker_thread), std::move(signaling_thread))
++             std::move(worker_thread), std::move(signaling_thread), context)
+       .Release();
+ }
+ 
+@@ -243,6 +249,35 @@ static void JNI_PeerConnectionFactory_ShutdownInternalTracer(JNIEnv* jni) {
+   rtc::tracing::ShutdownInternalTracer();
+ }
+ 
++// webrtc::PeerConnectionFactory から ConnectionContext を取り出す方法が無いので、
++// 継承して無理やり使えるようにする
++class CustomPeerConnectionFactory : public webrtc::PeerConnectionFactory {
++ public:
++  CustomPeerConnectionFactory(
++      webrtc::PeerConnectionFactoryDependencies dependencies)
++      : CustomPeerConnectionFactory(
++            webrtc::ConnectionContext::Create(&dependencies),
++            &dependencies) {}
++  CustomPeerConnectionFactory(
++      rtc::scoped_refptr<webrtc::ConnectionContext> context,
++      webrtc::PeerConnectionFactoryDependencies* dependencies)
++      : webrtc::PeerConnectionFactory(context, dependencies),
++        conn_context_(context) {}
++
++  static rtc::scoped_refptr<CustomPeerConnectionFactory> Create(
++      webrtc::PeerConnectionFactoryDependencies dependencies) {
++    return rtc::make_ref_counted<CustomPeerConnectionFactory>(
++        std::move(dependencies));
++  }
++
++  rtc::scoped_refptr<webrtc::ConnectionContext> GetContext() const {
++    return conn_context_;
++  }
++
++ private:
++  rtc::scoped_refptr<webrtc::ConnectionContext> conn_context_;
++};
++
+ // Following parameters are optional:
+ // `audio_device_module`, `jencoder_factory`, `jdecoder_factory`,
+ // `audio_processor`, `fec_controller_factory`,
+@@ -320,9 +355,25 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
+   dependencies.media_engine =
+       cricket::CreateMediaEngine(std::move(media_dependencies));
+ 
+-  rtc::scoped_refptr<PeerConnectionFactoryInterface> factory =
+-      CreateModularPeerConnectionFactory(std::move(dependencies));
+-
++  //rtc::scoped_refptr<PeerConnectionFactoryInterface> factory =
++  //    CreateModularPeerConnectionFactory(std::move(dependencies));
++  using result_type =
++      std::pair<rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>,
++                rtc::scoped_refptr<webrtc::ConnectionContext>>;
++  auto p = dependencies.signaling_thread->Invoke<result_type>(
++      RTC_FROM_HERE, [&dependencies]() {
++        auto factory =
++            CustomPeerConnectionFactory::Create(std::move(dependencies));
++        if (factory == nullptr) {
++          return result_type(nullptr, nullptr);
++        }
++        auto context = factory->GetContext();
++        auto proxy = webrtc::PeerConnectionFactoryProxy::Create(
++            factory->signaling_thread(), factory->worker_thread(), factory);
++        return result_type(proxy, context);
++      });
++  auto factory = p.first;
++  auto context = p.second;
+   RTC_CHECK(factory) << "Failed to create the peer connection factory; "
+                         "WebRTC/libjingle init likely failed on this device";
+   // TODO(honghaiz): Maybe put the options as the argument of
+@@ -332,7 +383,7 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
+ 
+   return NativeToScopedJavaPeerConnectionFactory(
+       jni, factory, std::move(socket_server), std::move(network_thread),
+-      std::move(worker_thread), std::move(signaling_thread));
++      std::move(worker_thread), std::move(signaling_thread), context);
+ }
+ 
+ static ScopedJavaLocalRef<jobject>
+@@ -433,13 +484,41 @@ static void JNI_PeerConnectionFactory_StopAecDump(JNIEnv* jni,
+   PeerConnectionFactoryFromJava(native_factory)->StopAecDump();
+ }
+ 
++class RawCryptString : public rtc::CryptStringImpl {
++ public:
++  RawCryptString(const std::string& str) : str_(str) {}
++  size_t GetLength() const override { return str_.size(); }
++  void CopyTo(char* dest, bool nullterminate) const override {
++    for (int i = 0; i < (int)str_.size(); i++) {
++      *dest++ = str_[i];
++    }
++    if (nullterminate) {
++      *dest = '\0';
++    }
++  }
++  std::string UrlEncode() const override { return ""; }
++  rtc::CryptStringImpl* Copy() const override { return new RawCryptString(str_); }
++  void CopyRawTo(std::vector<unsigned char>* dest) const override {
++    dest->assign(str_.begin(), str_.end());
++  }
++
++ private:
++  std::string str_;
++};
++
+ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
+     JNIEnv* jni,
+     jlong factory,
+     const JavaParamRef<jobject>& j_rtc_config,
+     const JavaParamRef<jobject>& j_constraints,
+     jlong observer_p,
+-    const JavaParamRef<jobject>& j_sslCertificateVerifier) {
++    const JavaParamRef<jobject>& j_sslCertificateVerifier,
++    const base::android::JavaParamRef<jobject>& j_proxyType,
++    const base::android::JavaParamRef<jstring>& j_proxyAgent,
++    const base::android::JavaParamRef<jstring>& j_proxyHostname,
++    jint proxyPort,
++    const base::android::JavaParamRef<jstring>& j_proxyUsername,
++    const base::android::JavaParamRef<jstring>& j_proxyPassword) {
+   std::unique_ptr<PeerConnectionObserver> observer(
+       reinterpret_cast<PeerConnectionObserver*>(observer_p));
+ 
+@@ -476,8 +555,49 @@ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
+             jni, j_sslCertificateVerifier);
+   }
+ 
++  auto jfactory = reinterpret_cast<OwnedFactoryAndThreads*>(factory);
++  peer_connection_dependencies.allocator.reset(new cricket::BasicPortAllocator(
++      jfactory->connection_context()->default_network_manager(),
++      jfactory->connection_context()->default_socket_factory(),
++      rtc_config.turn_customizer));
++  peer_connection_dependencies.allocator->SetPortRange(
++      rtc_config.port_allocator_config.min_port,
++      rtc_config.port_allocator_config.max_port);
++  peer_connection_dependencies.allocator->set_flags(rtc_config.port_allocator_config.flags);
++
++  rtc::ProxyType proxyType = rtc::PROXY_NONE;
++  {
++    std::string enum_name = GetJavaEnumName(jni, j_proxyType);
++    if (enum_name == "NONE") {
++      proxyType = rtc::PROXY_NONE;
++    } else if (enum_name == "HTTPS") {
++      proxyType = rtc::PROXY_HTTPS;
++    } else if (enum_name == "SOCKS5") {
++      proxyType = rtc::PROXY_SOCKS5;
++    } else if (enum_name == "UNKNOWN") {
++      proxyType = rtc::PROXY_UNKNOWN;
++    }
++  }
++  if (proxyType != rtc::PROXY_NONE) {
++    auto hostname = JavaToNativeString(jni, j_proxyHostname);
++    auto agent = JavaToNativeString(jni, j_proxyAgent);
++    auto username = JavaToNativeString(jni, j_proxyUsername);
++    auto password = JavaToNativeString(jni, j_proxyPassword);
++
++    rtc::ProxyInfo pi;
++    pi.type = proxyType;
++    pi.address = rtc::SocketAddress(hostname, proxyPort);
++    if (!username.empty()) {
++      pi.username = username;
++    }
++    if (!password.empty()) {
++      pi.password = rtc::CryptString(RawCryptString(password));
++    }
++    peer_connection_dependencies.allocator->set_proxy(agent, pi);
++  }
++
+   auto result =
+-      PeerConnectionFactoryFromJava(factory)->CreatePeerConnectionOrError(
++      jfactory->factory()->CreatePeerConnectionOrError(
+           rtc_config, std::move(peer_connection_dependencies));
+   if (!result.ok())
+     return 0;
+diff --git a/sdk/android/api/org/webrtc/ProxyType.java b/sdk/android/api/org/webrtc/ProxyType.java
+new file mode 100644
+index 0000000000..4afd909bda
+--- /dev/null
++++ b/sdk/android/api/org/webrtc/ProxyType.java
+@@ -0,0 +1,18 @@
++/*
++ *  Copyright 2022 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++package org.webrtc;
++
++public enum ProxyType {
++  NONE,
++  HTTPS,
++  SOCKS5,
++  UNKNOWN,
++}
