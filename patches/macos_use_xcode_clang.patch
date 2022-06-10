@@ -1,8 +1,8 @@
 diff --git a/config/compiler/BUILD.gn b/config/compiler/BUILD.gn
-index c411ee37c..677108de5 100644
+index f378b9560..cfe925698 100644
 --- a/config/compiler/BUILD.gn
 +++ b/config/compiler/BUILD.gn
-@@ -1538,7 +1538,7 @@ config("default_warnings") {
+@@ -1531,7 +1531,7 @@ config("default_warnings") {
  
        if (!is_nacl) {
          # TODO(https://crbug.com/1300731) Clean up and enable.
@@ -10,7 +10,16 @@ index c411ee37c..677108de5 100644
 +        #cflags += [ "-Wno-unqualified-std-cast-call" ]
        }
  
-       if (is_chromeos || default_toolchain == "//build/toolchain/cros:target") {
+       if (!is_nacl && !(is_chromeos ||
+@@ -1539,7 +1539,7 @@ config("default_warnings") {
+         # TODO(https://crbug.com/1316298): Re-enable once test failure is figured out
+         cflags += [
+           "-Xclang",
+-          "-no-opaque-pointers",
++          #"-no-opaque-pointers",
+         ]
+       }
+ 
 diff --git a/toolchain/apple/toolchain.gni b/toolchain/apple/toolchain.gni
 index 399a62f03..fcb2fdf2c 100644
 --- a/toolchain/apple/toolchain.gni
