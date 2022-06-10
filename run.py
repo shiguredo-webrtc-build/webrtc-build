@@ -504,6 +504,7 @@ def build_webrtc_ios(
         'use_custom_libcxx=false',
         'use_lld=false',
         'rtc_enable_objc_symbol_export=true',
+        'treat_warnings_as_errors=false',
         *COMMON_GN_ARGS,
     ]
 
