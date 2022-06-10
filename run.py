@@ -165,6 +165,7 @@ def get_depot_tools(source_dir, fetch=False):
 PATCH_INFO = {
     'macos_h264_encoder.patch': (2, []),
     'macos_screen_capture.patch': (2, []),
+    'macos_use_xcode_clang.patch': (1, ['build']),
 }
 
 PATCHES = {
@@ -191,6 +192,7 @@ PATCHES = {
         'macos_simulcast.patch',
         'ios_simulcast.patch',
         'ssl_verify_callback_with_native_handle.patch',
+        'macos_use_xcode_clang.patch',
     ],
     'macos_arm64': [
         'add_dep_zlib.patch',
@@ -201,6 +203,7 @@ PATCHES = {
         'macos_simulcast.patch',
         'ios_simulcast.patch',
         'ssl_verify_callback_with_native_handle.patch',
+        'macos_use_xcode_clang.patch',
     ],
     'ios': [
         'add_dep_zlib.patch',
@@ -223,6 +226,7 @@ PATCHES = {
         'android_fixsegv.patch',
         'android_simulcast.patch',
         'android_hardware_video_encoder.patch',
+        'android_proxy.patch',
     ],
     'raspberry-pi-os_armv6': [
         'nacl_armv6_2.patch',
@@ -264,12 +268,18 @@ PATCHES = {
         '4k.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
+    ],
+    'ubuntu-22.04_x86_64': [
+        '4k.patch',
+        'add_license_dav1d.patch',
+        'ssl_verify_callback_with_native_handle.patch',
     ]
 }
 
 
 def apply_patch(patch, dir, depth):
     with cd(dir):
+        logging.info(f'patch -p{depth} < {patch}')
         if platform.system() == 'Windows':
             cmd(['git', 'apply', f'-p{depth}',
                 '--ignore-space-change', '--ignore-whitespace', '--whitespace=nowarn',
@@ -669,6 +679,8 @@ def build_webrtc(
                 'use_custom_libcxx=false',
                 'use_custom_libcxx_for_host=true',
                 'treat_warnings_as_errors=false',
+                'clang_use_chrome_plugins=false',
+                'use_lld=false',
             ]
         elif target in ('raspberry-pi-os_armv6',
                         'raspberry-pi-os_armv7',
@@ -676,9 +688,10 @@ def build_webrtc(
                         'ubuntu-18.04_armv8',
                         'ubuntu-20.04_armv8'):
             sysroot = os.path.join(source_dir, 'rootfs')
+            arm64_set = ("raspberry-pi-os_armv8", "ubuntu-18.04_armv8", "ubuntu-20.04_armv8")
             gn_args += [
                 'target_os="linux"',
-                f'target_cpu="{"arm64" if target in ("raspberry-pi-os_armv8", "ubuntu-18.04_armv8", "ubuntu-20.04_armv8") else "arm"}"',
+                f'target_cpu="{"arm64" if target in arm64_set else "arm"}"',
                 f'target_sysroot="{sysroot}"',
                 'rtc_use_pipewire=false',
             ]
@@ -692,7 +705,7 @@ def build_webrtc(
                     'arm_use_neon=false',
                     'enable_libaom=false',
                 ]
-        elif target in ('ubuntu-18.04_x86_64', 'ubuntu-20.04_x86_64'):
+        elif target in ('ubuntu-18.04_x86_64', 'ubuntu-20.04_x86_64', 'ubuntu-22.04_x86_64'):
             gn_args += [
                 'target_os="linux"',
                 'rtc_use_pipewire=false',
@@ -896,6 +909,7 @@ TARGETS = [
     'macos_arm64',
     'ubuntu-18.04_x86_64',
     'ubuntu-20.04_x86_64',
+    'ubuntu-22.04_x86_64',
     'ubuntu-18.04_armv8',
     'ubuntu-20.04_armv8',
     'raspberry-pi-os_armv6',
@@ -943,6 +957,8 @@ def check_target(target):
         if target == 'ubuntu-18.04_x86_64' and osver == '18.04':
             return True
         if target == 'ubuntu-20.04_x86_64' and osver == '20.04':
+            return True
+        if target == 'ubuntu-22.04_x86_64' and osver == '22.04':
             return True
 
         return False
