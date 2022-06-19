@@ -16,7 +16,7 @@ index 1e6621848..550b3e7e8 100644
    clang_base_path = default_clang_base_path
  }
 diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
-index f378b9560..43f409bc6 100644
+index df8610696..944a1bf4c 100644
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
 @@ -522,7 +522,7 @@ config("compiler") {
@@ -28,7 +28,7 @@ index f378b9560..43f409bc6 100644
      cflags += [ "-fcrash-diagnostics-dir=" + clang_diagnostic_dir ]
  
      # TODO(hans): Remove this once Clang generates better optimized debug info
-@@ -1529,17 +1529,17 @@ config("default_warnings") {
+@@ -1535,17 +1535,17 @@ config("default_warnings") {
          "-Wno-ignored-pragma-optimize",
        ]
  
@@ -43,7 +43,7 @@ index f378b9560..43f409bc6 100644
  
        if (!is_nacl && !(is_chromeos ||
                          default_toolchain == "//build/toolchain/cros:target")) {
-         # TODO(https://crbug.com/1316298): Re-enable once test failure is figured out
+         # TODO(https://crbug.com/1322823): Remove flags once potential miscompile is investigated.
          cflags += [
            "-Xclang",
 -          "-no-opaque-pointers",
@@ -51,7 +51,7 @@ index f378b9560..43f409bc6 100644
          ]
        }
  
-@@ -1722,7 +1722,7 @@ config("no_chromium_code") {
+@@ -1727,7 +1727,7 @@ config("no_chromium_code") {
      if (!is_nacl) {
        cflags += [
          # Disabled for similar reasons as -Wunused-variable.
@@ -141,7 +141,7 @@ index 933c8f2f566..d752194d95b 100644
 -
    deps = [ ":dav1d_headers" ]
  }
-
+ 
 diff --git a/third_party/nasm/BUILD.gn b/third_party/nasm/BUILD.gn
 index ebd8b7fe..20f6ff8a 100644
 --- a/third_party/nasm/BUILD.gn
