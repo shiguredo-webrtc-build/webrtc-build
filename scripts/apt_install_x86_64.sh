@@ -17,10 +17,12 @@ apt-get -y install \
   git \
   locales \
   lsb-release \
+  pkg-config \
   python3 \
   python3-setuptools \
   rsync \
   sudo \
   unzip \
   vim \
-  wget
+  wget \
+  xz-utils
