@@ -216,6 +216,7 @@ PATCHES = {
         'ios_simulcast.patch',
         'ssl_verify_callback_with_native_handle.patch',
         'ios_build.patch',
+        'ios_proxy.patch',
     ],
     'android': [
         'add_dep_zlib.patch',
