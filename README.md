@@ -66,7 +66,7 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
 - macOS x86_64 廃止
     - 2022 年 6 月を持って廃止します
 - Ubuntu 18.04 x86_64 廃止
-    - 2023 年 4 月を持って廃止します
+    - 2022 年 6 月を持って廃止します
 - Jetson 向け ARM 版 Ubuntu 18.04 廃止
     - 2023 年 4 月を持って廃止します
 
