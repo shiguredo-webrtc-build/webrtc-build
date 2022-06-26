@@ -14,6 +14,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## master
 
+- [ADD] iOS で Proxy を利用可能にする
+    - @melpon
+
 ## m102.5005.7.6
 
 - [FIX] Android の Proxy 対応で PeerConnectionFactoryProxy を使っていなかったのを修正
