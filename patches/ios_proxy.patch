@@ -309,7 +309,7 @@ index 4e5aa19750..8b951d7d29 100644
 +    peerConnectionWithConfiguration:(RTC_OBJC_TYPE(RTCConfiguration) *)configuration
 +                        constraints:(RTC_OBJC_TYPE(RTCMediaConstraints) *)constraints
 +                certificateVerifier:
-+                    (id<RTC_OBJC_TYPE(RTCSSLCertificateVerifier)>)certificateVerifier
++                    (nullable id<RTC_OBJC_TYPE(RTCSSLCertificateVerifier)>)certificateVerifier
 +                           delegate:(nullable id<RTC_OBJC_TYPE(RTCPeerConnectionDelegate)>)delegate
 +                          proxyType:(RTCProxyType)proxyType
 +                         proxyAgent:(NSString*)proxyAgent
