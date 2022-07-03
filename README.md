@@ -45,6 +45,7 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
     - Jetson AGX Orin
 - ubuntu-18.04_x86_64
 - ubuntu-20.04_x86_64
+- ubuntu-22.04_x86_64
 - android_arm64
 - ios_arm64
 
