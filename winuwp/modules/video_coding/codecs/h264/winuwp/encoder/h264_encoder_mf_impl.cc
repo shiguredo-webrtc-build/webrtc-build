@@ -67,13 +67,11 @@ static constexpr float kMinRateVariation = 0.1f;
 
 H264EncoderMFImpl::H264EncoderMFImpl() {
   HRESULT hr = S_OK;
-  ON_SUCCEEDED(MFStartup(MF_VERSION, MFSTARTUP_NOSOCKET));
 }
 
 H264EncoderMFImpl::~H264EncoderMFImpl() {
   HRESULT hr = S_OK;
   Release();
-  ON_SUCCEEDED(MFShutdown());
 }
 
 namespace {
@@ -133,6 +131,7 @@ int32_t H264EncoderMFImpl::InitEncode(
 
   // Configure the encoder.
   HRESULT hr = S_OK;
+  ON_SUCCEEDED(MFStartup(MF_VERSION, MFSTARTUP_NOSOCKET));
   ON_SUCCEEDED(InitWriter());
 
   return hr;

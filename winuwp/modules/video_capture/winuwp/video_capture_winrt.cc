@@ -24,6 +24,7 @@
 #include <functional>
 
 #include "modules/video_capture/video_capture_config.h"
+#include "modules/video_capture/winuwp/mrc_video_effect_definition_impl.h"
 #include "modules/video_capture/winuwp/help_functions_winrt.h"
 #include "rtc_base/logging.h"
 
@@ -49,6 +50,7 @@ using ::ABI::Windows::Graphics::Imaging::BitmapPlaneDescription;
 using ::ABI::Windows::Graphics::Imaging::IBitmapBuffer;
 using ::ABI::Windows::Graphics::Imaging::ISoftwareBitmap;
 using ::ABI::Windows::Media::Capture::IMediaCapture;
+using ::ABI::Windows::Media::Capture::IMediaCapture4;
 using ::ABI::Windows::Media::Capture::IMediaCapture5;
 using ::ABI::Windows::Media::Capture::IMediaCaptureInitializationSettings;
 using ::ABI::Windows::Media::Capture::IMediaCaptureInitializationSettings5;
@@ -71,6 +73,8 @@ using ::ABI::Windows::Media::Capture::Frames::MediaFrameReader;
 using ::ABI::Windows::Media::Capture::Frames::MediaFrameReaderStartStatus;
 using ::ABI::Windows::Media::Capture::Frames::MediaFrameSource;
 using ::ABI::Windows::Media::Capture::Frames::MediaFrameSourceKind;
+using ::ABI::Windows::Media::Effects::IVideoEffectDefinition;
+using ::ABI::Windows::Media::IMediaExtension;
 using ::ABI::Windows::Media::MediaProperties::IMediaRatio;
 using ::Microsoft::WRL::Callback;
 using ::Microsoft::WRL::ComPtr;
@@ -179,6 +183,26 @@ HRESULT VideoCaptureWinRTInternal::StartCapture(
 
   if (SUCCEEDED(hr)) {
     hr = media_capture_.As(&media_capture5);
+  }
+
+  {
+    ComPtr<IAsyncOperation<IMediaExtension*>> async_op;
+    ComPtr<IMediaCapture4> media_capture4;
+    winrt::com_ptr<IVideoEffectDefinition> effect;
+    if (SUCCEEDED(hr)) {
+      hr = media_capture_.As(&media_capture4);
+    }
+    if (SUCCEEDED(hr) && capability.mrc_video_effect_definition != nullptr) {
+      winrt::com_ptr<MrcVideoEffectDefinitionImpl> ved;
+      ved.copy_from(static_cast<MrcVideoEffectDefinitionImpl*>(capability.mrc_video_effect_definition.get()));
+      effect = ved.as<IVideoEffectDefinition>();
+    }
+    if (SUCCEEDED(hr)) {
+      hr = media_capture4->AddVideoEffectAsync(effect.get(), MediaStreamType::MediaStreamType_VideoRecord, async_op.ReleaseAndGetAddressOf());
+    }
+    if (SUCCEEDED(hr)) {
+      hr = WaitForAsyncOperation(async_op.Get());
+    }
   }
 
   if (SUCCEEDED(hr)) {

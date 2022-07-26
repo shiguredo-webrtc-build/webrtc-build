@@ -1,5 +1,5 @@
 diff --git a/BUILD.gn b/BUILD.gn
-index 6512ee25ea..af50bdfeb3 100644
+index eb06453dea..0f453d27f5 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -260,6 +260,10 @@ config("common_config") {
@@ -14,7 +14,7 @@ index 6512ee25ea..af50bdfeb3 100644
      defines += [ "RTC_ENABLE_VP9" ]
    }
 diff --git a/common_video/libyuv/include/webrtc_libyuv.h b/common_video/libyuv/include/webrtc_libyuv.h
-index 905219b6a6..9c13e6352d 100644
+index 905219b6a6..b0b2262de3 100644
 --- a/common_video/libyuv/include/webrtc_libyuv.h
 +++ b/common_video/libyuv/include/webrtc_libyuv.h
 @@ -32,12 +32,17 @@ enum class VideoType {
@@ -36,7 +36,7 @@ index 905219b6a6..9c13e6352d 100644
  };
  
 diff --git a/common_video/libyuv/webrtc_libyuv.cc b/common_video/libyuv/webrtc_libyuv.cc
-index 2e10a60776..c4812fd1fc 100644
+index 2e10a60776..ffadee3472 100644
 --- a/common_video/libyuv/webrtc_libyuv.cc
 +++ b/common_video/libyuv/webrtc_libyuv.cc
 @@ -25,6 +25,8 @@ size_t CalcBufferSize(VideoType type, int width, int height) {
@@ -87,10 +87,10 @@ index 2e10a60776..c4812fd1fc 100644
    RTC_DCHECK_NOTREACHED();
    return libyuv::FOURCC_ANY;
 diff --git a/modules/video_capture/BUILD.gn b/modules/video_capture/BUILD.gn
-index 75c2648cae..4d69578502 100644
+index 75c2648cae..b08b5ecc58 100644
 --- a/modules/video_capture/BUILD.gn
 +++ b/modules/video_capture/BUILD.gn
-@@ -63,33 +63,48 @@ if (!build_with_chromium) {
+@@ -63,33 +63,51 @@ if (!build_with_chromium) {
        deps += [ "../../media:rtc_media_base" ]
      }
      if (is_win) {
@@ -118,6 +118,9 @@ index 75c2648cae..4d69578502 100644
 +          "winuwp/device_info_winrt.h",
 +          "winuwp/help_functions_winrt.cc",
 +          "winuwp/help_functions_winrt.h",
++          "winuwp/mrc_video_effect_definition_impl.cc",
++          "winuwp/mrc_video_effect_definition_impl.h",
++          "winuwp/mrc_video_effect_definition.h",
 +          "winuwp/video_capture_winrt.cc",
 +          "winuwp/video_capture_winrt.h",
 +        ]
@@ -164,10 +167,10 @@ index 75c2648cae..4d69578502 100644
  
      if (build_with_mozilla && is_android) {
 diff --git a/modules/video_capture/video_capture_defines.h b/modules/video_capture/video_capture_defines.h
-index 63534600a9..bf67709500 100644
+index 63534600a9..7d9a0a83aa 100644
 --- a/modules/video_capture/video_capture_defines.h
 +++ b/modules/video_capture/video_capture_defines.h
-@@ -11,6 +11,10 @@
+@@ -11,8 +11,13 @@
  #ifndef MODULES_VIDEO_CAPTURE_VIDEO_CAPTURE_DEFINES_H_
  #define MODULES_VIDEO_CAPTURE_VIDEO_CAPTURE_DEFINES_H_
  
@@ -177,8 +180,11 @@ index 63534600a9..bf67709500 100644
 +
  #include "api/video/video_frame.h"
  #include "common_video/libyuv/include/webrtc_libyuv.h"
++#include "modules/video_capture/winuwp/mrc_video_effect_definition.h"
  
-@@ -28,14 +32,25 @@ struct VideoCaptureCapability {
+ namespace webrtc {
+ 
+@@ -28,14 +33,26 @@ struct VideoCaptureCapability {
    int32_t maxFPS;
    VideoType videoType;
    bool interlaced;
@@ -186,6 +192,7 @@ index 63534600a9..bf67709500 100644
 +  std::wstring profile_id;
 +  ::Microsoft::WRL::ComPtr<::IUnknown> media_capture_video_profile;
 +  ::Microsoft::WRL::ComPtr<::IUnknown> record_media_description;
++  std::shared_ptr<MrcVideoEffectDefinition> mrc_video_effect_definition;
 +#endif  // WEBRTC_VIDEO_CAPTURE_WINRT
 +
 +  VideoCaptureCapability()
@@ -211,7 +218,7 @@ index 63534600a9..bf67709500 100644
    bool operator!=(const VideoCaptureCapability& other) const {
      if (width != other.width)
        return true;
-@@ -47,6 +62,16 @@ struct VideoCaptureCapability {
+@@ -47,6 +64,18 @@ struct VideoCaptureCapability {
        return true;
      if (interlaced != other.interlaced)
        return true;
@@ -223,13 +230,15 @@ index 63534600a9..bf67709500 100644
 +      return true;
 +    if (record_media_description.Get() != other.record_media_description.Get())
 +      return true;
++    if (mrc_video_effect_definition != other.mrc_video_effect_definition)
++      return true;
 +#endif  // WEBRTC_VIDEO_CAPTURE_WINRT
 +
      return false;
    }
    bool operator==(const VideoCaptureCapability& other) const {
 diff --git a/modules/video_capture/video_capture_impl.cc b/modules/video_capture/video_capture_impl.cc
-index 6619d15924..26f3dfbea5 100644
+index 6619d15924..798130700f 100644
 --- a/modules/video_capture/video_capture_impl.cc
 +++ b/modules/video_capture/video_capture_impl.cc
 @@ -114,7 +114,10 @@ int32_t VideoCaptureImpl::DeliverCapturedFrame(VideoFrame& captureFrame) {
@@ -289,7 +298,7 @@ index 6619d15924..26f3dfbea5 100644
        ConvertVideoType(frameInfo.videoType));
    if (conversionResult < 0) {
 diff --git a/modules/video_capture/video_capture_impl.h b/modules/video_capture/video_capture_impl.h
-index 9e4afe7ec1..34c1fc6150 100644
+index 9e4afe7ec1..92d709b6d8 100644
 --- a/modules/video_capture/video_capture_impl.h
 +++ b/modules/video_capture/video_capture_impl.h
 @@ -62,7 +62,10 @@ class VideoCaptureImpl : public VideoCaptureModule {
@@ -305,7 +314,7 @@ index 9e4afe7ec1..34c1fc6150 100644
                          const VideoCaptureCapability& frameInfo,
                          int64_t captureTime = 0);
 diff --git a/modules/video_capture/windows/sink_filter_ds.cc b/modules/video_capture/windows/sink_filter_ds.cc
-index 15f947a921..f2c4e09514 100644
+index 15f947a921..3390592ffa 100644
 --- a/modules/video_capture/windows/sink_filter_ds.cc
 +++ b/modules/video_capture/windows/sink_filter_ds.cc
 @@ -920,7 +920,10 @@ void CaptureSinkFilter::ProcessCapturedFrame(
@@ -321,7 +330,7 @@ index 15f947a921..f2c4e09514 100644
  
  void CaptureSinkFilter::NotifyEvent(long code,
 diff --git a/modules/video_capture/windows/video_capture_factory_windows.cc b/modules/video_capture/windows/video_capture_factory_windows.cc
-index 34cc982d7e..24b8a1f777 100644
+index 34cc982d7e..2eca318284 100644
 --- a/modules/video_capture/windows/video_capture_factory_windows.cc
 +++ b/modules/video_capture/windows/video_capture_factory_windows.cc
 @@ -9,7 +9,14 @@
@@ -367,10 +376,10 @@ index 34cc982d7e..24b8a1f777 100644
      return nullptr;
    }
 diff --git a/webrtc.gni b/webrtc.gni
-index 6e81fc4285..71cfcabd02 100644
+index 6e81fc4285..eb89c658fe 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
-@@ -227,6 +227,15 @@ declare_args() {
+@@ -227,6 +227,19 @@ declare_args() {
  
    # Includes the dav1d decoder in the internal decoder factory when set to true.
    rtc_include_dav1d_in_internal_decoder_factory = true
@@ -387,7 +396,7 @@ index 6e81fc4285..71cfcabd02 100644
  
  if (!build_with_mozilla) {
 diff --git a/third_party/libyuv/include/libyuv/convert.h b/third_party/libyuv/include/libyuv/convert.h
-index 93e7550b..b4064b47 100644
+index 93e7550b..e86f283d 100644
 --- a/third_party/libyuv/include/libyuv/convert.h
 +++ b/third_party/libyuv/include/libyuv/convert.h
 @@ -837,6 +837,9 @@ int MJPGSize(const uint8_t* sample,
@@ -401,7 +410,7 @@ index 93e7550b..b4064b47 100644
                    int dst_stride_y,
                    uint8_t* dst_u,
 diff --git a/third_party/libyuv/source/convert_to_i420.cc b/third_party/libyuv/source/convert_to_i420.cc
-index 5869ecd7..b00044cc 100644
+index 5869ecd7..ef1cb868 100644
 --- a/third_party/libyuv/source/convert_to_i420.cc
 +++ b/third_party/libyuv/source/convert_to_i420.cc
 @@ -27,6 +27,9 @@ extern "C" {
@@ -414,7 +423,7 @@ index 5869ecd7..b00044cc 100644
                    uint8_t* dst_y,
                    int dst_stride_y,
                    uint8_t* dst_u,
-@@ -45,7 +47,7 @@ int ConvertToI420(const uint8_t* sample,
+@@ -44,7 +47,7 @@ int ConvertToI420(const uint8_t* sample,
    uint32_t format = CanonicalFourCC(fourcc);
    int aligned_src_width = (src_width + 1) & ~1;
    const uint8_t* src;
@@ -423,7 +432,7 @@ index 5869ecd7..b00044cc 100644
    const int abs_src_height = (src_height < 0) ? -src_height : src_height;
    // TODO(nisse): Why allow crop_height < 0?
    const int abs_crop_height = (crop_height < 0) ? -crop_height : crop_height;
-@@ -171,19 +175,17 @@ int ConvertToI420(const uint8_t* sample,
+@@ -171,19 +174,17 @@ int ConvertToI420(const uint8_t* sample,
        break;
      // Biplanar formats
      case FOURCC_NV12:

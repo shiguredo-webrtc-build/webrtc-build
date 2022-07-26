@@ -11,12 +11,16 @@
 #ifndef MODULES_VIDEO_CODING_CODECS_H264_WIN_UTILS_UTILS_H_
 #define MODULES_VIDEO_CODING_CODECS_H264_WIN_UTILS_UTILS_H_
 
+#include <comdef.h>
+
+#include "rtc_base/string_utils.h"
+
 #ifdef _DEBUG
 #define ON_SUCCEEDED(act)                      \
   if (SUCCEEDED(hr)) {                         \
     hr = (act);                                \
     if (FAILED(hr)) {                          \
-      RTC_LOG(LS_WARNING) << "ERROR:" << #act; \
+      RTC_LOG(LS_WARNING) << " hr=" << hr << "(" << (void*)hr << ") message=" << rtc::ToUtf8(_com_error(hr, nullptr).ErrorMessage()) << " ERROR:" << #act; \
       __debugbreak();                          \
     }                                          \
   }
@@ -25,7 +29,7 @@
   if (SUCCEEDED(hr)) {                         \
     hr = (act);                                \
     if (FAILED(hr)) {                          \
-      RTC_LOG(LS_WARNING) << "ERROR:" << #act; \
+      RTC_LOG(LS_WARNING) << " hr=" << hr << "(" << (void*)hr << ") message=" << rtc::ToUtf8(_com_error(hr, nullptr).ErrorMessage()) << " ERROR:" << #act; \
     }                                          \
   }
 #endif
