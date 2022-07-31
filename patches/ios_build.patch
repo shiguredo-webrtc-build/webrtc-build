@@ -16,10 +16,10 @@ index 1e6621848..550b3e7e8 100644
    clang_base_path = default_clang_base_path
  }
 diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
-index df8610696..944a1bf4c 100644
+index b6aaae9b6..c892eba6f 100644
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
-@@ -522,7 +522,7 @@ config("compiler") {
+@@ -536,7 +536,7 @@ config("compiler") {
      ldflags += [ "-Wl,-z,keep-text-section-prefix" ]
    }
  
@@ -28,38 +28,41 @@ index df8610696..944a1bf4c 100644
      cflags += [ "-fcrash-diagnostics-dir=" + clang_diagnostic_dir ]
  
      # TODO(hans): Remove this once Clang generates better optimized debug info
-@@ -1535,17 +1535,17 @@ config("default_warnings") {
+@@ -1534,22 +1534,22 @@ config("default_warnings") {
          "-Wno-ignored-pragma-optimize",
        ]
  
 -      if (!is_nacl) {
 -        # TODO(https://crbug.com/1300731) Clean up and enable.
 -        cflags += [ "-Wno-unqualified-std-cast-call" ]
--      }
 +      # if (!is_nacl) {
 +      #   # TODO(https://crbug.com/1300731) Clean up and enable.
 +      #   cflags += [ "-Wno-unqualified-std-cast-call" ]
+ 
+-        # Do not set the below flags if it's nacl as nacl-clang doesn't have the
+-        # patches that require these flags.
+-        if (llvm_force_head_revision) {
+-          cflags += [
+-            # TODO(crbug.com/1343303) Evaluate and possibly enable.
+-            "-Wno-array-parameter",
++      #  # Do not set the below flags if it's nacl as nacl-clang doesn't have the
++      #  # patches that require these flags.
++      #  if (llvm_force_head_revision) {
++      #    cflags += [
++      #      # TODO(crbug.com/1343303) Evaluate and possibly enable.
++      #      "-Wno-array-parameter",
+ 
+-            # TODO(crbug.com/1343975) Evaluate and possibly enable.
+-            "-Wno-deprecated-builtins",
+-          ]
+-        }
+-      }
++      #      # TODO(crbug.com/1343975) Evaluate and possibly enable.
++      #     "-Wno-deprecated-builtins",
++      #   ]
++      #  }
 +      # }
  
-       if (!is_nacl && !(is_chromeos ||
-                         default_toolchain == "//build/toolchain/cros:target")) {
-         # TODO(https://crbug.com/1322823): Remove flags once potential miscompile is investigated.
-         cflags += [
-           "-Xclang",
--          "-no-opaque-pointers",
-+          #"-no-opaque-pointers",
-         ]
-       }
- 
-@@ -1727,7 +1727,7 @@ config("no_chromium_code") {
-     if (!is_nacl) {
-       cflags += [
-         # Disabled for similar reasons as -Wunused-variable.
--        "-Wno-unused-but-set-variable",
-+        # "-Wno-unused-but-set-variable",
- 
-         # TODO(https://crbug.com/1202159): Clean up and enable.
-         "-Wno-misleading-indentation",
 diff --git a/build/toolchain/apple/toolchain.gni b/build/toolchain/apple/toolchain.gni
 index 7221c8027..214c45b3e 100644
 --- a/build/toolchain/apple/toolchain.gni
