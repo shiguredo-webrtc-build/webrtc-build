@@ -379,7 +379,7 @@ diff --git a/webrtc.gni b/webrtc.gni
 index 6e81fc4285..eb89c658fe 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
-@@ -227,6 +227,19 @@ declare_args() {
+@@ -227,6 +227,15 @@ declare_args() {
  
    # Includes the dav1d decoder in the internal decoder factory when set to true.
    rtc_include_dav1d_in_internal_decoder_factory = true

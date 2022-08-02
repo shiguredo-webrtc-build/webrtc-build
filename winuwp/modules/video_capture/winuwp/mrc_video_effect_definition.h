@@ -8,7 +8,7 @@ namespace webrtc {
 
 class MrcVideoEffectDefinition {
  public:
-  std::shared_ptr<MrcVideoEffectDefinition> Create();
+  static std::shared_ptr<MrcVideoEffectDefinition> Create();
 
   virtual ~MrcVideoEffectDefinition() {}
 
