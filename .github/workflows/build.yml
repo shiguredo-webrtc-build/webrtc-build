@@ -31,11 +31,19 @@ jobs:
         # Cache 済み Docker Image の削除
         docker rmi $(docker images -q -a)
         # Android SDK の削除
-        Remove-Item -Recurse -Force $Env:ANDROID_HOME -ErrorAction Ignore
-        Remove-Item -Recurse -Force $Env:ANDROID_NDK_HOME -ErrorAction Ignore
+        if ($Env:ANDROID_HOME != null) {
+          Remove-Item -Recurse -Force $Env:ANDROID_HOME -ErrorAction Ignore
+        }
+        if ($Env:ANDROID_NDK_HOME != null) {
+          Remove-Item -Recurse -Force $Env:ANDROID_NDK_HOME -ErrorAction Ignore
+        }
         # JVM の削除
-        Remove-Item -Recurse -Force $Env:JAVA_HOME_11_X64 -ErrorAction Ignore
-        Remove-Item -Recurse -Force $Env:JAVA_HOME_8_X64 -ErrorAction Ignore
+        if ($Env:JAVA_HOME_11_X64 != null) {
+          Remove-Item -Recurse -Force $Env:JAVA_HOME_11_X64 -ErrorAction Ignore
+        }
+        if ($Env:JAVA_HOME_8_X64 != null) {
+          Remove-Item -Recurse -Force $Env:JAVA_HOME_8_X64 -ErrorAction Ignore
+        }
         Get-PSDrive
     - run: "& .\\build.${{ matrix.name }}.ps1"
     - name: Upload Artifact
