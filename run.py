@@ -166,7 +166,6 @@ PATCH_INFO = {
     'macos_h264_encoder.patch': (2, []),
     'macos_screen_capture.patch': (2, []),
     'macos_use_xcode_clang.patch': (1, ['build']),
-    'windows_fix_type_traits.patch': (1, ['third_party']),
 }
 
 PATCHES = {
@@ -176,7 +175,6 @@ PATCHES = {
         'windows_add_deps.patch',
         'windows_silence_warnings.patch',
         'windows_fix_towupper.patch',
-        'windows_fix_type_traits.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'windows_arm64': [
@@ -185,7 +183,6 @@ PATCHES = {
         'windows_add_deps.patch',
         'windows_silence_warnings.patch',
         'windows_fix_towupper.patch',
-        'windows_fix_type_traits.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'macos_x86_64': [
