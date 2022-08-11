@@ -521,7 +521,6 @@ def build_webrtc_ios(
             '-o', os.path.join(webrtc_build_dir, 'framework'),
             '--build_config', 'debug' if debug else 'release',
             '--arch', *IOS_FRAMEWORK_ARCHS,
-            '--bitcode',
             '--extra-gn-args', to_gn_args(gn_args, extra_gn_args)
         ])
         info = {}
