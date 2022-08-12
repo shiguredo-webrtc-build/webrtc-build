@@ -195,8 +195,6 @@ iOS でのサイマルキャストのサポートを追加するパッチ。こ�
 ## macos_screen_capture.patch
 
 
-## macos_simulcast.patch
-
 ## macos_use_xcode_clang.patch
 
 大体 `ios_build.patch` と同じ内容のパッチ。
