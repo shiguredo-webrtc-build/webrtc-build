@@ -56,7 +56,6 @@ jobs:
       matrix:
         name:
           - macos_arm64
-          - macos_x86_64
           - ios
     runs-on: macOS-11.0
     steps:
@@ -79,7 +78,6 @@ jobs:
           - raspberry-pi-os_armv8
           - ubuntu-18.04_armv8
           - ubuntu-20.04_armv8
-          - ubuntu-18.04_x86_64
           - ubuntu-20.04_x86_64
           - ubuntu-22.04_x86_64
           - android
@@ -134,14 +132,12 @@ jobs:
       matrix:
         name:
           - macos_arm64
-          - macos_x86_64
           - ios
           - raspberry-pi-os_armv6
           - raspberry-pi-os_armv7
           - raspberry-pi-os_armv8
           - ubuntu-18.04_armv8
           - ubuntu-20.04_armv8
-          - ubuntu-18.04_x86_64
           - ubuntu-20.04_x86_64
           - ubuntu-22.04_x86_64
           - android
