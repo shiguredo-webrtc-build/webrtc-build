@@ -7,7 +7,6 @@ on:
       - 'LICENSE'
       - 'NOTICE'
       - '.gitignore'
-      - '.dockerignore'
     branches-ignore:
       - daily
     tags:
@@ -44,7 +43,13 @@ jobs:
           Remove-Item -Recurse -Force $Env:JAVA_HOME_8_X64 -ErrorAction Ignore
         }
         Get-PSDrive
-    - run: "& .\\build.${{ matrix.name }}.ps1"
+    - name: Build ${{ matrix.name }}
+      run: |
+        # リポジトリの下に置きたいが、GitHub Actions の D:\ の容量が少なくてビルド出来ない問題があるので
+        # このパスにソースを配置する。
+        # また、WebRTC のビルドしたファイルは同じドライブに無いといけないっぽいのでこちらも設定する。
+        python3 run.py build ${{ matrix.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build'
+        python3 run.py package ${{ matrix.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build'
     - name: Upload Artifact
       uses: actions/upload-artifact@v1
       with:
@@ -62,7 +67,16 @@ jobs:
     - uses: actions/checkout@v2
     - name: Select Xcode 13.0
       run: sudo xcode-select --switch /Applications/Xcode_13.0.app/Contents/Developer
-    - run: ./build.${{ matrix.name }}.sh
+    - name: Build ${{ matrix.name }} for macos
+      if: matrix.name == 'macos_arm64'
+      run: |
+        python3 run.py build ${{ matrix.name }}
+        python3 run.py package ${{ matrix.name }}
+    - name: Build ${{ matrix.name }} for ios
+      if: matrix.name == 'ios'
+      run: |
+        python3 run.py build ${{ matrix.name }} --webrtc-overlap-ios-build-dir
+        python3 run.py package ${{ matrix.name }} --webrtc-overlap-ios-build-dir
     - name: Upload Artifact
       uses: actions/upload-artifact@v1
       with:
@@ -93,7 +107,19 @@ jobs:
         # 17GB
         sudo rm -rf /usr/share/dotnet
         df -h
-    - run: ./build.${{ matrix.name }}.sh
+    - name: Setup ${{ matrix.name }} for x86_64
+      if: endsWith(matrix.name, '_x86_64')
+      run: sudo scripts/apt_install_x86_64.sh
+    - name: Setup ${{ matrix.name }} for arm
+      if: contains(matrix.name, '_armv')
+      run: sudo scripts/apt_install_arm.sh
+    - name: Setup ${{ matrix.name }} for android
+      if: matrix.name == 'android'
+      run: sudo scripts/apt_install_x86_64.sh && sudo apt-get install -y openjdk-11-jdk
+    - name: Build ${{ matrix.name }}
+      run: |
+        python3 run.py build ${{ matrix.name }}
+        python3 run.py package ${{ matrix.name }}
     - name: Upload Artifact
       uses: actions/upload-artifact@v1
       with:

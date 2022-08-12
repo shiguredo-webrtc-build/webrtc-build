@@ -341,27 +341,27 @@ MultistrapConfig = collections.namedtuple('MultistrapConfig', [
 ])
 MULTISTRAP_CONFIGS = {
     'raspberry-pi-os_armv6': MultistrapConfig(
-        config_file=['raspberry-pi-os_armv6', 'rpi-raspbian.conf'],
+        config_file=['multistrap', 'raspberry-pi-os_armv6.conf'],
         arch='armhf',
         triplet='arm-linux-gnueabihf'
     ),
     'raspberry-pi-os_armv7': MultistrapConfig(
-        config_file=['raspberry-pi-os_armv7', 'rpi-raspbian.conf'],
+        config_file=['multistrap', 'raspberry-pi-os_armv7.conf'],
         arch='armhf',
         triplet='arm-linux-gnueabihf'
     ),
     'raspberry-pi-os_armv8': MultistrapConfig(
-        config_file=['raspberry-pi-os_armv8', 'rpi-raspbian.conf'],
+        config_file=['multistrap', 'raspberry-pi-os_armv8.conf'],
         arch='arm64',
         triplet='aarch64-linux-gnu'
     ),
     'ubuntu-18.04_armv8': MultistrapConfig(
-        config_file=['ubuntu-18.04_armv8', 'arm64.conf'],
+        config_file=['multistrap', 'ubuntu-18.04_armv8.conf'],
         arch='arm64',
         triplet='aarch64-linux-gnu'
     ),
     'ubuntu-20.04_armv8': MultistrapConfig(
-        config_file=['ubuntu-20.04_armv8', 'arm64.conf'],
+        config_file=['multistrap', 'ubuntu-20.04_armv8.conf'],
         arch='arm64',
         triplet='aarch64-linux-gnu'
     ),
