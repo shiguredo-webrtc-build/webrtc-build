@@ -185,16 +185,6 @@ PATCHES = {
         'windows_fix_towupper.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
-    'macos_x86_64': [
-        'add_dep_zlib.patch',
-        '4k.patch',
-        'add_license_dav1d.patch',
-        'macos_h264_encoder.patch',
-        'macos_screen_capture.patch',
-        'ios_simulcast.patch',
-        'ssl_verify_callback_with_native_handle.patch',
-        'macos_use_xcode_clang.patch',
-    ],
     'macos_arm64': [
         'add_dep_zlib.patch',
         '4k.patch',
@@ -255,11 +245,6 @@ PATCHES = {
     ],
     'ubuntu-20.04_armv8': [
         'add_dep_zlib.patch',
-        '4k.patch',
-        'add_license_dav1d.patch',
-        'ssl_verify_callback_with_native_handle.patch',
-    ],
-    'ubuntu-18.04_x86_64': [
         '4k.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
@@ -354,27 +339,27 @@ MultistrapConfig = collections.namedtuple('MultistrapConfig', [
 ])
 MULTISTRAP_CONFIGS = {
     'raspberry-pi-os_armv6': MultistrapConfig(
-        config_file=['raspberry-pi-os_armv6', 'rpi-raspbian.conf'],
+        config_file=['multistrap', 'raspberry-pi-os_armv6.conf'],
         arch='armhf',
         triplet='arm-linux-gnueabihf'
     ),
     'raspberry-pi-os_armv7': MultistrapConfig(
-        config_file=['raspberry-pi-os_armv7', 'rpi-raspbian.conf'],
+        config_file=['multistrap', 'raspberry-pi-os_armv7.conf'],
         arch='armhf',
         triplet='arm-linux-gnueabihf'
     ),
     'raspberry-pi-os_armv8': MultistrapConfig(
-        config_file=['raspberry-pi-os_armv8', 'rpi-raspbian.conf'],
+        config_file=['multistrap', 'raspberry-pi-os_armv8.conf'],
         arch='arm64',
         triplet='aarch64-linux-gnu'
     ),
     'ubuntu-18.04_armv8': MultistrapConfig(
-        config_file=['ubuntu-18.04_armv8', 'arm64.conf'],
+        config_file=['multistrap', 'ubuntu-18.04_armv8.conf'],
         arch='arm64',
         triplet='aarch64-linux-gnu'
     ),
     'ubuntu-20.04_armv8': MultistrapConfig(
-        config_file=['ubuntu-20.04_armv8', 'arm64.conf'],
+        config_file=['multistrap', 'ubuntu-20.04_armv8.conf'],
         arch='arm64',
         triplet='aarch64-linux-gnu'
     ),
@@ -426,7 +411,6 @@ WEBRTC_BUILD_TARGETS_MACOS_COMMON = [
     'sdk:videocapture_objc',
 ]
 WEBRTC_BUILD_TARGETS = {
-    'macos_x86_64': [*WEBRTC_BUILD_TARGETS_MACOS_COMMON, 'sdk:mac_framework_objc'],
     'macos_arm64': [*WEBRTC_BUILD_TARGETS_MACOS_COMMON, 'sdk:mac_framework_objc'],
     'ios': [*WEBRTC_BUILD_TARGETS_MACOS_COMMON, 'sdk:framework_objc'],
     'android': ['sdk/android:libwebrtc', 'sdk/android:libjingle_peerconnection_so', 'sdk/android:native_api'],
@@ -435,7 +419,7 @@ WEBRTC_BUILD_TARGETS = {
 
 def get_build_targets(target):
     ts = [':default']
-    if target not in ('windows_x86_64', 'windows_arm64', 'ios', 'macos_x86_64', 'macos_arm64'):
+    if target not in ('windows_x86_64', 'windows_arm64', 'ios', 'macos_arm64'):
         ts += ['buildtools/third_party/libc++']
     ts += WEBRTC_BUILD_TARGETS.get(target, [])
     return ts
@@ -665,10 +649,10 @@ def build_webrtc(
                 f'target_cpu="{"x64" if target == "windows_x86_64" else "arm64"}"',
                 "use_custom_libcxx=false",
             ]
-        elif target in ('macos_x86_64', 'macos_arm64'):
+        elif target in ('macos_arm64',):
             gn_args += [
                 'target_os="mac"',
-                f'target_cpu="{"x64" if target == "macos_x86_64" else "arm64"}"',
+                'target_cpu="arm64"',
                 'mac_deployment_target="10.11"',
                 'enable_stripping=true',
                 'enable_dsyms=true',
@@ -703,7 +687,7 @@ def build_webrtc(
                     'arm_use_neon=false',
                     'enable_libaom=false',
                 ]
-        elif target in ('ubuntu-18.04_x86_64', 'ubuntu-20.04_x86_64', 'ubuntu-22.04_x86_64'):
+        elif target in ('ubuntu-20.04_x86_64', 'ubuntu-22.04_x86_64'):
             gn_args += [
                 'target_os="linux"',
                 'rtc_use_pipewire=false',
@@ -719,7 +703,7 @@ def build_webrtc(
     cmd(['ninja', '-C', webrtc_build_dir, *get_build_targets(target)])
     if target in ['windows_x86_64', 'windows_arm64']:
         pass
-    elif target in ('macos_x86_64', 'macos_arm64'):
+    elif target in ('macos_arm64',):
         ar = '/usr/bin/ar'
     else:
         ar = os.path.join(webrtc_src_dir, 'third_party/llvm-build/Release+Asserts/bin/llvm-ar')
@@ -729,7 +713,7 @@ def build_webrtc(
         archive_objects(ar, os.path.join(webrtc_build_dir, 'obj'), os.path.join(webrtc_build_dir, 'libwebrtc.a'))
 
     # macOS の場合は WebRTC.framework に追加情報を入れる
-    if (target in ('macos_x86_64', 'macos_arm64')) and not nobuild_macos_framework:
+    if (target in ('macos_arm64',)) and not nobuild_macos_framework:
         branch, commit, revision, maint = get_webrtc_version_info(version_info)
         info = {}
         info['branch'] = branch
@@ -846,7 +830,7 @@ def package_webrtc(source_dir, build_dir, package_dir, target,
         files = [
             (['obj', 'webrtc.lib'], ['lib', 'webrtc.lib']),
         ]
-    elif target in ('macos_x86_64', 'macos_arm64'):
+    elif target in ('macos_arm64',):
         files = [
             (['libwebrtc.a'], ['lib', 'libwebrtc.a']),
             (['WebRTC.xcframework'], ['Frameworks', 'WebRTC.xcframework']),
@@ -903,9 +887,7 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 TARGETS = [
     'windows_x86_64',
     'windows_arm64',
-    'macos_x86_64',
     'macos_arm64',
-    'ubuntu-18.04_x86_64',
     'ubuntu-20.04_x86_64',
     'ubuntu-22.04_x86_64',
     'ubuntu-18.04_armv8',
@@ -926,7 +908,7 @@ def check_target(target):
         return target in ['windows_x86_64', 'windows_arm64']
     elif platform.system() == 'Darwin':
         logging.info(f'OS: {platform.system()}')
-        return target in ('macos_x86_64', 'macos_arm64', 'ios')
+        return target in ('macos_arm64', 'ios')
     elif platform.system() == 'Linux':
         release = read_version_file('/etc/os-release')
         os = release['NAME']
@@ -952,8 +934,6 @@ def check_target(target):
         # x86_64 用ビルドはバージョンが合っている必要がある
         osver = release['VERSION_ID']
         logging.info(f'OS Version: {osver}')
-        if target == 'ubuntu-18.04_x86_64' and osver == '18.04':
-            return True
         if target == 'ubuntu-20.04_x86_64' and osver == '20.04':
             return True
         if target == 'ubuntu-22.04_x86_64' and osver == '22.04':
