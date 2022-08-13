@@ -92,7 +92,7 @@ jobs:
           - ubuntu-20.04_x86_64
           - ubuntu-22.04_x86_64
           - android
-    runs-on: ubuntu-18.04
+    runs-on: ${{ matrix.name == 'ubuntu-22.04_x86_64' && 'ubuntu-22.04' || 'ubuntu-20.04' }}
     steps:
     - uses: actions/checkout@v2
       with:
