@@ -33,7 +33,6 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
 - windows_x86_64
 - windows_arm64
 - macos_arm64
-- macos_x86_64
 - raspberry-pi-os_armv6 (Raspberry Pi Zero)
 - raspberry-pi-os_armv7 (Raspberry Pi 3, 4)
 - raspberry-pi-os_armv8 (Raspberry Pi 3, 4)
@@ -43,7 +42,6 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
     - Jetson AGX Xavier
 - ubuntu-20.04_armv8
     - Jetson AGX Orin
-- ubuntu-18.04_x86_64
 - ubuntu-20.04_x86_64
 - ubuntu-22.04_x86_64
 - android_arm64
