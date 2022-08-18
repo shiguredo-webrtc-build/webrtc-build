@@ -41,6 +41,9 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
     - Jetson Xavier NX
     - Jetson AGX Xavier
 - ubuntu-20.04_armv8
+    - Jetson Xavier NX
+    - Jetson AGX Xavier
+    - Jetson Orin　NX
     - Jetson AGX Orin
 - ubuntu-20.04_x86_64
 - ubuntu-22.04_x86_64
@@ -55,10 +58,6 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
 
 ## 今後の予定
 
-- Ubuntu 22.04 x86_64 対応
-    - リリースされ次第対応を検討します
-- Jetson 向け ARM 版 Ubuntu 20.04 対応
-    - リリースされ次第対応を検討します
 
 ### 廃止
 
