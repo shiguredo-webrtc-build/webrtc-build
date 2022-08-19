@@ -1,16 +1,16 @@
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index b25250d42e..bd46c1f830 100644
+index 5f21ffe641..2286b8267c 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
-@@ -648,6 +648,7 @@ if (is_ios || is_mac) {
-
+@@ -673,6 +673,7 @@ if (is_ios || is_mac) {
+       ]
+ 
        deps = [
-         ":av1",
 +        ":simulcast",
          ":base_objc",
          ":native_video",
          ":videocodec_objc",
-@@ -724,6 +725,22 @@ if (is_ios || is_mac) {
+@@ -723,6 +724,22 @@ if (is_ios || is_mac) {
        ]
      }
  
@@ -30,9 +30,9 @@ index b25250d42e..bd46c1f830 100644
 +      ]
 +    }
 +
-     # Build the PeerConnectionFactory without audio/video support.
-     # This target depends on the objc_peeerconnectionfactory_base which still
-     # includes some audio/video related objects such as RTCAudioSource because
+     rtc_library("vp9") {
+       visibility = [ "*" ]
+       allow_poison = [ "software_video_codecs" ]
 @@ -1239,6 +1256,7 @@ if (is_ios || is_mac) {
            "objc/components/video_codec/RTCVideoDecoderH264.h",
            "objc/components/video_codec/RTCVideoEncoderFactoryH264.h",
@@ -41,7 +41,7 @@ index b25250d42e..bd46c1f830 100644
            "objc/components/video_frame_buffer/RTCCVPixelBuffer.h",
            "objc/helpers/RTCCameraPreviewView.h",
            "objc/helpers/RTCDispatcher.h",
-@@ -1285,6 +1303,7 @@ if (is_ios || is_mac) {
+@@ -1286,6 +1304,7 @@ if (is_ios || is_mac) {
            "objc/api/video_codec/RTCVideoEncoderVP8.h",
            "objc/api/video_codec/RTCVideoEncoderVP9.h",
            "objc/api/video_codec/RTCVideoEncoderAV1.h",

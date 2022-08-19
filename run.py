@@ -166,6 +166,7 @@ PATCH_INFO = {
     'macos_h264_encoder.patch': (2, []),
     'macos_screen_capture.patch': (2, []),
     'macos_use_xcode_clang.patch': (1, ['build']),
+    'windows_fix_type_traits.patch': (1, ['third_party']),
 }
 
 PATCHES = {
@@ -175,6 +176,7 @@ PATCHES = {
         'windows_add_deps.patch',
         'windows_silence_warnings.patch',
         'windows_fix_towupper.patch',
+        'windows_fix_type_traits.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'windows_arm64': [
@@ -183,6 +185,7 @@ PATCHES = {
         'windows_add_deps.patch',
         'windows_silence_warnings.patch',
         'windows_fix_towupper.patch',
+        'windows_fix_type_traits.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'macos_arm64': [
@@ -504,7 +507,6 @@ def build_webrtc_ios(
             '-o', os.path.join(webrtc_build_dir, 'framework'),
             '--build_config', 'debug' if debug else 'release',
             '--arch', *IOS_FRAMEWORK_ARCHS,
-            '--bitcode',
             '--extra-gn-args', to_gn_args(gn_args, extra_gn_args)
         ])
         info = {}
@@ -539,7 +541,6 @@ def build_webrtc_ios(
                 f'target_environment="{device}"',
                 "ios_enable_code_signing=false",
                 f'ios_deployment_target="{ios_deployment_target}"',
-                'enable_ios_bitcode=true',
                 f"enable_stripping={'false' if debug else 'true'}",
                 *gn_args_base,
             ]

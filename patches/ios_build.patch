@@ -16,56 +16,82 @@ index 1e6621848..550b3e7e8 100644
    clang_base_path = default_clang_base_path
  }
 diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
-index df8610696..944a1bf4c 100644
+index b6aaae9b6..399a031a3 100644
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
-@@ -522,7 +522,7 @@ config("compiler") {
+@@ -433,8 +433,8 @@ config("compiler") {
+     # faster.
+     # On arm64, this is already the default behavior.
+     if (current_cpu == "x64") {
+-      asmflags += [ "-femit-dwarf-unwind=no-compact-unwind" ]
+-      cflags += [ "-femit-dwarf-unwind=no-compact-unwind" ]
++      #asmflags += [ "-femit-dwarf-unwind=no-compact-unwind" ]
++      #cflags += [ "-femit-dwarf-unwind=no-compact-unwind" ]
+     }
+   }
+ 
+@@ -536,31 +536,6 @@ config("compiler") {
      ldflags += [ "-Wl,-z,keep-text-section-prefix" ]
    }
  
 -  if (is_clang && !is_nacl && current_os != "zos") {
-+  if (is_clang && !is_nacl && current_os != "zos" && !(is_ios && enable_ios_bitcode)) {
-     cflags += [ "-fcrash-diagnostics-dir=" + clang_diagnostic_dir ]
- 
-     # TODO(hans): Remove this once Clang generates better optimized debug info
-@@ -1535,17 +1535,17 @@ config("default_warnings") {
+-    cflags += [ "-fcrash-diagnostics-dir=" + clang_diagnostic_dir ]
+-
+-    # TODO(hans): Remove this once Clang generates better optimized debug info
+-    # by default. https://crbug.com/765793
+-    cflags += [
+-      "-mllvm",
+-      "-instcombine-lower-dbg-declare=0",
+-    ]
+-    if (!is_debug && use_thin_lto && is_a_target_toolchain) {
+-      if (is_win) {
+-        ldflags += [ "-mllvm:-instcombine-lower-dbg-declare=0" ]
+-      } else {
+-        ldflags += [ "-Wl,-mllvm,-instcombine-lower-dbg-declare=0" ]
+-      }
+-    }
+-
+-    # TODO(crbug.com/1235145): Investigate why/if this should be needed.
+-    if (is_win) {
+-      cflags += [ "/clang:-ffp-contract=off" ]
+-    } else {
+-      cflags += [ "-ffp-contract=off" ]
+-    }
+-  }
+-
+   # Rust compiler setup (for either clang or rustc).
+   if (enable_rust) {
+     defines += [ "RUST_ENABLED" ]
+@@ -1534,23 +1509,6 @@ config("default_warnings") {
          "-Wno-ignored-pragma-optimize",
        ]
  
 -      if (!is_nacl) {
 -        # TODO(https://crbug.com/1300731) Clean up and enable.
 -        cflags += [ "-Wno-unqualified-std-cast-call" ]
+-
+-        # Do not set the below flags if it's nacl as nacl-clang doesn't have the
+-        # patches that require these flags.
+-        if (llvm_force_head_revision) {
+-          cflags += [
+-            # TODO(crbug.com/1343303) Evaluate and possibly enable.
+-            "-Wno-array-parameter",
+-
+-            # TODO(crbug.com/1343975) Evaluate and possibly enable.
+-            "-Wno-deprecated-builtins",
+-          ]
+-        }
 -      }
-+      # if (!is_nacl) {
-+      #   # TODO(https://crbug.com/1300731) Clean up and enable.
-+      #   cflags += [ "-Wno-unqualified-std-cast-call" ]
-+      # }
- 
-       if (!is_nacl && !(is_chromeos ||
-                         default_toolchain == "//build/toolchain/cros:target")) {
-         # TODO(https://crbug.com/1322823): Remove flags once potential miscompile is investigated.
-         cflags += [
-           "-Xclang",
--          "-no-opaque-pointers",
-+          #"-no-opaque-pointers",
-         ]
-       }
- 
-@@ -1727,7 +1727,7 @@ config("no_chromium_code") {
-     if (!is_nacl) {
-       cflags += [
-         # Disabled for similar reasons as -Wunused-variable.
--        "-Wno-unused-but-set-variable",
-+        # "-Wno-unused-but-set-variable",
- 
-         # TODO(https://crbug.com/1202159): Clean up and enable.
-         "-Wno-misleading-indentation",
+-
+       if (is_fuchsia) {
+         # TODO(https://bugs.chromium.org/p/fuchsia/issues/detail?id=77383)
+         cflags += [ "-Wno-deprecated-copy" ]
 diff --git a/build/toolchain/apple/toolchain.gni b/build/toolchain/apple/toolchain.gni
-index 7221c8027..214c45b3e 100644
+index 399a62f03..de13c3373 100644
 --- a/build/toolchain/apple/toolchain.gni
 +++ b/build/toolchain/apple/toolchain.gni
-@@ -106,7 +106,8 @@ template("apple_toolchain") {
-       toolchain_uses_lld = use_lld
+@@ -121,7 +121,8 @@ template("apple_toolchain") {
+       toolchain_is_component_build = is_component_build
      }
  
 -    prefix = rebase_path("$clang_base_path/bin/", root_build_dir)
