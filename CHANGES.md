@@ -14,6 +14,15 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## master
 
+- [CHANGE] macos_x86_64 のビルドを削除
+    - @melpon
+- [CHANGE] ubuntu-18.04_x86_64 のビルドを削除
+    - @melpon
+- [CHANGE] Docker でのビルドを削除
+    - @melpon
+
+## m103.5060.5.0
+
 - [ADD] iOS で Proxy を利用可能にする
     - @melpon
 
