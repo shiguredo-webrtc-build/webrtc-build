@@ -1,18 +1,80 @@
-name: daily build
-
-on:
-  schedule:
-    # 毎日 09:00 JST
-    - cron: "0 0 * * *"
-
 jobs:
-  build-windows:
+  build-linux:
+    runs-on: ${{ matrix.name == 'ubuntu-22.04_x86_64' && 'ubuntu-22.04' || 'ubuntu-20.04'
+      }}
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        ref: daily
+    - name: Disk Cleanup
+      run: |
+        df -h
+        docker rmi `docker images -q -a`
+        # 3.9GB
+        sudo rm -rf /usr/local/share/boost
+        # 17GB
+        sudo rm -rf /usr/share/dotnet
+        df -h
+    - run: cp VERSION.head VERSION
+    - if: endsWith(matrix.name, '_x86_64')
+      name: Setup ${{ matrix.name }} for x86_64
+      run: sudo scripts/apt_install_x86_64.sh
+    - if: contains(matrix.name, '_armv')
+      name: Setup ${{ matrix.name }} for arm
+      run: sudo scripts/apt_install_arm.sh
+    - if: matrix.name == 'android'
+      name: Setup ${{ matrix.name }} for android
+      run: sudo scripts/apt_install_x86_64.sh && sudo apt-get install -y openjdk-11-jdk
+    - name: Build ${{ matrix.name }}
+      run: |
+        python3 run.py build ${{ matrix.name }}
+        python3 run.py package ${{ matrix.name }}
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: webrtc.${{ matrix.name }}.tar.gz
+        path: _package/${{ matrix.name }}/webrtc.tar.gz
     strategy:
       fail-fast: false
       matrix:
         name:
-          - windows_x86_64
-          - windows_arm64
+        - raspberry-pi-os_armv6
+        - raspberry-pi-os_armv7
+        - raspberry-pi-os_armv8
+        - ubuntu-18.04_armv8
+        - ubuntu-20.04_armv8
+        - ubuntu-20.04_x86_64
+        - ubuntu-22.04_x86_64
+        - android
+  build-macos:
+    runs-on: macOS-11.0
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        ref: daily
+    - run: cp VERSION.head VERSION
+    - if: matrix.name == 'macos_arm64'
+      name: Build ${{ matrix.name }} for macos
+      run: |
+        python3 run.py build ${{ matrix.name }}
+        python3 run.py package ${{ matrix.name }}
+    - if: matrix.name == 'ios'
+      name: Build ${{ matrix.name }} for ios
+      run: |
+        python3 run.py build ${{ matrix.name }} --webrtc-overlap-ios-build-dir
+        python3 run.py package ${{ matrix.name }} --webrtc-overlap-ios-build-dir
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: webrtc.${{ matrix.name }}.tar.gz
+        path: _package/${{ matrix.name }}/webrtc.tar.gz
+    strategy:
+      fail-fast: false
+      matrix:
+        name:
+        - macos_arm64
+        - ios
+  build-windows:
     runs-on: windows-2019
     steps:
     - uses: actions/checkout@v2
@@ -51,77 +113,13 @@ jobs:
       with:
         name: webrtc.${{ matrix.name }}.zip
         path: _package\${{ matrix.name }}\webrtc.zip
-  build-macos:
     strategy:
       fail-fast: false
       matrix:
         name:
-          - macos_arm64
-          - ios
-    runs-on: macOS-11.0
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        ref: daily
-    - run: cp VERSION.head VERSION
-    - name: Build ${{ matrix.name }} for macos
-      if: matrix.name == 'macos_arm64'
-      run: |
-        python3 run.py build ${{ matrix.name }}
-        python3 run.py package ${{ matrix.name }}
-    - name: Build ${{ matrix.name }} for ios
-      if: matrix.name == 'ios'
-      run: |
-        python3 run.py build ${{ matrix.name }} --webrtc-overlap-ios-build-dir
-        python3 run.py package ${{ matrix.name }} --webrtc-overlap-ios-build-dir
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v1
-      with:
-        name: webrtc.${{ matrix.name }}.tar.gz
-        path: _package/${{ matrix.name }}/webrtc.tar.gz
-  build-linux:
-    strategy:
-      fail-fast: false
-      matrix:
-        name:
-          - raspberry-pi-os_armv6
-          - raspberry-pi-os_armv7
-          - raspberry-pi-os_armv8
-          - ubuntu-18.04_armv8
-          - ubuntu-20.04_armv8
-          - ubuntu-20.04_x86_64
-          - ubuntu-22.04_x86_64
-          - android
-    runs-on: ${{ matrix.name == 'ubuntu-22.04_x86_64' && 'ubuntu-22.04' || 'ubuntu-20.04' }}
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        ref: daily
-    - name: Disk Cleanup
-      run: |
-        df -h
-        docker rmi `docker images -q -a`
-        # 3.9GB
-        sudo rm -rf /usr/local/share/boost
-        # 17GB
-        sudo rm -rf /usr/share/dotnet
-        df -h
-    - run: cp VERSION.head VERSION
-    - name: Setup ${{ matrix.name }} for x86_64
-      if: endsWith(matrix.name, '_x86_64')
-      run: sudo scripts/apt_install_x86_64.sh
-    - name: Setup ${{ matrix.name }} for arm
-      if: contains(matrix.name, '_armv')
-      run: sudo scripts/apt_install_arm.sh
-    - name: Setup ${{ matrix.name }} for android
-      if: matrix.name == 'android'
-      run: sudo scripts/apt_install_x86_64.sh && sudo apt-get install -y openjdk-11-jdk
-    - name: Build ${{ matrix.name }}
-      run: |
-        python3 run.py build ${{ matrix.name }}
-        python3 run.py package ${{ matrix.name }}
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v1
-      with:
-        name: webrtc.${{ matrix.name }}.tar.gz
-        path: _package/${{ matrix.name }}/webrtc.tar.gz
+        - windows_x86_64
+        - windows_arm64
+name: daily build
+"on":
+  schedule:
+  - cron: 0 0 * * *
