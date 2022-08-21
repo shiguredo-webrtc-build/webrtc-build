@@ -43,7 +43,7 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
 - ubuntu-20.04_armv8
     - Jetson Xavier NX
     - Jetson AGX Xavier
-    - Jetson Orin　NX
+    - Jetson Orin NX
     - Jetson AGX Orin
 - ubuntu-20.04_x86_64
 - ubuntu-22.04_x86_64
