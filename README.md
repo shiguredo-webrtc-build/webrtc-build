@@ -58,7 +58,6 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
 
 ## 今後の予定
 
-
 ### 廃止
 
 - macOS x86_64 廃止
@@ -96,6 +95,9 @@ limitations under the License.
     - Android サポート
     - iOS サポート
     - CentOS 8 サポート
+    - iOS / Android 認証付き HTTP Proxy サポート
+    - Ubuntu 22.04 x86_64 サポート
+    - Ubuntu 20.04 arm64 サポート
 - tnoho - *Original Author*
     - macOS 向け AV1 サポート
     - macOS 向け H.265 サポート
