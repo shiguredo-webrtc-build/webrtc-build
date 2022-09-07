@@ -1,0 +1,183 @@
+diff --git a/build/config/clang/clang.gni b/build/config/clang/clang.gni
+index 1e6621848..550b3e7e8 100644
+--- a/build/config/clang/clang.gni
++++ b/build/config/clang/clang.gni
+@@ -10,9 +10,9 @@ declare_args() {
+   # Indicates if the build should use the Chrome-specific plugins for enforcing
+   # coding guidelines, etc. Only used when compiling with Chrome's Clang, not
+   # Chrome OS's.
+-  clang_use_chrome_plugins =
+-      is_clang && !is_nacl && current_os != "zos" &&
+-      default_toolchain != "//build/toolchain/cros:target"
++  clang_use_chrome_plugins = false
++      # is_clang && !is_nacl && current_os != "zos" &&
++      # default_toolchain != "//build/toolchain/cros:target"
+ 
+   clang_base_path = default_clang_base_path
+ }
+diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
+index b6aaae9b6..399a031a3 100644
+--- a/build/config/compiler/BUILD.gn
++++ b/build/config/compiler/BUILD.gn
+@@ -433,8 +433,8 @@ config("compiler") {
+     # faster.
+     # On arm64, this is already the default behavior.
+     if (current_cpu == "x64") {
+-      asmflags += [ "-femit-dwarf-unwind=no-compact-unwind" ]
+-      cflags += [ "-femit-dwarf-unwind=no-compact-unwind" ]
++      #asmflags += [ "-femit-dwarf-unwind=no-compact-unwind" ]
++      #cflags += [ "-femit-dwarf-unwind=no-compact-unwind" ]
+     }
+   }
+ 
+@@ -536,31 +536,6 @@ config("compiler") {
+     ldflags += [ "-Wl,-z,keep-text-section-prefix" ]
+   }
+ 
+-  if (is_clang && !is_nacl && current_os != "zos") {
+-    cflags += [ "-fcrash-diagnostics-dir=" + clang_diagnostic_dir ]
+-
+-    # TODO(hans): Remove this once Clang generates better optimized debug info
+-    # by default. https://crbug.com/765793
+-    cflags += [
+-      "-mllvm",
+-      "-instcombine-lower-dbg-declare=0",
+-    ]
+-    if (!is_debug && use_thin_lto && is_a_target_toolchain) {
+-      if (is_win) {
+-        ldflags += [ "-mllvm:-instcombine-lower-dbg-declare=0" ]
+-      } else {
+-        ldflags += [ "-Wl,-mllvm,-instcombine-lower-dbg-declare=0" ]
+-      }
+-    }
+-
+-    # TODO(crbug.com/1235145): Investigate why/if this should be needed.
+-    if (is_win) {
+-      cflags += [ "/clang:-ffp-contract=off" ]
+-    } else {
+-      cflags += [ "-ffp-contract=off" ]
+-    }
+-  }
+-
+   # Rust compiler setup (for either clang or rustc).
+   if (enable_rust) {
+     defines += [ "RUST_ENABLED" ]
+@@ -1534,23 +1509,6 @@ config("default_warnings") {
+         "-Wno-ignored-pragma-optimize",
+       ]
+ 
+-      if (!is_nacl) {
+-        # TODO(https://crbug.com/1300731) Clean up and enable.
+-        cflags += [ "-Wno-unqualified-std-cast-call" ]
+-
+-        # Do not set the below flags if it's nacl as nacl-clang doesn't have the
+-        # patches that require these flags.
+-        if (llvm_force_head_revision) {
+-          cflags += [
+-            # TODO(crbug.com/1343303) Evaluate and possibly enable.
+-            "-Wno-array-parameter",
+-
+-            # TODO(crbug.com/1343975) Evaluate and possibly enable.
+-            "-Wno-deprecated-builtins",
+-          ]
+-        }
+-      }
+-
+       if (is_fuchsia) {
+         # TODO(https://bugs.chromium.org/p/fuchsia/issues/detail?id=77383)
+         cflags += [ "-Wno-deprecated-copy" ]
+diff --git a/build/toolchain/apple/toolchain.gni b/build/toolchain/apple/toolchain.gni
+index 399a62f03..de13c3373 100644
+--- a/build/toolchain/apple/toolchain.gni
++++ b/build/toolchain/apple/toolchain.gni
+@@ -121,7 +121,8 @@ template("apple_toolchain") {
+       toolchain_is_component_build = is_component_build
+     }
+ 
+-    prefix = rebase_path("$clang_base_path/bin/", root_build_dir)
++    # prefix = rebase_path("$clang_base_path/bin/", root_build_dir)
++    prefix = invoker.bin_path
+     _cc = "${prefix}clang"
+     _cxx = "${prefix}clang++"
+ 
+diff --git a/build/toolchain/mac/BUILD.gn b/build/toolchain/mac/BUILD.gn
+index 0adce9400..d2b6a5b57 100644
+--- a/build/toolchain/mac/BUILD.gn
++++ b/build/toolchain/mac/BUILD.gn
+@@ -23,7 +23,7 @@ template("mac_toolchain") {
+ 
+       if (target_os == "ios") {
+         # Use LLD for the host part of a chrome/ios build.
+-        use_lld = true
++        use_lld = false
+ 
+         # Defined in //base, would trigger a warning if the build doesn't depend
+         # on it.
+diff --git a/third_party/dav1d/BUILD.gn b/third_party/dav1d/BUILD.gn
+index 933c8f2f566..d752194d95b 100644
+--- a/third_party/dav1d/BUILD.gn
++++ b/third_party/dav1d/BUILD.gn
+@@ -36,29 +36,8 @@ if (current_cpu == "x86" || current_cpu == "x64") {
+     needs_stack_alignment = true
+     if (current_cpu == "x86") {
+       stack_alignment = 16
+-
+-      if (!is_clang) {
+-        # Values used by GCC.
+-        preferred_stack_boundary = 4
+-        incoming_stack_boundary = 2
+-      }
+     } else if (current_cpu == "x64") {
+       stack_alignment = 32
+-
+-      if (!is_clang) {
+-        # Values used by GCC.
+-        preferred_stack_boundary = 5
+-        incoming_stack_boundary = 4
+-      }
+-    }
+-
+-    if (is_clang) {
+-      stackalign_flag = "-mstack-alignment=$stack_alignment"
+-      stackrealign_flag = "-mstackrealign"
+-    } else {
+-      # Assume GCC for now.
+-      stackalign_flag = "-mpreferred-stack-boundary=$preferred_stack_boundary"
+-      stackrealign_flag = "-mincoming-stack-boundary=$incoming_stack_boundary"
+     }
+   }
+ } else {
+@@ -112,9 +91,6 @@ if (is_win) {
+   }
+ } else {
+   dav1d_copts += [ "-std=c99" ]
+-  if (needs_stack_alignment) {
+-    dav1d_copts += [ stackalign_flag ]
+-  }
+   if (is_mac || is_ios) {
+     dav1d_copts += [ "-D_DARWIN_C_SOURCE" ]
+   }
+@@ -179,10 +155,6 @@ static_library("dav1d_entrypoints") {
+     sources += [ "libdav1d/src/win32/thread.c" ]
+   }
+ 
+-  if (needs_stack_alignment) {
+-    cflags += [ stackrealign_flag ]
+-  }
+-
+   deps = [ ":dav1d_headers" ]
+ }
+ 
+diff --git a/third_party/nasm/BUILD.gn b/third_party/nasm/BUILD.gn
+index ebd8b7fe..20f6ff8a 100644
+--- a/third_party/nasm/BUILD.gn
++++ b/third_party/nasm/BUILD.gn
+@@ -80,7 +80,7 @@ config("nasm_config") {
+       "-Wno-uninitialized",
+ 
+       # NASM sometimes set variables but doesn't use them.
+-      "-Wno-unused-but-set-variable",
++      # "-Wno-unused-but-set-variable",
+     ]
+   } else if (is_win) {
+     # Please note that's a slightly different set of warnings.

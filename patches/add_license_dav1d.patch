@@ -1,9 +1,9 @@
 diff --git a/tools_webrtc/libs/generate_licenses.py b/tools_webrtc/libs/generate_licenses.py
-index 86b4cd01f0..cf927670ee 100755
+index de4167a668..5da7f7ef59 100755
 --- a/tools_webrtc/libs/generate_licenses.py
 +++ b/tools_webrtc/libs/generate_licenses.py
-@@ -91,6 +91,8 @@ LIB_TO_LICENSES_DICT = {
-     'yasm': [],
+@@ -85,6 +85,8 @@ LIB_TO_LICENSES_DICT = {
+     # Compile time dependencies, no license needed:
      'ow2_asm': [],
      'jdk': [],
 +

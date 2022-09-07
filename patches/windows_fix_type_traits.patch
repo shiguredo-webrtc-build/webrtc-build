@@ -1,0 +1,18 @@
+diff --git a/abseil-cpp/absl/meta/type_traits.h b/abseil-cpp/absl/meta/type_traits.h
+index d886cb30a81..b4734383e5e 100644
+--- a/abseil-cpp/absl/meta/type_traits.h
++++ b/abseil-cpp/absl/meta/type_traits.h
+@@ -490,9 +490,13 @@ struct is_trivially_move_assignable
+ // `is_trivially_assignable<T&, const T&>`.
+ template <typename T>
+ struct is_trivially_copy_assignable
++#ifdef ABSL_HAVE_STD_IS_TRIVIALLY_ASSIGNABLE
++    : std::is_trivially_copy_assignable<T> {
++#else
+     : std::integral_constant<
+           bool, __has_trivial_assign(typename std::remove_reference<T>::type) &&
+                     absl::is_copy_assignable<T>::value> {
++#endif
+ #ifdef ABSL_HAVE_STD_IS_TRIVIALLY_ASSIGNABLE
+  private:
+   static constexpr bool compliant =

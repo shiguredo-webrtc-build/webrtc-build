@@ -12,7 +12,61 @@
 VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 パッチやビルドの変更のみ記録すること。
 
-## 96.4664.2.1
+## master
+
+- [CHANGE] macos_x86_64 のビルドを削除
+    - @melpon
+- [CHANGE] ubuntu-18.04_x86_64 のビルドを削除
+    - @melpon
+- [CHANGE] Docker でのビルドを削除
+    - @melpon
+
+## m103.5060.5.0
+
+- [ADD] iOS で Proxy を利用可能にする
+    - @melpon
+
+## m102.5005.7.6
+
+- [FIX] Android の Proxy 対応で PeerConnectionFactoryProxy を使っていなかったのを修正
+    - @melpon
+
+## m102.5005.7.5
+
+- [ADD] ubuntu-22.04_x86_64 追加
+    - @melpon
+
+## m102.5005.7.4
+
+- [FIX] macOS のビルドでも Xcode Clang を利用する
+    - @melpon
+
+## m102.5005.7.3
+
+- [ADD] Android で Proxy を利用可能にする
+    - @melpon
+
+## m102.5005.7.2
+
+- [FIX] macOS はホストの libc++ を利用する
+    - @melpon
+
+## m102.5005.7.1
+
+- [FIX] iOS のビルドに、 Xcode に含まれる clang を使用する
+    - こちらのパッチを作成するにあたり、以下の記事とパッチを参考にしました
+    - https://webrtchacks.com/the-webrtc-bitcode-soap-opera-saul-ibarra-corretge/
+    - https://github.com/jitsi/webrtc/releases/tag/v100.0.0
+    - @enm10k
+
+## m101.4951.5.1
+
+- [ADD] ubuntu-20.04_armv8 を追加
+    - @tnoho
+- [FIX] Android の HardwareVideoEncoder に実装された解像度の制限を回避するパッチを追加する
+    - @enm10k
+
+## m96.4664.2.1
 
 - [FIX] android_simulcast.patch を修正して、 SimulcastVideoEncoderFactory の fallback に null を渡せるようにする
     - @enm10k

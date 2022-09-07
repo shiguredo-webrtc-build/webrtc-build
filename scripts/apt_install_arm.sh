@@ -23,8 +23,6 @@ apt-get -y install \
   locales \
   lsb-release \
   multistrap \
-  python \
-  python-setuptools \
   python3 \
   python3-setuptools \
   rsync \
@@ -41,5 +39,5 @@ sed -e 's/Apt::Get::AllowUnauthenticated=true/Apt::Get::AllowUnauthenticated=tru
 # Ubuntu 18.04 では GLIBCXX_3.4.26 が無いためエラーになったので、
 # 新しい libstdc++6 のパッケージがある場所からインストールする
 add-apt-repository -y ppa:ubuntu-toolchain-r/test
-apt update
+apt-get update
 apt-get install -y --only-upgrade libstdc++6

@@ -1,0 +1,39 @@
+diff --git a/config/compiler/BUILD.gn b/config/compiler/BUILD.gn
+index b6aaae9b6..d3b81d792 100644
+--- a/config/compiler/BUILD.gn
++++ b/config/compiler/BUILD.gn
+@@ -433,8 +433,8 @@ config("compiler") {
+     # faster.
+     # On arm64, this is already the default behavior.
+     if (current_cpu == "x64") {
+-      asmflags += [ "-femit-dwarf-unwind=no-compact-unwind" ]
+-      cflags += [ "-femit-dwarf-unwind=no-compact-unwind" ]
++      #asmflags += [ "-femit-dwarf-unwind=no-compact-unwind" ]
++      #cflags += [ "-femit-dwarf-unwind=no-compact-unwind" ]
+     }
+   }
+ 
+@@ -1536,7 +1536,7 @@ config("default_warnings") {
+ 
+       if (!is_nacl) {
+         # TODO(https://crbug.com/1300731) Clean up and enable.
+-        cflags += [ "-Wno-unqualified-std-cast-call" ]
++        # cflags += [ "-Wno-unqualified-std-cast-call" ]
+ 
+         # Do not set the below flags if it's nacl as nacl-clang doesn't have the
+         # patches that require these flags. 
+
+diff --git a/toolchain/apple/toolchain.gni b/toolchain/apple/toolchain.gni
+index 399a62f03..fcb2fdf2c 100644
+--- a/toolchain/apple/toolchain.gni
++++ b/toolchain/apple/toolchain.gni
+@@ -121,7 +121,8 @@ template("apple_toolchain") {
+       toolchain_is_component_build = is_component_build
+     }
+ 
+-    prefix = rebase_path("$clang_base_path/bin/", root_build_dir)
++    #prefix = rebase_path("$clang_base_path/bin/", root_build_dir)
++    prefix = invoker.bin_path
+     _cc = "${prefix}clang"
+     _cxx = "${prefix}clang++"
+ 

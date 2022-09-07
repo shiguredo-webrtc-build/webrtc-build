@@ -163,9 +163,10 @@ def get_depot_tools(source_dir, fetch=False):
 
 
 PATCH_INFO = {
-    '4k.patch': (2, []),
     'macos_h264_encoder.patch': (2, []),
     'macos_screen_capture.patch': (2, []),
+    'macos_use_xcode_clang.patch': (1, ['build']),
+    'windows_fix_type_traits.patch': (1, ['third_party']),
 }
 
 PATCHES = {
@@ -174,6 +175,8 @@ PATCHES = {
         'add_license_dav1d.patch',
         'windows_add_deps.patch',
         'windows_silence_warnings.patch',
+        'windows_fix_towupper.patch',
+        'windows_fix_type_traits.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'windows_arm64': [
@@ -181,6 +184,8 @@ PATCHES = {
         'add_license_dav1d.patch',
         'windows_add_deps.patch',
         'windows_silence_warnings.patch',
+        'windows_fix_towupper.patch',
+        'windows_fix_type_traits.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'windows_hololens2': [
@@ -188,16 +193,8 @@ PATCHES = {
         'add_license_dav1d.patch',
         'windows_add_deps.patch',
         'windows_silence_warnings.patch',
-        'ssl_verify_callback_with_native_handle.patch',
-    ],
-    'macos_x86_64': [
-        'add_dep_zlib.patch',
-        '4k.patch',
-        'add_license_dav1d.patch',
-        'macos_h264_encoder.patch',
-        'macos_screen_capture.patch',
-        'macos_simulcast.patch',
-        'ios_simulcast.patch',
+        'windows_fix_towupper.patch',
+        'windows_fix_type_traits.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'macos_arm64': [
@@ -209,6 +206,7 @@ PATCHES = {
         'macos_simulcast.patch',
         'ios_simulcast.patch',
         'ssl_verify_callback_with_native_handle.patch',
+        'macos_use_xcode_clang.patch',
     ],
     'ios': [
         'add_dep_zlib.patch',
@@ -220,7 +218,8 @@ PATCHES = {
         'ios_manual_audio_input.patch',
         'ios_simulcast.patch',
         'ssl_verify_callback_with_native_handle.patch',
-        'ios_bitcode.patch',
+        'ios_build.patch',
+        'ios_proxy.patch',
     ],
     'android': [
         'add_dep_zlib.patch',
@@ -230,6 +229,8 @@ PATCHES = {
         'android_webrtc_version.patch',
         'android_fixsegv.patch',
         'android_simulcast.patch',
+        'android_hardware_video_encoder.patch',
+        'android_proxy.patch',
     ],
     'raspberry-pi-os_armv6': [
         'nacl_armv6_2.patch',
@@ -256,12 +257,18 @@ PATCHES = {
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
-    'ubuntu-18.04_x86_64': [
+    'ubuntu-20.04_armv8': [
+        'add_dep_zlib.patch',
         '4k.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'ubuntu-20.04_x86_64': [
+        '4k.patch',
+        'add_license_dav1d.patch',
+        'ssl_verify_callback_with_native_handle.patch',
+    ],
+    'ubuntu-22.04_x86_64': [
         '4k.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
@@ -284,6 +291,7 @@ WINUWP_ADDITIONAL_DIRS = [
 
 def apply_patch(patch, dir, depth):
     with cd(dir):
+        logging.info(f'patch -p{depth} < {patch}')
         if platform.system() == 'Windows':
             cmd(['git', 'apply', f'-p{depth}',
                 '--ignore-space-change', '--ignore-whitespace', '--whitespace=nowarn',
@@ -370,22 +378,27 @@ MultistrapConfig = collections.namedtuple('MultistrapConfig', [
 ])
 MULTISTRAP_CONFIGS = {
     'raspberry-pi-os_armv6': MultistrapConfig(
-        config_file=['raspberry-pi-os_armv6', 'rpi-raspbian.conf'],
+        config_file=['multistrap', 'raspberry-pi-os_armv6.conf'],
         arch='armhf',
         triplet='arm-linux-gnueabihf'
     ),
     'raspberry-pi-os_armv7': MultistrapConfig(
-        config_file=['raspberry-pi-os_armv7', 'rpi-raspbian.conf'],
+        config_file=['multistrap', 'raspberry-pi-os_armv7.conf'],
         arch='armhf',
         triplet='arm-linux-gnueabihf'
     ),
     'raspberry-pi-os_armv8': MultistrapConfig(
-        config_file=['raspberry-pi-os_armv8', 'rpi-raspbian.conf'],
+        config_file=['multistrap', 'raspberry-pi-os_armv8.conf'],
         arch='arm64',
         triplet='aarch64-linux-gnu'
     ),
     'ubuntu-18.04_armv8': MultistrapConfig(
-        config_file=['ubuntu-18.04_armv8', 'arm64.conf'],
+        config_file=['multistrap', 'ubuntu-18.04_armv8.conf'],
+        arch='arm64',
+        triplet='aarch64-linux-gnu'
+    ),
+    'ubuntu-20.04_armv8': MultistrapConfig(
+        config_file=['multistrap', 'ubuntu-20.04_armv8.conf'],
         arch='arm64',
         triplet='aarch64-linux-gnu'
     ),
@@ -437,7 +450,6 @@ WEBRTC_BUILD_TARGETS_MACOS_COMMON = [
     'sdk:videocapture_objc',
 ]
 WEBRTC_BUILD_TARGETS = {
-    'macos_x86_64': [*WEBRTC_BUILD_TARGETS_MACOS_COMMON, 'sdk:mac_framework_objc'],
     'macos_arm64': [*WEBRTC_BUILD_TARGETS_MACOS_COMMON, 'sdk:mac_framework_objc'],
     'ios': [*WEBRTC_BUILD_TARGETS_MACOS_COMMON, 'sdk:framework_objc'],
     'android': ['sdk/android:libwebrtc', 'sdk/android:libjingle_peerconnection_so', 'sdk/android:native_api'],
@@ -446,6 +458,7 @@ WEBRTC_BUILD_TARGETS = {
 
 def get_build_targets(target):
     ts = [':default']
+
     if target not in ('windows_x86_64', 'windows_arm64', 'windows_hololens2', 'ios', 'macos_x86_64', 'macos_arm64'):
         ts += ['buildtools/third_party/libc++']
     ts += WEBRTC_BUILD_TARGETS.get(target, [])
@@ -511,10 +524,11 @@ def build_webrtc_ios(
     # - https://webrtc-review.googlesource.com/c/src/+/232600 が影響している可能性があるため use_lld=false を追加
     gn_args_base = [
         'rtc_libvpx_build_vp9=true',
-        'libcxx_abi_unstable=false',
         'enable_dsyms=true',
+        'use_custom_libcxx=false',
         'use_lld=false',
         'rtc_enable_objc_symbol_export=true',
+        'treat_warnings_as_errors=false',
         *COMMON_GN_ARGS,
     ]
 
@@ -528,7 +542,6 @@ def build_webrtc_ios(
             '-o', os.path.join(webrtc_build_dir, 'framework'),
             '--build_config', 'debug' if debug else 'release',
             '--arch', *IOS_FRAMEWORK_ARCHS,
-            '--bitcode',
             '--extra-gn-args', to_gn_args(gn_args, extra_gn_args)
         ])
         info = {}
@@ -563,7 +576,6 @@ def build_webrtc_ios(
                 f'target_environment="{device}"',
                 "ios_enable_code_signing=false",
                 f'ios_deployment_target="{ios_deployment_target}"',
-                'enable_ios_bitcode=true',
                 f"enable_stripping={'false' if debug else 'true'}",
                 *gn_args_base,
             ]
@@ -692,26 +704,31 @@ def build_webrtc(
                 'rtc_enable_win_wgc=false',
                 'rtc_include_dav1d_in_internal_decoder_factory=false',
             ]
-        elif target in ('macos_x86_64', 'macos_arm64'):
+        elif target in ('macos_arm64',):
             gn_args += [
                 'target_os="mac"',
-                f'target_cpu="{"x64" if target == "macos_x86_64" else "arm64"}"',
+                'target_cpu="arm64"',
                 'mac_deployment_target="10.11"',
                 'enable_stripping=true',
                 'enable_dsyms=true',
                 'rtc_libvpx_build_vp9=true',
                 'rtc_enable_symbol_export=true',
                 'rtc_enable_objc_symbol_export=false',
-                'libcxx_abi_unstable=false',
+                'use_custom_libcxx=false',
+                'treat_warnings_as_errors=false',
+                'clang_use_chrome_plugins=false',
+                'use_lld=false',
             ]
         elif target in ('raspberry-pi-os_armv6',
                         'raspberry-pi-os_armv7',
                         'raspberry-pi-os_armv8',
-                        'ubuntu-18.04_armv8'):
+                        'ubuntu-18.04_armv8',
+                        'ubuntu-20.04_armv8'):
             sysroot = os.path.join(source_dir, 'rootfs')
+            arm64_set = ("raspberry-pi-os_armv8", "ubuntu-18.04_armv8", "ubuntu-20.04_armv8")
             gn_args += [
                 'target_os="linux"',
-                f'target_cpu="{"arm64" if target in ("raspberry-pi-os_armv8", "ubuntu-18.04_armv8") else "arm"}"',
+                f'target_cpu="{"arm64" if target in arm64_set else "arm"}"',
                 f'target_sysroot="{sysroot}"',
                 'rtc_use_pipewire=false',
             ]
@@ -725,7 +742,7 @@ def build_webrtc(
                     'arm_use_neon=false',
                     'enable_libaom=false',
                 ]
-        elif target in ('ubuntu-18.04_x86_64', 'ubuntu-20.04_x86_64'):
+        elif target in ('ubuntu-20.04_x86_64', 'ubuntu-22.04_x86_64'):
             gn_args += [
                 'target_os="linux"',
                 'rtc_use_pipewire=false',
@@ -741,7 +758,7 @@ def build_webrtc(
     cmd(['ninja', '-C', webrtc_build_dir, *get_build_targets(target)])
     if target in ['windows_x86_64', 'windows_arm64', 'windows_hololens2']:
         pass
-    elif target in ('macos_x86_64', 'macos_arm64'):
+    elif target in ('macos_arm64',):
         ar = '/usr/bin/ar'
     else:
         ar = os.path.join(webrtc_src_dir, 'third_party/llvm-build/Release+Asserts/bin/llvm-ar')
@@ -751,7 +768,7 @@ def build_webrtc(
         archive_objects(ar, os.path.join(webrtc_build_dir, 'obj'), os.path.join(webrtc_build_dir, 'libwebrtc.a'))
 
     # macOS の場合は WebRTC.framework に追加情報を入れる
-    if (target in ('macos_x86_64', 'macos_arm64')) and not nobuild_macos_framework:
+    if (target in ('macos_arm64',)) and not nobuild_macos_framework:
         branch, commit, revision, maint = get_webrtc_version_info(version_info)
         info = {}
         info['branch'] = branch
@@ -782,7 +799,7 @@ def copy_headers(webrtc_src_dir, webrtc_package_dir, target):
         # robocopy の戻り値は特殊なので、check=False にしてうまくエラーハンドリングする
         # https://docs.microsoft.com/ja-jp/troubleshoot/windows-server/backup-and-storage/return-codes-used-robocopy-utility
         r = cmd(['robocopy', webrtc_src_dir, os.path.join(webrtc_package_dir, 'include'),
-                '*.h', '*.hpp', '/S', '/NP', '/NFL', '/NDL'], check=False)
+                 '*.h', '*.hpp', '/S', '/NP', '/NFL', '/NDL'], check=False)
         if r.returncode >= 4:
             raise Exception('robocopy failed')
     else:
@@ -880,7 +897,7 @@ def package_webrtc(source_dir, build_dir, package_dir, target,
         files = [
             (['obj', 'webrtc.lib'], ['lib', 'webrtc.lib']),
         ]
-    elif target in ('macos_x86_64', 'macos_arm64'):
+    elif target in ('macos_arm64',):
         files = [
             (['libwebrtc.a'], ['lib', 'libwebrtc.a']),
             (['WebRTC.xcframework'], ['Frameworks', 'WebRTC.xcframework']),
@@ -938,11 +955,11 @@ TARGETS = [
     'windows_x86_64',
     'windows_arm64',
     'windows_hololens2',
-    'macos_x86_64',
     'macos_arm64',
-    'ubuntu-18.04_x86_64',
     'ubuntu-20.04_x86_64',
+    'ubuntu-22.04_x86_64',
     'ubuntu-18.04_armv8',
+    'ubuntu-20.04_armv8',
     'raspberry-pi-os_armv6',
     'raspberry-pi-os_armv7',
     'raspberry-pi-os_armv8',
@@ -959,7 +976,7 @@ def check_target(target):
         return target in ['windows_x86_64', 'windows_arm64', 'windows_hololens2']
     elif platform.system() == 'Darwin':
         logging.info(f'OS: {platform.system()}')
-        return target in ('macos_x86_64', 'macos_arm64', 'ios')
+        return target in ('macos_arm64', 'ios')
     elif platform.system() == 'Linux':
         release = read_version_file('/etc/os-release')
         os = release['NAME']
@@ -975,6 +992,7 @@ def check_target(target):
 
         # クロスコンパイルなので Ubuntu だったら任意のバージョンでビルド可能（なはず）
         if target in ('ubuntu-18.04_armv8',
+                      'ubuntu-20.04_armv8',
                       'raspberry-pi-os_armv6',
                       'raspberry-pi-os_armv7',
                       'raspberry-pi-os_armv8',
@@ -984,9 +1002,9 @@ def check_target(target):
         # x86_64 用ビルドはバージョンが合っている必要がある
         osver = release['VERSION_ID']
         logging.info(f'OS Version: {osver}')
-        if target == 'ubuntu-18.04_x86_64' and osver == '18.04':
-            return True
         if target == 'ubuntu-20.04_x86_64' and osver == '20.04':
+            return True
+        if target == 'ubuntu-22.04_x86_64' and osver == '22.04':
             return True
 
         return False
@@ -1076,7 +1094,7 @@ def main():
         download("https://github.com/microsoft/vswhere/releases/download/2.8.4/vswhere.exe", build_dir)
         path = cmdcap([os.path.join(build_dir, 'vswhere.exe'), '-latest',
                        '-products', '*',
-                       '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
+                      '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
                        '-property', 'installationPath'])
         if len(path) == 0:
             raise Exception('Visual Studio not installed')

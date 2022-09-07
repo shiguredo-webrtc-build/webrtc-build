@@ -41,20 +41,24 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
     - Jetson Nano
     - Jetson Xavier NX
     - Jetson AGX Xavier
+- ubuntu-20.04_armv8
+    - Jetson AGX Orin
 - ubuntu-18.04_x86_64
 - ubuntu-20.04_x86_64
+- ubuntu-22.04_x86_64
 - android_arm64
 - ios_arm64
 
-## 今後の予定
+### hololens2 ビルドについて
 
-**2022 年 1 月時点**
+- 対応ブランチは support/hololens2 です
+- 最新の libwebrtc 追従は有償で承っております
+- バグ修正は有償で承っております
+
+## 今後の予定
 
 - Ubuntu 22.04 x86_64 対応
     - リリースされ次第対応を検討します
-- ARM 版 Windows 対応
-    - M99 版にてリリース予定です
-    - このバージョンは実験的機能として提供しリリース継続を保証しません
 - Jetson 向け ARM 版 Ubuntu 20.04 対応
     - リリースされ次第対応を検討します
 
@@ -63,7 +67,7 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
 - macOS x86_64 廃止
     - 2022 年 6 月を持って廃止します
 - Ubuntu 18.04 x86_64 廃止
-    - 2023 年 4 月を持って廃止します
+    - 2022 年 6 月を持って廃止します
 - Jetson 向け ARM 版 Ubuntu 18.04 廃止
     - 2023 年 4 月を持って廃止します
 
@@ -72,8 +76,9 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
 Apache License 2.0
 
 ```
-Copyright 2019-2021, Wandbox LLC (Original Author)
-Copyright 2019-2021, Shiguredo Inc.
+Copyright 2019-2022, Wandbox LLC (Original Author)
+Copyright 2019-2022, tnoho (Original Author)
+Copyright 2019-2022, Shiguredo Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

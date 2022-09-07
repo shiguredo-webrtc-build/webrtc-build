@@ -1,8 +1,8 @@
-diff --git a/src/media/engine/webrtc_video_engine.cc b/src/media/engine/webrtc_video_engine.cc
-index 4219c43..b7b4ffa 100644
---- a/src/media/engine/webrtc_video_engine.cc
-+++ b/src/media/engine/webrtc_video_engine.cc
-@@ -244,8 +244,10 @@ static int GetMaxDefaultVideoBitrateKbps(int width,
+diff --git a/media/engine/webrtc_video_engine.cc b/media/engine/webrtc_video_engine.cc
+index e29d1ea66e..4809ef3003 100644
+--- a/media/engine/webrtc_video_engine.cc
++++ b/media/engine/webrtc_video_engine.cc
+@@ -355,8 +355,10 @@ static int GetMaxDefaultVideoBitrateKbps(int width,
      max_bitrate = 1700;
    } else if (width * height <= 960 * 540) {
      max_bitrate = 2000;
@@ -14,11 +14,11 @@ index 4219c43..b7b4ffa 100644
    }
    if (is_screenshare)
      max_bitrate = std::max(max_bitrate, 1200);
-diff --git a/src/modules/video_capture/linux/device_info_linux.cc b/src/modules/video_capture/linux/device_info_linux.cc
-index 39f72b0..3cb1226 100644
---- a/src/modules/video_capture/linux/device_info_linux.cc
-+++ b/src/modules/video_capture/linux/device_info_linux.cc
-@@ -224,11 +224,11 @@ int32_t DeviceInfoLinux::FillCapabilities(int fd) {
+diff --git a/modules/video_capture/linux/device_info_v4l2.cc b/modules/video_capture/linux/device_info_v4l2.cc
+index c1062d4078..277b737d86 100644
+--- a/modules/video_capture/linux/device_info_v4l2.cc
++++ b/modules/video_capture/linux/device_info_v4l2.cc
+@@ -232,11 +232,11 @@ int32_t DeviceInfoV4l2::FillCapabilities(int fd) {
    unsigned int videoFormats[] = {V4L2_PIX_FMT_MJPEG, V4L2_PIX_FMT_YUV420,
                                   V4L2_PIX_FMT_YUYV, V4L2_PIX_FMT_UYVY};
  
