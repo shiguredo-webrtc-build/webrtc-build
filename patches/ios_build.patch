@@ -62,30 +62,6 @@ index b6aaae9b6..399a031a3 100644
    # Rust compiler setup (for either clang or rustc).
    if (enable_rust) {
      defines += [ "RUST_ENABLED" ]
-@@ -1534,23 +1509,6 @@ config("default_warnings") {
-         "-Wno-ignored-pragma-optimize",
-       ]
- 
--      if (!is_nacl) {
--        # TODO(https://crbug.com/1300731) Clean up and enable.
--        cflags += [ "-Wno-unqualified-std-cast-call" ]
--
--        # Do not set the below flags if it's nacl as nacl-clang doesn't have the
--        # patches that require these flags.
--        if (llvm_force_head_revision) {
--          cflags += [
--            # TODO(crbug.com/1343303) Evaluate and possibly enable.
--            "-Wno-array-parameter",
--
--            # TODO(crbug.com/1343975) Evaluate and possibly enable.
--            "-Wno-deprecated-builtins",
--          ]
--        }
--      }
--
-       if (is_fuchsia) {
-         # TODO(https://bugs.chromium.org/p/fuchsia/issues/detail?id=77383)
-         cflags += [ "-Wno-deprecated-copy" ]
 diff --git a/build/toolchain/apple/toolchain.gni b/build/toolchain/apple/toolchain.gni
 index 399a62f03..de13c3373 100644
 --- a/build/toolchain/apple/toolchain.gni

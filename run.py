@@ -166,7 +166,7 @@ PATCH_INFO = {
     'macos_h264_encoder.patch': (2, []),
     'macos_screen_capture.patch': (2, []),
     'macos_use_xcode_clang.patch': (1, ['build']),
-    'windows_fix_type_traits.patch': (1, ['third_party']),
+    'windows_fix_optional.patch': (1, ['third_party']),
 }
 
 PATCHES = {
@@ -176,7 +176,7 @@ PATCHES = {
         'windows_add_deps.patch',
         'windows_silence_warnings.patch',
         'windows_fix_towupper.patch',
-        'windows_fix_type_traits.patch',
+        'windows_fix_optional.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'windows_arm64': [
@@ -185,7 +185,7 @@ PATCHES = {
         'windows_add_deps.patch',
         'windows_silence_warnings.patch',
         'windows_fix_towupper.patch',
-        'windows_fix_type_traits.patch',
+        'windows_fix_optional.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'macos_arm64': [
@@ -194,7 +194,6 @@ PATCHES = {
         'add_license_dav1d.patch',
         'macos_h264_encoder.patch',
         'macos_screen_capture.patch',
-        'macos_simulcast.patch',
         'ios_simulcast.patch',
         'ssl_verify_callback_with_native_handle.patch',
         'macos_use_xcode_clang.patch',
@@ -205,7 +204,6 @@ PATCHES = {
         'add_license_dav1d.patch',
         'macos_h264_encoder.patch',
         'macos_screen_capture.patch',
-        'macos_simulcast.patch',
         'ios_manual_audio_input.patch',
         'ios_simulcast.patch',
         'ssl_verify_callback_with_native_handle.patch',
