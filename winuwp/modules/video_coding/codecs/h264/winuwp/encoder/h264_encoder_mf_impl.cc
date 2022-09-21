@@ -89,8 +89,9 @@ UINT32 HeightToEncode(UINT32 height) {
 }  // namespace
 
 int32_t H264EncoderMFImpl::InitEncode(
-    const VideoCodec* codec_settings,
-    const VideoEncoder::Settings& /*settings*/) {
+    const webrtc::VideoCodec* codec_settings,
+    int32_t number_of_cores,
+    size_t max_payload_size) {
   if (!codec_settings || codec_settings->codecType != kVideoCodecH264) {
     RTC_LOG(LS_ERROR) << "H264 UWP Encoder not registered as H264 codec";
     return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
@@ -114,7 +115,6 @@ int32_t H264EncoderMFImpl::InitEncode(
   max_qp_ = std::min(codec_settings->qpMax, kMaxH264Qp);
 
   mode_ = codec_settings->mode;
-  frame_dropping_on_ = codec_settings->H264().frameDroppingOn;
   key_frame_interval_ = codec_settings->H264().keyFrameInterval;
   // Codec_settings uses kbits/second; encoder uses bits/second.
   max_bitrate_ = codec_settings->maxBitrate * 1000;
@@ -272,8 +272,8 @@ ComPtr<IMFSample> H264EncoderMFImpl::FromVideoFrame(const VideoFrame& frame) {
   ComPtr<IMFAttributes> sampleAttributes;
   ON_SUCCEEDED(sample.As(&sampleAttributes));
 
-  rtc::scoped_refptr<I420BufferInterface> frameBuffer =
-      static_cast<I420BufferInterface*>(frame.video_frame_buffer().get());
+  rtc::scoped_refptr<I420BufferInterface> frameBuffer(
+      static_cast<I420BufferInterface*>(frame.video_frame_buffer().get()));
 
   assert(frameBuffer->width() == width_);
   assert(frameBuffer->height() == height_);

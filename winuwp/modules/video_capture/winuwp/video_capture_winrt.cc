@@ -192,16 +192,16 @@ HRESULT VideoCaptureWinRTInternal::StartCapture(
     if (SUCCEEDED(hr)) {
       hr = media_capture_.As(&media_capture4);
     }
-    if (SUCCEEDED(hr) && capability.mrc_video_effect_definition != nullptr) {
-      winrt::com_ptr<MrcVideoEffectDefinitionImpl> ved;
-      ved.copy_from(static_cast<MrcVideoEffectDefinitionImpl*>(capability.mrc_video_effect_definition.get()));
-      effect = ved.as<IVideoEffectDefinition>();
-    }
-    if (SUCCEEDED(hr)) {
-      hr = media_capture4->AddVideoEffectAsync(effect.get(), MediaStreamType::MediaStreamType_VideoRecord, async_op.ReleaseAndGetAddressOf());
-    }
-    if (SUCCEEDED(hr)) {
-      hr = WaitForAsyncOperation(async_op.Get());
+    if (capability.mrc_video_effect_definition != nullptr) {
+      if (SUCCEEDED(hr)) {
+        winrt::com_ptr<MrcVideoEffectDefinitionImpl> ved;
+        ved.copy_from(static_cast<MrcVideoEffectDefinitionImpl*>(capability.mrc_video_effect_definition.get()));
+        effect = ved.as<IVideoEffectDefinition>();
+        hr = media_capture4->AddVideoEffectAsync(effect.get(), MediaStreamType::MediaStreamType_VideoRecord, async_op.ReleaseAndGetAddressOf());
+      }
+      if (SUCCEEDED(hr)) {
+        hr = WaitForAsyncOperation(async_op.Get());
+      }
     }
   }
 

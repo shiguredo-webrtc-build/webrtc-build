@@ -87,10 +87,10 @@ index 2e10a60776..ffadee3472 100644
    RTC_DCHECK_NOTREACHED();
    return libyuv::FOURCC_ANY;
 diff --git a/modules/video_capture/BUILD.gn b/modules/video_capture/BUILD.gn
-index 75c2648cae..b08b5ecc58 100644
+index ad2d85e3fe..1cecd294d7 100644
 --- a/modules/video_capture/BUILD.gn
 +++ b/modules/video_capture/BUILD.gn
-@@ -63,33 +63,51 @@ if (!build_with_chromium) {
+@@ -74,33 +74,51 @@ if (!build_with_chromium) {
        deps += [ "../../media:rtc_media_base" ]
      }
      if (is_win) {
@@ -164,8 +164,8 @@ index 75c2648cae..b08b5ecc58 100644
 +        "windows/video_capture_factory_windows.cc",
 +      ] 
      }
- 
-     if (build_with_mozilla && is_android) {
+     if (is_fuchsia) {
+       sources = [ "video_capture_factory_null.cc" ]
 diff --git a/modules/video_capture/video_capture_defines.h b/modules/video_capture/video_capture_defines.h
 index 63534600a9..7d9a0a83aa 100644
 --- a/modules/video_capture/video_capture_defines.h
@@ -238,10 +238,10 @@ index 63534600a9..7d9a0a83aa 100644
    }
    bool operator==(const VideoCaptureCapability& other) const {
 diff --git a/modules/video_capture/video_capture_impl.cc b/modules/video_capture/video_capture_impl.cc
-index 6619d15924..798130700f 100644
+index 234c2e131e..b2a8845eaf 100644
 --- a/modules/video_capture/video_capture_impl.cc
 +++ b/modules/video_capture/video_capture_impl.cc
-@@ -114,7 +114,10 @@ int32_t VideoCaptureImpl::DeliverCapturedFrame(VideoFrame& captureFrame) {
+@@ -113,7 +113,10 @@ int32_t VideoCaptureImpl::DeliverCapturedFrame(VideoFrame& captureFrame) {
    return 0;
  }
  
@@ -253,7 +253,7 @@ index 6619d15924..798130700f 100644
                                          size_t videoFrameLength,
                                          const VideoCaptureCapability& frameInfo,
                                          int64_t captureTime /*=0*/) {
-@@ -125,16 +128,8 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
+@@ -124,16 +127,8 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
  
    TRACE_EVENT1("webrtc", "VC::IncomingFrame", "capture_time", captureTime);
  
@@ -272,16 +272,16 @@ index 6619d15924..798130700f 100644
    int target_width = width;
    int target_height = abs(height);
  
-@@ -156,7 +151,7 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
- 
-   // TODO(nisse): Use a pool?
+@@ -153,7 +148,7 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
+   // In Windows, the image starts bottom left, instead of top left.
+   // Setting a negative source height, inverts the image (within LibYuv).
    rtc::scoped_refptr<I420Buffer> buffer = I420Buffer::Create(
 -      target_width, target_height, stride_y, stride_uv, stride_uv);
 +      target_width, target_height, dst_stride_y, dst_stride_uv, dst_stride_uv);
  
    libyuv::RotationMode rotation_mode = libyuv::kRotate0;
    if (apply_rotation) {
-@@ -177,10 +172,11 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
+@@ -174,10 +169,11 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
    }
  
    const int conversionResult = libyuv::ConvertToI420(
@@ -330,10 +330,10 @@ index 15f947a921..3390592ffa 100644
  
  void CaptureSinkFilter::NotifyEvent(long code,
 diff --git a/modules/video_capture/windows/video_capture_factory_windows.cc b/modules/video_capture/windows/video_capture_factory_windows.cc
-index 34cc982d7e..2eca318284 100644
+index 481326c1d2..d299c7e175 100644
 --- a/modules/video_capture/windows/video_capture_factory_windows.cc
 +++ b/modules/video_capture/windows/video_capture_factory_windows.cc
-@@ -9,7 +9,14 @@
+@@ -9,15 +9,24 @@
   */
  
  #include "api/scoped_refptr.h"
@@ -344,25 +344,22 @@ index 34cc982d7e..2eca318284 100644
 +#else
  #include "modules/video_capture/windows/video_capture_ds.h"
 +#endif
-+
- #include "rtc_base/ref_counted_object.h"
  
  namespace webrtc {
-@@ -17,8 +24,11 @@ namespace videocapturemodule {
+ namespace videocapturemodule {
  
  // static
  VideoCaptureModule::DeviceInfo* VideoCaptureImpl::CreateDeviceInfo() {
 -  // TODO(tommi): Use the Media Foundation version on Vista and up.
--  return DeviceInfoDS::Create();
 +#if defined(WEBRTC_VIDEO_CAPTURE_WINRT)
 +  return DeviceInfoWinRT::Create();
 +#else
-+   return DeviceInfoDS::Create();
+   return DeviceInfoDS::Create();
 +#endif  // WEBRTC_VIDEO_CAPTURE_WINRT
  }
  
  rtc::scoped_refptr<VideoCaptureModule> VideoCaptureImpl::Create(
-@@ -26,8 +36,11 @@ rtc::scoped_refptr<VideoCaptureModule> VideoCaptureImpl::Create(
+@@ -25,8 +34,11 @@ rtc::scoped_refptr<VideoCaptureModule> VideoCaptureImpl::Create(
    if (device_id == nullptr)
      return nullptr;
  

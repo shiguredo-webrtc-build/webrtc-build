@@ -35,9 +35,10 @@ class H264EncoderMFImpl : public VideoEncoder, public IH264EncodingCallback {
   ~H264EncoderMFImpl();
 
   // === VideoEncoder overrides ===
-  int32_t H264EncoderMFImpl::InitEncode(
-      const VideoCodec* codec_settings,
-      const VideoEncoder::Settings& settings) override;
+  int32_t InitEncode(
+      const webrtc::VideoCodec* codec_settings,
+      int32_t number_of_cores,
+      size_t max_payload_size) override;
   int Release() override;
 
   int RegisterEncodeCompleteCallback(EncodedImageCallback* callback) override;
@@ -93,7 +94,6 @@ class H264EncoderMFImpl : public VideoEncoder, public IH264EncodingCallback {
   UINT32 max_qp_;
   VideoCodecMode mode_;
   // H.264 specifc parameters
-  bool frame_dropping_on_;
   int key_frame_interval_;
 
   int64_t last_rate_change_time_rtc_ms{};

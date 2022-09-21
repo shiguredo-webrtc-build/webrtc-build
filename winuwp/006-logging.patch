@@ -1,0 +1,140 @@
+diff --git a/logging/rtc_event_log/events/rtc_event_alr_state.cc b/logging/rtc_event_log/events/rtc_event_alr_state.cc
+index 25941eb16b..d20221356c 100644
+--- a/logging/rtc_event_log/events/rtc_event_alr_state.cc
++++ b/logging/rtc_event_log/events/rtc_event_alr_state.cc
+@@ -14,8 +14,12 @@
+ 
+ namespace webrtc {
+ constexpr RtcEvent::Type RtcEventAlrState::kType;
+-constexpr RtcEventDefinition<RtcEventAlrState, LoggedAlrStateEvent, bool>
+-    RtcEventAlrState::definition_;
++RtcEventDefinition<RtcEventAlrState, LoggedAlrStateEvent, bool>
++    RtcEventAlrState::definition_ =
++      {{"AlrState", RtcEventAlrState::kType},
++       {&RtcEventAlrState::in_alr_,
++        &LoggedAlrStateEvent::in_alr,
++        {"in_alr", /*id=*/1, FieldType::kFixed8, /*width=*/1}}};
+ 
+ RtcEventAlrState::RtcEventAlrState(bool in_alr) : in_alr_(in_alr) {}
+ 
+diff --git a/logging/rtc_event_log/events/rtc_event_alr_state.h b/logging/rtc_event_log/events/rtc_event_alr_state.h
+index 9f595ecd90..7d4ec52189 100644
+--- a/logging/rtc_event_log/events/rtc_event_alr_state.h
++++ b/logging/rtc_event_log/events/rtc_event_alr_state.h
+@@ -65,13 +65,10 @@ class RtcEventAlrState final : public RtcEvent {
+ 
+   const bool in_alr_;
+ 
+-  static constexpr RtcEventDefinition<RtcEventAlrState,
+-                                      LoggedAlrStateEvent,
+-                                      bool>
+-      definition_{{"AlrState", RtcEventAlrState::kType},
+-                  {&RtcEventAlrState::in_alr_,
+-                   &LoggedAlrStateEvent::in_alr,
+-                   {"in_alr", /*id=*/1, FieldType::kFixed8, /*width=*/1}}};
++  static RtcEventDefinition<RtcEventAlrState,
++                            LoggedAlrStateEvent,
++                            bool>
++      definition_;
+ };
+ 
+ }  // namespace webrtc
+diff --git a/logging/rtc_event_log/events/rtc_event_audio_playout.cc b/logging/rtc_event_log/events/rtc_event_audio_playout.cc
+index 21a3f9266c..fd1633f192 100644
+--- a/logging/rtc_event_log/events/rtc_event_audio_playout.cc
++++ b/logging/rtc_event_log/events/rtc_event_audio_playout.cc
+@@ -14,10 +14,14 @@
+ 
+ namespace webrtc {
+ 
+-constexpr RtcEventDefinition<RtcEventAudioPlayout,
+-                             LoggedAudioPlayoutEvent,
+-                             uint32_t>
+-    RtcEventAudioPlayout::definition_;
++RtcEventDefinition<RtcEventAudioPlayout,
++                   LoggedAudioPlayoutEvent,
++                   uint32_t>
++      RtcEventAudioPlayout::definition_ =
++        {{"AudioPlayout", RtcEventAudioPlayout::kType},
++         {&RtcEventAudioPlayout::ssrc_,
++          &LoggedAudioPlayoutEvent::ssrc,
++          {"ssrc", /*id=*/1, FieldType::kFixed32, /*width=*/32}}};
+ 
+ RtcEventAudioPlayout::RtcEventAudioPlayout(uint32_t ssrc) : ssrc_(ssrc) {}
+ 
+diff --git a/logging/rtc_event_log/events/rtc_event_audio_playout.h b/logging/rtc_event_log/events/rtc_event_audio_playout.h
+index 196c3ca247..6d4873c7c5 100644
+--- a/logging/rtc_event_log/events/rtc_event_audio_playout.h
++++ b/logging/rtc_event_log/events/rtc_event_audio_playout.h
+@@ -74,13 +74,10 @@ class RtcEventAudioPlayout final : public RtcEvent {
+ 
+   const uint32_t ssrc_;
+ 
+-  static constexpr RtcEventDefinition<RtcEventAudioPlayout,
++  static RtcEventDefinition<RtcEventAudioPlayout,
+                                       LoggedAudioPlayoutEvent,
+                                       uint32_t>
+-      definition_{{"AudioPlayout", RtcEventAudioPlayout::kType},
+-                  {&RtcEventAudioPlayout::ssrc_,
+-                   &LoggedAudioPlayoutEvent::ssrc,
+-                   {"ssrc", /*id=*/1, FieldType::kFixed32, /*width=*/32}}};
++      definition_;
+ };
+ 
+ }  // namespace webrtc
+diff --git a/logging/rtc_event_log/events/rtc_event_bwe_update_delay_based.cc b/logging/rtc_event_log/events/rtc_event_bwe_update_delay_based.cc
+index 0e98b2ff11..59af39c35e 100644
+--- a/logging/rtc_event_log/events/rtc_event_bwe_update_delay_based.cc
++++ b/logging/rtc_event_log/events/rtc_event_bwe_update_delay_based.cc
+@@ -15,11 +15,18 @@
+ 
+ namespace webrtc {
+ 
+-constexpr RtcEventDefinition<RtcEventBweUpdateDelayBased,
+-                             LoggedBweDelayBasedUpdate,
+-                             int32_t,
+-                             BandwidthUsage>
+-    RtcEventBweUpdateDelayBased::definition_;
++RtcEventDefinition<RtcEventBweUpdateDelayBased,
++                   LoggedBweDelayBasedUpdate,
++                   int32_t,
++                   BandwidthUsage>
++    RtcEventBweUpdateDelayBased::definition_ =
++         {{"BweDelayBased", RtcEventBweUpdateDelayBased::kType},
++          {&RtcEventBweUpdateDelayBased::bitrate_bps_,
++           &LoggedBweDelayBasedUpdate::bitrate_bps,
++           {"bitrate_bps", /*id=*/1, FieldType::kVarInt, /*width=*/32}},
++          {&RtcEventBweUpdateDelayBased::detector_state_,
++           &LoggedBweDelayBasedUpdate::detector_state,
++           {"detector_state", /*id=*/2, FieldType::kVarInt, /*width=*/64}}};
+ 
+ RtcEventBweUpdateDelayBased::RtcEventBweUpdateDelayBased(
+     int32_t bitrate_bps,
+diff --git a/logging/rtc_event_log/events/rtc_event_bwe_update_delay_based.h b/logging/rtc_event_log/events/rtc_event_bwe_update_delay_based.h
+index 796f119388..44898d67f8 100644
+--- a/logging/rtc_event_log/events/rtc_event_bwe_update_delay_based.h
++++ b/logging/rtc_event_log/events/rtc_event_bwe_update_delay_based.h
+@@ -117,18 +117,11 @@ class RtcEventBweUpdateDelayBased final : public RtcEvent {
+   const int32_t bitrate_bps_;
+   const BandwidthUsage detector_state_;
+ 
+-  static constexpr RtcEventDefinition<RtcEventBweUpdateDelayBased,
+-                                      LoggedBweDelayBasedUpdate,
+-                                      int32_t,
+-                                      BandwidthUsage>
+-      definition_{
+-          {"BweDelayBased", RtcEventBweUpdateDelayBased::kType},
+-          {&RtcEventBweUpdateDelayBased::bitrate_bps_,
+-           &LoggedBweDelayBasedUpdate::bitrate_bps,
+-           {"bitrate_bps", /*id=*/1, FieldType::kVarInt, /*width=*/32}},
+-          {&RtcEventBweUpdateDelayBased::detector_state_,
+-           &LoggedBweDelayBasedUpdate::detector_state,
+-           {"detector_state", /*id=*/2, FieldType::kVarInt, /*width=*/64}}};
++  static RtcEventDefinition<RtcEventBweUpdateDelayBased,
++                            LoggedBweDelayBasedUpdate,
++                            int32_t,
++                            BandwidthUsage>
++      definition_;
+ };
+ 
+ }  // namespace webrtc

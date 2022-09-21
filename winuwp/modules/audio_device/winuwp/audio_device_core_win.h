@@ -48,6 +48,7 @@ HRESULT WaitForAsyncOperation(
   using ::ABI::Windows::Foundation::IAsyncOperationCompletedHandler;
   using ::Microsoft::WRL::Callback;
   using ::Microsoft::WRL::Wrappers::Event;
+  using ::Microsoft::WRL::ComPtr;
 
   HRESULT hr = S_OK;
   HRESULT hr_async_error = S_OK;

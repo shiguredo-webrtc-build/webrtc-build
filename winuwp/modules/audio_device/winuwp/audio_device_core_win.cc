@@ -458,6 +458,16 @@ struct AudioDeviceHelper : public DeviceHelper<DEVICE_CLASS> {
   }
 
  public:
+  using DeviceHelper<DEVICE_CLASS>::Devices;
+  using DeviceHelper<DEVICE_CLASS>::SetDevice;
+  using DeviceHelper<DEVICE_CLASS>::GetDevice;
+  using DeviceHelper<DEVICE_CLASS>::ro_initialize_wrapper_;
+  using DeviceHelper<DEVICE_CLASS>::device_info_statics_;
+  using DeviceHelper<DEVICE_CLASS>::_deviceInformation;
+  using DeviceHelper<DEVICE_CLASS>::_usingDeviceIndex;
+  using DeviceHelper<DEVICE_CLASS>::_deviceIndex;
+  using DeviceHelper<DEVICE_CLASS>::_deviceType;
+
   virtual ~AudioDeviceHelper() {
     CloseHandle(_hSamplesReadyEvent);
     CloseHandle(_hThread);
@@ -832,6 +842,11 @@ struct CaptureDeviceInternal
     bool keepRecording = true;
     HANDLE waitArray[2] = {_hShutdownEvent, _hSamplesReadyEvent};
     HRESULT hr = S_OK;
+    double endpointBufferSizeMS = 0.0;
+    double extraDelayMS = 0.0;
+    REFERENCE_TIME devPeriod = 0;
+    REFERENCE_TIME devPeriodMin = 0;
+    UINT32 syncBufferSize = 0;
 
     LARGE_INTEGER t1;
 
@@ -868,7 +883,7 @@ struct CaptureDeviceInternal
     // It is used for compensation between native 44.1 and internal 44.0 and
     // for cases when the capture buffer is larger than 10ms.
     //
-    const UINT32 syncBufferSize = 2 * (bufferLength * _audioFrameSize);
+    syncBufferSize = 2 * (bufferLength * _audioFrameSize);
     syncBuffer = new BYTE[syncBufferSize];
     if (syncBuffer == nullptr) {
       return (DWORD)E_POINTER;
@@ -887,16 +902,16 @@ struct CaptureDeviceInternal
     // Get the length of the periodic interval separating successive processing
     // passes by the audio engine on the data in the endpoint buffer.
     //
-    REFERENCE_TIME devPeriod = 0;
-    REFERENCE_TIME devPeriodMin = 0;
+    devPeriod = 0;
+    devPeriodMin = 0;
     _audioClient->GetDevicePeriod(&devPeriod, &devPeriodMin);
     RTC_LOG(LS_VERBOSE) << "[CAPT] device period        : " << (DWORD)devPeriod
                         << " (" << (double)(devPeriod / 10000.0) << " ms)";
 
-    double extraDelayMS = (double)((latency + devPeriod) / 10000.0);
+    extraDelayMS = (double)((latency + devPeriod) / 10000.0);
     RTC_LOG(LS_VERBOSE) << "[CAPT] extraDelayMS         : " << extraDelayMS;
 
-    double endpointBufferSizeMS =
+    endpointBufferSizeMS =
         10.0 * ((double)bufferLength / (double)_blockSize);
     RTC_LOG(LS_VERBOSE) << "[CAPT] endpointBufferSizeMS : "
                         << endpointBufferSizeMS;
@@ -1113,6 +1128,7 @@ struct CaptureDeviceInternal
     WAVEFORMATEX* pWfxIn = nullptr;
     WAVEFORMATEXTENSIBLE Wfx = WAVEFORMATEXTENSIBLE();
     WAVEFORMATEX* pWfxClosestMatch = nullptr;
+    UINT bufferFrameCount(0);
 
     // Retrieve the stream format that the audio engine uses for its internal
     // processing (mixing) of shared-mode streams.
@@ -1168,18 +1184,18 @@ struct CaptureDeviceInternal
           break;
         } else {
           if (pWfxClosestMatch) {
-            RTC_LOG(INFO) << "nChannels=" << Wfx.Format.nChannels
-                          << ", nSamplesPerSec=" << Wfx.Format.nSamplesPerSec
-                          << " is not supported. Closest match: "
-                          << "nChannels=" << pWfxClosestMatch->nChannels
-                          << ", nSamplesPerSec="
-                          << pWfxClosestMatch->nSamplesPerSec;
+            RTC_LOG(LS_INFO) << "nChannels=" << Wfx.Format.nChannels
+                             << ", nSamplesPerSec=" << Wfx.Format.nSamplesPerSec
+                             << " is not supported. Closest match: "
+                             << "nChannels=" << pWfxClosestMatch->nChannels
+                             << ", nSamplesPerSec="
+                             << pWfxClosestMatch->nSamplesPerSec;
             CoTaskMemFree(pWfxClosestMatch);
             pWfxClosestMatch = nullptr;
           } else {
-            RTC_LOG(INFO) << "nChannels=" << Wfx.Format.nChannels
-                          << ", nSamplesPerSec=" << Wfx.Format.nSamplesPerSec
-                          << " is not supported. No closest match.";
+            RTC_LOG(LS_INFO) << "nChannels=" << Wfx.Format.nChannels
+                             << ", nSamplesPerSec=" << Wfx.Format.nSamplesPerSec
+                             << " is not supported. No closest match.";
           }
         }
       }
@@ -1246,7 +1262,7 @@ struct CaptureDeviceInternal
 
     // Get the actual size of the shared (endpoint buffer).
     // Typical value is 960 audio frames <=> 20ms @ 48kHz sample rate.
-    UINT bufferFrameCount(0);
+    bufferFrameCount = 0;
     hr = _audioClient->GetBufferSize(&bufferFrameCount);
     if (SUCCEEDED(hr)) {
       RTC_LOG(LS_VERBOSE) << "IAudioClient::GetBufferSize() => "
@@ -1330,6 +1346,14 @@ struct RenderDeviceInternal
     bool keepPlaying = true;
     HANDLE waitArray[2] = {_hShutdownEvent, _hSamplesReadyEvent};
     HRESULT hr = S_OK;
+    BYTE* pData = nullptr;
+    uint32_t framesAvailable = 0;
+    double endpointBufferSizeMS = 0.0;
+    int playout_delay = 0;
+    REFERENCE_TIME devPeriod = 0;
+    REFERENCE_TIME devPeriodMin = 0;
+    REFERENCE_TIME latency;
+    UINT32 padding = 0;
 
     // Initialize COM as MTA in this thread.
     Microsoft::WRL::Wrappers::RoInitializeWrapper roInitializeWrapper(
@@ -1354,7 +1378,7 @@ struct RenderDeviceInternal
 
     // Get the number of frames of padding (queued up to play) in the
     // endpoint buffer.
-    UINT32 padding = 0;
+    padding = 0;
     hr = _audioClient->GetCurrentPadding(&padding);
     EXIT_ON_ERROR(hr);
     RTC_LOG(LS_VERBOSE) << "[REND] padding       : " << padding;
@@ -1362,7 +1386,6 @@ struct RenderDeviceInternal
     // Get maximum latency for the current stream (will not change for the
     // lifetime  of the IAudioClient object).
     //
-    REFERENCE_TIME latency;
     _audioClient->GetStreamLatency(&latency);
     RTC_LOG(LS_VERBOSE) << "[REND] max stream latency   : " << (DWORD)latency
                         << " (" << (double)(latency / 10000.0) << " ms)";
@@ -1377,8 +1400,8 @@ struct RenderDeviceInternal
     // that an audio application can achieve. Typical value: 100000 <=> 0.01 sec
     // = 10ms.
     //
-    REFERENCE_TIME devPeriod = 0;
-    REFERENCE_TIME devPeriodMin = 0;
+    devPeriod = 0;
+    devPeriodMin = 0;
     _audioClient->GetDevicePeriod(&devPeriod, &devPeriodMin);
     RTC_LOG(LS_VERBOSE) << "[REND] device period        : " << (DWORD)devPeriod
                         << " (" << (double)(devPeriod / 10000.0) << " ms)";
@@ -1386,23 +1409,23 @@ struct RenderDeviceInternal
     // Derive initial rendering delay.
     // Example: 10*(960/480) + 15 = 20 + 15 = 35ms
     //
-    int playout_delay =
+    playout_delay =
         10 * (bufferLength / _blockSize) + (int)((latency + devPeriod) / 10000);
     _sndCardDelay = playout_delay;
     _samples = 0;
     RTC_LOG(LS_VERBOSE) << "[REND] initial delay        : " << playout_delay;
 
-    double endpointBufferSizeMS =
+    endpointBufferSizeMS =
         10.0 * ((double)bufferLength / (double)_deviceBlockSize);
     RTC_LOG(LS_VERBOSE) << "[REND] endpointBufferSizeMS : "
                         << endpointBufferSizeMS;
 
     // Derive the amount of available space in the output buffer
-    uint32_t framesAvailable = bufferLength - padding;
+    framesAvailable = bufferLength - padding;
 
     // Before starting the stream, fill the rendering buffer with silence.
     //
-    BYTE* pData = nullptr;
+    pData = nullptr;
     hr = _audioRenderClient->GetBuffer(framesAvailable, &pData);
     EXIT_ON_ERROR(hr);
 
@@ -1594,6 +1617,7 @@ struct RenderDeviceInternal
     WAVEFORMATEX* pWfxOut = nullptr;
     WAVEFORMATEX Wfx = WAVEFORMATEX();
     WAVEFORMATEX* pWfxClosestMatch = nullptr;
+    UINT bufferFrameCount(0);
 
     // Retrieve the stream format that the audio engine uses for its internal
     // processing (mixing) of shared-mode streams.
@@ -1644,18 +1668,18 @@ struct RenderDeviceInternal
           break;
         } else {
           if (pWfxClosestMatch) {
-            RTC_LOG(INFO) << "nChannels=" << Wfx.nChannels
-                          << ", nSamplesPerSec=" << Wfx.nSamplesPerSec
-                          << " is not supported. Closest match: "
-                          << "nChannels=" << pWfxClosestMatch->nChannels
-                          << ", nSamplesPerSec="
-                          << pWfxClosestMatch->nSamplesPerSec;
+            RTC_LOG(LS_INFO) << "nChannels=" << Wfx.nChannels
+                             << ", nSamplesPerSec=" << Wfx.nSamplesPerSec
+                             << " is not supported. Closest match: "
+                             << "nChannels=" << pWfxClosestMatch->nChannels
+                             << ", nSamplesPerSec="
+                             << pWfxClosestMatch->nSamplesPerSec;
             CoTaskMemFree(pWfxClosestMatch);
             pWfxClosestMatch = nullptr;
           } else {
-            RTC_LOG(INFO) << "nChannels=" << Wfx.nChannels
-                          << ", nSamplesPerSec=" << Wfx.nSamplesPerSec
-                          << " is not supported. No closest match.";
+            RTC_LOG(LS_INFO) << "nChannels=" << Wfx.nChannels
+                             << ", nSamplesPerSec=" << Wfx.nSamplesPerSec
+                             << " is not supported. No closest match.";
           }
         }
       }
@@ -1749,7 +1773,7 @@ struct RenderDeviceInternal
 
     // Get the actual size of the shared (endpoint buffer).
     // Typical value is 960 audio frames <=> 20ms @ 48kHz sample rate.
-    UINT bufferFrameCount(0);
+    bufferFrameCount = 0;
     hr = _audioClient->GetBufferSize(&bufferFrameCount);
     if (SUCCEEDED(hr)) {
       RTC_LOG(LS_VERBOSE) << "IAudioClient::GetBufferSize() => "

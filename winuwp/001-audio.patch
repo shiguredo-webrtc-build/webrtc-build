@@ -1,3 +1,16 @@
+diff --git a/build/toolchain/win/toolchain.gni b/build/toolchain/win/toolchain.gni
+index b6874dc6b..7e9e7993a 100644
+--- a/build/toolchain/win/toolchain.gni
++++ b/build/toolchain/win/toolchain.gni
+@@ -194,7 +194,7 @@ template("msvc_toolchain") {
+       # clang header updates happen via changing command line flags.
+       show_includes = "/showIncludes:user"
+     } else {
+-      show_includes = "/showIncludes"
++      show_includes = ""
+     }
+ 
+     tool("cc") {
 diff --git a/BUILD.gn b/BUILD.gn
 index 9c55478c25..6512ee25ea 100644
 --- a/BUILD.gn
@@ -57,13 +70,14 @@ diff --git a/build/config/win/BUILD.gn b/build/config/win/BUILD.gn
 index 1e76a54cc..b254b3ac8 100644
 --- a/build/config/win/BUILD.gn
 +++ b/build/config/win/BUILD.gn
-@@ -245,7 +245,15 @@ config("runtime_library") {
+@@ -245,7 +245,16 @@ config("runtime_library") {
      } else {
        defines += [ "WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP" ]
      }
 -    cflags_cc += [ "/EHsc" ]
 +    cflags_cc += [
-+      "/std:c++17",  # Required for having a wrapper using the WinRT/C++ projection.
++      "/std:c++20",  # Required for having a wrapper using the WinRT/C++ projection.
++      "/await",
 +      "/EHsc",  # Required for having a wrapper using the WinRT/C++ projection.
 +    ]
 +    if (is_clang) {
@@ -74,16 +88,3 @@ index 1e76a54cc..b254b3ac8 100644
  
      # This warning is given because the linker cannot tell the difference
      # between consuming WinRT APIs versus authoring WinRT within static
-diff --git a/build/toolchain/win/BUILD.gn b/build/toolchain/win/BUILD.gn
-index bc69978da..fde82e18c 100644
---- a/build/toolchain/win/BUILD.gn
-+++ b/build/toolchain/win/BUILD.gn
-@@ -194,7 +194,7 @@ template("msvc_toolchain") {
-       # changing commandline flags.
-       show_includes = "/showIncludes:user"
-     } else {
--      show_includes = "/showIncludes"
-+      show_includes = ""
-     }
- 
-     tool("cc") {
