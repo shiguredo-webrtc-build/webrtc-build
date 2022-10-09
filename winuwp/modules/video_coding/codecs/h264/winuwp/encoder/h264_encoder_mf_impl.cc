@@ -410,7 +410,6 @@ ComPtr<IMFSample> H264EncoderMFImpl::FromVideoFrameNV12(const VideoFrame& frame)
   assert(frameBuffer->height() == height_);
   assert(frameBuffer->width() % 16 == 0);
   assert(frameBuffer->height() % 16 == 0);
-  RTC_LOG(LS_INFO) << "FromVideoFrameNV12: width=" << frameBuffer->width() << " height=" << frameBuffer->height();
   int encoded_height = HeightToEncode(height_);
   assert(encoded_height == height_);
 
