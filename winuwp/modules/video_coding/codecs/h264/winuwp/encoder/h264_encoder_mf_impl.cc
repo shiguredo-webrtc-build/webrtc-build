@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "../utils/utils.h"
+#include "api/video/nv12_buffer.h"
 #include "h264_media_sink.h"
 #include "h264_stream_sink.h"
 #include "libyuv/convert.h"
@@ -265,6 +266,10 @@ int H264EncoderMFImpl::Release() {
 }
 
 ComPtr<IMFSample> H264EncoderMFImpl::FromVideoFrame(const VideoFrame& frame) {
+  if (frame.video_frame_buffer()->type() == VideoFrameBuffer::Type::kNV12) {
+    return FromVideoFrameNV12(frame);
+  }
+
   HRESULT hr = S_OK;
   ComPtr<IMFSample> sample;
   ON_SUCCEEDED(MFCreateSample(sample.GetAddressOf()));
@@ -346,6 +351,92 @@ ComPtr<IMFSample> H264EncoderMFImpl::FromVideoFrame(const VideoFrame& frame) {
                           -padding_bottom_uv);
       }
     }
+
+    if (firstFrame_) {
+      firstFrame_ = false;
+      startTime_ = frame.timestamp();
+    }
+
+    auto timestampHns = GetFrameTimestampHns(frame);
+    ON_SUCCEEDED(sample->SetSampleTime(timestampHns));
+
+    if (SUCCEEDED(hr)) {
+      auto durationHns = timestampHns - lastTimestampHns_;
+      hr = sample->SetSampleDuration(durationHns);
+    }
+
+    if (SUCCEEDED(hr)) {
+      lastTimestampHns_ = timestampHns;
+
+      // Cache the frame attributes to get them back after the encoding.
+      CachedFrameAttributes frameAttributes;
+      frameAttributes.timestamp = frame.timestamp();
+      frameAttributes.ntpTime = frame.ntp_time_ms();
+      frameAttributes.captureRenderTime = frame.render_time_ms();
+      frameAttributes.frameWidth = frame.width();
+      frameAttributes.frameHeight = encoded_height;
+      _sampleAttributeQueue.push(timestampHns, frameAttributes);
+    }
+
+    ON_SUCCEEDED(mediaBuffer->SetCurrentLength(totalSize));
+
+    if (destBuffer != nullptr) {
+      mediaBuffer->Unlock();
+    }
+
+    ON_SUCCEEDED(sample->AddBuffer(mediaBuffer.Get()));
+
+    if (lastFrameDropped_) {
+      lastFrameDropped_ = false;
+      sampleAttributes->SetUINT32(MFSampleExtension_Discontinuity, TRUE);
+    }
+  }
+
+  return sample;
+}
+
+ComPtr<IMFSample> H264EncoderMFImpl::FromVideoFrameNV12(const VideoFrame& frame) {
+  HRESULT hr = S_OK;
+  ComPtr<IMFSample> sample;
+  ON_SUCCEEDED(MFCreateSample(sample.GetAddressOf()));
+
+  ComPtr<IMFAttributes> sampleAttributes;
+  ON_SUCCEEDED(sample.As(&sampleAttributes));
+
+  rtc::scoped_refptr<NV12BufferInterface> frameBuffer(
+      static_cast<NV12BufferInterface*>(frame.video_frame_buffer().get()));
+
+  assert(frameBuffer->width() == width_);
+  assert(frameBuffer->height() == height_);
+  assert(frameBuffer->width() % 16 == 0);
+  assert(frameBuffer->height() % 16 == 0);
+  RTC_LOG(LS_INFO) << "FromVideoFrameNV12: width=" << frameBuffer->width() << " height=" << frameBuffer->height();
+  int encoded_height = HeightToEncode(height_);
+  assert(encoded_height == height_);
+
+  int dst_height_uv = (height_ + 1) / 2;
+  int dst_stride_y = frameBuffer->StrideY();
+  int dst_stride_uv = dst_stride_y;
+
+  auto totalSize =
+      dst_stride_y * encoded_height + dst_stride_uv * encoded_height / 2;
+
+  if (SUCCEEDED(hr)) {
+    ComPtr<IMFMediaBuffer> mediaBuffer;
+    ON_SUCCEEDED(MFCreateMemoryBuffer(totalSize, mediaBuffer.GetAddressOf()));
+
+    BYTE* destBuffer = nullptr;
+    if (SUCCEEDED(hr)) {
+      DWORD cbMaxLength;
+      DWORD cbCurrentLength;
+      ON_SUCCEEDED(
+          mediaBuffer->Lock(&destBuffer, &cbMaxLength, &cbCurrentLength));
+    }
+    BYTE* dst_y = destBuffer;
+    BYTE* dst_uv = dst_y + dst_stride_y * encoded_height;
+
+    libyuv::CopyPlane(frameBuffer->DataY(), frameBuffer->StrideY(), dst_y, dst_stride_y, width_, encoded_height);
+    libyuv::CopyPlane(frameBuffer->DataUV(), frameBuffer->StrideUV(), dst_uv, dst_stride_uv, width_, dst_height_uv);
 
     if (firstFrame_) {
       firstFrame_ = false;

@@ -56,6 +56,7 @@ class H264EncoderMFImpl : public VideoEncoder, public IH264EncodingCallback {
 
  private:
   Microsoft::WRL::ComPtr<IMFSample> FromVideoFrame(const VideoFrame& frame);
+  Microsoft::WRL::ComPtr<IMFSample> FromVideoFrameNV12(const VideoFrame& frame);
   int InitWriter();
   int ReleaseWriter();
   LONGLONG GetFrameTimestampHns(const VideoFrame& frame) const;

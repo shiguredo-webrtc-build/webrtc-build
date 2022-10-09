@@ -238,10 +238,18 @@ index 63534600a9..7d9a0a83aa 100644
    }
    bool operator==(const VideoCaptureCapability& other) const {
 diff --git a/modules/video_capture/video_capture_impl.cc b/modules/video_capture/video_capture_impl.cc
-index 234c2e131e..b2a8845eaf 100644
+index 234c2e131e..cd6eccef15 100644
 --- a/modules/video_capture/video_capture_impl.cc
 +++ b/modules/video_capture/video_capture_impl.cc
-@@ -113,7 +113,10 @@ int32_t VideoCaptureImpl::DeliverCapturedFrame(VideoFrame& captureFrame) {
+@@ -14,6 +14,7 @@
+ #include <string.h>
+ 
+ #include "api/video/i420_buffer.h"
++#include "api/video/nv12_buffer.h"
+ #include "api/video/video_frame_buffer.h"
+ #include "common_video/libyuv/include/webrtc_libyuv.h"
+ #include "modules/video_capture/video_capture_config.h"
+@@ -113,10 +114,17 @@ int32_t VideoCaptureImpl::DeliverCapturedFrame(VideoFrame& captureFrame) {
    return 0;
  }
  
@@ -253,7 +261,14 @@ index 234c2e131e..b2a8845eaf 100644
                                          size_t videoFrameLength,
                                          const VideoCaptureCapability& frameInfo,
                                          int64_t captureTime /*=0*/) {
-@@ -124,16 +127,8 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
++  if (frameInfo.videoType == VideoType::kNV12) {
++    return IncomingFrameNV12(plane_y, stride_y, plane_uv, stride_uv, videoFrameLength, frameInfo, captureTime);
++  }
++
+   MutexLock lock(&api_lock_);
+ 
+   const int32_t width = frameInfo.width;
+@@ -124,16 +132,8 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
  
    TRACE_EVENT1("webrtc", "VC::IncomingFrame", "capture_time", captureTime);
  
@@ -272,7 +287,7 @@ index 234c2e131e..b2a8845eaf 100644
    int target_width = width;
    int target_height = abs(height);
  
-@@ -153,7 +148,7 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
+@@ -153,7 +153,7 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
    // In Windows, the image starts bottom left, instead of top left.
    // Setting a negative source height, inverts the image (within LibYuv).
    rtc::scoped_refptr<I420Buffer> buffer = I420Buffer::Create(
@@ -281,7 +296,7 @@ index 234c2e131e..b2a8845eaf 100644
  
    libyuv::RotationMode rotation_mode = libyuv::kRotate0;
    if (apply_rotation) {
-@@ -174,10 +169,11 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
+@@ -174,10 +174,11 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
    }
  
    const int conversionResult = libyuv::ConvertToI420(
@@ -297,16 +312,65 @@ index 234c2e131e..b2a8845eaf 100644
        width, height, target_width, target_height, rotation_mode,
        ConvertVideoType(frameInfo.videoType));
    if (conversionResult < 0) {
+@@ -200,6 +201,40 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
+   return 0;
+ }
+ 
++int32_t VideoCaptureImpl::IncomingFrameNV12(uint8_t* plane_y,
++                                        int32_t stride_y,
++                                        uint8_t* plane_uv,
++                                        int32_t stride_uv,
++                                        size_t videoFrameLength,
++                                        const VideoCaptureCapability& frameInfo,
++                                        int64_t captureTime /*=0*/) {
++  MutexLock lock(&api_lock_);
++
++  const int32_t width = frameInfo.width;
++  const int32_t height = frameInfo.height;
++
++  TRACE_EVENT1("webrtc", "VC::IncomingFrameNV12", "capture_time", captureTime);
++
++  rtc::scoped_refptr<NV12Buffer> buffer = NV12Buffer::Create(
++      width, height, stride_y, stride_uv);
++
++  std::memcpy(buffer->MutableDataY(), plane_y, stride_y * buffer->height());
++  std::memcpy(buffer->MutableDataUV(), plane_uv, stride_uv * buffer->ChromaHeight());
++
++  VideoFrame captureFrame =
++      VideoFrame::Builder()
++          .set_video_frame_buffer(buffer)
++          .set_timestamp_rtp(0)
++          .set_timestamp_ms(rtc::TimeMillis())
++          .set_rotation(_rotateFrame)
++          .build();
++  captureFrame.set_ntp_time_ms(captureTime);
++
++  DeliverCapturedFrame(captureFrame);
++
++  return 0;
++}
++
+ int32_t VideoCaptureImpl::StartCapture(
+     const VideoCaptureCapability& capability) {
+   _requestedCapability = capability;
 diff --git a/modules/video_capture/video_capture_impl.h b/modules/video_capture/video_capture_impl.h
-index 9e4afe7ec1..92d709b6d8 100644
+index 9e4afe7ec1..3f77a2c30f 100644
 --- a/modules/video_capture/video_capture_impl.h
 +++ b/modules/video_capture/video_capture_impl.h
-@@ -62,7 +62,10 @@ class VideoCaptureImpl : public VideoCaptureModule {
+@@ -62,7 +62,18 @@ class VideoCaptureImpl : public VideoCaptureModule {
    const char* CurrentDeviceName() const override;
  
    // `capture_time` must be specified in NTP time format in milliseconds.
 -  int32_t IncomingFrame(uint8_t* videoFrame,
 +  int32_t IncomingFrame(uint8_t* plane_y,
++                        int32_t stride_y,
++                        uint8_t* plane_uv,
++                        int32_t stride_uv,
++                        size_t videoFrameLength,
++                        const VideoCaptureCapability& frameInfo,
++                        int64_t captureTime = 0);
++
++  int32_t IncomingFrameNV12(uint8_t* plane_y,
 +                        int32_t stride_y,
 +                        uint8_t* plane_uv,
 +                        int32_t stride_uv,
