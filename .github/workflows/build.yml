@@ -184,7 +184,7 @@ jobs:
         shell: bash
         run: |
           source create-release.env/create-release.env
-          echo "::set-output name=upload_url::$UPLOAD_URL"
+          echo "upload_url=$UPLOAD_URL" >> $GITHUB_OUTPUT
         id: env
       - name: Upload ${{ matrix.name }} Release Asset
         uses: actions/upload-release-asset@v1.0.1
@@ -222,7 +222,7 @@ jobs:
         shell: bash
         run: |
           source create-release.env/create-release.env
-          echo "::set-output name=upload_url::$UPLOAD_URL"
+          echo "upload_url=$UPLOAD_URL" >> $GITHUB_OUTPUT
         id: env
       - name: Upload windows Release Asset
         uses: actions/upload-release-asset@v1.0.1
