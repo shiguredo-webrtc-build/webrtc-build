@@ -1,8 +1,8 @@
 diff --git a/config/compiler/BUILD.gn b/config/compiler/BUILD.gn
-index 665b42c3b..1d22d5039 100644
+index cd9b186a1..3786350f2 100644
 --- a/config/compiler/BUILD.gn
 +++ b/config/compiler/BUILD.gn
-@@ -424,8 +424,8 @@ config("compiler") {
+@@ -421,8 +421,8 @@ config("compiler") {
      # faster.
      # On arm64, this is already the default behavior.
      if (current_cpu == "x64") {
@@ -13,7 +13,7 @@ index 665b42c3b..1d22d5039 100644
      }
    }
  
-@@ -527,44 +527,6 @@ config("compiler") {
+@@ -524,31 +524,6 @@ config("compiler") {
      ldflags += [ "-Wl,-z,keep-text-section-prefix" ]
    }
  
@@ -40,24 +40,11 @@ index 665b42c3b..1d22d5039 100644
 -    } else {
 -      cflags += [ "-ffp-contract=off" ]
 -    }
--
--    if (default_toolchain != "//build/toolchain/cros:target") {
--      # TODO(crbug.com/1361629): Fix the compiler so this is not needed.
--      cflags += [
--        "-mllvm",
--        "-simplifycfg-hoist-common-skip-limit=0",
--      ]
--    }
 -  }
 -
--  # Rust compiler setup (for either clang or rustc).
--  if (enable_rust) {
--    defines += [ "RUST_ENABLED" ]
--  }
--
-   # C11/C++11 compiler flags setup.
-   # ---------------------------
-   if (is_linux || is_chromeos || is_android || (is_nacl && is_clang) ||
+   # Rust compiler setup (for either clang or rustc).
+   if (enable_rust) {
+     defines += [ "RUST_ENABLED" ]
  
 diff --git a/toolchain/apple/toolchain.gni b/toolchain/apple/toolchain.gni
 index 399a62f03..fcb2fdf2c 100644
