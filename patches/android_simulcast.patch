@@ -1,20 +1,41 @@
 diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
-index 0094c8ea39..ceebb4c65e 100644
+index 5c4280328c..16696b80c3 100644
 --- a/sdk/android/BUILD.gn
 +++ b/sdk/android/BUILD.gn
-@@ -520,6 +520,8 @@ if (is_android) {
+@@ -156,6 +156,7 @@ if (is_android) {
+     sources = [
+       "api/org/webrtc/Predicate.java",
+       "api/org/webrtc/RefCounted.java",
++      "api/org/webrtc/WebrtcBuildVersion.java",
+       "src/java/org/webrtc/CalledByNative.java",
+       "src/java/org/webrtc/CalledByNativeUnchecked.java",
+       "src/java/org/webrtc/Histogram.java",
+:...skipping...
+diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
+index 5c4280328c..16696b80c3 100644
+--- a/sdk/android/BUILD.gn
++++ b/sdk/android/BUILD.gn
+@@ -156,6 +156,7 @@ if (is_android) {
+     sources = [
+       "api/org/webrtc/Predicate.java",
+       "api/org/webrtc/RefCounted.java",
++      "api/org/webrtc/WebrtcBuildVersion.java",
+       "src/java/org/webrtc/CalledByNative.java",
+       "src/java/org/webrtc/CalledByNativeUnchecked.java",
+       "src/java/org/webrtc/Histogram.java",
+@@ -522,6 +523,8 @@ if (is_android) {
      sources = [
        "api/org/webrtc/SoftwareVideoDecoderFactory.java",
        "api/org/webrtc/SoftwareVideoEncoderFactory.java",
 +      "api/org/webrtc/SimulcastVideoEncoder.java",
 +      "api/org/webrtc/SimulcastVideoEncoderFactory.java",
      ]
-
+ 
      deps = [
-@@ -854,6 +856,21 @@ if (current_os == "linux" || is_android) {
+@@ -858,6 +861,21 @@ if (current_os == "linux" || is_android) {
      ]
    }
-
+ 
 +  rtc_library("simulcast_jni") {
 +    visibility = [ "*" ]
 +    allow_poison = [ "software_video_codecs" ]
@@ -30,16 +51,17 @@ index 0094c8ea39..ceebb4c65e 100644
 +    ]
 +  }
 +
-   rtc_library("swcodecs_jni") {
+   rtc_library("libaom_av1_encoder_jni") {
      visibility = [ "*" ]
      allow_poison = [ "software_video_codecs" ]
-@@ -861,6 +878,7 @@ if (current_os == "linux" || is_android) {
-       ":libaom_av1_jni",
+@@ -894,6 +912,7 @@ if (current_os == "linux" || is_android) {
+       ":generated_swcodecs_jni",
        ":libvpx_vp8_jni",
        ":libvpx_vp9_jni",
 +      ":simulcast_jni",
-     ]
-   }
+       ":native_api_jni",
+       ":video_jni",
+       "../../api/video_codecs:builtin_video_decoder_factory",
 
 diff --git a/sdk/android/api/org/webrtc/SimulcastVideoEncoder.java b/sdk/android/api/org/webrtc/SimulcastVideoEncoder.java
 new file mode 100644
