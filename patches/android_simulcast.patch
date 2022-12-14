@@ -2,27 +2,6 @@ diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
 index 5c4280328c..16696b80c3 100644
 --- a/sdk/android/BUILD.gn
 +++ b/sdk/android/BUILD.gn
-@@ -156,6 +156,7 @@ if (is_android) {
-     sources = [
-       "api/org/webrtc/Predicate.java",
-       "api/org/webrtc/RefCounted.java",
-+      "api/org/webrtc/WebrtcBuildVersion.java",
-       "src/java/org/webrtc/CalledByNative.java",
-       "src/java/org/webrtc/CalledByNativeUnchecked.java",
-       "src/java/org/webrtc/Histogram.java",
-:...skipping...
-diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
-index 5c4280328c..16696b80c3 100644
---- a/sdk/android/BUILD.gn
-+++ b/sdk/android/BUILD.gn
-@@ -156,6 +156,7 @@ if (is_android) {
-     sources = [
-       "api/org/webrtc/Predicate.java",
-       "api/org/webrtc/RefCounted.java",
-+      "api/org/webrtc/WebrtcBuildVersion.java",
-       "src/java/org/webrtc/CalledByNative.java",
-       "src/java/org/webrtc/CalledByNativeUnchecked.java",
-       "src/java/org/webrtc/Histogram.java",
 @@ -522,6 +523,8 @@ if (is_android) {
      sources = [
        "api/org/webrtc/SoftwareVideoDecoderFactory.java",
