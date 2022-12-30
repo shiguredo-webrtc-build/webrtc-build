@@ -5,7 +5,7 @@ index 5af58015a7..518517d9bb 100644
 @@ -233,11 +233,11 @@ int32_t DeviceInfoV4l2::FillCapabilities(int fd) {
                                   V4L2_PIX_FMT_YUYV, V4L2_PIX_FMT_UYVY,
                                   V4L2_PIX_FMT_NV12};
-
+ 
 -  int sizes = 13;
 +  int sizes = 14;
    unsigned int size[][2] = {{128, 96},   {160, 120},  {176, 144},  {320, 240},
@@ -13,6 +13,6 @@ index 5af58015a7..518517d9bb 100644
                              {960, 720},  {1280, 720}, {1024, 768}, {1440, 1080},
 -                            {1920, 1080}};
 +                            {1920, 1080}, {3840, 2160}};
-
+ 
    for (int fmts = 0; fmts < totalFmts; fmts++) {
      for (int i = 0; i < sizes; i++) {
