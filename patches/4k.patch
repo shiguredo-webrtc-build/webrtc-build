@@ -1,10 +1,10 @@
 diff --git a/modules/video_capture/linux/device_info_v4l2.cc b/modules/video_capture/linux/device_info_v4l2.cc
-index c1062d4078..277b737d86 100644
+index 5af58015a7..518517d9bb 100644
 --- a/modules/video_capture/linux/device_info_v4l2.cc
 +++ b/modules/video_capture/linux/device_info_v4l2.cc
-@@ -232,11 +232,11 @@ int32_t DeviceInfoV4l2::FillCapabilities(int fd) {
-   unsigned int videoFormats[] = {V4L2_PIX_FMT_MJPEG, V4L2_PIX_FMT_YUV420,
-                                  V4L2_PIX_FMT_YUYV, V4L2_PIX_FMT_UYVY};
+@@ -233,11 +233,11 @@ int32_t DeviceInfoV4l2::FillCapabilities(int fd) {
+                                  V4L2_PIX_FMT_YUYV, V4L2_PIX_FMT_UYVY,
+                                  V4L2_PIX_FMT_NV12};
  
 -  int sizes = 13;
 +  int sizes = 14;

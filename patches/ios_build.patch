@@ -16,10 +16,10 @@ index 1e6621848..550b3e7e8 100644
    clang_base_path = default_clang_base_path
  }
 diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
-index cd9b186a1..3786350f2 100644
+index 944a039d0..ecf87d683 100644
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
-@@ -421,8 +421,8 @@ config("compiler") {
+@@ -426,8 +426,8 @@ config("compiler") {
      # faster.
      # On arm64, this is already the default behavior.
      if (current_cpu == "x64") {
@@ -30,12 +30,18 @@ index cd9b186a1..3786350f2 100644
      }
    }
  
-@@ -524,31 +524,6 @@ config("compiler") {
+@@ -529,37 +529,6 @@ config("compiler") {
      ldflags += [ "-Wl,-z,keep-text-section-prefix" ]
    }
  
 -  if (is_clang && !is_nacl && current_os != "zos") {
 -    cflags += [ "-fcrash-diagnostics-dir=" + clang_diagnostic_dir ]
+-    if (save_reproducers_on_lld_crash && use_lld) {
+-      ldflags += [
+-        "-fcrash-diagnostics=all",
+-        "-fcrash-diagnostics-dir=" + clang_diagnostic_dir,
+-      ]
+-    }
 -
 -    # TODO(hans): Remove this once Clang generates better optimized debug info
 -    # by default. https://crbug.com/765793

@@ -1,8 +1,8 @@
 diff --git a/config/compiler/BUILD.gn b/config/compiler/BUILD.gn
-index cd9b186a1..3786350f2 100644
+index 944a039d0..ecf87d683 100644
 --- a/config/compiler/BUILD.gn
 +++ b/config/compiler/BUILD.gn
-@@ -421,8 +421,8 @@ config("compiler") {
+@@ -426,8 +426,8 @@ config("compiler") {
      # faster.
      # On arm64, this is already the default behavior.
      if (current_cpu == "x64") {
@@ -13,12 +13,18 @@ index cd9b186a1..3786350f2 100644
      }
    }
  
-@@ -524,31 +524,6 @@ config("compiler") {
+@@ -529,37 +529,6 @@ config("compiler") {
      ldflags += [ "-Wl,-z,keep-text-section-prefix" ]
    }
  
 -  if (is_clang && !is_nacl && current_os != "zos") {
 -    cflags += [ "-fcrash-diagnostics-dir=" + clang_diagnostic_dir ]
+-    if (save_reproducers_on_lld_crash && use_lld) {
+-      ldflags += [
+-        "-fcrash-diagnostics=all",
+-        "-fcrash-diagnostics-dir=" + clang_diagnostic_dir,
+-      ]
+-    }
 -
 -    # TODO(hans): Remove this once Clang generates better optimized debug info
 -    # by default. https://crbug.com/765793
@@ -44,8 +50,8 @@ index cd9b186a1..3786350f2 100644
 -
    # Rust compiler setup (for either clang or rustc).
    if (enable_rust) {
-     defines += [ "RUST_ENABLED" ]
- 
+     defines += [ "RUST_ENABLED" ] 
+
 diff --git a/toolchain/apple/toolchain.gni b/toolchain/apple/toolchain.gni
 index 399a62f03..fcb2fdf2c 100644
 --- a/toolchain/apple/toolchain.gni
