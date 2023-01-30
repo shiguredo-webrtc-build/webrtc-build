@@ -14,6 +14,10 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## master
 
+- [UPDATE] deprecated になった actions/create-release と actions/upload-release の利用をやめて softprops/action-gh-release を利用する
+    - @melpon
+- [UPDATE] GitHub Actions の各種バージョンを上げる
+    - @melpon
 - [CHANGE] macos_x86_64 のビルドを削除
     - @melpon
 - [CHANGE] ubuntu-18.04_x86_64 のビルドを削除
