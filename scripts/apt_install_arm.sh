@@ -23,6 +23,7 @@ apt-get -y install \
   locales \
   lsb-release \
   multistrap \
+  ninja-build \
   python3 \
   python3-setuptools \
   rsync \

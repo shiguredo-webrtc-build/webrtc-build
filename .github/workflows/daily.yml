@@ -62,6 +62,7 @@ jobs:
         with:
           ref: daily
       - run: cp VERSION.head VERSION
+      - run: brew install ninja
       - name: Build ${{ matrix.name }} for macos
         if: matrix.name == 'macos_arm64'
         run: |

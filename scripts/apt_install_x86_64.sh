@@ -17,6 +17,7 @@ apt-get -y install \
   git \
   locales \
   lsb-release \
+  ninja-build \
   pkg-config \
   python3 \
   python3-setuptools \
