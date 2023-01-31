@@ -11,20 +11,6 @@ on:
     tags:
       - '*'
 jobs:
-  test1:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/download
-        with:
-          platform: windows_x86_64
-  test2:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/download
-        with:
-          platform: macos_arm64
   build-windows:
     strategy:
       fail-fast: false
