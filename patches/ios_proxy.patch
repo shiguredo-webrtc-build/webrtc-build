@@ -203,7 +203,7 @@ index 88aac990f2..feca021d9a 100644
  - (void)setOptions:(nonnull RTC_OBJC_TYPE(RTCPeerConnectionFactoryOptions) *)options;
  
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
-index c4d89e911d..ed8eef8741 100644
+index c4d89e911d..a4824cb88b 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
 @@ -51,6 +51,67 @@
@@ -274,7 +274,7 @@ index c4d89e911d..ed8eef8741 100644
  @implementation RTC_OBJC_TYPE (RTCPeerConnectionFactory) {
    std::unique_ptr<rtc::Thread> _networkThread;
    std::unique_ptr<rtc::Thread> _workerThread;
-@@ -59,6 +120,7 @@
+@@ -59,6 +120,7 @@ @implementation RTC_OBJC_TYPE (RTCPeerConnectionFactory) {
  }
  
  @synthesize nativeFactory = _nativeFactory;
@@ -282,7 +282,7 @@ index c4d89e911d..ed8eef8741 100644
  
  - (rtc::scoped_refptr<webrtc::AudioDeviceModule>)audioDeviceModule {
  #if defined(WEBRTC_IOS)
-@@ -145,7 +207,7 @@
+@@ -145,7 +207,7 @@ - (instancetype)initWithNoMedia {
      if (webrtc::field_trial::IsEnabled("WebRTC-Network-UseNWPathMonitor")) {
        dependencies.network_monitor_factory = webrtc::CreateNetworkMonitorFactory();
      }
@@ -291,7 +291,7 @@ index c4d89e911d..ed8eef8741 100644
      NSAssert(_nativeFactory, @"Failed to initialize PeerConnectionFactory!");
    }
    return self;
-@@ -213,7 +275,7 @@
+@@ -213,7 +275,7 @@ - (instancetype)initWithNativeAudioEncoderFactory:
      dependencies.event_log_factory =
          std::make_unique<webrtc::RtcEventLogFactory>(dependencies.task_queue_factory.get());
      dependencies.network_controller_factory = std::move(networkControllerFactory);
@@ -300,7 +300,7 @@ index c4d89e911d..ed8eef8741 100644
      NSAssert(_nativeFactory, @"Failed to initialize PeerConnectionFactory!");
    }
    return self;
-@@ -265,6 +327,31 @@
+@@ -265,6 +327,31 @@ - (instancetype)initWithNativeAudioEncoderFactory:
    return [[RTC_OBJC_TYPE(RTCMediaStream) alloc] initWithFactory:self streamId:streamId];
  }
  
