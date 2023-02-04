@@ -1,9 +1,9 @@
 diff --git a/BUILD.gn b/BUILD.gn
-index e60a909290..b5dfb22a0e 100644
+index 5817d22227..718680a84f 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
-@@ -469,6 +469,8 @@ if (!build_with_chromium) {
-       "rtc_base",
+@@ -501,6 +501,8 @@ if (!build_with_chromium) {
+       "pc:rtc_pc",
        "sdk",
        "video",
 +      "modules/audio_device:audio_device_module_from_input_and_output",
