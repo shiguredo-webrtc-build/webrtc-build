@@ -1,0 +1,32 @@
+name: download-artifact
+
+description: Download Artifact
+
+inputs:
+  platform:
+    description: Platform
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Env to output
+      if: |
+        !(inputs.platform == 'windows_x86_64' || inputs.platform == 'windows_arm64')
+      shell: bash
+      run: |
+        PACKAGE_NAME=webrtc.${{ inputs.platform }}.tar.gz
+        echo "package_name=$PACKAGE_NAME" >> $GITHUB_ENV
+        echo "$PACKAGE_NAME/webrtc.${{ inputs.platform }}.tar.gz" >> package_paths.env
+    - name: Env to output for Windows
+      if: |
+        inputs.platform == 'windows_x86_64' || inputs.platform == 'windows_arm64'
+      shell: bash
+      run: |
+        PACKAGE_NAME=webrtc.${{ inputs.platform }}.zip
+        echo "package_name=$PACKAGE_NAME" >> $GITHUB_ENV
+        echo "$PACKAGE_NAME/webrtc.${{ inputs.platform }}.zip" >> package_paths.env
+    - uses: actions/download-artifact@v3
+      with:
+        name: ${{ env.package_name }}
+        path: ${{ env.package_name }}

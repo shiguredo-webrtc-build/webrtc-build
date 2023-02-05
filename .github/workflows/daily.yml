@@ -13,7 +13,7 @@ jobs:
           - windows_arm64
     runs-on: windows-2019
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: daily
       - name: Disk Cleanup
@@ -45,10 +45,10 @@ jobs:
           python3 run.py build ${{ matrix.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build'
           python3 run.py package ${{ matrix.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build'
       - name: Upload Artifact
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: webrtc.${{ matrix.name }}.zip
-          path: _package\${{ matrix.name }}\webrtc.zip
+          path: _package/${{ matrix.name }}/webrtc.zip
   build-macos:
     strategy:
       fail-fast: false
@@ -58,10 +58,11 @@ jobs:
           - ios
     runs-on: macOS-11.0
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: daily
       - run: cp VERSION.head VERSION
+      - run: brew install ninja
       - name: Build ${{ matrix.name }} for macos
         if: matrix.name == 'macos_arm64'
         run: |
@@ -73,7 +74,7 @@ jobs:
           python3 run.py build ${{ matrix.name }} --webrtc-overlap-ios-build-dir
           python3 run.py package ${{ matrix.name }} --webrtc-overlap-ios-build-dir
       - name: Upload Artifact
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: webrtc.${{ matrix.name }}.tar.gz
           path: _package/${{ matrix.name }}/webrtc.tar.gz
@@ -92,7 +93,7 @@ jobs:
           - android
     runs-on: ${{ matrix.name == 'ubuntu-22.04_x86_64' && 'ubuntu-22.04' || 'ubuntu-20.04' }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: daily
       - name: Disk Cleanup
@@ -119,7 +120,7 @@ jobs:
           python3 run.py build ${{ matrix.name }}
           python3 run.py package ${{ matrix.name }}
       - name: Upload Artifact
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: webrtc.${{ matrix.name }}.tar.gz
           path: _package/${{ matrix.name }}/webrtc.tar.gz

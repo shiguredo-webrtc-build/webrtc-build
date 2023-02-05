@@ -20,7 +20,7 @@ jobs:
           - windows_arm64
     runs-on: windows-2019
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Disk Cleanup
         run: |
           Get-PSDrive
@@ -49,10 +49,10 @@ jobs:
           python3 run.py build ${{ matrix.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build'
           python3 run.py package ${{ matrix.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build'
       - name: Upload Artifact
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: webrtc.${{ matrix.name }}.zip
-          path: _package\${{ matrix.name }}\webrtc.zip
+          path: _package/${{ matrix.name }}/webrtc.${{ matrix.name }}.zip
   build-macos:
     strategy:
       fail-fast: false
@@ -62,9 +62,10 @@ jobs:
           - ios
     runs-on: macOS-11.0
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Select Xcode 13.0
         run: sudo xcode-select --switch /Applications/Xcode_13.0.app/Contents/Developer
+      - run: brew install ninja
       - name: Build ${{ matrix.name }} for macos
         if: matrix.name == 'macos_arm64'
         run: |
@@ -76,10 +77,10 @@ jobs:
           python3 run.py build ${{ matrix.name }} --webrtc-overlap-ios-build-dir
           python3 run.py package ${{ matrix.name }} --webrtc-overlap-ios-build-dir
       - name: Upload Artifact
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: webrtc.${{ matrix.name }}.tar.gz
-          path: _package/${{ matrix.name }}/webrtc.tar.gz
+          path: _package/${{ matrix.name }}/webrtc.${{ matrix.name }}.tar.gz
   build-linux:
     strategy:
       fail-fast: false
@@ -95,7 +96,7 @@ jobs:
           - android
     runs-on: ${{ matrix.name == 'ubuntu-22.04_x86_64' && 'ubuntu-22.04' || 'ubuntu-20.04' }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Disk Cleanup
         run: |
           df -h
@@ -119,10 +120,10 @@ jobs:
           python3 run.py build ${{ matrix.name }}
           python3 run.py package ${{ matrix.name }}
       - name: Upload Artifact
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: webrtc.${{ matrix.name }}.tar.gz
-          path: _package/${{ matrix.name }}/webrtc.tar.gz
+          path: _package/${{ matrix.name }}/webrtc.${{ matrix.name }}.tar.gz
   create-release:
     name: Create Release
     if: contains(github.ref, 'tags/m')
@@ -132,104 +133,51 @@ jobs:
       - build-linux
     runs-on: ubuntu-20.04
     steps:
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/download
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-      - name: Output upload url
-        shell: bash
-        run: echo "UPLOAD_URL='${{ steps.create_release.outputs.upload_url }}'" > create-release.env
-      - name: Upload create-release Environment
-        uses: actions/upload-artifact@v1
+          platform: windows_x86_64
+      - uses: ./.github/actions/download
         with:
-          name: create-release.env
-          path: create-release.env
-  upload-assets:
-    strategy:
-      fail-fast: false
-      matrix:
-        name:
-          - macos_arm64
-          - ios
-          - raspberry-pi-os_armv6
-          - raspberry-pi-os_armv7
-          - raspberry-pi-os_armv8
-          - ubuntu-18.04_armv8
-          - ubuntu-20.04_armv8
-          - ubuntu-20.04_x86_64
-          - ubuntu-22.04_x86_64
-          - android
-    name: Release ${{ matrix.name }}
-    if: contains(github.ref, 'tags/m')
-    needs:
-      - create-release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Download ${{ matrix.name }}
-        uses: actions/download-artifact@v1
+          platform: windows_arm64
+      - uses: ./.github/actions/download
         with:
-          name: webrtc.${{ matrix.name }}.tar.gz
-      - uses: actions/download-artifact@v1
+          platform: macos_arm64
+      - uses: ./.github/actions/download
         with:
-          name: create-release.env
+          platform: ios
+      - uses: ./.github/actions/download
+        with:
+          platform: raspberry-pi-os_armv6
+      - uses: ./.github/actions/download
+        with:
+          platform: raspberry-pi-os_armv7
+      - uses: ./.github/actions/download
+        with:
+          platform: raspberry-pi-os_armv8
+      - uses: ./.github/actions/download
+        with:
+          platform: ubuntu-18.04_armv8
+      - uses: ./.github/actions/download
+        with:
+          platform: ubuntu-20.04_armv8
+      - uses: ./.github/actions/download
+        with:
+          platform: ubuntu-20.04_x86_64
+      - uses: ./.github/actions/download
+        with:
+          platform: ubuntu-22.04_x86_64
+      - uses: ./.github/actions/download
+        with:
+          platform: android
       - name: Env to output
-        shell: bash
         run: |
-          source create-release.env/create-release.env
-          echo "upload_url=$UPLOAD_URL" >> $GITHUB_OUTPUT
+          echo "package_paths<<EOF" >> $GITHUB_OUTPUT
+          cat package_paths.env >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
         id: env
-      - name: Upload ${{ matrix.name }} Release Asset
-        uses: actions/upload-release-asset@v1.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Release
+        uses: softprops/action-gh-release@v1
         with:
-          upload_url: ${{ steps.env.outputs.upload_url }}
-          asset_path: webrtc.${{ matrix.name }}.tar.gz/webrtc.tar.gz
-          asset_name: webrtc.${{ matrix.name }}.tar.gz
-          asset_content_type: application/gzip
-  # Windows だけ Content-Type が違うので別で記述する
-  upload-assets-windows:
-    strategy:
-      fail-fast: false
-      matrix:
-        name:
-          - windows_x86_64
-          - windows_arm64
-    name: Upload windows
-    if: contains(github.ref, 'tags/m')
-    needs:
-      - create-release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Download ${{ matrix.name }}
-        uses: actions/download-artifact@v1
-        with:
-          name: webrtc.${{ matrix.name }}.zip
-      - uses: actions/download-artifact@v1
-        with:
-          name: create-release.env
-      - name: Env to output
-        shell: bash
-        run: |
-          source create-release.env/create-release.env
-          echo "upload_url=$UPLOAD_URL" >> $GITHUB_OUTPUT
-        id: env
-      - name: Upload windows Release Asset
-        uses: actions/upload-release-asset@v1.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.env.outputs.upload_url }}
-          asset_path: webrtc.${{ matrix.name }}.zip/webrtc.zip
-          asset_name: webrtc.${{ matrix.name }}.zip
-          asset_content_type: application/zip
+          files:
+            ${{ steps.env.outputs.package_paths }}
