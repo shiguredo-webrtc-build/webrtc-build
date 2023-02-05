@@ -25,6 +25,13 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 - [CHANGE] Docker でのビルドを削除
     - @melpon
 
+## m111.5563.0.0
+
+- [CHANGE] 不要になった macos_h264_encoder.patch を削除
+    - @torikizi
+- [CHANGE] 不要になった windows_fix_towupper.patch を削除
+    - @torikizi
+
 ## m103.5060.5.0
 
 - [ADD] iOS で Proxy を利用可能にする
