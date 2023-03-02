@@ -175,6 +175,7 @@ PATCHES = {
         'windows_add_deps.patch',
         'windows_silence_warnings.patch',
         'windows_fix_optional.patch',
+        'windows_fix_audio_device.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'windows_arm64': [
@@ -183,6 +184,7 @@ PATCHES = {
         'windows_add_deps.patch',
         'windows_silence_warnings.patch',
         'windows_fix_optional.patch',
+        'windows_fix_audio_device.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'macos_arm64': [
