@@ -1,0 +1,23 @@
+# Windows の高負荷環境で録音デバイスの初期化に失敗する問題を修正するパッチ
+# https://bugs.chromium.org/p/webrtc/issues/detail?id=14954
+# この issue が解決すれば不要になる
+
+diff --git a/modules/audio_device/win/core_audio_input_win.cc b/modules/audio_device/win/core_audio_input_win.cc
+index 17790dafc4..aec3659019 100644
+--- a/modules/audio_device/win/core_audio_input_win.cc
++++ b/modules/audio_device/win/core_audio_input_win.cc
+@@ -170,11 +170,13 @@ int CoreAudioInput::StartRecording() {
+     audio_device_buffer_->StartRecording();
+   }
+ 
++  is_active_ = true;
++
+   if (!Start()) {
++    is_active_ = false;
+     return -1;
+   }
+ 
+-  is_active_ = true;
+   return 0;
+ }
+ 

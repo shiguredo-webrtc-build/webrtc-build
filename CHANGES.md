@@ -24,6 +24,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
     - @melpon
 - [CHANGE] Docker でのビルドを削除
     - @melpon
+- [ADD] Windows の高負荷環境で録音デバイスの初期化に失敗する問題を修正するパッチ windows_fix_audio_device.patch を追加
+    - @melpon
 
 ## m103.5060.5.0
 
