@@ -100,15 +100,12 @@ jobs:
       - name: Disk Cleanup
         run: |
           df -h
-          sudo du -h -d1 /usr/local
+          sudo du -h -d1 /usr/local/share
           sudo du -h -d1 /usr/local/lib
-          sudo du -h -d0 /usr/local/share/boost
           sudo du -h -d1 /usr/share
           docker rmi `docker images -q -a`
           # 4.6G
           sudo rm -rf /usr/local/.ghcup
-          # 1.8G
-          sudo rm -rf /usr/local/share/boost
           # 1.7G
           sudo rm -rf /usr/share/swift
           # 1.4G
