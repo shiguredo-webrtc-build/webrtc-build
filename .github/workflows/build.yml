@@ -100,6 +100,7 @@ jobs:
       - name: Disk Cleanup
         run: |
           df -h
+          sudo du -h -d2 /usr/
           docker rmi `docker images -q -a`
           # 3.9GB
           sudo rm -rf /usr/local/share/boost
