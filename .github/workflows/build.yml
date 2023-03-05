@@ -99,7 +99,9 @@ jobs:
       - uses: actions/checkout@v3
       - name: Disk Cleanup
         run: |
+          set -x
           df -h
+          sudo du -h -d1 /usr/local
           sudo du -h -d1 /usr/local/share
           sudo du -h -d1 /usr/local/lib
           sudo du -h -d1 /usr/share
