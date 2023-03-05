@@ -99,11 +99,18 @@ jobs:
       - uses: actions/checkout@v3
       - name: Disk Cleanup
         run: |
+          set -x
           df -h
+          sudo du -h -d1 /usr/local
+          sudo du -h -d1 /usr/local/share
+          sudo du -h -d1 /usr/local/lib
+          sudo du -h -d1 /usr/share
           docker rmi `docker images -q -a`
-          # 3.9GB
-          sudo rm -rf /usr/local/share/boost
-          # 17GB
+          # 4.6G
+          sudo rm -rf /usr/local/.ghcup
+          # 1.7G
+          sudo rm -rf /usr/share/swift
+          # 1.4G
           sudo rm -rf /usr/share/dotnet
           df -h
       - name: Setup ${{ matrix.name }} for x86_64
