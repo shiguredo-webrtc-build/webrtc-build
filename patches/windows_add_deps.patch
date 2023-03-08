@@ -2,12 +2,13 @@ diff --git a/BUILD.gn b/BUILD.gn
 index 5817d22227..718680a84f 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
-@@ -501,6 +501,8 @@ if (!build_with_chromium) {
+@@ -501,6 +501,9 @@ if (!build_with_chromium) {
        "pc:rtc_pc",
        "sdk",
        "video",
 +      "modules/audio_device:audio_device_module_from_input_and_output",
 +      "//third_party/zlib",
++      "rtc_base:log_sinks",
      ]
  
      if (rtc_include_builtin_audio_codecs) {

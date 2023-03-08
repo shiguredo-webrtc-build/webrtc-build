@@ -14,6 +14,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## master
 
+- [ADD] Windows で rtc::FileRotatingLogSink が含まれなくなっていたので、依存に rtc_base:log_sinks を追加する
+    - @melpon
+
 # m110.5481.4.1
 
 - [UPDATE] deprecated になった actions/create-release と actions/upload-release の利用をやめて softprops/action-gh-release を利用する
