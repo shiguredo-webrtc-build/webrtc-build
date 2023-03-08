@@ -189,9 +189,6 @@ iOS でのサイマルキャストのサポートを追加するパッチ。こ�
 ## macos_av1.patch
 
 
-## macos_h264_encoder.patch
-
-
 ## macos_screen_capture.patch
 
 

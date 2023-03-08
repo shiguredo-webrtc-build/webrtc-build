@@ -14,7 +14,12 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## master
 
-# m110.5481.4.1
+## m111.5563.4.3
+
+- [ADD] Windows で rtc::FileRotatingLogSink が含まれなくなっていたので、依存に rtc_base:log_sinks を追加する
+    - @melpon
+
+## m110.5481.4.1
 
 - [UPDATE] deprecated になった actions/create-release と actions/upload-release の利用をやめて softprops/action-gh-release を利用する
     - @melpon
@@ -28,6 +33,13 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
     - @melpon
 - [ADD] Windows の高負荷環境で録音デバイスの初期化に失敗する問題を修正するパッチ windows_fix_audio_device.patch を追加
     - @melpon
+
+## m111.5563.0.0
+
+- [CHANGE] 不要になった macos_h264_encoder.patch を削除
+    - @torikizi
+- [CHANGE] 不要になった windows_fix_towupper.patch を削除
+    - @torikizi
 
 ## m103.5060.5.0
 
