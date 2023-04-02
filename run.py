@@ -166,11 +166,13 @@ PATCH_INFO = {
     'macos_screen_capture.patch': (2, []),
     'macos_use_xcode_clang.patch': (1, ['build']),
     'windows_fix_optional.patch': (1, ['third_party']),
+    'use_exceptions.patch': (1, ['build']),
 }
 
 PATCHES = {
     'windows_x86_64': [
         '4k.patch',
+        'use_exceptions.patch',
         'add_license_dav1d.patch',
         'windows_add_deps.patch',
         'windows_silence_warnings.patch',
@@ -180,6 +182,7 @@ PATCHES = {
     ],
     'windows_arm64': [
         '4k.patch',
+        'use_exceptions.patch',
         'add_license_dav1d.patch',
         'windows_add_deps.patch',
         'windows_silence_warnings.patch',
@@ -190,6 +193,7 @@ PATCHES = {
     'macos_arm64': [
         'add_deps.patch',
         '4k.patch',
+        'use_exceptions.patch',
         'add_license_dav1d.patch',
         'macos_screen_capture.patch',
         'ios_simulcast.patch',
@@ -199,6 +203,7 @@ PATCHES = {
     'ios': [
         'add_deps.patch',
         '4k.patch',
+        'use_exceptions.patch',
         'add_license_dav1d.patch',
         'macos_screen_capture.patch',
         'ios_manual_audio_input.patch',
@@ -210,6 +215,7 @@ PATCHES = {
     'android': [
         'add_deps.patch',
         '4k.patch',
+        'use_exceptions.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
         'android_webrtc_version.patch',
@@ -222,42 +228,49 @@ PATCHES = {
         'nacl_armv6_2.patch',
         'add_deps.patch',
         '4k.patch',
+        'use_exceptions.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'raspberry-pi-os_armv7': [
         'add_deps.patch',
         '4k.patch',
+        'use_exceptions.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'raspberry-pi-os_armv8': [
         'add_deps.patch',
         '4k.patch',
+        'use_exceptions.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'ubuntu-18.04_armv8': [
         'add_deps.patch',
         '4k.patch',
+        'use_exceptions.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'ubuntu-20.04_armv8': [
         'add_deps.patch',
         '4k.patch',
+        'use_exceptions.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'ubuntu-20.04_x86_64': [
         'add_deps.patch',
         '4k.patch',
+        'use_exceptions.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'ubuntu-22.04_x86_64': [
         'add_deps.patch',
         '4k.patch',
+        'use_exceptions.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ]

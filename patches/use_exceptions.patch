@@ -1,0 +1,18 @@
+diff --git a/config/compiler/BUILD.gn b/config/compiler/BUILD.gn
+index 031c2f201..6900851a7 100644
+--- a/config/compiler/BUILD.gn
++++ b/config/compiler/BUILD.gn
+@@ -1943,10 +1943,11 @@ config("no_exceptions") {
+     # declarations if _HAS_EXCEPTIONS is 1. Those MSVC headers do not use
+     # exceptions, despite being conditional on _HAS_EXCEPTIONS.
+     if (!use_custom_libcxx) {
+-      defines = [ "_HAS_EXCEPTIONS=0" ]
++      defines = [ "_HAS_EXCEPTIONS=1" ]
+     }
++    cflags_cc = [ "/EHsc" ]
+   } else {
+-    cflags_cc = [ "-fno-exceptions" ]
++    cflags_cc = [ "-fexceptions" ]
+     cflags_objcc = cflags_cc
+   }
+ }
