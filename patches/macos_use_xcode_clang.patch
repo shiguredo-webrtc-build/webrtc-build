@@ -1,8 +1,8 @@
 diff --git a/config/compiler/BUILD.gn b/config/compiler/BUILD.gn
-index 944a039d0..ecf87d683 100644
+index 16ee982f7..5ade38b3e 100644
 --- a/config/compiler/BUILD.gn
 +++ b/config/compiler/BUILD.gn
-@@ -426,8 +426,8 @@ config("compiler") {
+@@ -439,8 +439,8 @@ config("compiler") {
      # faster.
      # On arm64, this is already the default behavior.
      if (current_cpu == "x64") {
@@ -13,7 +13,7 @@ index 944a039d0..ecf87d683 100644
      }
    }
  
-@@ -529,37 +529,6 @@ config("compiler") {
+@@ -542,37 +542,6 @@ config("compiler") {
      ldflags += [ "-Wl,-z,keep-text-section-prefix" ]
    }
  
@@ -48,9 +48,9 @@ index 944a039d0..ecf87d683 100644
 -    }
 -  }
 -
-   # Rust compiler setup (for either clang or rustc).
-   if (enable_rust) {
-     defines += [ "RUST_ENABLED" ] 
+   # C11/C++11 compiler flags setup.
+   # ---------------------------
+   if (is_linux || is_chromeos || is_android || (is_nacl && is_clang) ||
 
 diff --git a/toolchain/apple/toolchain.gni b/toolchain/apple/toolchain.gni
 index 399a62f03..fcb2fdf2c 100644

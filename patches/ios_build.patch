@@ -16,10 +16,10 @@ index 1e6621848..550b3e7e8 100644
    clang_base_path = default_clang_base_path
  }
 diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
-index 944a039d0..ecf87d683 100644
+index 7196fcf6c..d0fa6d908 100644
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
-@@ -426,8 +426,8 @@ config("compiler") {
+@@ -439,8 +439,8 @@ config("compiler") {
      # faster.
      # On arm64, this is already the default behavior.
      if (current_cpu == "x64") {
@@ -30,7 +30,7 @@ index 944a039d0..ecf87d683 100644
      }
    }
  
-@@ -529,37 +529,6 @@ config("compiler") {
+@@ -542,37 +542,6 @@ config("compiler") {
      ldflags += [ "-Wl,-z,keep-text-section-prefix" ]
    }
  
@@ -65,9 +65,9 @@ index 944a039d0..ecf87d683 100644
 -    }
 -  }
 -
-   # Rust compiler setup (for either clang or rustc).
-   if (enable_rust) {
-     defines += [ "RUST_ENABLED" ]
+   # C11/C++11 compiler flags setup.
+   # ---------------------------
+   if (is_linux || is_chromeos || is_android || (is_nacl && is_clang) ||
 diff --git a/build/toolchain/apple/toolchain.gni b/build/toolchain/apple/toolchain.gni
 index 399a62f03..de13c3373 100644
 --- a/build/toolchain/apple/toolchain.gni
@@ -95,60 +95,6 @@ index 0adce9400..d2b6a5b57 100644
  
          # Defined in //base, would trigger a warning if the build doesn't depend
          # on it.
-diff --git a/third_party/dav1d/BUILD.gn b/third_party/dav1d/BUILD.gn
-index 933c8f2f566..d752194d95b 100644
---- a/third_party/dav1d/BUILD.gn
-+++ b/third_party/dav1d/BUILD.gn
-@@ -36,29 +36,8 @@ if (current_cpu == "x86" || current_cpu == "x64") {
-     needs_stack_alignment = true
-     if (current_cpu == "x86") {
-       stack_alignment = 16
--
--      if (!is_clang) {
--        # Values used by GCC.
--        preferred_stack_boundary = 4
--        incoming_stack_boundary = 2
--      }
-     } else if (current_cpu == "x64") {
-       stack_alignment = 32
--
--      if (!is_clang) {
--        # Values used by GCC.
--        preferred_stack_boundary = 5
--        incoming_stack_boundary = 4
--      }
--    }
--
--    if (is_clang) {
--      stackalign_flag = "-mstack-alignment=$stack_alignment"
--      stackrealign_flag = "-mstackrealign"
--    } else {
--      # Assume GCC for now.
--      stackalign_flag = "-mpreferred-stack-boundary=$preferred_stack_boundary"
--      stackrealign_flag = "-mincoming-stack-boundary=$incoming_stack_boundary"
-     }
-   }
- } else {
-@@ -112,9 +91,6 @@ if (is_win) {
-   }
- } else {
-   dav1d_copts += [ "-std=c99" ]
--  if (needs_stack_alignment) {
--    dav1d_copts += [ stackalign_flag ]
--  }
-   if (is_mac || is_ios) {
-     dav1d_copts += [ "-D_DARWIN_C_SOURCE" ]
-   }
-@@ -179,10 +155,6 @@ static_library("dav1d_entrypoints") {
-     sources += [ "libdav1d/src/win32/thread.c" ]
-   }
- 
--  if (needs_stack_alignment) {
--    cflags += [ stackrealign_flag ]
--  }
--
-   deps = [ ":dav1d_headers" ]
- }
  
 diff --git a/third_party/nasm/BUILD.gn b/third_party/nasm/BUILD.gn
 index ebd8b7fe..20f6ff8a 100644
