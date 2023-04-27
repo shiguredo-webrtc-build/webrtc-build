@@ -37,7 +37,7 @@ index 00f2ef7834..6e0966fe3a 100644
   *  delegate and PeerConnectionDependencies.
   */
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnection.h b/sdk/objc/api/peerconnection/RTCPeerConnection.h
-index 55af6868fd..f98dcc58c6 100644
+index 466e053492..8f5185d7e4 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnection.h
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnection.h
 @@ -82,6 +82,13 @@ typedef NS_ENUM(NSInteger, RTCStatsOutputLevel) {
@@ -51,9 +51,9 @@ index 55af6868fd..f98dcc58c6 100644
 +  RTCProxyTypeUnknown,
 +};
 +
- typedef void (^RTCCreateSessionDescriptionCompletionHandler)(RTC_OBJC_TYPE(RTCSessionDescription) *
-                                                                  _Nullable sdp,
-                                                              NSError *_Nullable error);
+ typedef void (^RTCCreateSessionDescriptionCompletionHandler)(
+     RTC_OBJC_TYPE(RTCSessionDescription) *_Nullable sdp, NSError *_Nullable error);
+ 
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnection.mm b/sdk/objc/api/peerconnection/RTCPeerConnection.mm
 index f4db472380..45a2b873f2 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnection.mm
