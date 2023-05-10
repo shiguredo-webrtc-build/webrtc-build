@@ -1,3 +1,6 @@
 /_source
 /_build
 /_package
+
+patchdev/**/_build
+patchdev/**/_generate
