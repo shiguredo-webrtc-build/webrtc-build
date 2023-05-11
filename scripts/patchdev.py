@@ -11,8 +11,12 @@ base_dir = 'patchdev'
 work_dir = os.getcwd()
 
 
-def rtc_src_dir(platform, source):
-    return os.path.join("..", "..", "_source", platform, "webrtc", "src", source)
+def rtc_src_dir(platform):
+    return os.path.join("..", "..", "_source", platform, "webrtc", "src")
+
+
+def rtc_src_file(platform, source):
+    return os.path.join(rtc_src_dir(platform), source)
 
 
 def init(args):
@@ -100,7 +104,7 @@ def build(args):
 
     platform = config["platform"]
     for source in config["sources"]:
-        shutil.copy2(f"src/{source}", rtc_src_dir(platform, source))
+        shutil.copy2(f"src/{source}", rtc_src_file(platform, source))
 
     orig_dir = os.getcwd()
     os.chdir("../../")
@@ -124,7 +128,7 @@ def clean(args):
 
     platform = config["platform"]
     for source in config["sources"]:
-        source_path = rtc_src_dir(platform, source)
+        source_path = rtc_src_file(platform, source)
         os.chdir(os.path.dirname(source_path))
         os.system(f"git checkout -- {os.path.basename(source_path)}")
         os.chdir(work_dir)
