@@ -47,6 +47,9 @@ generate:
 
 clean:
 \t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) clean
+
+sync:
+\t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) sync
 """
     with open(os.path.join(project_dir, "Makefile"), 'w') as f:
         f.write(makefile_content)
@@ -57,9 +60,9 @@ clean:
     # config.json
     config_content = {
         "output": project_name + ".patch",
-        "sources": [],
         "platform": "ios",
-        "build_flags": "--debug"
+        "build_flags": "--debug",
+        "sources": [],
     }
     with open(os.path.join(project_dir, "config.json"), 'w') as f:
         json.dump(config_content, f, indent=4)
@@ -116,7 +119,35 @@ def build(args):
 
 
 def generate(args):
-    print("パッチを生成...")
+    # config.jsonをロード
+    with open("config.json") as f:
+        config = json.load(f)
+
+    # platformの値を取得
+    platform = config["platform"]
+
+    # パッチファイルのリスト
+    patch_files = []
+
+    # 各ソースファイルに対して操作を実行
+    for source in config["sources"]:
+        target = rtc_src_file(platform, source)
+        shutil.copy2(os.path.join('src', source), target)
+        os.chdir(os.path.dirname(target))
+        diff = subprocess.check_output(
+            ['git', 'diff', os.path.basename(target)]).decode('utf-8')
+        os.chdir(work_dir)
+        patch_file = os.path.join('_generate/patches', f'{source}.patch')
+        os.makedirs(os.path.dirname(patch_file), exist_ok=True)
+        with open(patch_file, 'w') as f:
+            f.write(diff)
+        patch_files.append(patch_file)
+
+    # パッチファイルを結合
+    with open(os.path.join('_generate', config["output"]), 'w') as outfile:
+        for patch_file in patch_files:
+            with open(patch_file) as infile:
+                outfile.write(infile.read())
 
 
 def clean(args):
@@ -146,6 +177,38 @@ def diff(args):
             orig_file = os.path.join(work_dir, "_build", "orig", source)
             mod_file = os.path.join(work_dir, "src", source)
             subprocess.run(["diff", "-u", orig_file, mod_file])
+
+
+def sync(args):
+    patch_dir = os.getcwd()
+    config_path = os.path.join(patch_dir, "config.json")
+
+    # config.json のロード
+    with open(config_path, "r") as json_file:
+        config = json.load(json_file)
+
+    platform = config['platform']
+    copied_files = 0
+    for source in config['sources']:
+        # コピー先のファイルパス
+        destination_path_in_src = os.path.join(patch_dir, "src", source)
+        # ファイルが存在しなければオリジナルからコピー
+        if not os.path.isfile(destination_path_in_src):
+            # パッチ対象ファイルのオリジナルのパス
+            original_path = os.path.join(
+                "..", "..", "_source", platform, "webrtc", "src", source)
+
+            # コピー先ディレクトリの生成
+            os.makedirs(os.path.dirname(
+                destination_path_in_src), exist_ok=True)
+
+            # コピー
+            shutil.copy2(original_path, destination_path_in_src)
+            print(f"パッチ対象ファイルをコピーしました: {destination_path_in_src}")
+            copied_files += 1
+
+    if copied_files == 0:
+        print("コピーするファイルはありませんでした。")
 
 
 def main():
@@ -181,6 +244,10 @@ def main():
     # diff サブコマンド
     parser_diff = subparsers.add_parser("diff", help="差分を表示します。")
     parser_diff.set_defaults(func=diff)
+
+    # sync
+    parser_diff = subparsers.add_parser('sync')
+    parser_diff.set_defaults(func=sync)
 
     args = parser.parse_args()
 
