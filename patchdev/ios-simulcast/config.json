@@ -1,0 +1,14 @@
+{
+    "output": "ios_simulcast.patch",
+    "sources": [
+        "sdk/BUILD.gn",
+        "sdk/objc/api/peerconnection/RTCRtpEncodingParameters.h",
+        "sdk/objc/api/peerconnection/RTCRtpEncodingParameters.mm",
+        "sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.h",
+        "sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.mm",
+        "sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.h",
+        "sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.mm"
+    ],
+    "platform": "ios",
+    "build_flags": "--debug"
+}
