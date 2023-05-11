@@ -7,6 +7,7 @@
         "sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.h",
         "sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.mm",
         "sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.h",
+        "sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.mm",
         "sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.mm"
     ],
     "platform": "ios",
