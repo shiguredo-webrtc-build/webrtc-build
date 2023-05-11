@@ -31,13 +31,13 @@ PYTHON = python3
 TOP_DIR = ../../
 PATCHDEV = scripts/patchdev.py
 
-.PHONY: build start diff generate clean
+.PHONY: sync build diff generate clean
+
+sync:
+\t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) sync
 
 build:
 \t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) build
-
-start:
-\t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) start
 
 diff:
 \t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) diff
@@ -47,9 +47,6 @@ generate:
 
 clean:
 \t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) clean
-
-sync:
-\t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) sync
 """
     with open(os.path.join(project_dir, "Makefile"), 'w') as f:
         f.write(makefile_content)
@@ -68,37 +65,6 @@ sync:
         json.dump(config_content, f, indent=4)
 
     print("Initialized project in:", project_dir)
-
-
-def start(args):
-    patch_dir = os.getcwd()
-    config_path = os.path.join(patch_dir, "config.json")
-
-    # config.json のロード
-    with open(config_path, "r") as json_file:
-        config = json.load(json_file)
-
-    # _build/orig ディレクトリの生成
-    build_orig_dir = os.path.join(patch_dir, "_build", "orig")
-    os.makedirs(build_orig_dir, exist_ok=True)
-
-    platform = config['platform']
-    for source in config['sources']:
-        # パッチ対象ファイルのオリジナルをコピー
-        original_path = os.path.join(
-            "..", "..", "_source", platform, "webrtc", "src", source)
-        destination_path_in_build = os.path.join(build_orig_dir, source)
-        destination_path_in_src = os.path.join(patch_dir, "src", source)
-
-        # コピー先ディレクトリの生成
-        os.makedirs(os.path.dirname(destination_path_in_build), exist_ok=True)
-        os.makedirs(os.path.dirname(destination_path_in_src), exist_ok=True)
-
-        # コピー
-        shutil.copy2(original_path, destination_path_in_build)
-        shutil.copy2(original_path, destination_path_in_src)
-
-        print(f"パッチ対象ファイルをコピーしました: {destination_path_in_src}")
 
 
 def build(args):
@@ -224,10 +190,6 @@ def main():
     parser_init = subparsers.add_parser("init", help="パッチ開発ディレクトリを初期化します。")
     parser_init.add_argument("project_name", help="新しいパッチの名前")
     parser_init.set_defaults(func=init)
-
-    # start サブコマンド
-    parser_start = subparsers.add_parser("start", help="パッチ開発を開始します。")
-    parser_start.set_defaults(func=start)
 
     # build サブコマンド
     parser_build = subparsers.add_parser("build", help="パッチを適用してビルドします。")
