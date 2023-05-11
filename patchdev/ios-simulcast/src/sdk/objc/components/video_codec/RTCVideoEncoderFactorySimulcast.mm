@@ -4,6 +4,14 @@
 #import "RTCVideoCodecInfo.h"
 #import "RTCVideoEncoderFactorySimulcast.h"
 #import "api/video_codec/RTCVideoEncoderSimulcast.h"
+#import "api/peerconnection/RTCVideoCodecInfo+Private.h"
+
+#include "absl/container/inlined_vector.h"
+#include "api/video_codecs/video_codec.h"
+#include "api/video_codecs/sdp_video_format.h"
+#include "api/video_codecs/video_codec.h"
+#include "modules/video_coding/codecs/av1/av1_svc_config.h"
+#include "media/base/media_constants.h"
 
 @interface RTC_OBJC_TYPE (RTCVideoEncoderFactorySimulcast) ()
 
