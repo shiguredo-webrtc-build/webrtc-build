@@ -158,23 +158,34 @@ def sync(args):
     for source in config['sources']:
         # コピー先のファイルパス
         destination_path_in_src = os.path.join(patch_dir, "src", source)
+        destination_path_in_orig = os.path.join(
+            patch_dir, "_build", "orig", source)
+
+        # コピー先ディレクトリの生成
+        os.makedirs(os.path.dirname(destination_path_in_src), exist_ok=True)
+        os.makedirs(os.path.dirname(destination_path_in_orig), exist_ok=True)
+
+        # 最新版のファイルを _build/orig にコピー
+        # git show を使って最新版のファイル内容を取得
+        original_path = rtc_src_file(platform, source)
+        original_dir = os.path.dirname(original_path)
+        os.chdir(original_dir)
+        with open(destination_path_in_orig, "w") as f:
+            proc = subprocess.run(
+                ["git", "show", f":{source}"], stdout=f, stderr=subprocess.DEVNULL)
+            exit_code = proc.returncode
+            if exit_code == 0:
+                print(f"sync: {source}")
+            else:
+                print(f"new: {source}")
+        os.chdir(patch_dir)
+
         # ファイルが存在しなければオリジナルからコピー
         if not os.path.isfile(destination_path_in_src):
             # パッチ対象ファイルのオリジナルのパス
-            original_path = os.path.join(
-                "..", "..", "_source", platform, "webrtc", "src", source)
-
-            # コピー先ディレクトリの生成
-            os.makedirs(os.path.dirname(
-                destination_path_in_src), exist_ok=True)
-
-            # コピー
             shutil.copy2(original_path, destination_path_in_src)
             print(f"パッチ対象ファイルをコピーしました: {destination_path_in_src}")
             copied_files += 1
-
-    if copied_files == 0:
-        print("コピーするファイルはありませんでした。")
 
 
 def main():
