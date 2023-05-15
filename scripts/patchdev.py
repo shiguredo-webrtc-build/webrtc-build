@@ -100,8 +100,10 @@ def generate(args):
         target = rtc_src_file(platform, source)
         shutil.copy2(os.path.join('src', source), target)
         os.chdir(os.path.dirname(target))
-        diff = subprocess.check_output(
-            ['git', 'diff', os.path.basename(target)]).decode('utf-8')
+        cmd = ['git', 'add', '-N', os.path.basename(target)]
+        subprocess.check_output(cmd)
+        cmd = ['git', 'diff', os.path.basename(target)]
+        diff = subprocess.check_output(cmd).decode('utf-8')
         os.chdir(work_dir)
         patch_file = os.path.join('_build/patches', f'{source}.patch')
         os.makedirs(os.path.dirname(patch_file), exist_ok=True)
