@@ -177,12 +177,12 @@ bool success = [session configureWebRTCSession:nil];
 
 ## ios_simulcast.patch
 
-iOS でのサイマルキャストのサポートを追加するパッチ。この実装は C++ の `SimulcastEncoderAdapter` の簡単なラッパーであり、既存の仕様に破壊的変更も行わない。
+iOS でのサイマルキャストのサポートを追加するパッチ。次の機能を追加する。
 
-以下の API を追加する。
-
-- `RTCVideoEncoderFactorySimulcast`
-- `RTCVideoEncoderSimulcast`
+- サイマルキャストのエンコーダー (`RTCVideoEncoderFactorySimulcast`, `RTCVideoEncoderSimulcast`)
+  - この実装は C++ API の `SimulcastEncoderAdapter` の簡単なラッパーであり、新しいファイルを追加するので既存の仕様に破壊的変更を行わない
+- scalability mode のサポート (`RTCVideoCodecInfo`, `RTCRtpEncodingParameters`)
+  - C++ API でサポートされているプロパティを ObjC ラッパーに追加する
 
 同等の機能が本家に実装されるか、 PR を出して取り込まれたら削除する。
 
