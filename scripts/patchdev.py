@@ -136,14 +136,24 @@ def clean(args):
 
 
 def diff(args):
-    config_file_path = os.path.join(work_dir, "config.json")
-    with open(config_file_path, "r") as config_file:
-        config = json.load(config_file)
-        sources = config["sources"]
-        for source in sources:
-            orig_file = os.path.join(work_dir, "_build", "orig", source)
-            mod_file = os.path.join(work_dir, "src", source)
-            subprocess.run(["diff", "-u", orig_file, mod_file])
+    # config.jsonをロード
+    with open("config.json") as f:
+        config = json.load(f)
+
+    # platformの値を取得
+    platform = config["platform"]
+
+    # 各ソースファイルに対して操作を実行
+    for source in config["sources"]:
+        target = rtc_src_file(platform, source)
+        shutil.copy2(os.path.join('src', source), target)
+        os.chdir(os.path.dirname(target))
+        cmd = ['git', 'add', '-N', os.path.basename(target)]
+        subprocess.check_output(cmd)
+        cmd = ['git', 'diff', os.path.basename(target)]
+        diff = subprocess.check_output(cmd).decode('utf-8')
+        os.chdir(work_dir)
+        print(diff)
 
 
 def sync(args):
