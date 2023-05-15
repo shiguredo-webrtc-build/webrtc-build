@@ -31,7 +31,7 @@ PYTHON = python3
 TOP_DIR = ../../
 PATCHDEV = scripts/patchdev.py
 
-.PHONY: sync build diff generate clean
+.PHONY: sync build diff patch clean
 
 sync:
 \t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) sync
@@ -42,8 +42,8 @@ build:
 diff:
 \t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) diff
 
-generate:
-\t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) generate
+patch:
+\t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) patch
 
 clean:
 \t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) clean
@@ -103,14 +103,14 @@ def generate(args):
         diff = subprocess.check_output(
             ['git', 'diff', os.path.basename(target)]).decode('utf-8')
         os.chdir(work_dir)
-        patch_file = os.path.join('_generate/patches', f'{source}.patch')
+        patch_file = os.path.join('_build/patches', f'{source}.patch')
         os.makedirs(os.path.dirname(patch_file), exist_ok=True)
         with open(patch_file, 'w') as f:
             f.write(diff)
         patch_files.append(patch_file)
 
     # パッチファイルを結合
-    with open(os.path.join('_generate', config["output"]), 'w') as outfile:
+    with open(os.path.join('_build', config["output"]), 'w') as outfile:
         for patch_file in patch_files:
             with open(patch_file) as infile:
                 outfile.write(infile.read())
@@ -118,7 +118,6 @@ def generate(args):
 
 def clean(args):
     shutil.rmtree('_build', ignore_errors=True)
-    shutil.rmtree('_generate', ignore_errors=True)
 
     with open("config.json") as f:
         config = json.load(f)
@@ -206,9 +205,9 @@ def main():
     parser_build = subparsers.add_parser("build", help="パッチを適用してビルドします。")
     parser_build.set_defaults(func=build)
 
-    # generate サブコマンド
-    parser_generate = subparsers.add_parser("generate", help="パッチを生成します。")
-    parser_generate.set_defaults(func=generate)
+    # patch サブコマンド
+    parser_patch = subparsers.add_parser("patch", help="パッチを生成します。")
+    parser_patch.set_defaults(func=generate)
 
     # clean サブコマンド
     parser_clean = subparsers.add_parser("clean", help="パッチディレクトリをクリーンします。")

@@ -3,7 +3,7 @@ PYTHON = python3
 TOP_DIR = ../../
 PATCHDEV = scripts/patchdev.py
 
-.PHONY: build start diff generate clean
+.PHONY: build start diff patch clean
 
 build:
 	@$(PYTHON) $(TOP_DIR)$(PATCHDEV) build
@@ -14,8 +14,8 @@ start:
 diff:
 	@$(PYTHON) $(TOP_DIR)$(PATCHDEV) diff
 
-generate:
-	@$(PYTHON) $(TOP_DIR)$(PATCHDEV) generate
+patch:
+	@$(PYTHON) $(TOP_DIR)$(PATCHDEV) patch
 
 clean:
 	@$(PYTHON) $(TOP_DIR)$(PATCHDEV) clean
