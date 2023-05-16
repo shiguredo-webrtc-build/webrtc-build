@@ -1,8 +1,48 @@
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index 971a323ef5..fa3f96037f 100644
+index ff89b21721..fa3f96037f 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
-@@ -729,6 +729,7 @@ if (is_ios || is_mac) {
+@@ -230,9 +230,6 @@ if (is_ios || is_mac) {
+           "objc/native/api/audio_device_module.h",
+           "objc/native/api/audio_device_module.mm",
+         ]
+-        if (is_mac) {
+-          frameworks = [ "AudioUnit.framework" ]
+-        }
+ 
+         deps = [
+           ":audio_device",
+@@ -293,9 +290,6 @@ if (is_ios || is_mac) {
+         absl_deps = [ "//third_party/abseil-cpp/absl/base:core_headers" ]
+ 
+         frameworks = [ "AudioToolbox.framework" ]
+-        if (is_mac) {
+-          frameworks += [ "AudioUnit.framework" ]
+-        }
+       }
+ 
+       # This target exists to expose :audio_session_objc and
+@@ -436,9 +430,6 @@ if (is_ios || is_mac) {
+         "../rtc_base:threading",
+         "../rtc_base:timeutils",
+       ]
+-      if (is_mac) {
+-        frameworks = [ "AudioUnit.framework" ]
+-      }
+     }
+ 
+     rtc_library("objc_audio_device_module") {
+@@ -456,9 +447,6 @@ if (is_ios || is_mac) {
+         "../modules/audio_device:audio_device_api",
+         "../rtc_base:logging",
+       ]
+-      if (is_mac) {
+-        frameworks = [ "AudioUnit.framework" ]
+-      }
+     }
+ 
+     rtc_library("videosource_objc") {
+@@ -741,6 +729,7 @@ if (is_ios || is_mac) {
        ]
  
        deps = [
@@ -10,7 +50,7 @@ index 971a323ef5..fa3f96037f 100644
          ":base_objc",
          ":native_video",
          ":videocodec_objc",
-@@ -780,6 +781,22 @@ if (is_ios || is_mac) {
+@@ -792,6 +781,22 @@ if (is_ios || is_mac) {
        ]
      }
  
@@ -33,7 +73,7 @@ index 971a323ef5..fa3f96037f 100644
      rtc_library("vp9") {
        visibility = [ "*" ]
        allow_poison = [ "software_video_codecs" ]
-@@ -1292,6 +1309,7 @@ if (is_ios || is_mac) {
+@@ -1304,6 +1309,7 @@ if (is_ios || is_mac) {
            "objc/components/video_codec/RTCVideoDecoderH264.h",
            "objc/components/video_codec/RTCVideoEncoderFactoryH264.h",
            "objc/components/video_codec/RTCVideoEncoderH264.h",
@@ -41,7 +81,7 @@ index 971a323ef5..fa3f96037f 100644
            "objc/components/video_frame_buffer/RTCCVPixelBuffer.h",
            "objc/helpers/RTCCameraPreviewView.h",
            "objc/helpers/RTCDispatcher.h",
-@@ -1339,6 +1357,7 @@ if (is_ios || is_mac) {
+@@ -1351,6 +1357,7 @@ if (is_ios || is_mac) {
            "objc/api/video_codec/RTCVideoEncoderVP8.h",
            "objc/api/video_codec/RTCVideoEncoderVP9.h",
            "objc/api/video_codec/RTCVideoEncoderAV1.h",
@@ -49,6 +89,14 @@ index 971a323ef5..fa3f96037f 100644
            "objc/api/video_frame_buffer/RTCNativeI420Buffer.h",
            "objc/api/video_frame_buffer/RTCNativeMutableI420Buffer.h",
          ]
+@@ -1605,7 +1612,6 @@ if (is_ios || is_mac) {
+         "../api/video:video_rtp_headers",
+         "../api/video_codecs:video_codecs_api",
+         "../common_video",
+-        "../pc:video_track_source_proxy",
+         "../rtc_base:buffer",
+         "../rtc_base:logging",
+         "../rtc_base:ssl",
 diff --git a/sdk/objc/base/RTCVideoCodecInfo.h b/sdk/objc/base/RTCVideoCodecInfo.h
 index fa28958f25..40e5cac903 100644
 --- a/sdk/objc/base/RTCVideoCodecInfo.h
@@ -244,7 +292,7 @@ index 2eb8d366d2..57d5847d59 100644
  @end
 diff --git a/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.h b/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.h
 new file mode 100644
-index 0000000000..c3e3d4538f
+index 0000000000..4f1b55c713
 --- /dev/null
 +++ b/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.h
 @@ -0,0 +1,13 @@
@@ -261,10 +309,9 @@ index 0000000000..c3e3d4538f
 +                                                   videoCodecInfo:(RTC_OBJC_TYPE(RTCVideoCodecInfo) *)videoCodecInfo;
 +
 +@end
-\ No newline at end of file
 diff --git a/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.mm b/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.mm
 new file mode 100644
-index 0000000000..568e1bd517
+index 0000000000..c7d5e2939c
 --- /dev/null
 +++ b/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.mm
 @@ -0,0 +1,26 @@
@@ -294,10 +341,9 @@ index 0000000000..568e1bd517
 +}
 +
 +@end
-\ No newline at end of file
 diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.h b/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.h
 new file mode 100644
-index 0000000000..8ba7584c8e
+index 0000000000..4070af22e4
 --- /dev/null
 +++ b/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.h
 @@ -0,0 +1,16 @@
@@ -317,10 +363,9 @@ index 0000000000..8ba7584c8e
 +@end
 +
 +NS_ASSUME_NONNULL_END
-\ No newline at end of file
 diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.mm b/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.mm
 new file mode 100644
-index 0000000000..6e5c5dca85
+index 0000000000..e0eab04e58
 --- /dev/null
 +++ b/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.mm
 @@ -0,0 +1,63 @@
@@ -387,4 +432,3 @@ index 0000000000..6e5c5dca85
 +
 +
 +@end
-\ No newline at end of file
