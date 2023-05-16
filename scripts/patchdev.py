@@ -72,7 +72,10 @@ def build(args):
         config = json.load(f)
 
     platform = config["platform"]
-    for source in config["sources"]:
+    sources = config["sources"]
+    check_all_files(platform, sources)
+
+    for source in sources:
         shutil.copy2(f"src/{source}", rtc_src_file(platform, source))
 
     orig_dir = os.getcwd()
@@ -91,12 +94,14 @@ def generate(args):
 
     # platformの値を取得
     platform = config["platform"]
+    sources = config["sources"]
+    check_all_files(platform, sources)
 
     # パッチファイルのリスト
     patch_files = []
 
     # 各ソースファイルに対して操作を実行
-    for source in config["sources"]:
+    for source in sources:
         target = rtc_src_file(platform, source)
         shutil.copy2(os.path.join('src', source), target)
         os.chdir(os.path.dirname(target))
@@ -142,9 +147,10 @@ def diff(args):
 
     # platformの値を取得
     platform = config["platform"]
+    sources = config["sources"]
+    check_all_files(platform, sources)
 
-    # 各ソースファイルに対して操作を実行
-    for source in config["sources"]:
+    for source in sources:
         target = rtc_src_file(platform, source)
         shutil.copy2(os.path.join('src', source), target)
         os.chdir(os.path.dirname(target))
@@ -180,6 +186,28 @@ def sync(args):
             shutil.copy2(original_path, destination_path_in_src)
             print(f"パッチ対象ファイルをコピーしました: {destination_path_in_src}")
             copied_files += 1
+
+
+def check_newline_at_eof(file_path):
+    if not os.path.isfile(file_path):
+        print(f"Error: The file {file_path} does not exist.")
+        sys.exit(1)
+
+    with open(file_path, 'rb') as f:
+        f.seek(-2, os.SEEK_END)
+        last_two_bytes = f.read(2)
+
+    if last_two_bytes[-1:] != b'\n':
+        print(
+            f"Error: The file {file_path} does not end with a newline character.")
+        sys.exit(1)
+
+
+def check_all_files(platform, sources):
+    for source in sources:
+        file_path = rtc_src_file(platform, source)
+        shutil.copy2(f"src/{source}", file_path)
+        check_newline_at_eof(file_path)
 
 
 def main():
