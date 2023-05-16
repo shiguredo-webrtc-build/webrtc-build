@@ -45,6 +45,9 @@ diff:
 patch:
 \t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) patch
 
+check:
+\t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) check
+
 clean:
 \t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) clean
 """
@@ -188,6 +191,15 @@ def sync(args):
             copied_files += 1
 
 
+def check(args):
+    with open("config.json") as f:
+        config = json.load(f)
+
+    platform = config["platform"]
+    sources = config["sources"]
+    check_all_files(platform, sources)
+
+
 def check_newline_at_eof(file_path):
     if not os.path.isfile(file_path):
         print(f"Error: The file {file_path} does not exist.")
@@ -197,17 +209,20 @@ def check_newline_at_eof(file_path):
         f.seek(-2, os.SEEK_END)
         last_two_bytes = f.read(2)
 
-    if last_two_bytes[-1:] != b'\n':
-        print(
-            f"Error: The file {file_path} does not end with a newline character.")
-        sys.exit(1)
+    return last_two_bytes[-1:] != b'\n'
 
 
 def check_all_files(platform, sources):
+    has_error = False
     for source in sources:
         file_path = rtc_src_file(platform, source)
         shutil.copy2(f"src/{source}", file_path)
-        check_newline_at_eof(file_path)
+        error = check_newline_at_eof(file_path)
+        if error:
+            print(f"Error: The file {file_path} does not end with a newline.")
+        has_error = has_error or error
+    if has_error:
+        sys.exit(1)
 
 
 def main():
@@ -241,8 +256,13 @@ def main():
     parser_diff.set_defaults(func=diff)
 
     # sync
-    parser_diff = subparsers.add_parser('sync')
-    parser_diff.set_defaults(func=sync)
+    parser_sync = subparsers.add_parser('sync')
+    parser_sync.set_defaults(func=sync)
+
+    # check
+    parser_check = subparsers.add_parser(
+        'check', help='ファイル終端の改行コードの有無をチェックします。')
+    parser_check.set_defaults(func=check)
 
     args = parser.parse_args()
 
