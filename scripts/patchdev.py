@@ -76,7 +76,7 @@ def build(args):
 
     platform = config["platform"]
     sources = config["sources"]
-    check_all_files(platform, sources)
+    check_all_files(sources)
 
     for source in sources:
         shutil.copy2(f"src/{source}", rtc_src_file(platform, source))
@@ -98,7 +98,7 @@ def generate(args):
     # platformの値を取得
     platform = config["platform"]
     sources = config["sources"]
-    check_all_files(platform, sources)
+    check_all_files(sources)
 
     # パッチファイルのリスト
     patch_files = []
@@ -151,7 +151,7 @@ def diff(args):
     # platformの値を取得
     platform = config["platform"]
     sources = config["sources"]
-    check_all_files(platform, sources)
+    check_all_files(sources)
 
     for source in sources:
         target = rtc_src_file(platform, source)
@@ -195,9 +195,8 @@ def check(args):
     with open("config.json") as f:
         config = json.load(f)
 
-    platform = config["platform"]
     sources = config["sources"]
-    check_all_files(platform, sources)
+    check_all_files(sources)
 
 
 def check_newline_at_eof(file_path):
@@ -212,11 +211,10 @@ def check_newline_at_eof(file_path):
     return last_two_bytes[-1:] != b'\n'
 
 
-def check_all_files(platform, sources):
+def check_all_files(sources):
     has_error = False
     for source in sources:
-        file_path = rtc_src_file(platform, source)
-        shutil.copy2(f"src/{source}", file_path)
+        file_path = os.path.join('src', source)
         error = check_newline_at_eof(file_path)
         if error:
             print(f"Error: The file {file_path} does not end with a newline.")
