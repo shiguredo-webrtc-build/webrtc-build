@@ -137,10 +137,6 @@ def clean(args):
         source_path = rtc_src_file(platform, source)
         os.chdir(os.path.dirname(source_path))
         os.system(f"git checkout -- {os.path.basename(source_path)}")
-        os.chdir(work_dir)
-        destination_dir = os.path.join('_build/orig', os.path.dirname(source))
-        os.makedirs(destination_dir, exist_ok=True)
-        shutil.copy2(source_path, destination_dir)
 
 
 def diff(args):
