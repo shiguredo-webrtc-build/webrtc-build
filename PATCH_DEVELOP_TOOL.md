@@ -22,6 +22,128 @@
 
 ## [WIP] パッチ開発の流れ
 
+パッチ開発の流れは次のようになります。
+
+### プロジェクトを作成する
+
+トップレベルで `patchdev.py init` を実行してプロジェクトを作成します。プロジェクト名を指定します。
+
+例:
+
+```
+python scripts/patchdev.py init ios-simulcast
+```
+
+このコマンドを実行すると、 `patchdev` 以下に `ios-simulcast` が作成されます。このディレクトリには以下のファイルが含まれます。
+
+```
+Makefile
+README.md
+config.json
+src/
+```
+
+`Makefile` は `patchdev.py` のサブコマンドを実行するターゲットを定義しており、 `patchdev.py` を直接使わずに `make` を使用して操作することができます。以降の説明は `make` を使用します。
+
+`README.md` はプロジェクトの説明を記述するファイルです。
+
+`config.json` はパッチに関する設定ファイルです。以降の節で説明します。
+
+`src` は編集するソースコードを配置するディレクトリです。このディレクトリに必要なソースコードをコピーして編集します。トップレベルにある libwebrtc のソースコード (`_source` 以下) を直接編集する必要はありません。
+
+この他に、他のコマンドにより `_build` が作成されます。 `_build` はリポジトリに含めないでください。
+
+
+## 設定ファイルを編集する
+
+`config.json` を編集し、編集するソースコードを指定します。以下に設定例を示します:
+
+```
+{
+    "output": "ios_simulcast.patch",
+    "platform": "ios",
+    "build_flags": "--debug",
+    "sources": [
+        "sdk/BUILD.gn",
+        "sdk/objc/base/RTCVideoCodecInfo.h",
+        "sdk/objc/base/RTCVideoCodecInfo.m",
+        "sdk/objc/api/peerconnection/RTCRtpEncodingParameters.h",
+        "sdk/objc/api/peerconnection/RTCRtpEncodingParameters.mm",
+        "sdk/objc/api/peerconnection/RTCVideoCodecInfo+Private.mm",
+        "sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.h",
+        "sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.mm",
+        "sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.h",
+        "sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.mm"
+    ]
+}
+```
+
+- `output`: パッチファイル名を指定します。このファイルは `make patch` で作成されます。
+- `platform`: プラットフォームを指定します。この値は libwebrtc のソースコードのパス (`_source`) とビルド時のオプション (`run.py`) に使用されます。
+- `build_flags`: `run.py` に渡すオプションを指定します。
+- `sources`: 編集するソースコードのパスを指定します。
+
+
+### オリジナルのソースコードをコピーする
+
+設定ファイルを編集したら `make sync` を実行します。 `make sync` は設定ファイルに指定したソースコードを `src` にコピーします。前記の `config.json` の例だと、 `make sync` 実行後のディレクトリは次のようになります。
+
+```
+└── src
+    └── sdk
+        ├── BUILD.gn
+        └── objc
+            ├── api
+            │   ├── peerconnection
+            │   │   ├── RTCRtpEncodingParameters.h
+            │   │   ├── RTCRtpEncodingParameters.mm
+            │   │   └── RTCVideoCodecInfo+Private.mm
+            │   └── video_codec
+            │       ├── RTCVideoEncoderSimulcast.h
+            │       └── RTCVideoEncoderSimulcast.mm
+            ├── base
+            │   ├── RTCVideoCodecInfo.h
+            │   └── RTCVideoCodecInfo.m
+            └── components
+                └── video_codec
+                    ├── RTCVideoEncoderFactorySimulcast.h
+                    └── RTCVideoEncoderFactorySimulcast.mm
+```
+
+編集するソースコードを追加する場合は、 `config.json` を編集してソースコードのパスを追加してから再度 `make sync` を実行してください。 `make sync` は `src` 以下に存在しないファイルのみコピーします。
+
+
+### パッチを実装する
+
+パッチの開発は `src` 以下のソースコードを編集してください。
+
+`make check` を実行すると、ファイル終端の改行の有無をチェックできます。ビルドやパッチ作成時は自動的にチェックしますが、手動でチェックする場合に使ってください。
+
+
+### ビルドする
+
+`make build` を実行すると、編集したソースコードを libwebrtc のソースコードのディレクトリにコピーしてから `run.py` でビルドします。以降の挙動は `run.py` と同じです。トップレベルの `_build` 以下にビルド結果が出力されます。
+
+
+### パッチファイルを生成する
+
+`make patch` を実行すると、編集したソースコードとオリジナルのソースコードとの差分をまとめてパッチファイルを生成します。パッチファイルは `config.json` の `output` で指定したファイル名で `_build` 以下に出力されます。たとえば `output` に `ios_simulcast.patch` を指定すると、 `_build/ios_simulcast.patch` が生成されます。
+
+パッチの開発が終わったら、生成したパッチファイルをトップレベルの `patches` にコピーしてください。
+
+なお、編集したソースコードのファイルの終端が改行でない場合はエラーになります。ファイル終端に改行を追加してから再度 `make patch` を実行してください。
+
+
+### その他の操作
+
+#### 差分を表示する
+
+`make diff` を実行します。 `make diff` の挙動は、パッチファイルを生成する以外は `make patch` と同じです。
+
+
+#### オリジナルのソースコードに加えた変更を元に戻す
+
+`make clean` を実行します。 `make build` の実行時にオリジナルのソースコードに加えた変更を元に戻します。
 
 
 ## サブコマンド
