@@ -17,7 +17,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 - [CHANGE] ビルド全体で例外を有効にする
     - @melpon
 
-## m114.5735.0.1
+## m114.5735.2.2
 
 - [CHANGE] iOS を scalability mode に対応する
     - @szktty
