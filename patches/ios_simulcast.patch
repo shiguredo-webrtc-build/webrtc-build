@@ -1,8 +1,48 @@
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index 5f21ffe641..2286b8267c 100644
+index ff89b21721..fa3f96037f 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
-@@ -673,6 +673,7 @@ if (is_ios || is_mac) {
+@@ -230,9 +230,6 @@ if (is_ios || is_mac) {
+           "objc/native/api/audio_device_module.h",
+           "objc/native/api/audio_device_module.mm",
+         ]
+-        if (is_mac) {
+-          frameworks = [ "AudioUnit.framework" ]
+-        }
+ 
+         deps = [
+           ":audio_device",
+@@ -293,9 +290,6 @@ if (is_ios || is_mac) {
+         absl_deps = [ "//third_party/abseil-cpp/absl/base:core_headers" ]
+ 
+         frameworks = [ "AudioToolbox.framework" ]
+-        if (is_mac) {
+-          frameworks += [ "AudioUnit.framework" ]
+-        }
+       }
+ 
+       # This target exists to expose :audio_session_objc and
+@@ -436,9 +430,6 @@ if (is_ios || is_mac) {
+         "../rtc_base:threading",
+         "../rtc_base:timeutils",
+       ]
+-      if (is_mac) {
+-        frameworks = [ "AudioUnit.framework" ]
+-      }
+     }
+ 
+     rtc_library("objc_audio_device_module") {
+@@ -456,9 +447,6 @@ if (is_ios || is_mac) {
+         "../modules/audio_device:audio_device_api",
+         "../rtc_base:logging",
+       ]
+-      if (is_mac) {
+-        frameworks = [ "AudioUnit.framework" ]
+-      }
+     }
+ 
+     rtc_library("videosource_objc") {
+@@ -741,6 +729,7 @@ if (is_ios || is_mac) {
        ]
  
        deps = [
@@ -10,7 +50,7 @@ index 5f21ffe641..2286b8267c 100644
          ":base_objc",
          ":native_video",
          ":videocodec_objc",
-@@ -723,6 +724,22 @@ if (is_ios || is_mac) {
+@@ -792,6 +781,22 @@ if (is_ios || is_mac) {
        ]
      }
  
@@ -33,7 +73,7 @@ index 5f21ffe641..2286b8267c 100644
      rtc_library("vp9") {
        visibility = [ "*" ]
        allow_poison = [ "software_video_codecs" ]
-@@ -1239,6 +1256,7 @@ if (is_ios || is_mac) {
+@@ -1304,6 +1309,7 @@ if (is_ios || is_mac) {
            "objc/components/video_codec/RTCVideoDecoderH264.h",
            "objc/components/video_codec/RTCVideoEncoderFactoryH264.h",
            "objc/components/video_codec/RTCVideoEncoderH264.h",
@@ -41,7 +81,7 @@ index 5f21ffe641..2286b8267c 100644
            "objc/components/video_frame_buffer/RTCCVPixelBuffer.h",
            "objc/helpers/RTCCameraPreviewView.h",
            "objc/helpers/RTCDispatcher.h",
-@@ -1286,6 +1304,7 @@ if (is_ios || is_mac) {
+@@ -1351,6 +1357,7 @@ if (is_ios || is_mac) {
            "objc/api/video_codec/RTCVideoEncoderVP8.h",
            "objc/api/video_codec/RTCVideoEncoderVP9.h",
            "objc/api/video_codec/RTCVideoEncoderAV1.h",
@@ -49,9 +89,210 @@ index 5f21ffe641..2286b8267c 100644
            "objc/api/video_frame_buffer/RTCNativeI420Buffer.h",
            "objc/api/video_frame_buffer/RTCNativeMutableI420Buffer.h",
          ]
+@@ -1605,7 +1612,6 @@ if (is_ios || is_mac) {
+         "../api/video:video_rtp_headers",
+         "../api/video_codecs:video_codecs_api",
+         "../common_video",
+-        "../pc:video_track_source_proxy",
+         "../rtc_base:buffer",
+         "../rtc_base:logging",
+         "../rtc_base:ssl",
+diff --git a/sdk/objc/base/RTCVideoCodecInfo.h b/sdk/objc/base/RTCVideoCodecInfo.h
+index fa28958f25..40e5cac903 100644
+--- a/sdk/objc/base/RTCVideoCodecInfo.h
++++ b/sdk/objc/base/RTCVideoCodecInfo.h
+@@ -14,6 +14,43 @@
+ 
+ NS_ASSUME_NONNULL_BEGIN
+ 
++typedef NS_ENUM(uint8_t, RTCScalabilityMode) {
++  RTCScalabilityModeL1T1,
++  RTCScalabilityModeL1T2,
++  RTCScalabilityModeL1T3,
++  RTCScalabilityModeL2T1,
++  RTCScalabilityModeL2T1h,
++  RTCScalabilityModeL2T1_KEY,
++  RTCScalabilityModeL2T2,
++  RTCScalabilityModeL2T2h,
++  RTCScalabilityModeL2T2_KEY,
++  RTCScalabilityModeL2T2_KEY_SHIFT,
++  RTCScalabilityModeL2T3,
++  RTCScalabilityModeL2T3h,
++  RTCScalabilityModeL2T3_KEY,
++  RTCScalabilityModeL3T1,
++  RTCScalabilityModeL3T1h,
++  RTCScalabilityModeL3T1_KEY,
++  RTCScalabilityModeL3T2,
++  RTCScalabilityModeL3T2h,
++  RTCScalabilityModeL3T2_KEY,
++  RTCScalabilityModeL3T3,
++  RTCScalabilityModeL3T3h,
++  RTCScalabilityModeL3T3_KEY,
++  RTCScalabilityModeS2T1,
++  RTCScalabilityModeS2T1h,
++  RTCScalabilityModeS2T2,
++  RTCScalabilityModeS2T2h,
++  RTCScalabilityModeS2T3,
++  RTCScalabilityModeS2T3h,
++  RTCScalabilityModeS3T1,
++  RTCScalabilityModeS3T1h,
++  RTCScalabilityModeS3T2,
++  RTCScalabilityModeS3T2h,
++  RTCScalabilityModeS3T3,
++  RTCScalabilityModeS3T3h,
++};
++
+ /** Holds information to identify a codec. Corresponds to webrtc::SdpVideoFormat. */
+ RTC_OBJC_EXPORT
+ @interface RTC_OBJC_TYPE (RTCVideoCodecInfo) : NSObject <NSCoding>
+@@ -22,14 +59,18 @@ RTC_OBJC_EXPORT
+ 
+ - (instancetype)initWithName:(NSString *)name;
+ 
++- (instancetype)initWithName:(NSString *)name
++                  parameters:(nullable NSDictionary<NSString *, NSString *> *)parameters;
+ - (instancetype)initWithName:(NSString *)name
+                   parameters:(nullable NSDictionary<NSString *, NSString *> *)parameters
++            scalabilityModes:(nullable NSArray<NSNumber *> *)scalabilityModes
+     NS_DESIGNATED_INITIALIZER;
+ 
+ - (BOOL)isEqualToCodecInfo:(RTC_OBJC_TYPE(RTCVideoCodecInfo) *)info;
+ 
+ @property(nonatomic, readonly) NSString *name;
+ @property(nonatomic, readonly) NSDictionary<NSString *, NSString *> *parameters;
++@property(nonatomic, readonly) NSArray<NSNumber *> *scalabilityModes;
+ 
+ @end
+ 
+diff --git a/sdk/objc/base/RTCVideoCodecInfo.m b/sdk/objc/base/RTCVideoCodecInfo.m
+index ce26ae1de3..1c41dee380 100644
+--- a/sdk/objc/base/RTCVideoCodecInfo.m
++++ b/sdk/objc/base/RTCVideoCodecInfo.m
+@@ -14,6 +14,7 @@
+ 
+ @synthesize name = _name;
+ @synthesize parameters = _parameters;
++@synthesize scalabilityModes = _scalabilityModes;
+ 
+ - (instancetype)initWithName:(NSString *)name {
+   return [self initWithName:name parameters:nil];
+@@ -21,14 +22,21 @@
+ 
+ - (instancetype)initWithName:(NSString *)name
+                   parameters:(nullable NSDictionary<NSString *, NSString *> *)parameters {
++  return [self initWithName:name parameters:parameters scalabilityModes:nil];
++}
++
++- (instancetype)initWithName:(NSString *)name
++                  parameters:(nullable NSDictionary<NSString *, NSString *> *)parameters
++            scalabilityModes:(nullable NSArray<NSNumber *> *)scalabilityModes {
+   if (self = [super init]) {
+     _name = name;
+     _parameters = (parameters ? parameters : @{});
++    _scalabilityModes = (scalabilityModes ? scalabilityModes : @[]);
+   }
+-
+   return self;
+ }
+ 
++
+ - (BOOL)isEqualToCodecInfo:(RTC_OBJC_TYPE(RTCVideoCodecInfo) *)info {
+   if (!info ||
+       ![self.name isEqualToString:info.name] ||
+diff --git a/sdk/objc/api/peerconnection/RTCRtpEncodingParameters.h b/sdk/objc/api/peerconnection/RTCRtpEncodingParameters.h
+index 07f6b7a39c..fec87c8015 100644
+--- a/sdk/objc/api/peerconnection/RTCRtpEncodingParameters.h
++++ b/sdk/objc/api/peerconnection/RTCRtpEncodingParameters.h
+@@ -69,6 +69,8 @@ RTC_OBJC_EXPORT
+  https://w3c.github.io/webrtc-extensions/#dom-rtcrtpencodingparameters-adaptiveptime */
+ @property(nonatomic, assign) BOOL adaptiveAudioPacketTime;
+ 
++@property(nonatomic, copy, nullable) NSString *scalabilityMode;
++
+ - (instancetype)init;
+ 
+ @end
+diff --git a/sdk/objc/api/peerconnection/RTCRtpEncodingParameters.mm b/sdk/objc/api/peerconnection/RTCRtpEncodingParameters.mm
+index d6087dafb0..f5fd57a448 100644
+--- a/sdk/objc/api/peerconnection/RTCRtpEncodingParameters.mm
++++ b/sdk/objc/api/peerconnection/RTCRtpEncodingParameters.mm
+@@ -25,6 +25,7 @@
+ @synthesize bitratePriority = _bitratePriority;
+ @synthesize networkPriority = _networkPriority;
+ @synthesize adaptiveAudioPacketTime = _adaptiveAudioPacketTime;
++@synthesize scalabilityMode = _scalabilityMode;
+ 
+ - (instancetype)init {
+   webrtc::RtpEncodingParameters nativeParameters;
+@@ -59,6 +60,9 @@
+     if (nativeParameters.ssrc) {
+       _ssrc = [NSNumber numberWithUnsignedLong:*nativeParameters.ssrc];
+     }
++    if (nativeParameters.scalability_mode.has_value()) {
++      _scalabilityMode = [NSString stringForStdString:nativeParameters.scalability_mode.value()];
++    }
+     _bitratePriority = nativeParameters.bitrate_priority;
+     _networkPriority = [RTC_OBJC_TYPE(RTCRtpEncodingParameters)
+         priorityFromNativePriority:nativeParameters.network_priority];
+@@ -96,6 +100,9 @@
+   parameters.network_priority =
+       [RTC_OBJC_TYPE(RTCRtpEncodingParameters) nativePriorityFromPriority:_networkPriority];
+   parameters.adaptive_ptime = _adaptiveAudioPacketTime;
++  if (_scalabilityMode != nil) {
++    parameters.scalability_mode = [NSString stdStringForString:_scalabilityMode];
++  }
+   return parameters;
+ }
+ 
+diff --git a/sdk/objc/api/peerconnection/RTCVideoCodecInfo+Private.mm b/sdk/objc/api/peerconnection/RTCVideoCodecInfo+Private.mm
+index 2eb8d366d2..57d5847d59 100644
+--- a/sdk/objc/api/peerconnection/RTCVideoCodecInfo+Private.mm
++++ b/sdk/objc/api/peerconnection/RTCVideoCodecInfo+Private.mm
+@@ -15,13 +15,24 @@
+ @implementation RTC_OBJC_TYPE (RTCVideoCodecInfo)
+ (Private)
+ 
+-    - (instancetype)initWithNativeSdpVideoFormat : (webrtc::SdpVideoFormat)format {
++- (instancetype)initWithNativeSdpVideoFormat : (webrtc::SdpVideoFormat)format {
+   NSMutableDictionary *params = [NSMutableDictionary dictionary];
+   for (auto it = format.parameters.begin(); it != format.parameters.end(); ++it) {
+     [params setObject:[NSString stringForStdString:it->second]
+                forKey:[NSString stringForStdString:it->first]];
+   }
+-  return [self initWithName:[NSString stringForStdString:format.name] parameters:params];
++
++  NSMutableArray *scalabilityModes = [[NSMutableArray alloc] init];
++  if (!format.scalability_modes.empty()) {
++    for (const auto scalability_mode : format.scalability_modes) {
++      uint8_t value = static_cast<uint8_t>(scalability_mode);
++      [scalabilityModes addObject: [NSNumber numberWithUnsignedInt:value]];
++    }
++  }
++
++  return [self initWithName:[NSString stringForStdString:format.name]
++                 parameters:params
++           scalabilityModes:scalabilityModes];
+ }
+ 
+ - (webrtc::SdpVideoFormat)nativeSdpVideoFormat {
+@@ -32,7 +43,13 @@
+     parameters[key] = value;
+   }
+ 
+-  return webrtc::SdpVideoFormat([NSString stdStringForString:self.name], parameters);
++  absl::InlinedVector<webrtc::ScalabilityMode, webrtc::kScalabilityModeCount> scalabilityModes;
++  for (NSNumber *scalabilityMode in self.scalabilityModes) {
++    unsigned int value = [scalabilityMode unsignedIntValue];
++    scalabilityModes.push_back(static_cast<webrtc::ScalabilityMode>(value));
++  }
++
++  return webrtc::SdpVideoFormat([NSString stdStringForString:self.name], parameters, scalabilityModes);
+ }
+ 
+ @end
 diff --git a/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.h b/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.h
 new file mode 100644
-index 0000000000..c5c0744211
+index 0000000000..4f1b55c713
 --- /dev/null
 +++ b/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.h
 @@ -0,0 +1,13 @@
@@ -68,10 +309,9 @@ index 0000000000..c5c0744211
 +                                                   videoCodecInfo:(RTC_OBJC_TYPE(RTCVideoCodecInfo) *)videoCodecInfo;
 +
 +@end
-\ No newline at end of file
 diff --git a/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.mm b/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.mm
 new file mode 100644
-index 0000000000..187294c430
+index 0000000000..c7d5e2939c
 --- /dev/null
 +++ b/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.mm
 @@ -0,0 +1,26 @@
@@ -101,10 +341,9 @@ index 0000000000..187294c430
 +}
 +
 +@end
-\ No newline at end of file
 diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.h b/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.h
 new file mode 100644
-index 0000000000..05cc990c2b
+index 0000000000..4070af22e4
 --- /dev/null
 +++ b/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.h
 @@ -0,0 +1,16 @@
@@ -124,19 +363,27 @@ index 0000000000..05cc990c2b
 +@end
 +
 +NS_ASSUME_NONNULL_END
-\ No newline at end of file
 diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.mm b/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.mm
 new file mode 100644
-index 0000000000..7ce2a4eaba
+index 0000000000..e0eab04e58
 --- /dev/null
 +++ b/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.mm
-@@ -0,0 +1,39 @@
+@@ -0,0 +1,63 @@
 +#import <Foundation/Foundation.h>
 +
 +#import "RTCMacros.h"
 +#import "RTCVideoCodecInfo.h"
 +#import "RTCVideoEncoderFactorySimulcast.h"
 +#import "api/video_codec/RTCVideoEncoderSimulcast.h"
++#import "api/peerconnection/RTCVideoCodecInfo+Private.h"
++
++#include "absl/container/inlined_vector.h"
++#include "api/video_codecs/video_codec.h"
++#include "api/video_codecs/sdp_video_format.h"
++#include "api/video_codecs/video_codec.h"
++#include "modules/video_coding/codecs/av1/av1_svc_config.h"
++#include "modules/video_coding/codecs/vp9/include/vp9.h"
++#include "media/base/media_constants.h"
 +
 +@interface RTC_OBJC_TYPE (RTCVideoEncoderFactorySimulcast) ()
 +
@@ -165,9 +412,23 @@ index 0000000000..7ce2a4eaba
 +}
 +
 +- (NSArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *)supportedCodecs {
-+    return [[_primary supportedCodecs] arrayByAddingObjectsFromArray: [_fallback supportedCodecs]];
++    NSArray *supportedCodecs = [[_primary supportedCodecs] arrayByAddingObjectsFromArray: [_fallback supportedCodecs]];
++
++    NSMutableArray<RTCVideoCodecInfo *> *addingCodecs = [[NSMutableArray alloc] init];
++
++    for (const webrtc::SdpVideoFormat& format : webrtc::SupportedVP9Codecs(true)) {
++        RTCVideoCodecInfo *codec = [[RTCVideoCodecInfo alloc] initWithNativeSdpVideoFormat: format];
++        [addingCodecs addObject: codec];
++    }
++
++    auto av1Format = webrtc::SdpVideoFormat(
++         cricket::kAv1CodecName, webrtc::SdpVideoFormat::Parameters(),
++         webrtc::LibaomAv1EncoderSupportedScalabilityModes());
++    RTCVideoCodecInfo *av1Codec = [[RTCVideoCodecInfo alloc] initWithNativeSdpVideoFormat: av1Format];
++    [addingCodecs addObject: av1Codec];
++
++    return [supportedCodecs arrayByAddingObjectsFromArray: addingCodecs];
 +}
 +
 +
 +@end
-\ No newline at end of file
