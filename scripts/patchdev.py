@@ -68,6 +68,10 @@ sync:
 build:
 \t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) build
 
+build-skip-patch:
+\t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) build --skip-patch
+
+
 diff:
 \t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) diff
 
@@ -101,10 +105,11 @@ clean:
 
 def build(args):
     config = load_config()
-    check_all_files(config.sources)
 
-    for source in config.sources:
-        shutil.copy2(os.path.join(project_src_dir, source), rtc_src_file(config.platform, source))
+    if not args.skip_patch:
+        check_all_files(config.sources)
+        for source in config.sources:
+            shutil.copy2(os.path.join(project_src_dir, source), rtc_src_file(config.platform, source))
 
     orig_dir = os.getcwd()
     os.chdir(top_dir)
@@ -247,6 +252,8 @@ def main():
 
     # build サブコマンド
     parser_build = subparsers.add_parser("build", help="パッチを適用してビルドします。")
+    parser_build.add_argument("--skip-patch", action="store_true",
+                              help="パッチの適用をスキップします。")
     parser_build.set_defaults(func=build)
 
     # patch サブコマンド
