@@ -31,7 +31,7 @@
 例:
 
 ```
-python scripts/patchdev.py init ios-simulcast
+python3 scripts/patchdev.py init ios-simulcast
 ```
 
 このコマンドを実行すると、 `patchdev` 以下に `ios-simulcast` が作成されます。このディレクトリには以下のファイルが含まれます。
