@@ -205,8 +205,10 @@ def check_newline_at_eof(file_path):
         sys.exit(1)
 
     with open(file_path, 'rb') as f:
+        if f.read(1) == b'':
+            return False
         f.seek(-1, os.SEEK_END)
-        last = f.read()
+        last = f.read(1)
 
     return last == b'\n'
 
