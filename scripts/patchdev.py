@@ -101,7 +101,7 @@ clean:
 
 def build(args):
     config = load_config()
-    check_all_files(config.platform, config.sources)
+    check_all_files(config.sources)
 
     for source in config.sources:
         shutil.copy2(os.path.join(project_src_dir, source), rtc_src_file(config.platform, source))
@@ -116,7 +116,7 @@ def build(args):
 
 def generate(args):
     config = load_config()
-    check_all_files(config.platform, config.sources)
+    check_all_files(config.sources)
 
     # パッチファイルのリスト
     patch_files = []
@@ -150,7 +150,7 @@ def clean(args):
     shutil.rmtree(project_build_dir, ignore_errors=True)
 
     for source in config.sources:
-        source_path = rtc_src_file(config.platform, config.source)
+        source_path = rtc_src_file(config.platform, source)
         os.chdir(os.path.dirname(source_path))
         os.system(f"git checkout -- {os.path.basename(source_path)}")
 
@@ -158,7 +158,7 @@ def clean(args):
 def diff(args):
     config = load_config()
 
-    check_all_files(config.platform, config.sources)
+    check_all_files(config.sources)
 
     for source in config.sources:
         target = rtc_src_file(config.platform, source)
@@ -196,7 +196,7 @@ def sync(args):
 
 def check(args):
     config = load_config()
-    check_all_files(config.platform, config.sources)
+    check_all_files(config.sources)
 
 
 def check_newline_at_eof(file_path):
@@ -213,10 +213,10 @@ def check_newline_at_eof(file_path):
     return last == b'\n'
 
 
-def check_all_files(platform, sources):
+def check_all_files(sources):
     has_error = False
     for source in sources:
-        file_path = rtc_src_file(platform, source)
+        file_path = os.path.join(project_src_dir, source)
         print('Checking:', file_path)
         error = not check_newline_at_eof(file_path)
         if error:
