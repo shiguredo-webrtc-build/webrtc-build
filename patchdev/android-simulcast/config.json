@@ -1,0 +1,6 @@
+{
+    "output": "android-simulcast.patch",
+    "platform": "android",
+    "build_flags": "--debug",
+    "sources": []
+}
