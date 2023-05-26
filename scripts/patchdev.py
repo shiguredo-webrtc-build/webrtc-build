@@ -197,8 +197,8 @@ def sync(args):
                 print(f"Copied: {destination_path_in_src}")
             else:
                 # オリジナルが存在しなければ空のファイルを作る
-                with open(destination_path_in_src, 'w'):
-                    pass
+                with open(destination_path_in_src, 'w') as f:
+                    f.write('\n')
                 print(f"Created: {destination_path_in_src}")
             copied_files += 1
     if copied_files == 0:
