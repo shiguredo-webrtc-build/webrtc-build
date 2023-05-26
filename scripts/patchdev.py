@@ -192,8 +192,14 @@ def sync(args):
         if not os.path.isfile(destination_path_in_src):
             # パッチ対象ファイルのオリジナルのパス
             original_path = rtc_src_file(config.platform, source)
-            shutil.copy2(original_path, destination_path_in_src)
-            print(f"Copied: {destination_path_in_src}")
+            if os.path.isfile(destination_path_in_src):
+                shutil.copy2(original_path, destination_path_in_src)
+                print(f"Copied: {destination_path_in_src}")
+            else:
+                # オリジナルが存在しなければ空のファイルを作る
+                with open(destination_path_in_src, 'w'):
+                    pass
+                print(f"Created: {destination_path_in_src}")
             copied_files += 1
     if copied_files == 0:
         print("No files copied.")
