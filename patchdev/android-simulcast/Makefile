@@ -3,7 +3,7 @@ PYTHON = python3
 TOP_DIR = ../../
 PATCHDEV = scripts/patchdev.py
 
-.PHONY: sync build diff patch clean
+.PHONY: sync build diff patch clean javah
 
 sync:
 	@$(PYTHON) $(TOP_DIR)$(PATCHDEV) sync
@@ -26,3 +26,6 @@ check:
 
 clean:
 	@$(PYTHON) $(TOP_DIR)$(PATCHDEV) clean
+
+javah:
+	javah -classpath src/sdk/android/api -classpath ../../_source/android/webrtc/src/sdk/android/api -o simulcast_video_encoder.h org.webrtc.SimulcastVideoEncoder
