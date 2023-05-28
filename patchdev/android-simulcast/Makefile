@@ -14,6 +14,8 @@ build:
 build-skip-patch:
 	@$(PYTHON) $(TOP_DIR)$(PATCHDEV) build --skip-patch
 
+jni:
+	@$(PYTHON) $(TOP_DIR)$(PATCHDEV) jni
 
 diff:
 	@$(PYTHON) $(TOP_DIR)$(PATCHDEV) diff
@@ -26,6 +28,3 @@ check:
 
 clean:
 	@$(PYTHON) $(TOP_DIR)$(PATCHDEV) clean
-
-javah:
-	javah -classpath src/sdk/android/api -classpath ../../_source/android/webrtc/src/sdk/android/api -o simulcast_video_encoder.h org.webrtc.SimulcastVideoEncoder
