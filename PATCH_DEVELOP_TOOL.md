@@ -18,6 +18,7 @@
 - 開発中のソースコードを libwebrtc のリポジトリ外で編集・管理できるようにする
 - 開発中のソースコードを libwebrtc に組み込んでビルドする
 - パッチファイルを作成する
+- JNI 用の C/C++ ヘッダーファイルを生成する
 
 
 ## パッチ開発の流れ
@@ -118,6 +119,37 @@ libwebrtc のソースコードには、ビルド時 (またはフェッチ時) 
 ```
 
 編集するソースコードを追加する場合は、 `config.json` を編集してソースコードのパスを追加してから再度 `make sync` を実行してください。 `make sync` は `src` 以下に存在しないファイルのみコピーします。
+
+
+#### JNI 用の C/C++ ヘッダーファイルを生成する (オプション)
+
+JNI 用のパッチを開発する場合は、 `javah` で C/C++ のヘッダーファイルを生成する必要があります。 `config.json` を編集して JNI の設定を記述し、 `make jni` を実行します。 `make jni` は `javah` を実行して C/C++ のヘッダーファイルを生成し、 `src` 以下に出力します。
+
+`javah` は事前にマシンにインストールしておいてください。 libwebrtc のソースコードにはビルドに使われるサードパーティーのツールが含まれていますが、 `javah` は含まれていません。
+
+JNI 用の `config.json` の設定例を以下に示します:
+
+```json
+{
+    "jni_classpaths": [
+        "sdk/android/api"
+    ],
+    "jni_classes": [
+        {
+            "org.webrtc.SimulcastVideoEncoder": "sdk/android/src/jni/simulcast_video_encoder.h"
+        }
+    ]
+}
+```
+
+- `jni_classpaths`: クラスパス (`-classpath` オプション) のリストを指定します。指定したクラスパスは、 `src` 以下と libwebrtc のソースコードのディレクトリの両方に適用されます。上記の例だと、 `javah` に渡されるクラスパスは `src/sdk/android/api` と `../../_sources/sdk/android/api` (の絶対パス) になります。
+- `jni_classes`: ヘッダーファイルを生成するクラスと出力ファイルパスをペアで指定します。
+
+上記の設定例では、 `make jni` で以下のコマンドが実行されます:
+
+```
+javah -classpath TOP/patchdev/PROJ/src/sdk/android/api -classpath TOP/_source/android/webrtc/src/sdk/android/api -o simulcast_video_encoder.h org.webrtc.SimulcastVideoEncoder
+```
 
 
 ### パッチを実装する
