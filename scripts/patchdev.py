@@ -43,9 +43,22 @@ class Config:
         self.output = json["output"]
         self.platform = json["platform"]
         self.build_flags = json["build_flags"]
-        self.sources = []
-        for path in json["sources"]:
-            self.sources.append(os.path.normpath(path))
+        self.sources = normpaths(json["sources"])
+        self.jni_classpaths = normpaths(json["jni_classpaths"])
+
+        self.jni_classes = {}
+        jni_classes_json = json["jni_classes"]
+        if type(jni_classes_json) is list:
+            for pairs in jni_classes_json:
+                for class_name, output in pairs.items():
+                    self.jni_classes[class_name] = os.path.normpath(output)
+        print(self.jni_classes)
+
+
+def normpaths(paths):
+    if type(paths) is not list:
+        return
+    return [os.path.normpath(path) for path in paths]
 
 
 def init(args):
@@ -60,7 +73,7 @@ PYTHON = python3
 TOP_DIR = ../../
 PATCHDEV = scripts/patchdev.py
 
-.PHONY: sync build diff patch clean
+.PHONY: sync build jni diff patch clean check
 
 sync:
 \t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) sync
@@ -71,6 +84,8 @@ build:
 build-skip-patch:
 \t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) build --skip-patch
 
+jni:
+\t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) jni
 
 diff:
 \t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) diff
@@ -96,6 +111,10 @@ clean:
         "platform": "ios",
         "build_flags": "--debug",
         "sources": [],
+        "jni_classpaths": ["sdk/android/api"],
+        "jni_classes": [
+            {"org.webrtc.Example": "sdk/android/src/jni/example.h"}
+        ]
     }
     with open(config_file, 'w') as f:
         json.dump(config_content, f, indent=4)
@@ -224,6 +243,28 @@ def check_newline_at_eof(file_path):
     return last == b'\n'
 
 
+def jni(args):
+    config = load_config()
+
+    for class_name, output in config.jni_classes.items():
+        cmd = ['javah']
+        for classpath in config.jni_classpaths:
+            # プロジェクトのソースディレクトリをクラスパスの先頭にしないと
+            # 他の libwebrtc のクラスが見つからない
+            cmd.append('-classpath')
+            cmd.append(os.path.join(project_src_dir, classpath))
+            cmd.append('-classpath')
+            cmd.append(os.path.join(rtc_src_dir(config.platform), classpath))
+
+        src_output = os.path.join(project_src_dir, output)
+        cmd.append('-o')
+        cmd.append(src_output)
+
+        cmd.append(class_name)
+        print(f"exec: {' '.join(cmd)}")
+        subprocess.check_output(cmd)
+
+
 def check_all_files(sources):
     has_error = False
     for source in sources:
@@ -282,6 +323,11 @@ def main():
     parser_check = subparsers.add_parser(
         'check', help='ファイル終端の改行コードの有無をチェックします。')
     parser_check.set_defaults(func=check)
+
+    # JNI
+    parser_jni = subparsers.add_parser(
+        'jni', help='JNI のヘッダーファイルを生成します。')
+    parser_jni.set_defaults(func=jni)
 
     args = parser.parse_args()
 
