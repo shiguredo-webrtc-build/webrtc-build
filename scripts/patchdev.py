@@ -48,10 +48,9 @@ class Config:
 
         self.jni_classes = {}
         jni_classes_json = json["jni_classes"]
-        if type(jni_classes_json) is list:
-            for pairs in jni_classes_json:
-                for class_name, output in pairs.items():
-                    self.jni_classes[class_name] = os.path.normpath(output)
+        if type(jni_classes_json) is dict:
+            for class_name, output in jni_classes_json.items():
+                self.jni_classes[class_name] = os.path.normpath(output)
         print(self.jni_classes)
 
 
@@ -112,9 +111,9 @@ clean:
         "build_flags": "--debug",
         "sources": [],
         "jni_classpaths": ["sdk/android/api"],
-        "jni_classes": [
-            {"org.webrtc.Example": "sdk/android/src/jni/example.h"}
-        ]
+        "jni_classes": {
+            "org.webrtc.Example": "sdk/android/src/jni/example.h"
+        }
     }
     with open(config_file, 'w') as f:
         json.dump(config_content, f, indent=4)
