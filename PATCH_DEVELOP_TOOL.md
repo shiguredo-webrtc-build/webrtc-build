@@ -134,11 +134,9 @@ JNI 用の `config.json` の設定例を以下に示します:
     "jni_classpaths": [
         "sdk/android/api"
     ],
-    "jni_classes": [
-        {
-            "org.webrtc.SimulcastVideoEncoder": "sdk/android/src/jni/simulcast_video_encoder.h"
-        }
-    ]
+    "jni_classes": {
+        "org.webrtc.SimulcastVideoEncoder": "sdk/android/src/jni/simulcast_video_encoder.h"
+    }
 }
 ```
 
