@@ -245,13 +245,16 @@ def check_newline_at_eof(file_path):
 def jni(args):
     config = load_config()
 
+    # javah がローカル (src) を見てくれないっぽいので、
+    # Java のソースコードのみオリジナルにコピーする
+    check_all_files(config.sources)
+    for source in config.sources:
+        if source.endswith('.java'):
+            shutil.copy2(os.path.join(project_src_dir, source), rtc_src_file(config.platform, source))
+
     for class_name, output in config.jni_classes.items():
         cmd = ['javah']
         for classpath in config.jni_classpaths:
-            # プロジェクトのソースディレクトリをクラスパスの先頭にしないと
-            # 他の libwebrtc のクラスが見つからない
-            cmd.append('-classpath')
-            cmd.append(os.path.join(project_src_dir, classpath))
             cmd.append('-classpath')
             cmd.append(os.path.join(rtc_src_dir(config.platform), classpath))
 
