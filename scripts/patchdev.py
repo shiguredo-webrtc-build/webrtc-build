@@ -43,20 +43,9 @@ class Config:
         self.output = json["output"]
         self.platform = json["platform"]
         self.build_flags = json["build_flags"]
-        self.sources = normpaths(json["sources"])
-        self.jni_classpaths = normpaths(json["jni_classpaths"])
-
-        self.jni_classes = {}
-        jni_classes_json = json["jni_classes"]
-        if type(jni_classes_json) is dict:
-            for class_name, output in jni_classes_json.items():
-                self.jni_classes[class_name] = os.path.normpath(output)
-
-
-def normpaths(paths):
-    if type(paths) is not list:
-        return
-    return [os.path.normpath(path) for path in paths]
+        self.sources = [os.path.normpath(path) for path in json["sources"]]
+        self.jni_classpaths = [os.path.normpath(path) for path in json["jni_classpaths"]]
+        self.jni_classes = {class_name: os.path.normpath(output) for class_name, output in json["jni_classes"].items()}
 
 
 def init(args):
