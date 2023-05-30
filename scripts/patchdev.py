@@ -51,7 +51,6 @@ class Config:
         if type(jni_classes_json) is dict:
             for class_name, output in jni_classes_json.items():
                 self.jni_classes[class_name] = os.path.normpath(output)
-        print(self.jni_classes)
 
 
 def normpaths(paths):
