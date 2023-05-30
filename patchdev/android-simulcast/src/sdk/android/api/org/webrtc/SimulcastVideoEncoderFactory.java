@@ -18,6 +18,9 @@
  
  public class SimulcastVideoEncoderFactory implements VideoEncoderFactory {
  
+    static native VideoCodecInfo[] nativeVP9Codecs();
+    static native VideoCodecInfo nativeAV1Codec();
+
      VideoEncoderFactory primary;
      VideoEncoderFactory fallback;
  
