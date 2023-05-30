@@ -72,7 +72,7 @@ PYTHON = python3
 TOP_DIR = ../../
 PATCHDEV = scripts/patchdev.py
 
-.PHONY: sync build jni diff patch clean check
+.PHONY: sync build build-skip-patch jni diff patch clean check
 
 sync:
 \t@$(PYTHON) $(TOP_DIR)$(PATCHDEV) sync
