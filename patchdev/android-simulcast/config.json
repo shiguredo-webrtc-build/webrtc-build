@@ -7,14 +7,15 @@
         "sdk/android/api/org/webrtc/SimulcastVideoEncoder.java",
         "sdk/android/api/org/webrtc/SimulcastVideoEncoderFactory.java",
         "sdk/android/src/jni/simulcast_video_encoder.cc",
-        "sdk/android/src/jni/simulcast_video_encoder.h"
+        "sdk/android/src/jni/simulcast_video_encoder.h",
+        "sdk/android/src/jni/simulcast_video_encoder_factory.cc",
+        "sdk/android/src/jni/simulcast_video_encoder_factory.h"
     ],
     "jni_classpaths": [
         "sdk/android/api"
     ],
-    "jni_classes": [
-        {
-            "org.webrtc.SimulcastVideoEncoder": "sdk/android/src/jni/simulcast_video_encoder.h"
-        }
-    ]
+    "jni_classes": {
+        "org.webrtc.SimulcastVideoEncoder": "sdk/android/src/jni/simulcast_video_encoder.h",
+        "org.webrtc.SimulcastVideoEncoderFactory": "sdk/android/src/jni/simulcast_video_encoder_factory.h"
+    }
 }

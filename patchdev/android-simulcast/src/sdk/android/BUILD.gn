@@ -867,7 +867,9 @@ if (current_os == "linux" || is_android) {
     allow_poison = [ "software_video_codecs" ]
     sources = [
       "src/jni/simulcast_video_encoder.cc",
-      "src/jni/simulcast_video_encoder.h"
+      "src/jni/simulcast_video_encoder.h",
+      "src/jni/simulcast_video_encoder_factory.cc",
+      "src/jni/simulcast_video_encoder_factory.h"
     ]
     deps = [
       ":base_jni",
