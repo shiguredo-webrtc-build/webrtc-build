@@ -95,7 +95,7 @@ clean:
     # config.json
     config_content = {
         "output": project_name + ".patch",
-        "platform": "ios",
+        "platform": args.platform,
         "build_flags": "--debug",
         "sources": [],
         "jni_classpaths": ["sdk/android/api"],
@@ -107,6 +107,14 @@ clean:
         json.dump(config_content, f, indent=4)
 
     print("Initialized project in:", project_dir)
+
+    if not args.nobuild:
+        orig_dir = os.getcwd()
+        os.chdir(top_dir)
+        cmd = f"python3 run.py build {args.platform} --webrtc-fetch\n"
+        print(f"exec: {cmd}")
+        os.system(cmd)
+        os.chdir(orig_dir)
 
 
 def build(args):
@@ -283,8 +291,12 @@ def main():
         title="サブコマンド", help="実行するサブコマンドを選択してください。")
 
     # init サブコマンド
-    parser_init = subparsers.add_parser("init", help="パッチ開発ディレクトリを初期化します。")
+    parser_init = subparsers.add_parser("init", help="パッチ開発ディレクトリを初期化します。"
+                                        "ソースコードをダウンロードし、パッチを適用せずにビルドします。")
+    parser_init.add_argument("platform", help="プラットフォーム")
     parser_init.add_argument("project_name", help="新しいパッチの名前")
+    parser_init.add_argument("--nobuild", action="store_true",
+                             help="ソースコードをダウンロード・ビルドしません。")
     parser_init.set_defaults(func=init)
 
     # build サブコマンド
