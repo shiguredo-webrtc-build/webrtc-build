@@ -241,7 +241,6 @@ def check_newline_at_eof(file_path):
 def jni(args):
     config = load_config()
 
-    # javah がローカル (src) を見てくれないっぽいので、
     # Java のソースコードのみオリジナルにコピーする
     check_all_files(config.sources)
     for source in config.sources:
