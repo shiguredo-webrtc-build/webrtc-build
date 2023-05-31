@@ -21,21 +21,38 @@
 - JNI 用の C/C++ ヘッダーファイルを生成する
 
 
+## 対応プラットフォーム
+
+本ツールは以下の環境で動作します。
+
+- macOS
+- Windows
+- Linux
+
+
 ## パッチ開発の流れ
 
 パッチ開発の流れは次のようになります。
 
 ### プロジェクトを作成する
 
-トップレベルで `patchdev.py init` を実行してプロジェクトを作成します。プロジェクト名を指定します。
+トップレベルで `patchdev.py init` を実行してプロジェクトを作成します。引数にプラットフォームとプロジェクト名を指定します。
 
 例:
 
 ```
-python3 scripts/patchdev.py init ios-simulcast
+python3 scripts/patchdev.py init ios ios-simulcast
 ```
 
-このコマンドを実行すると、 `patchdev` 以下に `ios-simulcast` が作成されます。このディレクトリには以下のファイルが含まれます。
+このコマンドは次の処理を行います:
+
+1. プロジェクト用のディレクトリを作成する
+2. パッチを適用せずにビルドを行う
+
+
+#### プロジェクト用のディレクトリを作成する
+
+ `patchdev` 以下にプロジェクト用のディレクトリ (`ios-simulcast`) が作成されます。このディレクトリには以下のファイルが含まれます。
 
 ```
 Makefile
@@ -53,6 +70,13 @@ src/
 `src` は編集するソースコードを配置するディレクトリです。このディレクトリに必要なソースコードをコピーして編集します。トップレベルにある libwebrtc のソースコード (`_source` 以下) を直接編集する必要はありません。
 
 この他に、他のコマンドにより `_build` が作成されます。 `_build` はリポジトリに含めないでください。
+
+
+#### パッチを適用せずにビルドを行う
+
+プロジェクト用のディレクトリの作成後、一度パッチを適用せずにビルドを行います。このビルドで libwebrtc のソースコードを取得し、フックの実行やビルドファイルの生成などを行い、パッチの開発に必要な環境を整えます。
+
+ビルドが必要なければ `--nobuild` オプションを指定してください。
 
 
 ## 設定ファイルを編集する
@@ -75,7 +99,13 @@ src/
         "sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.mm",
         "sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.h",
         "sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.mm"
-    ]
+    ],
+
+    # JNI 用の設定。必要ない場合は無視してください。
+    "jni_classpaths": ["sdk/android/api"],
+    "jni_classes": {
+        "org.webrtc.Example": "sdk/android/src/jni/example.h"
+    }
 }
 ```
 
@@ -83,6 +113,7 @@ src/
 - `platform`: プラットフォームを指定します。この値は libwebrtc のソースコードのパス (`_source`) とビルド時のオプション (`run.py`) に使用されます。
 - `build_flags`: `run.py` に渡すオプションを指定します。
 - `sources`: 編集するソースコードのパスを指定します。
+- `jni_classpaths`, `jni_classes`: JNI 用の設定です。後述します。
 
 
 ### パッチを適用せずにビルドする (オプション)
@@ -140,13 +171,13 @@ JNI 用の `config.json` の設定例を以下に示します:
 }
 ```
 
-- `jni_classpaths`: クラスパス (`-classpath` オプション) のリストを指定します。指定したクラスパスは、 `src` 以下と libwebrtc のソースコードのディレクトリの両方に適用されます。上記の例だと、 `javah` に渡されるクラスパスは `src/sdk/android/api` と `../../_sources/sdk/android/api` (の絶対パス) になります。
+- `jni_classpaths`: クラスパス (`-classpath` オプション) のリストを指定します。指定したクラスパスは、 libwebrtc のソースコードのディレクトリに適用されます。上記の例だと、 `javah` に渡されるクラスパスは `../../_sources/sdk/android/api` (の絶対パス) になります。
 - `jni_classes`: ヘッダーファイルを生成するクラスと出力ファイルパスをペアで指定します。
 
 上記の設定例では、 `make jni` で以下のコマンドが実行されます:
 
 ```
-javah -classpath TOP/patchdev/PROJ/src/sdk/android/api -classpath TOP/_source/android/webrtc/src/sdk/android/api -o simulcast_video_encoder.h org.webrtc.SimulcastVideoEncoder
+javah -classpath TOP/_source/android/webrtc/src/sdk/android/api -o simulcast_video_encoder.h org.webrtc.SimulcastVideoEncoder
 ```
 
 
