@@ -42,6 +42,8 @@
          if (fallback != null) {
              codecs.addAll(Arrays.asList(fallback.getSupportedCodecs()));
          }
+         codecs.addAll(Arrays.asList(nativeVP9Codecs()));
+         codecs.add(nativeAV1Codec());
          return codecs.toArray(new VideoCodecInfo[codecs.size()]);
      }
  
