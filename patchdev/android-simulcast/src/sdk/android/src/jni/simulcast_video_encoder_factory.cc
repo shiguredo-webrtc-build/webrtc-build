@@ -25,7 +25,7 @@ extern "C" {
 JNIEXPORT jobjectArray JNICALL Java_org_webrtc_SimulcastVideoEncoderFactory_nativeVP9Codecs
   (JNIEnv *env, jclass klass) {
     std::vector<SdpVideoFormat> formats = SupportedVP9Codecs(true);
-    ScopedJavaLocalRef<jclass> array_class = GetClass(env, "[Lorg/webrtc/VideoCodecInfo");
+    ScopedJavaLocalRef<jclass> array_class = GetClass(env, "org/webrtc/VideoCodecInfo");
     jobjectArray java_array = env->NewObjectArray(formats.size(), array_class.Release(), NULL);
 
     for (int i = 0; i < (int)formats.size(); i++) {
