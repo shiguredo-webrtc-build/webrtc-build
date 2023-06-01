@@ -1,7 +1,7 @@
 {
     "output": "android_simulcast.patch",
     "platform": "android",
-    "build_flags": "--debug",
+    "build_flags": "",
     "sources": [
         "sdk/android/BUILD.gn",
         "sdk/android/api/org/webrtc/SimulcastVideoEncoder.java",
