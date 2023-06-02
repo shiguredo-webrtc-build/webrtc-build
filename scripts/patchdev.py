@@ -206,7 +206,7 @@ def sync(args):
         if not os.path.isfile(destination_path_in_src):
             # パッチ対象ファイルのオリジナルのパス
             original_path = rtc_src_file(config.platform, source)
-            if os.path.isfile(destination_path_in_src):
+            if os.path.isfile(original_path):
                 shutil.copy2(original_path, destination_path_in_src)
                 print(f"Copied: {destination_path_in_src}")
             else:
