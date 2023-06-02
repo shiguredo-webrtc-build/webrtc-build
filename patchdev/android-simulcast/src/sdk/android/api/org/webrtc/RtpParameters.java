@@ -76,6 +76,7 @@ public class RtpParameters {
     // If non-null, scale the width and height down by this factor for video. If null,
     // implementation default scaling factor will be used.
     @Nullable public Double scaleResolutionDownBy;
+    @Nullable public String scalabilityMode;
     // SSRC to be used by this encoding.
     // Can't be changed between getParameters/setParameters.
     public Long ssrc;
@@ -93,7 +94,7 @@ public class RtpParameters {
     @CalledByNative("Encoding")
     Encoding(String rid, boolean active, double bitratePriority, @Priority int networkPriority,
         Integer maxBitrateBps, Integer minBitrateBps, Integer maxFramerate,
-        Integer numTemporalLayers, Double scaleResolutionDownBy, Long ssrc,
+        Integer numTemporalLayers, Double scaleResolutionDownBy, String scalabilityMode, Long ssrc,
         boolean adaptiveAudioPacketTime) {
       this.rid = rid;
       this.active = active;
@@ -104,6 +105,7 @@ public class RtpParameters {
       this.maxFramerate = maxFramerate;
       this.numTemporalLayers = numTemporalLayers;
       this.scaleResolutionDownBy = scaleResolutionDownBy;
+      this.scalabilityMode = scalabilityMode;
       this.ssrc = ssrc;
       this.adaptiveAudioPacketTime = adaptiveAudioPacketTime;
     }
@@ -158,6 +160,12 @@ public class RtpParameters {
     @CalledByNative("Encoding")
     Double getScaleResolutionDownBy() {
       return scaleResolutionDownBy;
+    }
+
+    @Nullable
+    @CalledByNative("Encoding")
+    String getScalabilityMode() {
+      return scalabilityMode;
     }
 
     @CalledByNative("Encoding")
