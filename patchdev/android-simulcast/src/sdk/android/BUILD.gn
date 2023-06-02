@@ -284,6 +284,7 @@ if (is_android) {
       "api/org/webrtc/PeerConnection.java",
       "api/org/webrtc/PeerConnectionDependencies.java",
       "api/org/webrtc/PeerConnectionFactory.java",
+      "api/org/webrtc/ProxyType.java",
       "api/org/webrtc/RTCStats.java",
       "api/org/webrtc/RTCStatsCollectorCallback.java",
       "api/org/webrtc/RTCStatsReport.java",
