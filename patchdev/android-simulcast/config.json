@@ -4,8 +4,10 @@
     "build_flags": "",
     "sources": [
         "sdk/android/BUILD.gn",
+        "sdk/android/api/org/webrtc/RtpParameters.java",
         "sdk/android/api/org/webrtc/SimulcastVideoEncoder.java",
         "sdk/android/api/org/webrtc/SimulcastVideoEncoderFactory.java",
+        "sdk/android/src/jni/pc/rtp_parameters.cc",
         "sdk/android/src/jni/simulcast_video_encoder.cc",
         "sdk/android/src/jni/simulcast_video_encoder.h",
         "sdk/android/src/jni/simulcast_video_encoder_factory.cc",
