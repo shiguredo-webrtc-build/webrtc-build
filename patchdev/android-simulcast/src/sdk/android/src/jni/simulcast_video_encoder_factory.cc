@@ -13,7 +13,6 @@
 #include "api/video_codecs/video_codec.h"
 #include "api/video_codecs/sdp_video_format.h"
 #include "api/video_codecs/video_codec.h"
-#include "rtc_base/logging.h"
 
 using namespace webrtc;
 using namespace webrtc::jni;
