@@ -18,7 +18,7 @@
  
  public class SimulcastVideoEncoderFactory implements VideoEncoderFactory {
  
-    static native VideoCodecInfo[] nativeVP9Codecs();
+    static native List<VideoCodecInfo> nativeVP9Codecs();
     static native VideoCodecInfo nativeAV1Codec();
 
      VideoEncoderFactory primary;
@@ -42,7 +42,7 @@
          if (fallback != null) {
              codecs.addAll(Arrays.asList(fallback.getSupportedCodecs()));
          }
-         codecs.addAll(Arrays.asList(nativeVP9Codecs()));
+         codecs.addAll(nativeVP9Codecs());
          codecs.add(nativeAV1Codec());
          return codecs.toArray(new VideoCodecInfo[codecs.size()]);
      }

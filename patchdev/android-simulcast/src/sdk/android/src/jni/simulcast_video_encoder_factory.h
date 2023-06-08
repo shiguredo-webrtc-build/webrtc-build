@@ -10,9 +10,9 @@ extern "C" {
 /*
  * Class:     org_webrtc_SimulcastVideoEncoderFactory
  * Method:    nativeVP9Codecs
- * Signature: ()[Lorg/webrtc/VideoCodecInfo;
+ * Signature: ()Ljava/util/List;
  */
-JNIEXPORT jobjectArray JNICALL Java_org_webrtc_SimulcastVideoEncoderFactory_nativeVP9Codecs
+JNIEXPORT jobject JNICALL Java_org_webrtc_SimulcastVideoEncoderFactory_nativeVP9Codecs
   (JNIEnv *, jclass);
 
 /*

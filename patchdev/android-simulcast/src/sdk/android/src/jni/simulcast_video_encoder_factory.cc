@@ -21,18 +21,10 @@ using namespace webrtc::jni;
 extern "C" {
 #endif
 
-JNIEXPORT jobjectArray JNICALL Java_org_webrtc_SimulcastVideoEncoderFactory_nativeVP9Codecs
+JNIEXPORT jobject JNICALL Java_org_webrtc_SimulcastVideoEncoderFactory_nativeVP9Codecs
   (JNIEnv *env, jclass klass) {
     std::vector<SdpVideoFormat> formats = SupportedVP9Codecs(true);
-    ScopedJavaLocalRef<jclass> array_class = GetClass(env, "org/webrtc/VideoCodecInfo");
-    jobjectArray java_array = env->NewObjectArray(formats.size(), array_class.Release(), NULL);
-
-    for (int i = 0; i < (int)formats.size(); i++) {
-        ScopedJavaLocalRef<jobject> java_obj = SdpVideoFormatToVideoCodecInfo(env, formats[i]);
-        env->SetObjectArrayElement(java_array, i, java_obj.Release());
-    }
-
-    return java_array;
+    return NativeToJavaList(env, formats, &SdpVideoFormatToVideoCodecInfo).Release();
 }
 
 JNIEXPORT jobject JNICALL Java_org_webrtc_SimulcastVideoEncoderFactory_nativeAV1Codec
