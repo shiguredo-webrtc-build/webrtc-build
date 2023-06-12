@@ -1,24 +1,8 @@
 diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
-index 5bf25ffc6d..98559e1534 100644
+index 5bf25ffc6d..1fc5bb4037 100644
 --- a/sdk/android/BUILD.gn
 +++ b/sdk/android/BUILD.gn
-@@ -156,6 +156,7 @@ if (is_android) {
-     sources = [
-       "api/org/webrtc/Predicate.java",
-       "api/org/webrtc/RefCounted.java",
-+      "api/org/webrtc/WebrtcBuildVersion.java",
-       "src/java/org/webrtc/CalledByNative.java",
-       "src/java/org/webrtc/CalledByNativeUnchecked.java",
-       "src/java/org/webrtc/Histogram.java",
-@@ -283,6 +284,7 @@ if (is_android) {
-       "api/org/webrtc/PeerConnection.java",
-       "api/org/webrtc/PeerConnectionDependencies.java",
-       "api/org/webrtc/PeerConnectionFactory.java",
-+      "api/org/webrtc/ProxyType.java",
-       "api/org/webrtc/RTCStats.java",
-       "api/org/webrtc/RTCStatsCollectorCallback.java",
-       "api/org/webrtc/RTCStatsReport.java",
-@@ -522,6 +524,8 @@ if (is_android) {
+@@ -522,6 +522,8 @@ if (is_android) {
      sources = [
        "api/org/webrtc/SoftwareVideoDecoderFactory.java",
        "api/org/webrtc/SoftwareVideoEncoderFactory.java",
@@ -27,7 +11,7 @@ index 5bf25ffc6d..98559e1534 100644
      ]
  
      deps = [
-@@ -860,6 +864,23 @@ if (current_os == "linux" || is_android) {
+@@ -860,6 +862,23 @@ if (current_os == "linux" || is_android) {
      ]
    }
  
@@ -51,7 +35,7 @@ index 5bf25ffc6d..98559e1534 100644
    rtc_library("libaom_av1_encoder_jni") {
      visibility = [ "*" ]
      allow_poison = [ "software_video_codecs" ]
-@@ -896,6 +917,7 @@ if (current_os == "linux" || is_android) {
+@@ -896,6 +915,7 @@ if (current_os == "linux" || is_android) {
        ":generated_swcodecs_jni",
        ":libvpx_vp8_jni",
        ":libvpx_vp9_jni",
