@@ -1,0 +1,25 @@
+{
+    "output": "android_simulcast.patch",
+    "platform": "android",
+    "build_flags": "",
+    "sources": [
+        "sdk/android/BUILD.gn",
+        "sdk/android/api/org/webrtc/RtpParameters.java",
+        "sdk/android/api/org/webrtc/SimulcastVideoEncoder.java",
+        "sdk/android/api/org/webrtc/SimulcastVideoEncoderFactory.java",
+        "sdk/android/api/org/webrtc/VideoCodecInfo.java",
+        "sdk/android/src/jni/pc/rtp_parameters.cc",
+        "sdk/android/src/jni/simulcast_video_encoder.cc",
+        "sdk/android/src/jni/simulcast_video_encoder.h",
+        "sdk/android/src/jni/simulcast_video_encoder_factory.cc",
+        "sdk/android/src/jni/simulcast_video_encoder_factory.h",
+        "sdk/android/src/jni/video_codec_info.cc"
+    ],
+    "jni_classpaths": [
+        "sdk/android/api"
+    ],
+    "jni_classes": {
+        "org.webrtc.SimulcastVideoEncoder": "sdk/android/src/jni/simulcast_video_encoder.h",
+        "org.webrtc.SimulcastVideoEncoderFactory": "sdk/android/src/jni/simulcast_video_encoder_factory.h"
+    }
+}
