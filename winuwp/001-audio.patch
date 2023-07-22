@@ -15,14 +15,14 @@ diff --git a/BUILD.gn b/BUILD.gn
 index 9c55478c25..6512ee25ea 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
-@@ -467,7 +467,6 @@ if (!build_with_chromium) {
-       "rtc_base",
+@@ -517,7 +517,6 @@ if (!build_with_chromium) {
+       "pc:rtc_pc",
        "sdk",
        "video",
 -      "modules/audio_device:audio_device_module_from_input_and_output",
        "//third_party/zlib",
-     ]
- 
+       "rtc_base:log_sinks",
+       "media:rtc_simulcast_encoder_adapter",
 diff --git a/modules/audio_device/BUILD.gn b/modules/audio_device/BUILD.gn
 index d441479b33..2925586b0e 100644
 --- a/modules/audio_device/BUILD.gn

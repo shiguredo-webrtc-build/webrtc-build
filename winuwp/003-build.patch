@@ -1,3 +1,20 @@
+diff --git a/BUILD.gn b/BUILD.gn
+index d5289b85d7..f5be6ebfbd 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -495,12 +499,10 @@ if (!build_with_chromium) {
+       "api/task_queue:default_task_queue_factory",
+       "api/test/metrics",
+       "api/video_codecs:video_decoder_factory_template",
+-      "api/video_codecs:video_decoder_factory_template_dav1d_adapter",
+       "api/video_codecs:video_decoder_factory_template_libvpx_vp8_adapter",
+       "api/video_codecs:video_decoder_factory_template_libvpx_vp9_adapter",
+       "api/video_codecs:video_decoder_factory_template_open_h264_adapter",
+       "api/video_codecs:video_encoder_factory_template",
+-      "api/video_codecs:video_encoder_factory_template_libaom_av1_adapter",
+       "api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
+       "api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
+       "api/video_codecs:video_encoder_factory_template_open_h264_adapter",
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
 index e74b85fcbf..dec9736fe5 100644
 --- a/rtc_base/BUILD.gn
@@ -129,6 +146,22 @@ index 758aca15407..60ef0074839 100644
    } else {  # This should only match windows.
      os_category = current_os
    }
+diff --git a/third_party/libvpx/source/libvpx/vpx_dsp/arm/fdct4x4_neon.c b/third_party/libvpx/source/libvpx/vpx_dsp/arm/fdct4x4_neon.c
+index 3b9196fae..a53c0f672 100644
+--- a/third_party/libvpx/source/libvpx/vpx_dsp/arm/fdct4x4_neon.c
++++ b/third_party/libvpx/source/libvpx/vpx_dsp/arm/fdct4x4_neon.c
+@@ -52,7 +52,11 @@ void vpx_fdct4x4_neon(const int16_t *input, tran_low_t *final_output,
+ 
+ void vpx_highbd_fdct4x4_neon(const int16_t *input, tran_low_t *final_output,
+                              int stride) {
++#if defined(_WIN32)
++  const int32x4_t const_1000 = { .n128_u32 = {1, 0, 0, 0} };
++#else
+   static const int32x4_t const_1000 = { 1, 0, 0, 0 };
++#endif
+   const int32x4_t const_one = vdupq_n_s32(1);
+ 
+   // input[M * stride] * 16
 diff --git a/third_party/pffft/BUILD.gn b/third_party/pffft/BUILD.gn
 index 0a1cf7a1f5e..7c32b610ffe 100644
 --- a/third_party/pffft/BUILD.gn

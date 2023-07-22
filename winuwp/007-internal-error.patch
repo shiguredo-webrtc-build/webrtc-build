@@ -1,0 +1,84 @@
+# 以下の内部エラーが出たので、回避するためにパッチを適用する
+#
+# G:\dev\webrtc-build\_source\windows_hololens2\webrtc\src\api\test\metrics\metrics_logger.cc(46) : fatal error C1001: 内部コンパイラ エラーが発生しました。
+# (コンパイラ ファイル 'D:\a\_work\1\s\src\vctools\Compiler\Utc\src\p2\main.c'、行 213)
+#  この問題を回避するには、上記の場所付近のプログラムを単純化するか変更してください。
+# 可能な場合、再現手順をこちらに入力してください: https://developercommunity.visualstudio.com
+# 詳細については、Visual C++ ヘルプ メニューのサポート情報コマンドを
+# 選択するか、サポート情報ヘルプ ファイルを参照してください
+#
+diff --git a/api/test/metrics/metrics_logger.cc b/api/test/metrics/metrics_logger.cc
+index 1e24400367..8935844811 100644
+--- a/api/test/metrics/metrics_logger.cc
++++ b/api/test/metrics/metrics_logger.cc
+@@ -43,17 +43,17 @@ void DefaultMetricsLogger::LogSingleValueMetric(
+     ImprovementDirection improvement_direction,
+     std::map<std::string, std::string> metadata) {
+   MutexLock lock(&mutex_);
+-  metrics_.push_back(Metric{
+-      .name = std::string(name),
+-      .unit = unit,
+-      .improvement_direction = improvement_direction,
+-      .test_case = std::string(test_case_name),
+-      .metric_metadata = std::move(metadata),
+-      .time_series =
+-          Metric::TimeSeries{.samples = std::vector{Metric::TimeSeries::Sample{
+-                                 .timestamp = Now(), .value = value}}},
+-      .stats = Metric::Stats{
+-          .mean = value, .stddev = absl::nullopt, .min = value, .max = value}});
++  //metrics_.push_back(Metric{
++  //    .name = std::string(name),
++  //    .unit = unit,
++  //    .improvement_direction = improvement_direction,
++  //    .test_case = std::string(test_case_name),
++  //    .metric_metadata = std::move(metadata),
++  //    .time_series =
++  //        Metric::TimeSeries{.samples = std::vector{Metric::TimeSeries::Sample{
++  //                               .timestamp = Now(), .value = value}}},
++  //    .stats = Metric::Stats{
++  //        .mean = value, .stddev = absl::nullopt, .min = value, .max = value}});
+ }
+ 
+ void DefaultMetricsLogger::LogMetric(
+@@ -73,13 +73,13 @@ void DefaultMetricsLogger::LogMetric(
+                                    .sample_metadata = sample.metadata});
+   }
+ 
+-  metrics_.push_back(Metric{.name = std::string(name),
+-                            .unit = unit,
+-                            .improvement_direction = improvement_direction,
+-                            .test_case = std::string(test_case_name),
+-                            .metric_metadata = std::move(metadata),
+-                            .time_series = std::move(time_series),
+-                            .stats = ToStats(values)});
++  //metrics_.push_back(Metric{.name = std::string(name),
++  //                          .unit = unit,
++  //                          .improvement_direction = improvement_direction,
++  //                          .test_case = std::string(test_case_name),
++  //                          .metric_metadata = std::move(metadata),
++  //                          .time_series = std::move(time_series),
++  //                          .stats = ToStats(values)});
+ }
+ 
+ void DefaultMetricsLogger::LogMetric(
+@@ -90,13 +90,13 @@ void DefaultMetricsLogger::LogMetric(
+     ImprovementDirection improvement_direction,
+     std::map<std::string, std::string> metadata) {
+   MutexLock lock(&mutex_);
+-  metrics_.push_back(Metric{.name = std::string(name),
+-                            .unit = unit,
+-                            .improvement_direction = improvement_direction,
+-                            .test_case = std::string(test_case_name),
+-                            .metric_metadata = std::move(metadata),
+-                            .time_series = Metric::TimeSeries{.samples = {}},
+-                            .stats = std::move(metric_stats)});
++  //metrics_.push_back(Metric{.name = std::string(name),
++  //                          .unit = unit,
++  //                          .improvement_direction = improvement_direction,
++  //                          .test_case = std::string(test_case_name),
++  //                          .metric_metadata = std::move(metadata),
++  //                          .time_series = Metric::TimeSeries{.samples = {}},
++  //                          .stats = std::move(metric_stats)});
+ }
+ 
+ std::vector<Metric> DefaultMetricsLogger::GetCollectedMetrics() const {

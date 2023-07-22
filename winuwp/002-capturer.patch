@@ -17,12 +17,13 @@ diff --git a/common_video/libyuv/include/webrtc_libyuv.h b/common_video/libyuv/i
 index 905219b6a6..b0b2262de3 100644
 --- a/common_video/libyuv/include/webrtc_libyuv.h
 +++ b/common_video/libyuv/include/webrtc_libyuv.h
-@@ -32,12 +32,17 @@ enum class VideoType {
+@@ -32,15 +32,18 @@ enum class VideoType {
    kI420,
    kIYUV,
    kRGB24,
-+  kABGR,
+   kBGR24,
    kARGB,
+   kABGR,
 +  kARGB4444,
    kRGB565,
 +  kARGB1555,
@@ -30,51 +31,35 @@ index 905219b6a6..b0b2262de3 100644
    kYV12,
    kUYVY,
    kMJPEG,
-+  kNV21,
-+  kNV12,
    kBGRA,
++  kNV21,
+   kNV12,
  };
  
 diff --git a/common_video/libyuv/webrtc_libyuv.cc b/common_video/libyuv/webrtc_libyuv.cc
 index 2e10a60776..ffadee3472 100644
 --- a/common_video/libyuv/webrtc_libyuv.cc
 +++ b/common_video/libyuv/webrtc_libyuv.cc
-@@ -25,6 +25,8 @@ size_t CalcBufferSize(VideoType type, int width, int height) {
-   size_t buffer_size = 0;
+@@ -25,6 +25,7 @@ size_t CalcBufferSize(VideoType type, int width, int height) {
    switch (type) {
      case VideoType::kI420:
-+    case VideoType::kNV12:
-+    case VideoType::kNV21:
      case VideoType::kIYUV:
-     case VideoType::kYV12: {
+     case VideoType::kYV12:
++    case VideoType::kNV21:
+     case VideoType::kNV12: {
        int half_width = (width + 1) >> 1;
-@@ -32,7 +34,9 @@ size_t CalcBufferSize(VideoType type, int width, int height) {
-       buffer_size = width * height + half_width * half_height * 2;
-       break;
+@@ -32,6 +33,8 @@ size_t CalcBufferSize(VideoType type, int width, int height) {
+       return width * height + half_width * half_height * 2;
      }
 +    case VideoType::kARGB4444:
      case VideoType::kRGB565:
 +    case VideoType::kARGB1555:
      case VideoType::kYUY2:
      case VideoType::kUYVY:
-       buffer_size = width * height * 2;
-@@ -93,6 +97,8 @@ int ConvertVideoType(VideoType video_type) {
-       return libyuv::FOURCC_YV12;
-     case VideoType::kRGB24:
-       return libyuv::FOURCC_24BG;
-+    case VideoType::kABGR:
-+      return libyuv::FOURCC_ABGR;
-     case VideoType::kRGB565:
-       return libyuv::FOURCC_RGBP;
-     case VideoType::kYUY2:
-@@ -101,10 +107,18 @@ int ConvertVideoType(VideoType video_type) {
-       return libyuv::FOURCC_UYVY;
+       return width * height * 2;
+@@ -105,11 +108,17 @@ int ConvertVideoType(VideoType video_type) {
      case VideoType::kMJPEG:
        return libyuv::FOURCC_MJPG;
-+    case VideoType::kNV21:
-+      return libyuv::FOURCC_NV21;
-+    case VideoType::kNV12:
-+      return libyuv::FOURCC_NV12;
      case VideoType::kARGB:
        return libyuv::FOURCC_ARGB;
      case VideoType::kBGRA:
@@ -83,18 +68,22 @@ index 2e10a60776..ffadee3472 100644
 +      return libyuv::FOURCC_R444;
 +    case VideoType::kARGB1555:
 +      return libyuv::FOURCC_RGBO;
++    case VideoType::kNV21:
++      return libyuv::FOURCC_NV21;
+     case VideoType::kNV12:
+       return libyuv::FOURCC_NV12;
    }
-   RTC_DCHECK_NOTREACHED();
+   RTC_DCHECK_NOTREACHED() << "Unexpected pixel format " << video_type;
    return libyuv::FOURCC_ANY;
 diff --git a/modules/video_capture/BUILD.gn b/modules/video_capture/BUILD.gn
 index ad2d85e3fe..1cecd294d7 100644
 --- a/modules/video_capture/BUILD.gn
 +++ b/modules/video_capture/BUILD.gn
-@@ -74,33 +74,51 @@ if (!build_with_chromium) {
-       deps += [ "../../media:rtc_media_base" ]
+@@ -103,33 +103,51 @@ if (!build_with_chromium || is_linux || is_chromeos) {
+       }
      }
      if (is_win) {
--      sources = [
+-      sources += [
 -        "windows/device_info_ds.cc",
 -        "windows/device_info_ds.h",
 -        "windows/help_functions_ds.cc",
@@ -113,7 +102,7 @@ index ad2d85e3fe..1cecd294d7 100644
 -        "user32.lib",
 -      ]
 +      if (rtc_win_video_capture_winrt) {
-+        sources = [
++        sources += [
 +          "winuwp/device_info_winrt.cc",
 +          "winuwp/device_info_winrt.h",
 +          "winuwp/help_functions_winrt.cc",
@@ -127,7 +116,7 @@ index ad2d85e3fe..1cecd294d7 100644
 +        libs = [ "windowsapp.lib" ] 
 +      } else {
 +        defines = [ "WEBRTC_VIDEO_CAPTURE_DSHOW" ]
-+        sources = [
++        sources += [
 +          "windows/device_info_ds.cc",
 +          "windows/device_info_ds.h",
 +          "windows/help_functions_ds.cc",
@@ -165,7 +154,7 @@ index ad2d85e3fe..1cecd294d7 100644
 +      ] 
      }
      if (is_fuchsia) {
-       sources = [ "video_capture_factory_null.cc" ]
+       sources += [ "video_capture_factory_null.cc" ]
 diff --git a/modules/video_capture/video_capture_defines.h b/modules/video_capture/video_capture_defines.h
 index 63534600a9..7d9a0a83aa 100644
 --- a/modules/video_capture/video_capture_defines.h
@@ -238,7 +227,7 @@ index 63534600a9..7d9a0a83aa 100644
    }
    bool operator==(const VideoCaptureCapability& other) const {
 diff --git a/modules/video_capture/video_capture_impl.cc b/modules/video_capture/video_capture_impl.cc
-index 234c2e131e..cd6eccef15 100644
+index d539b38264..390fa4c123 100644
 --- a/modules/video_capture/video_capture_impl.cc
 +++ b/modules/video_capture/video_capture_impl.cc
 @@ -14,6 +14,7 @@
@@ -249,12 +238,10 @@ index 234c2e131e..cd6eccef15 100644
  #include "api/video/video_frame_buffer.h"
  #include "common_video/libyuv/include/webrtc_libyuv.h"
  #include "modules/video_capture/video_capture_config.h"
-@@ -113,10 +114,17 @@ int32_t VideoCaptureImpl::DeliverCapturedFrame(VideoFrame& captureFrame) {
-   return 0;
+@@ -133,9 +134,16 @@ void VideoCaptureImpl::DeliverRawFrame(uint8_t* videoFrame,
  }
  
--int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
-+int32_t VideoCaptureImpl::IncomingFrame(uint8_t* plane_y,
+ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
 +                                        int32_t stride_y,
 +                                        uint8_t* plane_uv,
 +                                        int32_t stride_uv,
@@ -262,15 +249,15 @@ index 234c2e131e..cd6eccef15 100644
                                          const VideoCaptureCapability& frameInfo,
                                          int64_t captureTime /*=0*/) {
 +  if (frameInfo.videoType == VideoType::kNV12) {
-+    return IncomingFrameNV12(plane_y, stride_y, plane_uv, stride_uv, videoFrameLength, frameInfo, captureTime);
++    return IncomingFrameNV12(videoFrame, stride_y, plane_uv, stride_uv, videoFrameLength, frameInfo, captureTime);
 +  }
 +
    MutexLock lock(&api_lock_);
  
    const int32_t width = frameInfo.width;
-@@ -124,16 +132,8 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
- 
-   TRACE_EVENT1("webrtc", "VC::IncomingFrame", "capture_time", captureTime);
+@@ -148,16 +156,8 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
+     return 0;
+   }
  
 -  // Not encoded, convert to I420.
 -  if (frameInfo.videoType != VideoType::kMJPEG &&
@@ -287,7 +274,7 @@ index 234c2e131e..cd6eccef15 100644
    int target_width = width;
    int target_height = abs(height);
  
-@@ -153,7 +153,7 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
+@@ -177,7 +177,7 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
    // In Windows, the image starts bottom left, instead of top left.
    // Setting a negative source height, inverts the image (within LibYuv).
    rtc::scoped_refptr<I420Buffer> buffer = I420Buffer::Create(
@@ -296,7 +283,7 @@ index 234c2e131e..cd6eccef15 100644
  
    libyuv::RotationMode rotation_mode = libyuv::kRotate0;
    if (apply_rotation) {
-@@ -174,10 +174,11 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
+@@ -198,10 +198,11 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
    }
  
    const int conversionResult = libyuv::ConvertToI420(
@@ -304,7 +291,7 @@ index 234c2e131e..cd6eccef15 100644
 -      buffer.get()->StrideY(), buffer.get()->MutableDataU(),
 -      buffer.get()->StrideU(), buffer.get()->MutableDataV(),
 -      buffer.get()->StrideV(), 0, 0,  // No Cropping
-+      plane_y, videoFrameLength, stride_y, plane_uv, stride_uv,
++      videoFrame, videoFrameLength, stride_y, plane_uv, stride_uv,
 +      buffer.get()->MutableDataY(), buffer.get()->StrideY(),
 +      buffer.get()->MutableDataU(), buffer.get()->StrideU(),
 +      buffer.get()->MutableDataV(), buffer.get()->StrideV(), 0,
@@ -312,7 +299,7 @@ index 234c2e131e..cd6eccef15 100644
        width, height, target_width, target_height, rotation_mode,
        ConvertVideoType(frameInfo.videoType));
    if (conversionResult < 0) {
-@@ -200,6 +201,40 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
+@@ -224,6 +225,40 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
    return 0;
  }
  
@@ -354,15 +341,13 @@ index 234c2e131e..cd6eccef15 100644
      const VideoCaptureCapability& capability) {
    _requestedCapability = capability;
 diff --git a/modules/video_capture/video_capture_impl.h b/modules/video_capture/video_capture_impl.h
-index 9e4afe7ec1..3f77a2c30f 100644
+index 1f7aa89883..c186806ae5 100644
 --- a/modules/video_capture/video_capture_impl.h
 +++ b/modules/video_capture/video_capture_impl.h
-@@ -62,7 +62,18 @@ class VideoCaptureImpl : public VideoCaptureModule {
-   const char* CurrentDeviceName() const override;
+@@ -72,6 +72,17 @@ class RTC_EXPORT VideoCaptureImpl : public VideoCaptureModule {
  
    // `capture_time` must be specified in NTP time format in milliseconds.
--  int32_t IncomingFrame(uint8_t* videoFrame,
-+  int32_t IncomingFrame(uint8_t* plane_y,
+   int32_t IncomingFrame(uint8_t* videoFrame,
 +                        int32_t stride_y,
 +                        uint8_t* plane_uv,
 +                        int32_t stride_uv,
@@ -377,6 +362,7 @@ index 9e4afe7ec1..3f77a2c30f 100644
                          size_t videoFrameLength,
                          const VideoCaptureCapability& frameInfo,
                          int64_t captureTime = 0);
+
 diff --git a/modules/video_capture/windows/sink_filter_ds.cc b/modules/video_capture/windows/sink_filter_ds.cc
 index 15f947a921..3390592ffa 100644
 --- a/modules/video_capture/windows/sink_filter_ds.cc
@@ -440,10 +426,10 @@ diff --git a/webrtc.gni b/webrtc.gni
 index 6e81fc4285..eb89c658fe 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
-@@ -227,6 +227,15 @@ declare_args() {
- 
-   # Includes the dav1d decoder in the internal decoder factory when set to true.
-   rtc_include_dav1d_in_internal_decoder_factory = true
+@@ -240,6 +240,15 @@ declare_args() {
+   #  "warn": RTC_LOGs a message with LS_WARNING severity if the field trial
+   #          hasn't been registered.
+   rtc_strict_field_trials = ""
 +
 +  # Defines which API should be used by the video capture module on Windows.
 +  # The following are the current options:

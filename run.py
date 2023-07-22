@@ -192,8 +192,8 @@ PATCHES = {
         'add_license_dav1d.patch',
         'windows_add_deps.patch',
         'windows_silence_warnings.patch',
-        'windows_fix_towupper.patch',
-        'windows_fix_type_traits.patch',
+        'windows_fix_optional.patch',
+        'windows_fix_audio_device.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'macos_arm64': [
@@ -279,6 +279,7 @@ WINUWP_ADDITIONAL_PATCHES = [
     '004-nogeneric.patch',
     '005-h264.patch',
     '006-logging.patch',
+    '007-internal-error.patch',
 ]
 WINUWP_ADDITIONAL_DIRS = [
     ['modules', 'audio_device', 'winuwp'],

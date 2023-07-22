@@ -1,26 +1,3 @@
-diff --git a/api/video/video_frame_metadata.cc b/api/video/video_frame_metadata.cc
-index df82875eb9..8d4abcb431 100644
---- a/api/video/video_frame_metadata.cc
-+++ b/api/video/video_frame_metadata.cc
-@@ -16,12 +16,12 @@ namespace webrtc {
- 
- VideoFrameMetadata::VideoFrameMetadata(const RTPVideoHeader& header)
-     : width_(header.width), height_(header.height) {
--  if (header.generic) {
--    frame_id_ = header.generic->frame_id;
--    spatial_index_ = header.generic->spatial_index;
--    temporal_index_ = header.generic->temporal_index;
--    frame_dependencies_ = header.generic->dependencies;
--    decode_target_indications_ = header.generic->decode_target_indications;
-+  if (header.generic_) {
-+    frame_id_ = header.generic_->frame_id;
-+    spatial_index_ = header.generic_->spatial_index;
-+    temporal_index_ = header.generic_->temporal_index;
-+    frame_dependencies_ = header.generic_->dependencies;
-+    decode_target_indications_ = header.generic_->decode_target_indications;
-   }
- }
- 
 diff --git a/call/rtp_payload_params.cc b/call/rtp_payload_params.cc
 index 5eff91fa5c..c036d27e78 100644
 --- a/call/rtp_payload_params.cc
@@ -89,10 +66,10 @@ index f4525f0db1..eadbae52eb 100644
    if (descriptor.spatial_index < 0 || descriptor.temporal_index < 0 ||
        descriptor.spatial_index >=
 diff --git a/modules/rtp_rtcp/source/rtp_sender_video.cc b/modules/rtp_rtcp/source/rtp_sender_video.cc
-index da5dad5839..170783466f 100644
+index c863db4ccf..a3fcb32ad2 100644
 --- a/modules/rtp_rtcp/source/rtp_sender_video.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender_video.cc
-@@ -135,9 +135,9 @@ absl::optional<VideoPlayoutDelay> LoadVideoPlayoutDelayOverride(
+@@ -130,9 +130,9 @@ absl::optional<VideoPlayoutDelay> LoadVideoPlayoutDelayOverride(
  bool PacketWillLikelyBeRequestedForRestransmitionIfLost(
      const RTPVideoHeader& video_header) {
    return IsBaseLayer(video_header) &&
@@ -104,7 +81,7 @@ index da5dad5839..170783466f 100644
                       DecodeTargetIndication::kDiscardable)
                 : false);
  }
-@@ -372,26 +372,26 @@ void RTPSenderVideo::AddRtpHeaderExtensions(const RTPVideoHeader& video_header,
+@@ -365,26 +365,26 @@ void RTPSenderVideo::AddRtpHeaderExtensions(const RTPVideoHeader& video_header,
          *video_header.absolute_capture_time);
    }
  
@@ -139,7 +116,7 @@ index da5dad5839..170783466f 100644
        RTC_DCHECK_EQ(
            descriptor.frame_dependencies.decode_target_indications.size(),
            video_structure_->num_decode_targets);
-@@ -406,7 +406,7 @@ void RTPSenderVideo::AddRtpHeaderExtensions(const RTPVideoHeader& video_header,
+@@ -399,7 +399,7 @@ void RTPSenderVideo::AddRtpHeaderExtensions(const RTPVideoHeader& video_header,
        // layers when inter layer dependency is not used, i.e. S structures.
        // Distinguish these two cases by checking if there are any dependencies.
        if (video_header.frame_type == VideoFrameType::kVideoFrameKey &&
@@ -148,7 +125,7 @@ index da5dad5839..170783466f 100644
          // To avoid extra structure copy, temporary share ownership of the
          // video_structure with the dependency descriptor.
          descriptor.attached_structure =
-@@ -429,17 +429,17 @@ void RTPSenderVideo::AddRtpHeaderExtensions(const RTPVideoHeader& video_header,
+@@ -422,17 +422,17 @@ void RTPSenderVideo::AddRtpHeaderExtensions(const RTPVideoHeader& video_header,
  
        if (first_packet) {
          generic_descriptor.SetFrameId(
@@ -171,7 +148,7 @@ index da5dad5839..170783466f 100644
  
          if (video_header.frame_type == VideoFrameType::kVideoFrameKey) {
            generic_descriptor.SetResolution(video_header.width,
-@@ -510,12 +510,12 @@ bool RTPSenderVideo::SendVideo(
+@@ -523,12 +523,12 @@ bool RTPSenderVideo::SendVideo(
      }
    }
  
@@ -186,20 +163,79 @@ index da5dad5839..170783466f 100644
 +        video_header.generic_->frame_id, video_header.generic_->chain_diffs);
    }
  
-   const uint8_t temporal_id = GetTemporalId(video_header);
+   // No FEC protection for upper temporal layers, if used.
+diff --git a/modules/rtp_rtcp/source/rtp_video_header.cc b/modules/rtp_rtcp/source/rtp_video_header.cc
+index b07a7beec4..16b1c94a74 100644
+--- a/modules/rtp_rtcp/source/rtp_video_header.cc
++++ b/modules/rtp_rtcp/source/rtp_video_header.cc
+@@ -36,12 +36,12 @@ VideoFrameMetadata RTPVideoHeader::GetAsMetadata() const {
+   metadata.SetHeight(height);
+   metadata.SetRotation(rotation);
+   metadata.SetContentType(content_type);
+-  if (generic) {
+-    metadata.SetFrameId(generic->frame_id);
+-    metadata.SetSpatialIndex(generic->spatial_index);
+-    metadata.SetTemporalIndex(generic->temporal_index);
+-    metadata.SetFrameDependencies(generic->dependencies);
+-    metadata.SetDecodeTargetIndications(generic->decode_target_indications);
++  if (generic_) {
++    metadata.SetFrameId(generic_->frame_id);
++    metadata.SetSpatialIndex(generic_->spatial_index);
++    metadata.SetTemporalIndex(generic_->temporal_index);
++    metadata.SetFrameDependencies(generic_->dependencies);
++    metadata.SetDecodeTargetIndications(generic_->decode_target_indications);
+   }
+   metadata.SetIsLastFrameInPicture(is_last_frame_in_picture);
+   metadata.SetSimulcastIdx(simulcastIdx);
+@@ -73,15 +73,15 @@ void RTPVideoHeader::SetFromMetadata(const VideoFrameMetadata& metadata) {
+   rotation = metadata.GetRotation();
+   content_type = metadata.GetContentType();
+   if (!metadata.GetFrameId().has_value()) {
+-    generic = absl::nullopt;
++    generic_ = absl::nullopt;
+   } else {
+-    generic.emplace();
+-    generic->frame_id = metadata.GetFrameId().value();
+-    generic->spatial_index = metadata.GetSpatialIndex();
+-    generic->temporal_index = metadata.GetTemporalIndex();
+-    generic->dependencies.assign(metadata.GetFrameDependencies().begin(),
++    generic_.emplace();
++    generic_->frame_id = metadata.GetFrameId().value();
++    generic_->spatial_index = metadata.GetSpatialIndex();
++    generic_->temporal_index = metadata.GetTemporalIndex();
++    generic_->dependencies.assign(metadata.GetFrameDependencies().begin(),
+                                  metadata.GetFrameDependencies().end());
+-    generic->decode_target_indications.assign(
++    generic_->decode_target_indications.assign(
+         metadata.GetDecodeTargetIndications().begin(),
+         metadata.GetDecodeTargetIndications().end());
+   }
 diff --git a/modules/rtp_rtcp/source/rtp_video_header.h b/modules/rtp_rtcp/source/rtp_video_header.h
-index 115b17d36d..20bb6ae901 100644
+index d185c20c83..57e5627466 100644
 --- a/modules/rtp_rtcp/source/rtp_video_header.h
 +++ b/modules/rtp_rtcp/source/rtp_video_header.h
-@@ -62,7 +62,7 @@ struct RTPVideoHeader {
- 
-   ~RTPVideoHeader();
+@@ -69,7 +69,7 @@ struct RTPVideoHeader {
+   VideoFrameMetadata GetAsMetadata() const;
+   void SetFromMetadata(const VideoFrameMetadata& metadata);
  
 -  absl::optional<GenericDescriptorInfo> generic;
 +  absl::optional<GenericDescriptorInfo> generic_;
  
    VideoFrameType frame_type = VideoFrameType::kEmptyFrame;
    uint16_t width = 0;
+diff --git a/modules/video_coding/packet_buffer.cc b/modules/video_coding/packet_buffer.cc
+index 52ef5c2d85..0dc71c7029 100644
+--- a/modules/video_coding/packet_buffer.cc
++++ b/modules/video_coding/packet_buffer.cc
+@@ -256,7 +256,7 @@ std::vector<std::unique_ptr<PacketBuffer::Packet>> PacketBuffer::FindFrames(
+       int64_t frame_timestamp = buffer_[start_index]->timestamp;
+ 
+       // Identify H.264 keyframes by means of SPS, PPS, and IDR.
+-      bool is_generic = buffer_[start_index]->video_header.generic.has_value();
++      bool is_generic = buffer_[start_index]->video_header.generic_.has_value();
+       bool is_h264_descriptor =
+           (buffer_[start_index]->codec() == kVideoCodecH264) && !is_generic;
+       bool has_h264_sps = false;
 diff --git a/modules/video_coding/rtp_frame_reference_finder.cc b/modules/video_coding/rtp_frame_reference_finder.cc
 index a44b76bf15..695e161ba6 100644
 --- a/modules/video_coding/rtp_frame_reference_finder.cc
