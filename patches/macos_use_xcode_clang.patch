@@ -1,8 +1,8 @@
 diff --git a/config/compiler/BUILD.gn b/config/compiler/BUILD.gn
-index b6aaae9b6..d3b81d792 100644
+index 16ee982f7..5ade38b3e 100644
 --- a/config/compiler/BUILD.gn
 +++ b/config/compiler/BUILD.gn
-@@ -433,8 +433,8 @@ config("compiler") {
+@@ -439,8 +439,8 @@ config("compiler") {
      # faster.
      # On arm64, this is already the default behavior.
      if (current_cpu == "x64") {
@@ -13,15 +13,44 @@ index b6aaae9b6..d3b81d792 100644
      }
    }
  
-@@ -1536,7 +1536,7 @@ config("default_warnings") {
+@@ -542,37 +542,6 @@ config("compiler") {
+     ldflags += [ "-Wl,-z,keep-text-section-prefix" ]
+   }
  
-       if (!is_nacl) {
-         # TODO(https://crbug.com/1300731) Clean up and enable.
--        cflags += [ "-Wno-unqualified-std-cast-call" ]
-+        # cflags += [ "-Wno-unqualified-std-cast-call" ]
- 
-         # Do not set the below flags if it's nacl as nacl-clang doesn't have the
-         # patches that require these flags. 
+-  if (is_clang && !is_nacl && current_os != "zos") {
+-    cflags += [ "-fcrash-diagnostics-dir=" + clang_diagnostic_dir ]
+-    if (save_reproducers_on_lld_crash && use_lld) {
+-      ldflags += [
+-        "-fcrash-diagnostics=all",
+-        "-fcrash-diagnostics-dir=" + clang_diagnostic_dir,
+-      ]
+-    }
+-
+-    # TODO(hans): Remove this once Clang generates better optimized debug info
+-    # by default. https://crbug.com/765793
+-    cflags += [
+-      "-mllvm",
+-      "-instcombine-lower-dbg-declare=0",
+-    ]
+-    if (!is_debug && use_thin_lto && is_a_target_toolchain) {
+-      if (is_win) {
+-        ldflags += [ "-mllvm:-instcombine-lower-dbg-declare=0" ]
+-      } else {
+-        ldflags += [ "-Wl,-mllvm,-instcombine-lower-dbg-declare=0" ]
+-      }
+-    }
+-
+-    # TODO(crbug.com/1235145): Investigate why/if this should be needed.
+-    if (is_win) {
+-      cflags += [ "/clang:-ffp-contract=off" ]
+-    } else {
+-      cflags += [ "-ffp-contract=off" ]
+-    }
+-  }
+-
+   # C11/C++11 compiler flags setup.
+   # ---------------------------
+   if (is_linux || is_chromeos || is_android || (is_nacl && is_clang) ||
 
 diff --git a/toolchain/apple/toolchain.gni b/toolchain/apple/toolchain.gni
 index 399a62f03..fcb2fdf2c 100644

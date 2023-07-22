@@ -163,10 +163,9 @@ def get_depot_tools(source_dir, fetch=False):
 
 
 PATCH_INFO = {
-    'macos_h264_encoder.patch': (2, []),
     'macos_screen_capture.patch': (2, []),
     'macos_use_xcode_clang.patch': (1, ['build']),
-    'windows_fix_type_traits.patch': (1, ['third_party']),
+    'windows_fix_optional.patch': (1, ['third_party']),
 }
 
 PATCHES = {
@@ -175,8 +174,8 @@ PATCHES = {
         'add_license_dav1d.patch',
         'windows_add_deps.patch',
         'windows_silence_warnings.patch',
-        'windows_fix_towupper.patch',
-        'windows_fix_type_traits.patch',
+        'windows_fix_optional.patch',
+        'windows_fix_audio_device.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'windows_arm64': [
@@ -184,8 +183,8 @@ PATCHES = {
         'add_license_dav1d.patch',
         'windows_add_deps.patch',
         'windows_silence_warnings.patch',
-        'windows_fix_towupper.patch',
-        'windows_fix_type_traits.patch',
+        'windows_fix_optional.patch',
+        'windows_fix_audio_device.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'windows_hololens2': [
@@ -198,23 +197,19 @@ PATCHES = {
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'macos_arm64': [
-        'add_dep_zlib.patch',
+        'add_deps.patch',
         '4k.patch',
         'add_license_dav1d.patch',
-        'macos_h264_encoder.patch',
         'macos_screen_capture.patch',
-        'macos_simulcast.patch',
         'ios_simulcast.patch',
         'ssl_verify_callback_with_native_handle.patch',
         'macos_use_xcode_clang.patch',
     ],
     'ios': [
-        'add_dep_zlib.patch',
+        'add_deps.patch',
         '4k.patch',
         'add_license_dav1d.patch',
-        'macos_h264_encoder.patch',
         'macos_screen_capture.patch',
-        'macos_simulcast.patch',
         'ios_manual_audio_input.patch',
         'ios_simulcast.patch',
         'ssl_verify_callback_with_native_handle.patch',
@@ -222,7 +217,7 @@ PATCHES = {
         'ios_proxy.patch',
     ],
     'android': [
-        'add_dep_zlib.patch',
+        'add_deps.patch',
         '4k.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
@@ -234,41 +229,43 @@ PATCHES = {
     ],
     'raspberry-pi-os_armv6': [
         'nacl_armv6_2.patch',
-        'add_dep_zlib.patch',
+        'add_deps.patch',
         '4k.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'raspberry-pi-os_armv7': [
-        'add_dep_zlib.patch',
+        'add_deps.patch',
         '4k.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'raspberry-pi-os_armv8': [
-        'add_dep_zlib.patch',
+        'add_deps.patch',
         '4k.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'ubuntu-18.04_armv8': [
-        'add_dep_zlib.patch',
+        'add_deps.patch',
         '4k.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'ubuntu-20.04_armv8': [
-        'add_dep_zlib.patch',
+        'add_deps.patch',
         '4k.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'ubuntu-20.04_x86_64': [
+        'add_deps.patch',
         '4k.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
     ],
     'ubuntu-22.04_x86_64': [
+        'add_deps.patch',
         '4k.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
@@ -942,11 +939,11 @@ def package_webrtc(source_dir, build_dir, package_dir, target,
     # 圧縮
     with cd(package_dir):
         if target in ['windows_x86_64', 'windows_arm64', 'windows_hololens2']:
-            with zipfile.ZipFile('webrtc.zip', 'w') as f:
+            with zipfile.ZipFile(f'webrtc.{target}.zip', 'w') as f:
                 for file in enum_all_files('webrtc', '.'):
                     f.write(filename=file, arcname=file)
         else:
-            with tarfile.open('webrtc.tar.gz', 'w:gz') as f:
+            with tarfile.open(f'webrtc.{target}.tar.gz', 'w:gz') as f:
                 for file in enum_all_files('webrtc', '.'):
                     f.add(name=file, arcname=file)
 

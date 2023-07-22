@@ -14,12 +14,42 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## master
 
+- [CHANGE] ビルド全体で例外を有効にする
+    - @melpon
+
+## m114.5735.2.2
+
+- [CHANGE] iOS を scalability mode に対応する
+    - @szktty
+- [FIX] iOS のサイマルキャストが VP9 と AV1 で動作しない問題を修正する
+    - @szktty
+
+## m111.5563.4.3
+
+- [ADD] Windows で rtc::FileRotatingLogSink が含まれなくなっていたので、依存に rtc_base:log_sinks を追加する
+    - @melpon
+
+## m110.5481.4.1
+
+- [UPDATE] deprecated になった actions/create-release と actions/upload-release の利用をやめて softprops/action-gh-release を利用する
+    - @melpon
+- [UPDATE] GitHub Actions の各種バージョンを上げる
+    - @melpon
 - [CHANGE] macos_x86_64 のビルドを削除
     - @melpon
 - [CHANGE] ubuntu-18.04_x86_64 のビルドを削除
     - @melpon
 - [CHANGE] Docker でのビルドを削除
     - @melpon
+- [ADD] Windows の高負荷環境で録音デバイスの初期化に失敗する問題を修正するパッチ windows_fix_audio_device.patch を追加
+    - @melpon
+
+## m111.5563.0.0
+
+- [CHANGE] 不要になった macos_h264_encoder.patch を削除
+    - @torikizi
+- [CHANGE] 不要になった windows_fix_towupper.patch を削除
+    - @torikizi
 
 ## m103.5060.5.0
 
