@@ -12,7 +12,7 @@ runs:
   steps:
     - name: Env to output
       if: |
-        !(inputs.platform == 'windows_x86_64' || inputs.platform == 'windows_arm64')
+        !(inputs.platform == 'windows_x86_64' || inputs.platform == 'windows_arm64' || inputs.platform == 'windows_hololens2')
       shell: bash
       run: |
         PACKAGE_NAME=webrtc.${{ inputs.platform }}.tar.gz
@@ -20,7 +20,7 @@ runs:
         echo "$PACKAGE_NAME/webrtc.${{ inputs.platform }}.tar.gz" >> package_paths.env
     - name: Env to output for Windows
       if: |
-        inputs.platform == 'windows_x86_64' || inputs.platform == 'windows_arm64'
+        inputs.platform == 'windows_x86_64' || inputs.platform == 'windows_arm64' || inputs.platform == 'windows_hololens2'
       shell: bash
       run: |
         PACKAGE_NAME=webrtc.${{ inputs.platform }}.zip
