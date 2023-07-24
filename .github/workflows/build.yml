@@ -112,6 +112,8 @@ jobs:
           sudo rm -rf /usr/share/swift
           # 1.4G
           sudo rm -rf /usr/share/dotnet
+          # 13G
+          sudo rm -rf /usr/local/lib/android
           df -h
       - name: Setup ${{ matrix.name }} for x86_64
         if: endsWith(matrix.name, '_x86_64')
