@@ -2,50 +2,6 @@ diff --git a/sdk/objc/components/audio/RTCAudioSession+Configuration.mm b/sdk/ob
 index c81ce1b916..42641d53d7 100644
 --- a/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
 +++ b/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
-@@ -51,13 +51,14 @@ - (BOOL)setConfiguration:(RTCAudioSessionConfiguration *)configuration
-   // everything we can.
-   NSError *error = nil;
- 
--  if (self.category != configuration.category ||
--      self.categoryOptions != configuration.categoryOptions) {
-+  RTCLog(@"Current category => %@, configuration category => %@",
-+         self.category, configuration.category);
-+  if (self.category != configuration.category) {
-     NSError *categoryError = nil;
-     if (![self setCategory:configuration.category
--               withOptions:configuration.categoryOptions
-                      error:&categoryError]) {
--      RTCLogError(@"Failed to set category: %@",
-+      RTCLogError(@"Failed to set category to %@: %@",
-+                  configuration.category,
-                   categoryError.localizedDescription);
-       error = categoryError;
-     } else {
-@@ -65,10 +66,13 @@ - (BOOL)setConfiguration:(RTCAudioSessionConfiguration *)configuration
-     }
-   }
- 
-+  RTCLog(@"Current mode => %@, configuration mode => %@",
-+         self.mode , configuration.mode);
-   if (self.mode != configuration.mode) {
-     NSError *modeError = nil;
-     if (![self setMode:configuration.mode error:&modeError]) {
--      RTCLogError(@"Failed to set mode: %@",
-+      RTCLogError(@"Failed to set mode to %@: %@",
-+                  configuration.mode,
-                   modeError.localizedDescription);
-       error = modeError;
-     } else {
-@@ -82,7 +86,8 @@ - (BOOL)setConfiguration:(RTCAudioSessionConfiguration *)configuration
-     if (![self setCategory:configuration.category
-                withOptions:configuration.categoryOptions
-                      error:&categoryError]) {
--      RTCLogError(@"Failed to set category options: %@",
-+      RTCLogError(@"Failed to set category options to %ld: %@",
-+                  (long)configuration.categoryOptions,
-                   categoryError.localizedDescription);
-       error = categoryError;
-     } else {
 @@ -172,7 +177,8 @@ - (BOOL)setConfiguration:(RTCAudioSessionConfiguration *)configuration
      *outError = error;
    }
@@ -83,7 +39,7 @@ index 8ad0c21105..4f73c434b0 100644
  
  NS_ASSUME_NONNULL_END
 diff --git a/sdk/objc/components/audio/RTCAudioSession.h b/sdk/objc/components/audio/RTCAudioSession.h
-index b5bba2f21e..282bcda7dc 100644
+index 2730664858..d8136dcc52 100644
 --- a/sdk/objc/components/audio/RTCAudioSession.h
 +++ b/sdk/objc/components/audio/RTCAudioSession.h
 @@ -20,6 +20,7 @@ extern NSString *const kRTCAudioSessionErrorDomain;
@@ -92,18 +48,18 @@ index b5bba2f21e..282bcda7dc 100644
  extern NSInteger const kRTCAudioSessionErrorConfiguration;
 +extern NSInteger const kRTCAudioSessionErrorInputInitialization;
  
- @class RTCAudioSession;
- @class RTCAudioSessionConfiguration;
-@@ -220,6 +221,8 @@ RTC_OBJC_EXPORT
- // AVAudioSession. |lockForConfiguration| must be called before using them
+ @class RTC_OBJC_TYPE(RTCAudioSession);
+ @class RTC_OBJC_TYPE(RTCAudioSessionConfiguration);
+@@ -225,6 +226,8 @@ RTC_OBJC_EXPORT
+ // AVAudioSession. `lockForConfiguration` must be called before using them
  // otherwise they will fail with kRTCAudioSessionErrorLockRequired.
  
 +- (BOOL)setCategory:(NSString *)category
 +              error:(NSError **)outError;
- - (BOOL)setCategory:(NSString *)category
-         withOptions:(AVAudioSessionCategoryOptions)options
-               error:(NSError **)outError;
-@@ -235,6 +238,9 @@ RTC_OBJC_EXPORT
+ - (BOOL)setCategory:(AVAudioSessionCategory)category
+                mode:(AVAudioSessionMode)mode
+             options:(AVAudioSessionCategoryOptions)options
+@@ -244,6 +247,9 @@ RTC_OBJC_EXPORT
                       error:(NSError **)outError;
  - (BOOL)setOutputDataSource:(AVAudioSessionDataSourceDescription *)dataSource
                        error:(NSError **)outError;
@@ -112,20 +68,20 @@ index b5bba2f21e..282bcda7dc 100644
 +
  @end
  
- @interface RTCAudioSession (Configuration)
+ @interface RTC_OBJC_TYPE (RTCAudioSession)
 diff --git a/sdk/objc/components/audio/RTCAudioSession.mm b/sdk/objc/components/audio/RTCAudioSession.mm
-index 09ffa16fcc..824c25cd03 100644
+index f6b91d5409..a6d358cd7d 100644
 --- a/sdk/objc/components/audio/RTCAudioSession.mm
 +++ b/sdk/objc/components/audio/RTCAudioSession.mm
-@@ -23,6 +23,7 @@
- NSString * const kRTCAudioSessionErrorDomain = @"org.webrtc.RTCAudioSession";
+@@ -29,6 +29,7 @@
+ NSString *const kRTCAudioSessionErrorDomain = @"org.webrtc.RTC_OBJC_TYPE(RTCAudioSession)";
  NSInteger const kRTCAudioSessionErrorLockRequired = -1;
  NSInteger const kRTCAudioSessionErrorConfiguration = -2;
 +NSInteger const kRTCAudioSessionErrorInputInitialization = -3;
  NSString * const kRTCAudioSessionOutputVolumeSelector = @"outputVolume";
  
- // This class needs to be thread-safe because it is accessed from many threads.
-@@ -39,6 +40,11 @@ @implementation RTCAudioSession {
+ namespace {
+@@ -55,6 +56,11 @@ @implementation RTC_OBJC_TYPE (RTCAudioSession) {
    BOOL _isAudioEnabled;
    BOOL _canPlayOrRecord;
    BOOL _isInterrupted;
@@ -137,8 +93,8 @@ index 09ffa16fcc..824c25cd03 100644
  }
  
  @synthesize session = _session;
-@@ -397,6 +403,11 @@ - (BOOL)setActive:(BOOL)active
-   return success;
+@@ -417,6 +423,11 @@ - (BOOL)setCategory:(AVAudioSessionCategory)category
+   return [self.session setCategory:category mode:mode options:options error:outError];
  }
  
 +- (BOOL)setCategory:(NSString *)category
@@ -146,10 +102,10 @@ index 09ffa16fcc..824c25cd03 100644
 +  return [self.session setCategory:category error:outError];
 +}
 +
- - (BOOL)setCategory:(NSString *)category
+ - (BOOL)setCategory:(AVAudioSessionCategory)category
          withOptions:(AVAudioSessionCategoryOptions)options
                error:(NSError **)outError {
-@@ -992,4 +1006,126 @@ - (void)notifyFailedToSetActive:(BOOL)active error:(NSError *)error {
+@@ -1007,4 +1018,126 @@ - (void)notifyFailedToSetActive:(BOOL)active error:(NSError *)error {
    }
  }
  
