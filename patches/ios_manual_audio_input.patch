@@ -1,3 +1,17 @@
+diff --git a/sdk/objc/components/audio/RTCAudioSession+Configuration.mm b/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
+index c81ce1b916..42641d53d7 100644
+--- a/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
++++ b/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
+@@ -172,7 +177,8 @@ - (BOOL)setConfiguration:(RTCAudioSessionConfiguration *)configuration
+     *outError = error;
+   }
+ 
+-  return error == nil;
++  //return error == nil;
++  return YES;
+ }
+ 
+ @end
 diff --git a/sdk/objc/components/audio/RTCAudioSession+Private.h b/sdk/objc/components/audio/RTCAudioSession+Private.h
 index 8ad0c21105..4f73c434b0 100644
 --- a/sdk/objc/components/audio/RTCAudioSession+Private.h
