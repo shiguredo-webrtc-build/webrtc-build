@@ -111,6 +111,8 @@ jobs:
           sudo rm -rf /usr/share/swift
           # 1.4G
           sudo rm -rf /usr/share/dotnet
+          # 13G
+          sudo rm -rf /usr/local/lib/android
           df -h
       - run: cp VERSION.head VERSION
       - name: Setup ${{ matrix.name }} for x86_64
