@@ -238,7 +238,7 @@ index d539b38264..390fa4c123 100644
  #include "api/video/video_frame_buffer.h"
  #include "common_video/libyuv/include/webrtc_libyuv.h"
  #include "modules/video_capture/video_capture_config.h"
-@@ -133,9 +134,16 @@ void VideoCaptureImpl::DeliverRawFrame(uint8_t* videoFrame,
+@@ -133,9 +134,17 @@ void VideoCaptureImpl::DeliverRawFrame(uint8_t* videoFrame,
  }
  
  int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
@@ -248,6 +248,7 @@ index d539b38264..390fa4c123 100644
                                          size_t videoFrameLength,
                                          const VideoCaptureCapability& frameInfo,
                                          int64_t captureTime /*=0*/) {
++  RTC_LOG(LS_INFO) << "[hololens2-debug] webrtc::VideoType=" << (int)frameInfo.videoType;
 +  if (frameInfo.videoType == VideoType::kNV12) {
 +    return IncomingFrameNV12(videoFrame, stride_y, plane_uv, stride_uv, videoFrameLength, frameInfo, captureTime);
 +  }

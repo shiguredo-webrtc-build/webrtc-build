@@ -520,6 +520,7 @@ HRESULT VideoCaptureWinRTInternal::FrameArrived(
 
     if (SUCCEEDED(hr)) {
       frameInfo.videoType = ToVideoType(video_subtype);
+      RTC_LOG(LS_INFO) << "[hololens2-debug] webrtc::VideoType=" << (int)frameInfo.videoType;
       frameInfo.maxFPS = SafelyComputeMediaRatio(media_ratio.Get());
       frameInfo.interlaced = false;
     }
