@@ -1,18 +1,16 @@
 diff --git a/third_party/boringssl/BUILD.gn b/third_party/boringssl/BUILD.gn
-index fab890501a2..ce3b31de9d1 100644
+index eb2393eb9a6..7a9a2cdbf25 100644
 --- a/third_party/boringssl/BUILD.gn
 +++ b/third_party/boringssl/BUILD.gn
-@@ -86,7 +86,9 @@ if (is_win && !is_msan && current_cpu != "arm64") {
-         public_configs = [ ":no_asm_config" ]
-       }
-     } else if (current_cpu == "arm") {
--      if (is_linux || is_chromeos || is_android) {
-+      if (arm_version <= 6) {
-+        public_configs = [ ":no_asm_config" ]
-+      } else if (is_linux || is_chromeos || is_android) {
-         sources += crypto_sources_linux_arm
-       } else if (is_ios) {
-         sources += crypto_sources_ios_arm
+@@ -110,6 +110,8 @@ if (is_msan) {
+     sources = crypto_sources_nasm
+     visibility = [ ":*" ]  # Only targets in this file can depend on this.
+   }
++} else if (arm_version <= 6) {
++  public_configs = [ ":no_asm_config" ]
+ } else {
+   # All other targets use GAS-compatible assembler. BoringSSL's assembly files
+   # are all wrapped in processor checks for the corresponding target, so there
 diff --git a/third_party/opus/BUILD.gn b/third_party/opus/BUILD.gn
 index c9e74464131..ea2b5686a57 100644
 --- a/third_party/opus/BUILD.gn
