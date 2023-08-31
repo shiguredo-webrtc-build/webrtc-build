@@ -72,9 +72,9 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
 Apache License 2.0
 
 ```
-Copyright 2019-2022, Wandbox LLC (Original Author)
-Copyright 2019-2022, tnoho (Original Author)
-Copyright 2019-2022, Shiguredo Inc.
+Copyright 2019-2023, Wandbox LLC (Original Author)
+Copyright 2019-2023, tnoho (Original Author)
+Copyright 2019-2023, Shiguredo Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
