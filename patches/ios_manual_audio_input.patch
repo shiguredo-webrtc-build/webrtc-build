@@ -1,8 +1,8 @@
 diff --git a/sdk/objc/components/audio/RTCAudioSession+Configuration.mm b/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
-index c81ce1b916..42641d53d7 100644
+index 4bf0a542e1..8431458a80 100644
 --- a/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
 +++ b/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
-@@ -172,7 +177,8 @@ - (BOOL)setConfiguration:(RTCAudioSessionConfiguration *)configuration
+@@ -144,7 +144,8 @@
      *outError = error;
    }
  
@@ -25,8 +25,8 @@ index 8ad0c21105..4f73c434b0 100644
  
  #include <vector>
  
-@@ -90,6 +92,12 @@ NS_ASSUME_NONNULL_BEGIN
- - (void)notifyDidStopPlayOrRecord;
+@@ -76,6 +78,12 @@ NS_ASSUME_NONNULL_BEGIN
+ /** Notifies the receiver that a playout glitch was detected. */
  - (void)notifyDidDetectPlayoutGlitch:(int64_t)totalNumberOfGlitches;
  
 +@property(nonatomic, readonly) webrtc::ios_adm::VoiceProcessingAudioUnit *vpAudioUnit;
@@ -35,11 +35,11 @@ index 8ad0c21105..4f73c434b0 100644
 +- (void)stopVoiceProcessingAudioUnit;
 +- (void)finishInitializeInput;
 +
- @end
- 
- NS_ASSUME_NONNULL_END
+ /** Notifies the receiver that there was an error when starting an audio unit. */
+ - (void)notifyAudioUnitStartFailedWithError:(OSStatus)error;
+
 diff --git a/sdk/objc/components/audio/RTCAudioSession.h b/sdk/objc/components/audio/RTCAudioSession.h
-index 2730664858..d8136dcc52 100644
+index 2730664858..a22f6523ce 100644
 --- a/sdk/objc/components/audio/RTCAudioSession.h
 +++ b/sdk/objc/components/audio/RTCAudioSession.h
 @@ -20,6 +20,7 @@ extern NSString *const kRTCAudioSessionErrorDomain;
@@ -59,12 +59,13 @@ index 2730664858..d8136dcc52 100644
  - (BOOL)setCategory:(AVAudioSessionCategory)category
                 mode:(AVAudioSessionMode)mode
              options:(AVAudioSessionCategoryOptions)options
-@@ -244,6 +247,9 @@ RTC_OBJC_EXPORT
+@@ -244,6 +247,10 @@ RTC_OBJC_EXPORT
                       error:(NSError **)outError;
  - (BOOL)setOutputDataSource:(AVAudioSessionDataSourceDescription *)dataSource
                        error:(NSError **)outError;
 +
 +- (void)initializeInput:(nullable void (^)(NSError *_Nullable error))completionHandler;
++
 +
  @end
  
@@ -81,7 +82,7 @@ index f6b91d5409..a6d358cd7d 100644
  NSString * const kRTCAudioSessionOutputVolumeSelector = @"outputVolume";
  
  namespace {
-@@ -55,6 +56,11 @@ @implementation RTC_OBJC_TYPE (RTCAudioSession) {
+@@ -55,6 +56,11 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
    BOOL _isAudioEnabled;
    BOOL _canPlayOrRecord;
    BOOL _isInterrupted;
@@ -93,7 +94,7 @@ index f6b91d5409..a6d358cd7d 100644
  }
  
  @synthesize session = _session;
-@@ -417,6 +423,11 @@ - (BOOL)setCategory:(AVAudioSessionCategory)category
+@@ -417,6 +423,11 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
    return [self.session setCategory:category mode:mode options:options error:outError];
  }
  
@@ -105,7 +106,7 @@ index f6b91d5409..a6d358cd7d 100644
  - (BOOL)setCategory:(AVAudioSessionCategory)category
          withOptions:(AVAudioSessionCategoryOptions)options
                error:(NSError **)outError {
-@@ -1007,4 +1018,126 @@ - (void)notifyFailedToSetActive:(BOOL)active error:(NSError *)error {
+@@ -1007,4 +1018,126 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
    }
  }
  
@@ -233,10 +234,10 @@ index f6b91d5409..a6d358cd7d 100644
 +
  @end
 diff --git a/sdk/objc/components/audio/RTCAudioSessionConfiguration.m b/sdk/objc/components/audio/RTCAudioSessionConfiguration.m
-index 2247e65ab5..3deacc3a92 100644
+index 71b0c0cb3a..483da97873 100644
 --- a/sdk/objc/components/audio/RTCAudioSessionConfiguration.m
 +++ b/sdk/objc/components/audio/RTCAudioSessionConfiguration.m
-@@ -69,7 +69,7 @@ - (instancetype)init {
+@@ -58,7 +58,7 @@ static RTC_OBJC_TYPE(RTCAudioSessionConfiguration) *gWebRTCConfiguration = nil;
      // By default, using this category implies that our app’s audio is
      // nonmixable, hence activating the session will interrupt any other
      // audio sessions which are also nonmixable.
