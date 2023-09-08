@@ -1,12 +1,12 @@
 diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
-index 2d511e2eac..637ffa5168 100644
+index 5f494052e2..6ebb6b148f 100644
 --- a/sdk/android/BUILD.gn
 +++ b/sdk/android/BUILD.gn
-@@ -162,6 +162,7 @@ if (is_android) {
+@@ -154,6 +154,7 @@ if (is_android) {
      sources = [
        "api/org/webrtc/Predicate.java",
        "api/org/webrtc/RefCounted.java",
 +      "api/org/webrtc/WebrtcBuildVersion.java",
+       "src/java/org/webrtc/ApplicationContextProvider.java",
        "src/java/org/webrtc/CalledByNative.java",
        "src/java/org/webrtc/CalledByNativeUnchecked.java",
-       "src/java/org/webrtc/Histogram.java",
