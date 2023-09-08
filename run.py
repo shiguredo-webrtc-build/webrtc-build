@@ -528,7 +528,7 @@ def build_webrtc_ios(
         with cd(os.path.join(webrtc_src_dir, 'tools_webrtc', 'ios')):
             ios_deployment_target = cmdcap(
                 ['python3', '-c',
-                 f'from build_ios_libs import IOS_DEPLOYMENT_TARGET; print(IOS_DEPLOYMENT_TARGET["{device}"])'])
+                 f'from build_ios_libs import IOS_MINIMUM_DEPLOYMENT_TARGET; print(IOS_MINIMUM_DEPLOYMENT_TARGET["{device}"])'])
 
         if not os.path.exists(os.path.join(work_dir, 'args.gn')) or gen or overlap_build_dir:
             gn_args = [
