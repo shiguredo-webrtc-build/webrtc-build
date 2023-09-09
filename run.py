@@ -422,7 +422,7 @@ WEBRTC_BUILD_TARGETS = {
 def get_build_targets(target):
     ts = [':default']
     if target not in ('windows_x86_64', 'windows_arm64', 'ios', 'macos_arm64'):
-        ts += ['buildtools/third_party/libc++']
+        ts += ['third_party/libc++']
     ts += WEBRTC_BUILD_TARGETS.get(target, [])
     return ts
 
@@ -761,9 +761,9 @@ def generate_version_info(webrtc_src_dir, webrtc_package_dir):
         (['.'], ''),
         (['build'], 'BUILD'),
         (['buildtools'], 'BUILDTOOLS'),
-        (['buildtools', 'third_party', 'libc++', 'trunk'], 'BUILDTOOLS_THIRD_PARTY_LIBCXX_TRUNK'),
-        (['buildtools', 'third_party', 'libc++abi', 'trunk'], 'BUILDTOOLS_THIRD_PARTY_LIBCXXABI_TRUNK'),
-        (['buildtools', 'third_party', 'libunwind', 'trunk'], 'BUILDTOOLS_THIRD_PARTY_LIBUNWIND_TRUNK'),
+        (['third_party', 'libc++', 'src'], 'WEBRTC_SRC_THIRD_PARTY_LIBCXX_SRC'),
+        (['third_party', 'libc++abi', 'src'], 'WEBRTC_SRC_THIRD_PARTY_LIBCXXABI_SRC'),
+        (['third_party', 'libunwind', 'src'], 'WEBRTC_SRC_THIRD_PARTY_LIBUNWIND_SRC'),
         (['third_party'], 'THIRD_PARTY'),
         (['tools'], 'TOOLS'),
     ]
