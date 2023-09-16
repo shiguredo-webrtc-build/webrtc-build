@@ -422,7 +422,7 @@ WEBRTC_BUILD_TARGETS = {
 def get_build_targets(target):
     ts = [':default']
     if target not in ('windows_x86_64', 'windows_arm64', 'ios', 'macos_arm64'):
-        ts += ['third_party/libc++/src']
+        ts += ['buildtools/third_party/libc++']
     ts += WEBRTC_BUILD_TARGETS.get(target, [])
     return ts
 
