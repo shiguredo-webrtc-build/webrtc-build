@@ -32,6 +32,8 @@ zlib, log_sinks, サイマルキャストのエンコーダーアダプターを
 
 ## add_license_dav1d.patch
 
+AV1 デコーダー (dav1d) のライセンスを追加するパッチ。
+
 ## android_fixsegv.patch
 
 Android にて映像フレームの処理時にクラッシュするいくつかの現象を修正するパッチ。
@@ -193,6 +195,22 @@ iOS でのサイマルキャストのサポートを追加するパッチ。次�
 
 ## ios_proxy.patch
 
+iOS での Proxy のサポートを追加するパッチ。
+Objective-C では以下のように利用する。
+
+```objc
+[factory peerConnectionWithConfiguration:configuration
+                             constraints:constraints
+                     certificateVerifier:certificateVerifier
+                                delegate:delegate
+                               proxyType:RTCProxyTypeHttps
+                              proxyAgent:@"user-agent"
+                           proxyHostname:@"192.168.100.11"
+                               proxyPort:3456
+                           proxyUsername:@"username"
+                           proxyPassword:@"password"]
+```
+
 ## macos_screen_capture.patch
 
 ユニバーサルズーム機能が有効でなくとも `helper_.InvalidateScreen` を呼ぶようにするパッチ。
@@ -206,7 +224,7 @@ WebRTC が用意している clang でビルドすると、M1 Mac で実行時�
 
 ## nacl_armv6_2.patch
 
-## ubuntu_nolibcxx.patch
+current_cpu の条件に armv6 以前は false に armv7 以降は true になるよう追加するパッチ。
 
 ## windows_build_gn.patch
 
@@ -224,8 +242,18 @@ WebRTC は Let's Encrypt を含めていないので、Let's Encrypt の検証�
 
 ## windows_add_deps.patch
 
+オーディオデバイス, zlib, log_sinks, サイマルキャストのエンコーダーアダプターを追加するパッチ。
+
 ## windows_fix_audio_device.patch
+
+Windows の高負荷環境で録音デバイスの初期化に失敗する問題を修正するパッチ。
+この issue が解決すれば不要になる
+https://bugs.chromium.org/p/webrtc/issues/detail?id=14954
 
 ## windows_fix_optional.patch
 
+Abseil ライブラリではなく C++ 標準ライブラリを利用するようにするパッチ。
+
 ## windows_silence_warnings.patch
+
+C++ 17 と C++ 20 の非推奨に関するワーニングを抑制するパッチ。
