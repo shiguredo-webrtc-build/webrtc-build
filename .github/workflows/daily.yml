@@ -13,7 +13,7 @@ jobs:
           - windows_arm64
     runs-on: windows-2019
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: daily
       - name: Disk Cleanup
@@ -58,7 +58,7 @@ jobs:
           - ios
     runs-on: macOS-11.0
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: daily
       - run: cp VERSION.head VERSION
@@ -93,7 +93,7 @@ jobs:
           - android
     runs-on: ${{ matrix.name == 'ubuntu-22.04_x86_64' && 'ubuntu-22.04' || 'ubuntu-20.04' }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: daily
       - name: Disk Cleanup

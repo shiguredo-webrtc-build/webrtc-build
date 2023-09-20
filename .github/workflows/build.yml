@@ -20,7 +20,7 @@ jobs:
           - windows_arm64
     runs-on: windows-2019
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Disk Cleanup
         run: |
           Get-PSDrive
@@ -62,7 +62,7 @@ jobs:
           - ios
     runs-on: macOS-11.0
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Select Xcode 13.0
         run: sudo xcode-select --switch /Applications/Xcode_13.0.app/Contents/Developer
       - run: brew install ninja
@@ -96,7 +96,7 @@ jobs:
           - android
     runs-on: ${{ matrix.name == 'ubuntu-22.04_x86_64' && 'ubuntu-22.04' || 'ubuntu-20.04' }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Disk Cleanup
         run: |
           set -x
@@ -142,7 +142,7 @@ jobs:
       - build-linux
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/download
         with:
           platform: windows_x86_64
