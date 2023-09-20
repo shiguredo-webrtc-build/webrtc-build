@@ -24,9 +24,15 @@ limitations under the License.
 
 ## 4k.patch
 
+v4l2 で 4K に対応するパッチ。
 
-## add_dep_zlib.patch
+## add_deps.patch
 
+zlib, log_sinks, サイマルキャストのエンコーダーアダプターを追加するパッチ。
+
+## add_license_dav1d.patch
+
+AV1 デコーダー (dav1d) のライセンスを追加するパッチ。
 
 ## android_fixsegv.patch
 
@@ -57,8 +63,8 @@ Android API に libwebrtc のビルド時のバージョンを取得する API �
 
 ## android_hardware_video_encoder.patch
 
-解像度が16の倍数でない場合、 HardwareVideoEncoder 初期化時などのチェックでエラーが発生するようになった。  
-Android CTS では解像度が16の倍数のケースしかテストされておらず、かつ、解像度が16の倍数でない映像を受信した際に問題が発生する端末があったことが理由で、上記のチェックが実装された。
+解像度が 16 の倍数でない場合、 HardwareVideoEncoder 初期化時などのチェックでエラーが発生するようになった。  
+Android CTS では解像度が 16 の倍数のケースしかテストされておらず、かつ、解像度が 16 の倍数でない映像を受信した際に問題が発生する端末があったことが理由で、上記のチェックが実装された。
 
 参照: https://webrtc-review.googlesource.com/c/src/+/229460
 
@@ -112,18 +118,17 @@ iOS でのマイク不使用時のパーミッション要求を抑制するパ�
 - マイクの初期化を明示的に行う API を追加する。
   パッチ適用後はマイクは自動的に初期化されない。
 
-- ``AVAudioSession`` の初期化時に設定されるカテゴリを ``AVAudioSessionCategoryPlayAndRecord`` から ``AVAudioSessionCategoryAmbient`` に変更する。
-
+- `AVAudioSession` の初期化時に設定されるカテゴリを `AVAudioSessionCategoryPlayAndRecord` から `AVAudioSessionCategoryAmbient` に変更する。
 
 ### パッチ適用後の使い方
 
-- マイクを使う場合は ``RTCAudioSession.initializeInput(completionHandler:)`` を実行してマイクを初期化する。
+- マイクを使う場合は `RTCAudioSession.initializeInput(completionHandler:)` を実行してマイクを初期化する。
+
   - このメソッドはマイクが使用されるまで非同期で待ち、必要になったら初期化する。マイクの使用許可がなければユーザーにパーミッションを要求する。
   - 接続ごとに実行すること。接続が終了するとマイクは初期化前の状態に戻る。
-  - 実行前に ``RTCAudioSessionConfiguration.webRTCConfiguration.category`` にマイクを使用可能なカテゴリをセットすること。 ``AVAudioSessionCategoryPlayAndRecord`` など。
+  - 実行前に `RTCAudioSessionConfiguration.webRTCConfiguration.category` にマイクを使用可能なカテゴリをセットすること。 `AVAudioSessionCategoryPlayAndRecord` など。
 
-- マイクを使わない場合は ``Info.plist`` にマイクの用途を記述する必要はない。
-
+- マイクを使わない場合は `Info.plist` にマイクの用途を記述する必要はない。
 
 ### `RTCAudioSession` のロックについて
 
@@ -188,11 +193,27 @@ iOS でのサイマルキャストのサポートを追加するパッチ。次�
 
 同等の機能が本家に実装されるか、 PR を出して取り込まれたら削除する。
 
-## macos_av1.patch
+## ios_proxy.patch
 
+iOS での Proxy のサポートを追加するパッチ。
+Objective-C では以下のように利用する。
+
+```objc
+[factory peerConnectionWithConfiguration:configuration
+                             constraints:constraints
+                     certificateVerifier:certificateVerifier
+                                delegate:delegate
+                               proxyType:RTCProxyTypeHttps
+                              proxyAgent:@"user-agent"
+                           proxyHostname:@"192.168.100.11"
+                               proxyPort:3456
+                           proxyUsername:@"username"
+                           proxyPassword:@"password"]
+```
 
 ## macos_screen_capture.patch
 
+ユニバーサルズーム機能が有効でなくとも `helper_.InvalidateScreen` を呼ぶようにするパッチ。
 
 ## macos_use_xcode_clang.patch
 
@@ -203,13 +224,11 @@ WebRTC が用意している clang でビルドすると、M1 Mac で実行時�
 
 ## nacl_armv6_2.patch
 
-
-## ubuntu_nolibcxx.patch
-
+current_cpu の条件に armv6 以前は false に armv7 以降は true になるよう追加するパッチ。
 
 ## windows_build_gn.patch
 
-C++17 で deprecated されているコードを多数含むために _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS を追加している。
+C++17 で deprecated されているコードを多数含むために \_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS を追加している。
 
 ## ssl_verify_callback_with_native_handle.patch
 
@@ -220,3 +239,21 @@ WebRTC は Let's Encrypt のルート証明書を入れていないため、検�
 WebRTC は Let's Encrypt を含めていないので、Let's Encrypt の検証がうまくできないという点から本家に取り込んでもらうのは難しいと思われる。
 証明書チェーンが利用できない、という話を起点にすれば取り込んでもらえるかもしれない。
 ただし `SSL*` を渡すのは `OpenSSLCertificate` との兼ね合いを考えると筋が悪いので、本家用のパッチを書くのであれば清書する必要がある。
+
+## windows_add_deps.patch
+
+オーディオデバイス, zlib, log_sinks, サイマルキャストのエンコーダーアダプターを追加するパッチ。
+
+## windows_fix_audio_device.patch
+
+Windows の高負荷環境で録音デバイスの初期化に失敗する問題を修正するパッチ。
+この issue が解決すれば不要になる
+https://bugs.chromium.org/p/webrtc/issues/detail?id=14954
+
+## windows_fix_optional.patch
+
+Abseil ライブラリではなく C++ 標準ライブラリを利用するようにするパッチ。
+
+## windows_silence_warnings.patch
+
+C++ 17 と C++ 20 の非推奨に関するワーニングを抑制するパッチ。
