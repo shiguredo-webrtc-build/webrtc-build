@@ -1,8 +1,8 @@
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index 4f5ceb5ed3..0fcf17bca7 100644
+index 4f5ceb5ed3..56b310aded 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
-@@ -700,6 +700,16 @@ if (is_ios || is_mac) {
+@@ -700,6 +694,16 @@ if (is_ios || is_mac) {
          ]
        }
  
@@ -19,7 +19,7 @@ index 4f5ceb5ed3..0fcf17bca7 100644
        public_configs = [ ":common_config_objc" ]
        deps = [
          ":base_objc",
-@@ -1336,6 +1346,15 @@ if (is_ios || is_mac) {
+@@ -1336,6 +1358,17 @@ if (is_ios || is_mac) {
            "objc/api/video_frame_buffer/RTCNativeMutableI420Buffer.h",
          ]
  
@@ -27,7 +27,9 @@ index 4f5ceb5ed3..0fcf17bca7 100644
 +          common_objc_headers += [
 +            "objc/components/video_codec/RTCCodecSpecificInfoH265.h",
 +            "objc/components/video_codec/RTCH265ProfileLevelId.h",
++            "objc/components/video_codec/RTCVideoDecoderFactoryH265.h",
 +            "objc/components/video_codec/RTCVideoDecoderH265.h",
++            "objc/components/video_codec/RTCVideoEncoderFactoryH265.h",
 +            "objc/components/video_codec/RTCVideoEncoderH265.h",
 +          ]
 +        }
@@ -35,14 +37,18 @@ index 4f5ceb5ed3..0fcf17bca7 100644
          if (!build_with_chromium) {
            common_objc_headers += [
              "objc/api/logging/RTCCallbackLogger.h",
-@@ -1696,6 +1715,15 @@ if (is_ios || is_mac) {
+@@ -1696,6 +1729,19 @@ if (is_ios || is_mac) {
          "objc/components/video_codec/RTCVideoEncoderH264.mm",
        ]
  
 +      if (rtc_use_h265) {
 +        sources += [
++          "objc/components/video_codec/RTCVideoDecoderFactoryH265.h",
++          "objc/components/video_codec/RTCVideoDecoderFactoryH265.m",
 +          "objc/components/video_codec/RTCVideoDecoderH265.h",
 +          "objc/components/video_codec/RTCVideoDecoderH265.mm",
++          "objc/components/video_codec/RTCVideoEncoderFactoryH265.h",
++          "objc/components/video_codec/RTCVideoEncoderFactoryH265.m",
 +          "objc/components/video_codec/RTCVideoEncoderH265.h",
 +          "objc/components/video_codec/RTCVideoEncoderH265.mm",
 +        ]
@@ -296,6 +302,68 @@ index 0000000000..fad44e2a59
 +NSString *const kRTCVideoCodecH265Name = @"H265";
 +// TODO(jianjunz): This is value is not correct.
 +NSString *const kRTCLevel31Main = @"4d001f";
+diff --git a/sdk/objc/components/video_codec/RTCVideoDecoderFactoryH265.h b/sdk/objc/components/video_codec/RTCVideoDecoderFactoryH265.h
+new file mode 100644
+index 0000000000..9a91d81996
+--- /dev/null
++++ b/sdk/objc/components/video_codec/RTCVideoDecoderFactoryH265.h
+@@ -0,0 +1,18 @@
++/*
++ *  Copyright 2017 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#import <Foundation/Foundation.h>
++
++#import "RTCMacros.h"
++#import "RTCVideoDecoderFactory.h"
++
++RTC_OBJC_EXPORT
++@interface RTC_OBJC_TYPE (RTCVideoDecoderFactoryH265) : NSObject <RTC_OBJC_TYPE(RTCVideoDecoderFactory)>
++@end
+diff --git a/sdk/objc/components/video_codec/RTCVideoDecoderFactoryH265.m b/sdk/objc/components/video_codec/RTCVideoDecoderFactoryH265.m
+new file mode 100644
+index 0000000000..0d41b0c3c5
+--- /dev/null
++++ b/sdk/objc/components/video_codec/RTCVideoDecoderFactoryH265.m
+@@ -0,0 +1,32 @@
++/*
++ *  Copyright 2017 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#import "RTCVideoDecoderFactoryH265.h"
++
++#import "RTCH265ProfileLevelId.h"
++#import "RTCVideoDecoderH265.h"
++
++@implementation RTC_OBJC_TYPE (RTCVideoDecoderFactoryH265)
++
++- (NSArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *)supportedCodecs {
++  NSMutableArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *codecs = [NSMutableArray array];
++
++  RTC_OBJC_TYPE(RTCVideoCodecInfo) *h265Info =
++      [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecH265Name];
++  [codecs addObject:h265Info];
++
++  return [codecs copy];
++}
++
++- (id<RTC_OBJC_TYPE(RTCVideoDecoder)>)createDecoder:(RTC_OBJC_TYPE(RTCVideoCodecInfo) *)info {
++  return [[RTC_OBJC_TYPE(RTCVideoDecoderH265) alloc] init];
++}
++
++@end
 diff --git a/sdk/objc/components/video_codec/RTCVideoDecoderH265.h b/sdk/objc/components/video_codec/RTCVideoDecoderH265.h
 new file mode 100644
 index 0000000000..318bb4a360
@@ -702,6 +770,71 @@ index 0000000000..1a6a6cf88d
 +
 +- (NSString*)implementationName {
 +  return @"VideoToolbox";
++}
++
++@end
+diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderFactoryH265.h b/sdk/objc/components/video_codec/RTCVideoEncoderFactoryH265.h
+new file mode 100644
+index 0000000000..165c52ddad
+--- /dev/null
++++ b/sdk/objc/components/video_codec/RTCVideoEncoderFactoryH265.h
+@@ -0,0 +1,18 @@
++/*
++ *  Copyright 2017 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#import <Foundation/Foundation.h>
++
++#import "RTCMacros.h"
++#import "RTCVideoEncoderFactory.h"
++
++RTC_OBJC_EXPORT
++@interface RTC_OBJC_TYPE (RTCVideoEncoderFactoryH265) : NSObject <RTC_OBJC_TYPE(RTCVideoEncoderFactory)>
++@end
+diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderFactoryH265.m b/sdk/objc/components/video_codec/RTCVideoEncoderFactoryH265.m
+new file mode 100644
+index 0000000000..f41233d898
+--- /dev/null
++++ b/sdk/objc/components/video_codec/RTCVideoEncoderFactoryH265.m
+@@ -0,0 +1,35 @@
++/*
++ *  Copyright 2017 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#import "RTCVideoEncoderFactoryH265.h"
++
++#import "RTCH265ProfileLevelId.h"
++#import "RTCVideoEncoderH265.h"
++
++@implementation RTC_OBJC_TYPE (RTCVideoEncoderFactoryH265)
++
++- (NSArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *)supportedCodecs {
++  NSMutableArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *codecs = [NSMutableArray array];
++
++  RTC_OBJC_TYPE(RTCVideoCodecInfo) *h265Info =
++      [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecH265Name];
++  [codecs addObject:h265Info];
++
++  return [codecs copy];
++}
++
++- (id<RTC_OBJC_TYPE(RTCVideoEncoder)>)createEncoder:(RTC_OBJC_TYPE(RTCVideoCodecInfo) *)info {
++  if (@available(iOS 11, *)) {
++    return [[RTC_OBJC_TYPE(RTCVideoEncoderH265) alloc] initWithCodecInfo:info];
++  }
++  return nil;
 +}
 +
 +@end
