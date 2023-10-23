@@ -75,7 +75,7 @@ index 0000000000..a22d3594f5
 +NS_ASSUME_NONNULL_BEGIN
 +
 +/* Interfaces for converting to/from internal C++ formats. */
-+@interface RTCCodecSpecificInfoH265 ()
++@interface RTC_OBJC_TYPE (RTCCodecSpecificInfoH265) ()
 +
 +- (webrtc::CodecSpecificInfo)nativeCodecSpecificInfo;
 +
@@ -138,7 +138,7 @@ index 0000000000..9311cf4adf
 +#include "modules/video_coding/codecs/h265/include/h265_globals.h"
 +
 +// H265 specific settings.
-+@implementation RTCCodecSpecificInfoH265
++@implementation RTC_OBJC_TYPE (RTCCodecSpecificInfoH265)
 +
 +@synthesize packetizationMode = _packetizationMode;
 +
