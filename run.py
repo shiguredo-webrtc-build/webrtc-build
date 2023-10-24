@@ -765,9 +765,9 @@ def generate_version_info(webrtc_src_dir, webrtc_package_dir):
         (['.'], ''),
         (['build'], 'BUILD'),
         (['buildtools'], 'BUILDTOOLS'),
-        (['third_party', 'libc++', 'src'], 'WEBRTC_SRC_THIRD_PARTY_LIBCXX_SRC'),
-        (['third_party', 'libc++abi', 'src'], 'WEBRTC_SRC_THIRD_PARTY_LIBCXXABI_SRC'),
-        (['third_party', 'libunwind', 'src'], 'WEBRTC_SRC_THIRD_PARTY_LIBUNWIND_SRC'),
+        (['third_party', 'libc++', 'src'], 'THIRD_PARTY_LIBCXX_SRC'),
+        (['third_party', 'libc++abi', 'src'], 'THIRD_PARTY_LIBCXXABI_SRC'),
+        (['third_party', 'libunwind', 'src'], 'THIRD_PARTY_LIBUNWIND_SRC'),
         (['third_party'], 'THIRD_PARTY'),
         (['tools'], 'TOOLS'),
     ]
