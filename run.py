@@ -206,6 +206,8 @@ PATCHES = {
         'ssl_verify_callback_with_native_handle.patch',
         'ios_build.patch',
         'ios_proxy.patch',
+        'h265.patch',
+        'h265_ios.patch',
     ],
     'android': [
         'add_deps.patch',
@@ -217,6 +219,8 @@ PATCHES = {
         'android_simulcast.patch',
         'android_hardware_video_encoder.patch',
         'android_proxy.patch',
+        'h265.patch',
+        'h265_android.patch',
     ],
     'raspberry-pi-os_armv6': [
         'nacl_armv6_2.patch',
