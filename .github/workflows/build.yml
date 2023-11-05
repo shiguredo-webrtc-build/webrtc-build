@@ -2,14 +2,14 @@ name: build
 on:
   push:
     paths-ignore:
-      - '**.md'
-      - 'LICENSE'
-      - 'NOTICE'
-      - '.gitignore'
+      - "**.md"
+      - "LICENSE"
+      - "NOTICE"
+      - ".gitignore"
     branches-ignore:
       - daily
     tags:
-      - '*'
+      - "*"
 jobs:
   build-windows:
     strategy:
@@ -21,6 +21,11 @@ jobs:
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - run: python3 --version
       - name: Disk Cleanup
         run: |
           Get-PSDrive
@@ -188,5 +193,4 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
-          files:
-            ${{ steps.env.outputs.package_paths }}
+          files: ${{ steps.env.outputs.package_paths }}
