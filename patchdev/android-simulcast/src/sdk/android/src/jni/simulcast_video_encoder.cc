@@ -15,20 +15,59 @@ using namespace webrtc::jni;
 extern "C" {
 #endif
 
+// primary, fallback のライフタイムを管理するためのラッパー
+class SimulcastEncoderAdapterWrapper : public VideoEncoder {
+public:
+    SimulcastEncoderAdapterWrapper(JNIEnv *env,
+                            std::unique_ptr<VideoEncoderFactory> primary,
+                            std::unique_ptr<VideoEncoderFactory> fallback,
+                            const SdpVideoFormat& format,
+                            const FieldTrialsView& field_trials) : primary_(std::move(primary)), fallback_(std::move(fallback)) {
+        adapter_ = std::make_unique<SimulcastEncoderAdapter>(primary_.get(), fallback_.get(), format, field_trials);
+    }
+
+    int Encode(
+        const VideoFrame& input_image,
+        const std::vector<VideoFrameType>* frame_types) override {
+            return adapter_.get()->Encode(input_image, frame_types);
+    }
+
+    int RegisterEncodeCompleteCallback(
+        EncodedImageCallback* callback) override {
+            return adapter_.get()->RegisterEncodeCompleteCallback(callback);
+    }
+
+    int32_t Release() override {
+        return adapter_.get()->Release();
+    }
+
+    void SetRates(const RateControlParameters& parameters) override {
+        adapter_.get()->SetRates(parameters);
+    }
+
+    EncoderInfo GetEncoderInfo() const override {
+        return adapter_.get()->GetEncoderInfo();
+    }
+
+private:
+    std::unique_ptr<SimulcastEncoderAdapter> adapter_;
+    std::unique_ptr<VideoEncoderFactory> primary_;
+    std::unique_ptr<VideoEncoderFactory> fallback_;
+};
+
 // (VideoEncoderFactory primary, VideoEncoderFactory fallback, VideoCodecInfo info)
 JNIEXPORT jlong JNICALL Java_org_webrtc_SimulcastVideoEncoder_nativeCreateEncoder(JNIEnv *env, jclass klass, jobject primary, jobject fallback, jobject info) {
     RTC_LOG(LS_INFO) << "Create simulcast video encoder";
     JavaParamRef<jobject> info_ref(info);
     SdpVideoFormat format = VideoCodecInfoToSdpVideoFormat(env, info_ref);
-    auto fieldTrials = webrtc::FieldTrialBasedConfig();
+    auto field_trials = webrtc::FieldTrialBasedConfig();
 
-    // TODO: 影響は軽微だが、リークする可能性があるので将来的に修正したい
-    // https://github.com/shiguredo-webrtc-build/webrtc-build/pull/16#pullrequestreview-600675795
-    return NativeToJavaPointer(std::make_unique<SimulcastEncoderAdapter>(
-                            JavaToNativeVideoEncoderFactory(env, primary).release(),
-                            fallback != nullptr ? JavaToNativeVideoEncoderFactory(env, fallback).release() : nullptr,
+    return NativeToJavaPointer(std::make_unique<SimulcastEncoderAdapterWrapper>(
+                            env,
+                            JavaToNativeVideoEncoderFactory(env, primary),
+                            fallback != nullptr ? JavaToNativeVideoEncoderFactory(env, fallback) : nullptr,
                             format,
-                            fieldTrials).release());
+                            field_trials).release());
 }
 
 
