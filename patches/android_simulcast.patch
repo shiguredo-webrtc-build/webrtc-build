@@ -274,9 +274,9 @@ index 0000000000..18daf6f062
 +    // TODO: 影響は軽微だが、リークする可能性があるので将来的に修正したい
 +    // https://github.com/shiguredo-webrtc-build/webrtc-build/pull/16#pullrequestreview-600675795
 +    return NativeToJavaPointer(std::make_unique<SimulcastEncoderAdapter>(
-+			    JavaToNativeVideoEncoderFactory(env, primary).release(),
-+			    fallback != nullptr ? JavaToNativeVideoEncoderFactory(env, fallback).release() : nullptr,
-+			    format).release());
++                JavaToNativeVideoEncoderFactory(env, primary).release(),
++                fallback != nullptr ? JavaToNativeVideoEncoderFactory(env, fallback).release() : nullptr,
++                format).release());
 +}
 +
 +
