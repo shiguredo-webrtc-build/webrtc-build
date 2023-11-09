@@ -291,16 +291,17 @@ index 0000000000..4f1b55c713
 +@end
 diff --git a/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.mm b/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.mm
 new file mode 100644
-index 0000000000..c7d5e2939c
+index 0000000000..3e3da0f552
 --- /dev/null
 +++ b/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.mm
-@@ -0,0 +1,26 @@
+@@ -0,0 +1,29 @@
 +#import <Foundation/Foundation.h>
 +
 +#import "RTCMacros.h"
 +#import "RTCVideoEncoderSimulcast.h"
 +#import "RTCWrappedNativeVideoEncoder.h"
 +#import "api/peerconnection/RTCVideoCodecInfo+Private.h"
++#include "api/transport/field_trial_based_config.h"
 +
 +#include "native/api/video_encoder_factory.h"
 +#include "media/engine/simulcast_encoder_adapter.h"
@@ -313,11 +314,13 @@ index 0000000000..c7d5e2939c
 +    auto nativePrimary = webrtc::ObjCToNativeVideoEncoderFactory(primary);
 +    auto nativeFallback = webrtc::ObjCToNativeVideoEncoderFactory(fallback);
 +    auto nativeFormat = [videoCodecInfo nativeSdpVideoFormat];
++    auto fieldTrials = webrtc::FieldTrialBasedConfig();
 +    return [[RTC_OBJC_TYPE(RTCWrappedNativeVideoEncoder) alloc]
 +        initWithNativeEncoder: std::make_unique<webrtc::SimulcastEncoderAdapter>(
 +            nativePrimary.release(),
 +            nativeFallback.release(),
-+            std::move(nativeFormat))];
++            std::move(nativeFormat),
++            fieldTrials)];
 +}
 +
 +@end
