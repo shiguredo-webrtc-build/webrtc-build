@@ -271,7 +271,13 @@ PATCHES = {
 def apply_patch(patch, dir, depth):
     with cd(dir):
         logging.info(f'patch -p{depth} < {patch}')
-        if platform.system() == 'Windows':
+        # 全てのビルドで patch のかわりに git apply を利用しら Android のパッチ適用がエラーになった
+        # エラー内容は以下の通り
+        # INFO:root:patch -p1 < /home/runner/work/webrtc-build/webrtc-build/patches/android_hardware_video_encoder.patch
+        # error: corrupt patch at line 13
+        # ...
+        # subprocess.CalledProcessError: Command '['/usr/bin/git', 'apply', '-p1', '--ignore-space-change', '--ignore-whitespace', '--whitespace=nowarn', '/home/runner/work/webrtc-build/webrtc-build/patches/android_hardware_video_encoder.patch']' returned non-zero exit status 128.
+        if platform.system() in ['Windows', 'Darwin']:
             cmd(['git', 'apply', f'-p{depth}',
                 '--ignore-space-change', '--ignore-whitespace', '--whitespace=nowarn',
                  patch])
