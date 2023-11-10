@@ -271,13 +271,9 @@ PATCHES = {
 def apply_patch(patch, dir, depth):
     with cd(dir):
         logging.info(f'patch -p{depth} < {patch}')
-        if platform.system() == 'Windows':
-            cmd(['git', 'apply', f'-p{depth}',
-                '--ignore-space-change', '--ignore-whitespace', '--whitespace=nowarn',
-                 patch])
-        else:
-            with open(patch) as stdin:
-                cmd(['patch', f'-p{depth}'], stdin=stdin)
+        cmd(['git', 'apply', f'-p{depth}',
+             '--ignore-space-change', '--ignore-whitespace', '--whitespace=nowarn',
+             patch])
 
 
 def get_webrtc(source_dir, patch_dir, version, target,
