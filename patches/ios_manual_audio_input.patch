@@ -23,8 +23,8 @@ index 8ad0c21105..4f73c434b0 100644
 +#import <AudioUnit/AudioUnit.h>
 +#include "sdk/objc/native/src/audio/voice_processing_audio_unit.h"
  
- #include <vector>
- 
+ NS_ASSUME_NONNULL_BEGIN
+
 @@ -76,6 +78,12 @@ NS_ASSUME_NONNULL_BEGIN
  /** Notifies the receiver that a playout glitch was detected. */
  - (void)notifyDidDetectPlayoutGlitch:(int64_t)totalNumberOfGlitches;
