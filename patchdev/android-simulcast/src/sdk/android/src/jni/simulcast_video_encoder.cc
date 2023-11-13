@@ -20,7 +20,7 @@ JNIEXPORT jlong JNICALL Java_org_webrtc_SimulcastVideoEncoder_nativeCreateEncode
     RTC_LOG(LS_INFO) << "Create simulcast video encoder";
     JavaParamRef<jobject> info_ref(info);
     SdpVideoFormat format = VideoCodecInfoToSdpVideoFormat(env, info_ref);
-    auto fieldTrials = webrtc::FieldTrialBasedConfig();
+    auto field_trials = webrtc::FieldTrialBasedConfig();
 
     // TODO: 影響は軽微だが、リークする可能性があるので将来的に修正したい
     // https://github.com/shiguredo-webrtc-build/webrtc-build/pull/16#pullrequestreview-600675795
@@ -28,9 +28,8 @@ JNIEXPORT jlong JNICALL Java_org_webrtc_SimulcastVideoEncoder_nativeCreateEncode
                             JavaToNativeVideoEncoderFactory(env, primary).release(),
                             fallback != nullptr ? JavaToNativeVideoEncoderFactory(env, fallback).release() : nullptr,
                             format,
-                            fieldTrials).release());
+                            field_trials).release());
 }
-
 
 #ifdef __cplusplus
 }
