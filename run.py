@@ -271,7 +271,7 @@ PATCHES = {
 def apply_patch(patch, dir, depth):
     with cd(dir):
         logging.info(f'patch -p{depth} < {patch}')
-        # 全てのビルドで patch のかわりに git apply を利用しら Android のパッチ適用がエラーになった
+        # 全てのビルドで patch のかわりに git apply を利用したら Android のパッチ適用がエラーになった
         # エラー内容は以下の通り
         # INFO:root:patch -p1 < /home/runner/work/webrtc-build/webrtc-build/patches/android_hardware_video_encoder.patch
         # error: corrupt patch at line 13
