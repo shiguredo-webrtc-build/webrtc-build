@@ -873,7 +873,7 @@ new file mode 100644
 index 0000000000..79356cdec7
 --- /dev/null
 +++ b/sdk/objc/components/video_codec/RTCVideoEncoderH265.mm
-@@ -0,0 +1,638 @@
+@@ -0,0 +1,630 @@
 +/*
 + *  Copyright (c) 2018 The WebRTC project authors. All Rights Reserved.
 + *
@@ -911,8 +911,6 @@ index 0000000000..79356cdec7
 +#include "rtc_base/time_utils.h"
 +#include "sdk/objc/Framework/Classes/VideoToolbox/nalu_rewriter.h"
 +#include "system_wrappers/include/clock.h"
-+
-+VT_EXPORT const CFStringRef kVTVideoEncoderSpecification_RequiredLowLatency;
 +
 +@interface RTC_OBJC_TYPE (RTCVideoEncoderH265) ()
 +
@@ -1297,10 +1295,6 @@ index 0000000000..79356cdec7
 +#if defined(WEBRTC_MAC) && !defined(WEBRTC_IOS)
 +  CFDictionarySetValue(encoder_specs, kVTVideoEncoderSpecification_EnableHardwareAcceleratedVideoEncoder, kCFBooleanTrue);
 +#endif
-+  if (@available(iOS 14, macOS 11, *)) {
-+    if (_isLowLatencyEnabled)
-+      CFDictionarySetValue(encoder_specs, kVTVideoEncoderSpecification_RequiredLowLatency, kCFBooleanTrue);
-+  }
 +  OSStatus status = VTCompressionSessionCreate(
 +      nullptr,  // use default allocator
 +      _width, _height, kCMVideoCodecType_HEVC,
@@ -1309,8 +1303,6 @@ index 0000000000..79356cdec7
 +      nullptr,  // use default compressed data allocator
 +      compressionOutputCallback, nullptr, &_compressionSession);
 +  if (status != noErr) {
-+    if (encoder_specs)
-+      CFDictionaryRemoveValue(encoder_specs, kVTVideoEncoderSpecification_RequiredLowLatency);
 +    status = VTCompressionSessionCreate(
 +        nullptr,  // use default allocator
 +        _width, _height, kCMVideoCodecType_HEVC,
