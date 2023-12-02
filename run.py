@@ -1,17 +1,16 @@
-import subprocess
+import argparse
+import collections
 import json
 import logging
 import os
+import platform
+import re
+import shutil
+import subprocess
+import tarfile
 import urllib.parse
 import zipfile
-import tarfile
-import shutil
-import platform
-import argparse
-import collections
-import re
-from typing import Optional, Dict, List
-
+from typing import Dict, List, Optional
 
 logging.basicConfig(level=logging.INFO)
 
@@ -433,8 +432,8 @@ def get_build_targets(target):
     return ts
 
 
-IOS_ARCHS = ['simulator:x64', 'device:arm64']
-IOS_FRAMEWORK_ARCHS = ['simulator:x64', 'simulator:arm64', 'device:arm64']
+IOS_ARCHS = ['device:arm64']
+IOS_FRAMEWORK_ARCHS = ['simulator:arm64', 'device:arm64']
 
 
 def to_gn_args(gn_args: List[str], extra_gn_args: str) -> str:
