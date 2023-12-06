@@ -272,7 +272,7 @@ PATCHES = {
 def apply_patch(patch, dir, depth):
     with cd(dir):
         logging.info(f'patch -p{depth} < {patch}')
-        if platform.system() == 'Windows':
+        if platform.system() in ['Windows']:
             cmd(['git', 'apply', f'-p{depth}',
                 '--ignore-space-change', '--ignore-whitespace', '--whitespace=nowarn',
                  patch])

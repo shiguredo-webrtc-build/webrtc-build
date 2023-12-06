@@ -16,10 +16,10 @@ index 1e6621848..550b3e7e8 100644
    clang_base_path = default_clang_base_path
  }
 diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
-index 7196fcf6c..d0fa6d908 100644
+index 80bc79e5f..5835cb0f8 100644
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
-@@ -439,8 +439,8 @@ config("compiler") {
+@@ -484,8 +484,8 @@ config("compiler") {
      # faster.
      # On arm64, this is already the default behavior.
      if (current_cpu == "x64") {
@@ -28,9 +28,9 @@ index 7196fcf6c..d0fa6d908 100644
 +      #asmflags += [ "-femit-dwarf-unwind=no-compact-unwind" ]
 +      #cflags += [ "-femit-dwarf-unwind=no-compact-unwind" ]
      }
-   }
  
-@@ -542,37 +542,6 @@ config("compiler") {
+     # dsymutil is not available in the system, on bots, for rustc to call. Our
+@@ -593,55 +593,6 @@ config("compiler") {
      ldflags += [ "-Wl,-z,keep-text-section-prefix" ]
    }
  
@@ -54,6 +54,24 @@ index 7196fcf6c..d0fa6d908 100644
 -        ldflags += [ "-mllvm:-instcombine-lower-dbg-declare=0" ]
 -      } else {
 -        ldflags += [ "-Wl,-mllvm,-instcombine-lower-dbg-declare=0" ]
+-      }
+-    }
+-
+-    # TODO(crbug.com/1488374): This causes binary size growth and potentially
+-    # other problems.
+-    # TODO(crbug.com/1491036): This isn't supported by Cronet's mainline llvm version.
+-    if (default_toolchain != "//build/toolchain/cros:target" &&
+-        !llvm_android_mainline) {
+-      cflags += [
+-        "-mllvm",
+-        "-split-threshold-for-reg-with-hint=0",
+-      ]
+-      if (use_thin_lto && is_a_target_toolchain) {
+-        if (is_win) {
+-          ldflags += [ "-mllvm:-split-threshold-for-reg-with-hint=0" ]
+-        } else {
+-          ldflags += [ "-Wl,-mllvm,-split-threshold-for-reg-with-hint=0" ]
+-        }
 -      }
 -    }
 -

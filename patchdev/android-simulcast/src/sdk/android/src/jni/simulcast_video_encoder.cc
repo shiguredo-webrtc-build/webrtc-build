@@ -1,5 +1,6 @@
 #include <jni.h>
 
+#include "api/transport/field_trial_based_config.h"
 #include "sdk/android/src/jni/jni_helpers.h"
 #include "sdk/android/src/jni/video_encoder_factory_wrapper.h"
 #include "sdk/android/src/jni/video_codec_info.h"
@@ -19,15 +20,16 @@ JNIEXPORT jlong JNICALL Java_org_webrtc_SimulcastVideoEncoder_nativeCreateEncode
     RTC_LOG(LS_INFO) << "Create simulcast video encoder";
     JavaParamRef<jobject> info_ref(info);
     SdpVideoFormat format = VideoCodecInfoToSdpVideoFormat(env, info_ref);
+    auto field_trials = webrtc::FieldTrialBasedConfig();
 
     // TODO: 影響は軽微だが、リークする可能性があるので将来的に修正したい
     // https://github.com/shiguredo-webrtc-build/webrtc-build/pull/16#pullrequestreview-600675795
     return NativeToJavaPointer(std::make_unique<SimulcastEncoderAdapter>(
-			    JavaToNativeVideoEncoderFactory(env, primary).release(),
-			    fallback != nullptr ? JavaToNativeVideoEncoderFactory(env, fallback).release() : nullptr,
-			    format).release());
+                            JavaToNativeVideoEncoderFactory(env, primary).release(),
+                            fallback != nullptr ? JavaToNativeVideoEncoderFactory(env, fallback).release() : nullptr,
+                            format,
+                            field_trials).release());
 }
-
 
 #ifdef __cplusplus
 }
