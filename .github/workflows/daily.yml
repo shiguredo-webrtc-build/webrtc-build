@@ -16,6 +16,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: daily
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - run: python3 --version
       - name: Disk Cleanup
         run: |
           Get-PSDrive
@@ -56,21 +61,25 @@ jobs:
         name:
           - macos_arm64
           - ios
-    runs-on: macOS-11.0
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
         with:
           ref: daily
+      - name: Select Xcode 14.3.1
+        run: sudo xcode-select --switch /Applications/Xcode_14.3.1.app/Contents/Developer
       - run: cp VERSION.head VERSION
       - run: brew install ninja
       - name: Build ${{ matrix.name }} for macos
         if: matrix.name == 'macos_arm64'
         run: |
+          pip3 install setuptools
           python3 run.py build ${{ matrix.name }}
           python3 run.py package ${{ matrix.name }}
       - name: Build ${{ matrix.name }} for ios
         if: matrix.name == 'ios'
         run: |
+          pip3 install setuptools
           python3 run.py build ${{ matrix.name }} --webrtc-overlap-ios-build-dir
           python3 run.py package ${{ matrix.name }} --webrtc-overlap-ios-build-dir
       - name: Upload Artifact
