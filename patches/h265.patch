@@ -153,25 +153,22 @@ index 625869d8d5..ea127ed396 100644
    // Parse the PPS state, for a bit buffer where RBSP decoding has already been
    // performed.
 diff --git a/modules/rtp_rtcp/BUILD.gn b/modules/rtp_rtcp/BUILD.gn
-index 0fc9931f39..a36e126428 100644
+index b471c2fa76..7418449915 100644
 --- a/modules/rtp_rtcp/BUILD.gn
 +++ b/modules/rtp_rtcp/BUILD.gn
-@@ -258,6 +258,15 @@ rtc_library("rtp_rtcp") {
-     "source/video_rtp_depacketizer_vp9.h",
-   ]
+@@ -260,8 +260,10 @@ rtc_library("rtp_rtcp") {
  
-+  if (rtc_use_h265) {
-+    sources += [
+   if (rtc_use_h265) {
+     sources += [
+-      "source/rtp_packetizer_h265.cc",
+-      "source/rtp_packetizer_h265.h",
 +      "source/rtp_format_h265.cc",
 +      "source/rtp_format_h265.h",
 +      "source/video_rtp_depacketizer_h265.cc",
 +      "source/video_rtp_depacketizer_h265.h",
-+    ]
-+  }
-+
-   if (rtc_enable_bwe_test_logging) {
-     defines = [ "BWE_TEST_LOGGING_COMPILE_TIME_ENABLE=1" ]
-   } else {
+     ]
+   }
+
 diff --git a/modules/rtp_rtcp/source/create_video_rtp_depacketizer.cc b/modules/rtp_rtcp/source/create_video_rtp_depacketizer.cc
 index 95db212bef..598a86d4ad 100644
 --- a/modules/rtp_rtcp/source/create_video_rtp_depacketizer.cc
@@ -200,10 +197,10 @@ index 95db212bef..598a86d4ad 100644
      case kVideoCodecMultiplex:
        return std::make_unique<VideoRtpDepacketizerGeneric>();
 diff --git a/modules/rtp_rtcp/source/rtp_format.cc b/modules/rtp_rtcp/source/rtp_format.cc
-index 2c11a29bfa..e6c3e344a6 100644
+index c7534dee40..937a14c022 100644
 --- a/modules/rtp_rtcp/source/rtp_format.cc
 +++ b/modules/rtp_rtcp/source/rtp_format.cc
-@@ -14,11 +14,17 @@
+@@ -14,17 +14,23 @@
  
  #include "absl/types/variant.h"
  #include "modules/rtp_rtcp/source/rtp_format_h264.h"
@@ -221,7 +218,16 @@ index 2c11a29bfa..e6c3e344a6 100644
  #include "modules/video_coding/codecs/vp8/include/vp8_globals.h"
  #include "modules/video_coding/codecs/vp9/include/vp9_globals.h"
  #include "rtc_base/checks.h"
-@@ -43,6 +49,14 @@ std::unique_ptr<RtpPacketizer> RtpPacketizer::Create(
+-#ifdef RTC_ENABLE_H265
+-#include "modules/rtp_rtcp/source/rtp_packetizer_h265.h"
+-#endif
++// #ifdef RTC_ENABLE_H265
++// #include "modules/rtp_rtcp/source/rtp_packetizer_h265.h"
++// #endif
+ 
+ namespace webrtc {
+ 
+@@ -46,6 +52,14 @@ std::unique_ptr<RtpPacketizer> RtpPacketizer::Create(
        return std::make_unique<RtpPacketizerH264>(payload, limits,
                                                   h264.packetization_mode);
      }
@@ -236,6 +242,23 @@ index 2c11a29bfa..e6c3e344a6 100644
      case kVideoCodecVP8: {
        const auto& vp8 =
            absl::get<RTPVideoHeaderVP8>(rtp_video_header.video_type_header);
+@@ -60,11 +74,11 @@ std::unique_ptr<RtpPacketizer> RtpPacketizer::Create(
+       return std::make_unique<RtpPacketizerAv1>(
+           payload, limits, rtp_video_header.frame_type,
+           rtp_video_header.is_last_frame_in_picture);
+-#ifdef RTC_ENABLE_H265
+-    case kVideoCodecH265: {
+-      return std::make_unique<RtpPacketizerH265>(payload, limits);
+-    }
+-#endif
++// #ifdef RTC_ENABLE_H265
++//     case kVideoCodecH265: {
++//       return std::make_unique<RtpPacketizerH265>(payload, limits);
++//     }
++// #endif
+     default: {
+       return std::make_unique<RtpPacketizerGeneric>(payload, limits,
+                                                     rtp_video_header);
 diff --git a/modules/rtp_rtcp/source/rtp_format_h265.cc b/modules/rtp_rtcp/source/rtp_format_h265.cc
 new file mode 100644
 index 0000000000..b354bb84f1
@@ -889,7 +912,7 @@ index 0000000000..5d102f5c0b
 +  const size_t nalu_length = rtp_payload.size() - kHevcNalHeaderSize;
 +  uint8_t nal_type = (payload_data[0] & kHevcTypeMask) >> 1;
 +  std::vector<size_t> nalu_start_offsets;
-+  if (nal_type == H265::NaluType::kAP) {
++  if (nal_type == H265::NaluType::kAp) {
 +    // Skip the StapA header (StapA NAL type + length).
 +    if (rtp_payload.size() <= kHevcApHeaderSize) {
 +      RTC_LOG(LS_ERROR) << "AP header truncated.";
@@ -1011,8 +1034,8 @@ index 0000000000..5d102f5c0b
 +      case H265::NaluType::kPrefixSei:
 +      case H265::NaluType::kSuffixSei:
 +        break;
-+      case H265::NaluType::kAP:
-+      case H265::NaluType::kFU:
++      case H265::NaluType::kAp:
++      case H265::NaluType::kFu:
 +        RTC_LOG(LS_WARNING) << "Unexpected AP or FU received.";
 +        return absl::nullopt;
 +    }
@@ -1105,7 +1128,7 @@ index 0000000000..5d102f5c0b
 +
 +  uint8_t nal_type = (rtp_payload.cdata()[0] & kHevcTypeMask) >> 1;
 +
-+  if (nal_type == H265::NaluType::kFU) {
++  if (nal_type == H265::NaluType::kFu) {
 +    // Fragmented NAL units (FU-A).
 +    return ParseFuNalu(std::move(rtp_payload));
 +  } else {

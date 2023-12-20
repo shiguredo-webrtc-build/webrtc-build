@@ -201,12 +201,12 @@ index 88aac990f2..feca021d9a 100644
 +
  /** Set the options to be used for subsequently created RTCPeerConnections */
  - (void)setOptions:(nonnull RTC_OBJC_TYPE(RTCPeerConnectionFactoryOptions) *)options;
- 
+
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
-index c4d89e911d..a4824cb88b 100644
+index 15f9eb9ee4..b7a6bcaae7 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
-@@ -51,6 +51,67 @@
+@@ -51,6 +51,68 @@
  #import "sdk/objc/native/api/audio_device_module.h"
  #endif
  
@@ -215,6 +215,7 @@ index c4d89e911d..a4824cb88b 100644
 +#include <api/peer_connection_interface.h>
 +#include <api/scoped_refptr.h>
 +#include <pc/connection_context.h>
++#include <api/environment/environment_factory.h>
 +
 +namespace webrtc {
 +
@@ -225,7 +226,7 @@ index c4d89e911d..a4824cb88b 100644
 +  PeerConnectionFactoryWithContext(
 +      webrtc::PeerConnectionFactoryDependencies dependencies)
 +      : PeerConnectionFactoryWithContext(
-+            webrtc::ConnectionContext::Create(&dependencies),
++            webrtc::ConnectionContext::Create(CreateEnvironment(), &dependencies),
 +            &dependencies) {}
 +  PeerConnectionFactoryWithContext(
 +      rtc::scoped_refptr<webrtc::ConnectionContext> context,
@@ -274,7 +275,7 @@ index c4d89e911d..a4824cb88b 100644
  @implementation RTC_OBJC_TYPE (RTCPeerConnectionFactory) {
    std::unique_ptr<rtc::Thread> _networkThread;
    std::unique_ptr<rtc::Thread> _workerThread;
-@@ -59,6 +120,7 @@ @implementation RTC_OBJC_TYPE (RTCPeerConnectionFactory) {
+@@ -59,6 +121,7 @@ @implementation RTC_OBJC_TYPE (RTCPeerConnectionFactory) {
  }
  
  @synthesize nativeFactory = _nativeFactory;
@@ -282,7 +283,7 @@ index c4d89e911d..a4824cb88b 100644
  
  - (rtc::scoped_refptr<webrtc::AudioDeviceModule>)audioDeviceModule {
  #if defined(WEBRTC_IOS)
-@@ -145,7 +207,7 @@ - (instancetype)initWithNoMedia {
+@@ -145,7 +208,7 @@ - (instancetype)initWithNoMedia {
      if (webrtc::field_trial::IsEnabled("WebRTC-Network-UseNWPathMonitor")) {
        dependencies.network_monitor_factory = webrtc::CreateNetworkMonitorFactory();
      }
@@ -291,7 +292,7 @@ index c4d89e911d..a4824cb88b 100644
      NSAssert(_nativeFactory, @"Failed to initialize PeerConnectionFactory!");
    }
    return self;
-@@ -213,7 +275,7 @@ - (instancetype)initWithNativeAudioEncoderFactory:
+@@ -209,7 +272,7 @@ - (instancetype)initWithNativeAudioEncoderFactory:
      dependencies.event_log_factory =
          std::make_unique<webrtc::RtcEventLogFactory>(dependencies.task_queue_factory.get());
      dependencies.network_controller_factory = std::move(networkControllerFactory);
@@ -300,7 +301,7 @@ index c4d89e911d..a4824cb88b 100644
      NSAssert(_nativeFactory, @"Failed to initialize PeerConnectionFactory!");
    }
    return self;
-@@ -265,6 +327,31 @@ - (instancetype)initWithNativeAudioEncoderFactory:
+@@ -261,6 +324,31 @@ - (instancetype)initWithNativeAudioEncoderFactory:
    return [[RTC_OBJC_TYPE(RTCMediaStream) alloc] initWithFactory:self streamId:streamId];
  }
  
