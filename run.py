@@ -660,7 +660,7 @@ def build_webrtc(
             gn_args += [
                 'target_os="mac"',
                 'target_cpu="arm64"',
-                'mac_deployment_target="10.11"',
+                'mac_deployment_target="12"',
                 'enable_stripping=true',
                 'enable_dsyms=true',
                 'rtc_libvpx_build_vp9=true',
