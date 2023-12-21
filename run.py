@@ -330,6 +330,9 @@ VersionInfo = collections.namedtuple('VersionInfo', [
     'webrtc_commit',
     'webrtc_build_version',
 ])
+DepsInfo = collections.namedtuple('DepsInfo', [
+    'macos_deployment_target',
+])
 
 
 def archive_objects(ar, dir, output):
@@ -533,7 +536,8 @@ def build_webrtc_ios(
         with cd(os.path.join(webrtc_src_dir, 'tools_webrtc', 'ios')):
             ios_deployment_target = cmdcap(
                 ['python3', '-c',
-                 f'from build_ios_libs import IOS_MINIMUM_DEPLOYMENT_TARGET; print(IOS_MINIMUM_DEPLOYMENT_TARGET["{device}"])'])
+                 'from build_ios_libs import IOS_MINIMUM_DEPLOYMENT_TARGET;'
+                 f'print(IOS_MINIMUM_DEPLOYMENT_TARGET["{device}"])'])
 
         if not os.path.exists(os.path.join(work_dir, 'args.gn')) or gen or overlap_build_dir:
             gn_args = [
@@ -628,7 +632,7 @@ def build_webrtc_android(
 
 
 def build_webrtc(
-        source_dir, build_dir, target: str, version_info: VersionInfo, extra_gn_args,
+        source_dir, build_dir, target: str, version_info: VersionInfo, deps_info: DepsInfo, extra_gn_args,
         webrtc_source_dir=None, webrtc_build_dir=None,
         debug=False,
         gen=False, gen_force=False,
@@ -660,7 +664,7 @@ def build_webrtc(
             gn_args += [
                 'target_os="mac"',
                 'target_cpu="arm64"',
-                'mac_deployment_target="12"',
+                f'mac_deployment_target="{deps_info.macos_deployment_target}"',
                 'enable_stripping=true',
                 'enable_dsyms=true',
                 'rtc_libvpx_build_vp9=true',
@@ -784,6 +788,17 @@ def generate_version_info(webrtc_src_dir, webrtc_package_dir):
         f.writelines(map(lambda x: (x + '\n').encode('utf-8'), lines))
 
 
+def generate_deps_info(webrtc_src_dir, webrtc_package_dir):
+    shutil.copyfile('DEPS', os.path.join(webrtc_package_dir, 'DEPS'))
+    with cd(os.path.join(webrtc_src_dir, 'tools_webrtc', 'ios')):
+        ios_deployment_target = cmdcap(
+            ['python3', '-c',
+                'from build_ios_libs import IOS_MINIMUM_DEPLOYMENT_TARGET;'
+                'print(IOS_MINIMUM_DEPLOYMENT_TARGET["device"])'])
+    with open(os.path.join(webrtc_package_dir, 'DEPS'), 'ab') as f:
+        f.write(f'IOS_DEPLOYMENT_TARGET={ios_deployment_target}\n'.encode('utf-8'))
+
+
 def package_webrtc(source_dir, build_dir, package_dir, target,
                    webrtc_source_dir=None, webrtc_build_dir=None, webrtc_package_dir=None,
                    overlap_ios_build_dir=False):
@@ -831,6 +846,9 @@ def package_webrtc(source_dir, build_dir, package_dir, target,
 
     # バージョン情報
     generate_version_info(webrtc_src_dir, webrtc_package_dir)
+
+    # 依存情報
+    generate_deps_info(webrtc_src_dir, webrtc_package_dir)
 
     # ライブラリ
     if target in ['windows_x86_64', 'windows_arm64']:
@@ -1051,6 +1069,9 @@ def main():
         webrtc_version=version_file['WEBRTC_VERSION'],
         webrtc_commit=version_file['WEBRTC_COMMIT'],
         webrtc_build_version=version_file['WEBRTC_BUILD_VERSION'])
+    deps_file = read_version_file('DEPS')
+    deps_info = DepsInfo(
+        macos_deployment_target=deps_file['MACOS_DEPLOYMENT_TARGET'])
 
     if args.op == 'build':
         mkdir_p(source_dir)
@@ -1076,6 +1097,7 @@ def main():
                 'source_dir': source_dir,
                 'build_dir': build_dir,
                 'version_info': version_info,
+                'deps_info': deps_info,
                 'extra_gn_args': args.webrtc_extra_gn_args,
                 'webrtc_source_dir': webrtc_source_dir,
                 'webrtc_build_dir': webrtc_build_dir,
