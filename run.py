@@ -471,7 +471,7 @@ def get_webrtc_version_info(version_info: VersionInfo):
 
 
 def build_webrtc_ios(
-        source_dir, build_dir, version_info: VersionInfo, extra_gn_args,
+        source_dir, build_dir, version_info: VersionInfo, deps_info: DepsInfo, extra_gn_args,
         webrtc_source_dir=None, webrtc_build_dir=None,
         debug=False,
         gen=False, gen_force=False,
@@ -568,7 +568,7 @@ ANDROID_TARGET_CPU = {
 
 
 def build_webrtc_android(
-        source_dir, build_dir, version_info: VersionInfo, extra_gn_args,
+        source_dir, build_dir, version_info: VersionInfo, deps_info: DepsInfo, extra_gn_args,
         webrtc_source_dir=None, webrtc_build_dir=None,
         debug=False,
         gen=False, gen_force=False,
