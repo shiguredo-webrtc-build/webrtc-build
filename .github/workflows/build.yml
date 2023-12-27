@@ -98,6 +98,7 @@ jobs:
           - raspberry-pi-os_armv8
           - ubuntu-18.04_armv8
           - ubuntu-20.04_armv8
+          - ubuntu-22.04_armv8
           - ubuntu-20.04_x86_64
           - ubuntu-22.04_x86_64
           - android
@@ -177,6 +178,9 @@ jobs:
       - uses: ./.github/actions/download
         with:
           platform: ubuntu-20.04_armv8
+      - uses: ./.github/actions/download
+        with:
+          platform: ubuntu-22.04_armv8
       - uses: ./.github/actions/download
         with:
           platform: ubuntu-20.04_x86_64
