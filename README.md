@@ -45,6 +45,9 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
   - Jetson AGX Xavier
   - Jetson Orin NX
   - Jetson AGX Orin
+- ubuntu-22.04_armv8 (動作未確認)
+  - Jetson AGX Orin
+  - Jetson Orin Nano
 - ubuntu-20.04_x86_64
 - ubuntu-22.04_x86_64
 - android_arm64
