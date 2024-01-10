@@ -97,10 +97,11 @@ jobs:
           - raspberry-pi-os_armv8
           - ubuntu-18.04_armv8
           - ubuntu-20.04_armv8
+          - ubuntu-22.04_armv8
           - ubuntu-20.04_x86_64
           - ubuntu-22.04_x86_64
           - android
-    runs-on: ${{ matrix.name == 'ubuntu-22.04_x86_64' && 'ubuntu-22.04' || 'ubuntu-20.04' }}
+    runs-on: ${{ startsWith(matrix.name, 'ubuntu-22.04') && 'ubuntu-22.04' || 'ubuntu-20.04' }}
     steps:
       - uses: actions/checkout@v4
         with:
