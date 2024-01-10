@@ -247,18 +247,21 @@ PATCHES = {
         '4k.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
+        'h265.patch',
     ],
     'ubuntu-20.04_armv8': [
         'add_deps.patch',
         '4k.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
+        'h265.patch',
     ],
     'ubuntu-22.04_armv8': [
         'add_deps.patch',
         '4k.patch',
         'add_license_dav1d.patch',
         'ssl_verify_callback_with_native_handle.patch',
+        'h265.patch',
     ],
     'ubuntu-20.04_x86_64': [
         'add_deps.patch',
