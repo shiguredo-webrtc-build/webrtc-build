@@ -2,14 +2,14 @@ name: build
 on:
   push:
     paths-ignore:
-      - '**.md'
-      - 'LICENSE'
-      - 'NOTICE'
-      - '.gitignore'
+      - "**.md"
+      - "LICENSE"
+      - "NOTICE"
+      - ".gitignore"
     branches-ignore:
       - daily
     tags:
-      - '*'
+      - "*"
 jobs:
   build-windows:
     strategy:
@@ -21,7 +21,12 @@ jobs:
           - windows_hololens2
     runs-on: windows-2019
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - run: python3 --version
       - name: Disk Cleanup
         run: |
           Get-PSDrive
@@ -61,20 +66,22 @@ jobs:
         name:
           - macos_arm64
           - ios
-    runs-on: macOS-11.0
+    runs-on: macos-13
     steps:
-      - uses: actions/checkout@v3
-      - name: Select Xcode 13.0
-        run: sudo xcode-select --switch /Applications/Xcode_13.0.app/Contents/Developer
+      - uses: actions/checkout@v4
+      - name: Select Xcode 14.3.1
+        run: sudo xcode-select --switch /Applications/Xcode_14.3.1.app/Contents/Developer
       - run: brew install ninja
       - name: Build ${{ matrix.name }} for macos
         if: matrix.name == 'macos_arm64'
         run: |
+          pip3 install setuptools
           python3 run.py build ${{ matrix.name }}
           python3 run.py package ${{ matrix.name }}
       - name: Build ${{ matrix.name }} for ios
         if: matrix.name == 'ios'
         run: |
+          pip3 install setuptools
           python3 run.py build ${{ matrix.name }} --webrtc-overlap-ios-build-dir
           python3 run.py package ${{ matrix.name }} --webrtc-overlap-ios-build-dir
       - name: Upload Artifact
@@ -97,7 +104,7 @@ jobs:
           - android
     runs-on: ${{ matrix.name == 'ubuntu-22.04_x86_64' && 'ubuntu-22.04' || 'ubuntu-20.04' }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Disk Cleanup
         run: |
           set -x
@@ -143,7 +150,7 @@ jobs:
       - build-linux
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/download
         with:
           platform: windows_x86_64
@@ -192,5 +199,4 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
-          files:
-            ${{ steps.env.outputs.package_paths }}
+          files: ${{ steps.env.outputs.package_paths }}
