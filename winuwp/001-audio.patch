@@ -50,7 +50,7 @@ index d441479b33..2925586b0e 100644
            # Required for the built-in WASAPI AEC.
            "dmoguids.lib",
 diff --git a/modules/audio_device/audio_device_impl.cc b/modules/audio_device/audio_device_impl.cc
-index 01a8a25c06..98eba26d0e 100644
+index 80ed928933..50bf744032 100644
 --- a/modules/audio_device/audio_device_impl.cc
 +++ b/modules/audio_device/audio_device_impl.cc
 @@ -22,8 +22,12 @@
@@ -65,12 +65,12 @@ index 01a8a25c06..98eba26d0e 100644
 +#endif
  #elif defined(WEBRTC_ANDROID)
  #include <stdlib.h>
- #if defined(WEBRTC_AUDIO_DEVICE_INCLUDE_ANDROID_AAUDIO)
+ #include "sdk/android/native_api/audio_device_module/audio_device_android.h"
 diff --git a/build/config/win/BUILD.gn b/build/config/win/BUILD.gn
 index 1e76a54cc..b254b3ac8 100644
 --- a/build/config/win/BUILD.gn
 +++ b/build/config/win/BUILD.gn
-@@ -245,7 +245,16 @@ config("runtime_library") {
+@@ -245,7 +245,11 @@ config("runtime_library") {
      } else {
        defines += [ "WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP" ]
      }
@@ -80,11 +80,6 @@ index 1e76a54cc..b254b3ac8 100644
 +      "/await",
 +      "/EHsc",  # Required for having a wrapper using the WinRT/C++ projection.
 +    ]
-+    if (is_clang) {
-+      cflags += [
-+        "-Wno-microsoft-template",  # The audio module uses some templates Microsoft style.
-+      ]
-+    }
  
      # This warning is given because the linker cannot tell the difference
      # between consuming WinRT APIs versus authoring WinRT within static

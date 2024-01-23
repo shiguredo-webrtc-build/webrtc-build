@@ -622,7 +622,7 @@ void H264EncoderMFImpl::OnH264Encoded(ComPtr<IMFSample> sample) {
       }
     }
 
-    encodedImage.SetTimestamp(frameAttributes.timestamp);
+    encodedImage.SetRtpTimestamp(frameAttributes.timestamp);
     encodedImage.ntp_time_ms_ = frameAttributes.ntpTime;
     encodedImage.capture_time_ms_ = frameAttributes.captureRenderTime;
     encodedImage._encodedWidth = frameAttributes.frameWidth;

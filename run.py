@@ -285,6 +285,7 @@ WINUWP_ADDITIONAL_PATCHES = [
     '005-h264.patch',
     '006-logging.patch',
     '007-internal-error.patch',
+    '008-streamer.patch',
 ]
 WINUWP_ADDITIONAL_DIRS = [
     ['modules', 'audio_device', 'winuwp'],

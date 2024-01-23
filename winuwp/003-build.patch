@@ -15,24 +15,6 @@ index d5289b85d7..f5be6ebfbd 100644
        "api/video_codecs:video_encoder_factory_template_libvpx_vp8_adapter",
        "api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
        "api/video_codecs:video_encoder_factory_template_open_h264_adapter",
-diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index e74b85fcbf..dec9736fe5 100644
---- a/rtc_base/BUILD.gn
-+++ b/rtc_base/BUILD.gn
-@@ -1039,6 +1039,13 @@ if (is_win) {
-       "win32_window.h",
-     ]
- 
-+    if (current_os == "winuwp") {
-+      sources -= [
-+        "win32_window.cc",
-+        "win32_window.h",
-+      ]
-+    }
-+
-     deps = [
-       ":byte_order",
-       ":checks",
 diff --git a/rtc_base/file_rotating_stream.cc b/rtc_base/file_rotating_stream.cc
 index c529b5b1b4..515646b03b 100644
 --- a/rtc_base/file_rotating_stream.cc
@@ -98,19 +80,6 @@ index fe8ec1afdc..403c8a0de2 100644
  #define WEBRTC_DENORMAL_DISABLER_SUPPORTED
  #endif
  
-diff --git a/third_party/boringssl/BUILD.gn b/third_party/boringssl/BUILD.gn
-index efcbdf378b6..c0f70952bd5 100644
---- a/third_party/boringssl/BUILD.gn
-+++ b/third_party/boringssl/BUILD.gn
-@@ -96,7 +96,7 @@ if (is_win && !is_msan && current_cpu != "arm64") {
-         sources += crypto_sources_linux_aarch64
-       } else if (is_apple) {
-         sources += crypto_sources_apple_aarch64
--      } else if (is_win) {
-+      } else if (is_win && current_os != "winuwp") {
-         sources += crypto_sources_win_aarch64
-       } else {
-         public_configs = [ ":no_asm_config" ]
 diff --git a/third_party/crc32c/BUILD.gn b/third_party/crc32c/BUILD.gn
 index 38024bbd8d0..a40772c21e1 100644
 --- a/third_party/crc32c/BUILD.gn
@@ -146,22 +115,32 @@ index 758aca15407..60ef0074839 100644
    } else {  # This should only match windows.
      os_category = current_os
    }
-diff --git a/third_party/libvpx/source/libvpx/vpx_dsp/arm/fdct4x4_neon.c b/third_party/libvpx/source/libvpx/vpx_dsp/arm/fdct4x4_neon.c
-index 3b9196fae..a53c0f672 100644
---- a/third_party/libvpx/source/libvpx/vpx_dsp/arm/fdct4x4_neon.c
-+++ b/third_party/libvpx/source/libvpx/vpx_dsp/arm/fdct4x4_neon.c
-@@ -52,7 +52,11 @@ void vpx_fdct4x4_neon(const int16_t *input, tran_low_t *final_output,
+@@ -506,8 +508,10 @@ static_library("libvpx") {
+     deps += [ ":libvpx_intrinsics_neon" ]
+   }
+   if (current_cpu == "arm64") {
+-    deps += [ ":libvpx_intrinsics_neon_dotprod" ]
+-    deps += [ ":libvpx_intrinsics_neon_i8mm" ]
++    if (current_os != "winuwp") {
++      deps += [ ":libvpx_intrinsics_neon_dotprod" ]
++      deps += [ ":libvpx_intrinsics_neon_i8mm" ]
++    }
+   }
+   if (is_android) {
+     deps += [ "//third_party/cpu_features:ndk_compat" ]
+diff --git a/third_party/boringssl/BUILD.gn b/third_party/boringssl/BUILD.gn
+index 321a2dc2eb3..5b2045d8875 100644
+--- a/third_party/boringssl/BUILD.gn
++++ b/third_party/boringssl/BUILD.gn
+@@ -118,7 +118,7 @@ if (enable_rust_boringssl) {
+   }
+ }
  
- void vpx_highbd_fdct4x4_neon(const int16_t *input, tran_low_t *final_output,
-                              int stride) {
-+#if defined(_WIN32)
-+  const int32x4_t const_1000 = { .n128_u32 = {1, 0, 0, 0} };
-+#else
-   static const int32x4_t const_1000 = { 1, 0, 0, 0 };
-+#endif
-   const int32x4_t const_one = vdupq_n_s32(1);
- 
-   // input[M * stride] * 16
+-if (is_msan) {
++if (is_msan || current_os == "winuwp") {
+   # MSan instrumentation is incompatible with assembly optimizations.
+   # BoringSSL's GAS-compatible assembly knows how to detect MSan, but the NASM
+   # assembly does not, so we check for MSan explicitly.
 diff --git a/third_party/pffft/BUILD.gn b/third_party/pffft/BUILD.gn
 index 0a1cf7a1f5e..7c32b610ffe 100644
 --- a/third_party/pffft/BUILD.gn

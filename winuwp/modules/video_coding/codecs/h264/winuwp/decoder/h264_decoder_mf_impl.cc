@@ -413,12 +413,12 @@ HRESULT H264DecoderMFImpl::EnqueueFrame(const EncodedImage& input_image,
 
   int64_t sample_time_ms;
   if (first_frame_rtp_ == 0) {
-    first_frame_rtp_ = input_image.Timestamp();
+    first_frame_rtp_ = input_image.RtpTimestamp();
     sample_time_ms = 0;
   } else {
     // Convert from 90 khz, rounding to nearest ms.
     sample_time_ms =
-        (static_cast<uint64_t>(input_image.Timestamp()) - first_frame_rtp_) /
+        (static_cast<uint64_t>(input_image.RtpTimestamp()) - first_frame_rtp_) /
             90.0 +
         0.5f;
   }
@@ -503,7 +503,7 @@ int H264DecoderMFImpl::Decode(const EncodedImage& input_image,
     return WEBRTC_VIDEO_CODEC_ERROR;
 
   // Flush any decoded samples resulting from new frame, invoking callback
-  hr = FlushFrames(input_image.Timestamp(), input_image.ntp_time_ms_);
+  hr = FlushFrames(input_image.RtpTimestamp(), input_image.ntp_time_ms_);
 
   if (hr == MF_E_TRANSFORM_STREAM_CHANGE) {
     // Output media type is no longer suitable. Reconfigure and retry.
@@ -520,7 +520,7 @@ int H264DecoderMFImpl::Decode(const EncodedImage& input_image,
     width_.reset();
     height_.reset();
 
-    hr = FlushFrames(input_image.Timestamp(), input_image.ntp_time_ms_);
+    hr = FlushFrames(input_image.RtpTimestamp(), input_image.ntp_time_ms_);
   }
 
   if (SUCCEEDED(hr) || hr == MF_E_TRANSFORM_NEED_MORE_INPUT) {

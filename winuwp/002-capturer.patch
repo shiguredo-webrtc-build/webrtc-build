@@ -227,7 +227,7 @@ index 63534600a9..7d9a0a83aa 100644
    }
    bool operator==(const VideoCaptureCapability& other) const {
 diff --git a/modules/video_capture/video_capture_impl.cc b/modules/video_capture/video_capture_impl.cc
-index d539b38264..390fa4c123 100644
+index 428253bf23..eea8ebd2a9 100644
 --- a/modules/video_capture/video_capture_impl.cc
 +++ b/modules/video_capture/video_capture_impl.cc
 @@ -14,6 +14,7 @@
@@ -238,7 +238,7 @@ index d539b38264..390fa4c123 100644
  #include "api/video/video_frame_buffer.h"
  #include "common_video/libyuv/include/webrtc_libyuv.h"
  #include "modules/video_capture/video_capture_config.h"
-@@ -133,9 +134,17 @@ void VideoCaptureImpl::DeliverRawFrame(uint8_t* videoFrame,
+@@ -139,9 +139,17 @@ void VideoCaptureImpl::DeliverRawFrame(uint8_t* videoFrame,
  }
  
  int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
@@ -253,19 +253,25 @@ index d539b38264..390fa4c123 100644
 +    return IncomingFrameNV12(videoFrame, stride_y, plane_uv, stride_uv, videoFrameLength, frameInfo, captureTime);
 +  }
 +
+   RTC_CHECK_RUNS_SERIALIZED(&capture_checker_);
    MutexLock lock(&api_lock_);
  
-   const int32_t width = frameInfo.width;
-@@ -148,16 +156,8 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
+@@ -155,22 +163,8 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
      return 0;
    }
  
 -  // Not encoded, convert to I420.
--  if (frameInfo.videoType != VideoType::kMJPEG &&
--      CalcBufferSize(frameInfo.videoType, width, abs(height)) !=
--          videoFrameLength) {
--    RTC_LOG(LS_ERROR) << "Wrong incoming frame length.";
--    return -1;
+-  if (frameInfo.videoType != VideoType::kMJPEG) {
+-    // Allow buffers larger than expected. On linux gstreamer allocates buffers
+-    // page-aligned and v4l2loopback passes us the buffer size verbatim which
+-    // for most cases is larger than expected.
+-    // See https://github.com/umlaeute/v4l2loopback/issues/190.
+-    if (auto size = CalcBufferSize(frameInfo.videoType, width, abs(height));
+-        videoFrameLength < size) {
+-      RTC_LOG(LS_ERROR) << "Wrong incoming frame length. Expected " << size
+-                        << ", Got " << videoFrameLength << ".";
+-      return -1;
+-    }
 -  }
 -
 -  int stride_y = width;
@@ -275,7 +281,7 @@ index d539b38264..390fa4c123 100644
    int target_width = width;
    int target_height = abs(height);
  
-@@ -177,7 +177,7 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
+@@ -187,7 +181,7 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
    // In Windows, the image starts bottom left, instead of top left.
    // Setting a negative source height, inverts the image (within LibYuv).
    rtc::scoped_refptr<I420Buffer> buffer = I420Buffer::Create(
@@ -283,8 +289,8 @@ index d539b38264..390fa4c123 100644
 +      target_width, target_height, dst_stride_y, dst_stride_uv, dst_stride_uv);
  
    libyuv::RotationMode rotation_mode = libyuv::kRotate0;
-   if (apply_rotation) {
-@@ -198,10 +198,11 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
+   if (apply_rotation_) {
+@@ -208,10 +202,11 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
    }
  
    const int conversionResult = libyuv::ConvertToI420(
@@ -299,8 +305,8 @@ index d539b38264..390fa4c123 100644
 +      0,  // No Cropping
        width, height, target_width, target_height, rotation_mode,
        ConvertVideoType(frameInfo.videoType));
-   if (conversionResult < 0) {
-@@ -224,6 +225,40 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
+   if (conversionResult != 0) {
+@@ -234,6 +229,40 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
    return 0;
  }
  
@@ -340,7 +346,7 @@ index d539b38264..390fa4c123 100644
 +
  int32_t VideoCaptureImpl::StartCapture(
      const VideoCaptureCapability& capability) {
-   _requestedCapability = capability;
+   RTC_DCHECK_RUN_ON(&api_checker_);
 diff --git a/modules/video_capture/video_capture_impl.h b/modules/video_capture/video_capture_impl.h
 index 1f7aa89883..c186806ae5 100644
 --- a/modules/video_capture/video_capture_impl.h
@@ -424,13 +430,13 @@ index 481326c1d2..d299c7e175 100644
      return nullptr;
    }
 diff --git a/webrtc.gni b/webrtc.gni
-index 6e81fc4285..eb89c658fe 100644
+index 173d66c791..f101888462 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
-@@ -240,6 +240,15 @@ declare_args() {
-   #  "warn": RTC_LOGs a message with LS_WARNING severity if the field trial
-   #          hasn't been registered.
-   rtc_strict_field_trials = ""
+@@ -260,6 +260,15 @@ declare_args() {
+   # WebRTC does not declare its public dependencies. See webrtc:8603. Instead
+   # WebRTC is using a global common dependencies.
+   rtc_common_public_deps = []  # no-presubmit-check TODO(webrtc:8603)
 +
 +  # Defines which API should be used by the video capture module on Windows.
 +  # The following are the current options:

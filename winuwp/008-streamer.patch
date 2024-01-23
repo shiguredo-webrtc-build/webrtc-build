@@ -1,0 +1,80 @@
+diff --git a/rtc_base/checks.h b/rtc_base/checks.h
+index 99fee97d0a..4806805f71 100644
+--- a/rtc_base/checks.h
++++ b/rtc_base/checks.h
+@@ -229,19 +229,17 @@ template <>
+ class LogStreamer<> final {
+  public:
+   template <typename U,
+-            typename V = decltype(MakeVal(std::declval<U>())),
+             absl::enable_if_t<std::is_arithmetic<U>::value ||
+                               std::is_enum<U>::value>* = nullptr>
+-  RTC_FORCE_INLINE LogStreamer<V> operator<<(U arg) const {
+-    return LogStreamer<V>(MakeVal(arg), this);
++  RTC_FORCE_INLINE auto operator<<(U arg) const {
++    return LogStreamer<decltype(MakeVal(arg))>(MakeVal(arg), this);
+   }
+ 
+   template <typename U,
+-            typename V = decltype(MakeVal(std::declval<U>())),
+             absl::enable_if_t<!std::is_arithmetic<U>::value &&
+                               !std::is_enum<U>::value>* = nullptr>
+-  RTC_FORCE_INLINE LogStreamer<V> operator<<(const U& arg) const {
+-    return LogStreamer<V>(MakeVal(arg), this);
++  RTC_FORCE_INLINE auto operator<<(const U& arg) const {
++    return LogStreamer<decltype(MakeVal(arg))>(MakeVal(arg), this);
+   }
+ 
+ #if RTC_CHECK_MSG_ENABLED
+diff --git a/rtc_base/logging.h b/rtc_base/logging.h
+index b171cfe11e..a6d465b825 100644
+--- a/rtc_base/logging.h
++++ b/rtc_base/logging.h
+@@ -376,20 +376,9 @@ class LogStreamer;
+ template <>
+ class LogStreamer<> final {
+  public:
+-  template <typename U,
+-            typename V = decltype(MakeVal(std::declval<U>())),
+-            absl::enable_if_t<std::is_arithmetic<U>::value ||
+-                              std::is_enum<U>::value>* = nullptr>
+-  RTC_FORCE_INLINE LogStreamer<V> operator<<(U arg) const {
+-    return LogStreamer<V>(MakeVal(arg), this);
+-  }
+-
+-  template <typename U,
+-            typename V = decltype(MakeVal(std::declval<U>())),
+-            absl::enable_if_t<!std::is_arithmetic<U>::value &&
+-                              !std::is_enum<U>::value>* = nullptr>
+-  RTC_FORCE_INLINE LogStreamer<V> operator<<(const U& arg) const {
+-    return LogStreamer<V>(MakeVal(arg), this);
++  template <typename U>
++  RTC_FORCE_INLINE auto operator<<(const U& arg) const {
++    return LogStreamer<decltype(MakeVal(arg))>(MakeVal(arg), this);
+   }
+ 
+   template <typename... Us>
+@@ -407,20 +396,9 @@ class LogStreamer<T, Ts...> final {
+   RTC_FORCE_INLINE LogStreamer(T arg, const LogStreamer<Ts...>* prior)
+       : arg_(arg), prior_(prior) {}
+ 
+-  template <typename U,
+-            typename V = decltype(MakeVal(std::declval<U>())),
+-            absl::enable_if_t<std::is_arithmetic<U>::value ||
+-                              std::is_enum<U>::value>* = nullptr>
+-  RTC_FORCE_INLINE LogStreamer<V, T, Ts...> operator<<(U arg) const {
+-    return LogStreamer<V, T, Ts...>(MakeVal(arg), this);
+-  }
+-
+-  template <typename U,
+-            typename V = decltype(MakeVal(std::declval<U>())),
+-            absl::enable_if_t<!std::is_arithmetic<U>::value &&
+-                              !std::is_enum<U>::value>* = nullptr>
+-  RTC_FORCE_INLINE LogStreamer<V, T, Ts...> operator<<(const U& arg) const {
+-    return LogStreamer<V, T, Ts...>(MakeVal(arg), this);
++  template <typename U>
++  RTC_FORCE_INLINE auto operator<<(const U& arg) const {
++    return LogStreamer<decltype(MakeVal(arg)), T, Ts...>(MakeVal(arg), this);
+   }
+ 
+   template <typename... Us>
