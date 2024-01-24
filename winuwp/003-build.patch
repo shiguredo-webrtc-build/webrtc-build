@@ -115,19 +115,18 @@ index 758aca15407..60ef0074839 100644
    } else {  # This should only match windows.
      os_category = current_os
    }
-@@ -506,8 +508,10 @@ static_library("libvpx") {
-     deps += [ ":libvpx_intrinsics_neon" ]
+@@ -92,6 +94,11 @@ config("libvpx_config") {
+       "-Wno-unused-function",
+       "-Wno-sign-compare",
+     ]
++  } else if (current_os == "winuwp") {
++    cflags = [
++      "/D__ARM_FEATURE_DOTPROD",
++      "/D__ARM_FEATURE_MATMUL_INT8",
++    ]
    }
-   if (current_cpu == "arm64") {
--    deps += [ ":libvpx_intrinsics_neon_dotprod" ]
--    deps += [ ":libvpx_intrinsics_neon_i8mm" ]
-+    if (current_os != "winuwp") {
-+      deps += [ ":libvpx_intrinsics_neon_dotprod" ]
-+      deps += [ ":libvpx_intrinsics_neon_i8mm" ]
-+    }
-   }
-   if (is_android) {
-     deps += [ "//third_party/cpu_features:ndk_compat" ]
+ }
+ 
 diff --git a/third_party/boringssl/BUILD.gn b/third_party/boringssl/BUILD.gn
 index 321a2dc2eb3..5b2045d8875 100644
 --- a/third_party/boringssl/BUILD.gn
