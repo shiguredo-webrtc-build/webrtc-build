@@ -1792,7 +1792,7 @@ index cb0644a7fd..7e1f986a84 100644
      virtual void FillVideoCodecVp9(VideoCodecVP9* vp9_settings) const;
      virtual void FillVideoCodecAv1(VideoCodecAV1* av1_settings) const;
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index 9a38097a93..727dbc3867 100644
+index badb942cd4..d032643287 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
 @@ -39,6 +39,9 @@
@@ -1805,7 +1805,7 @@ index 9a38097a93..727dbc3867 100644
  #include "modules/video_coding/nack_requester.h"
  #include "modules/video_coding/packet_buffer.h"
  #include "rtc_base/checks.h"
-@@ -695,7 +698,33 @@ void RtpVideoStreamReceiver2::OnReceivedPayloadData(
+@@ -690,7 +693,33 @@ bool RtpVideoStreamReceiver2::OnReceivedPayloadData(
          packet->video_payload = std::move(fixed.bitstream);
          break;
      }
@@ -1830,7 +1830,7 @@ index 9a38097a93..727dbc3867 100644
 +        rtcp_feedback_buffer_.SendBufferedRtcpFeedback();
 +        ABSL_FALLTHROUGH_INTENDED;
 +      case video_coding::H265VpsSpsPpsTracker::kDrop:
-+        return;
++        return false;
 +      case video_coding::H265VpsSpsPpsTracker::kInsert:
 +        packet->video_payload = std::move(fixed.bitstream);
 +        break;
