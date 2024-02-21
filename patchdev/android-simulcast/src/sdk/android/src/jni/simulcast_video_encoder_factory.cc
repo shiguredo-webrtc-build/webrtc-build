@@ -30,7 +30,7 @@ JNIEXPORT jobject JNICALL Java_org_webrtc_SimulcastVideoEncoderFactory_nativeVP9
 JNIEXPORT jobject JNICALL Java_org_webrtc_SimulcastVideoEncoderFactory_nativeAV1Codec
   (JNIEnv *env, jclass klass) {
     SdpVideoFormat format = SdpVideoFormat(
-        cricket::kAv1CodecName, SdpVideoFormat::Parameters(),
+        cricket::kAv1CodecName, webrtc::CodecParameterMap(),
         LibaomAv1EncoderSupportedScalabilityModes());
     return SdpVideoFormatToVideoCodecInfo(env, format).Release();
 }

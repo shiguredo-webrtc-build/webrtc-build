@@ -428,7 +428,7 @@ WEBRTC_BUILD_TARGETS_MACOS_COMMON = [
     'api/task_queue:default_task_queue_factory',
     'sdk:native_api',
     'sdk:default_codec_factory_objc',
-    'pc:peerconnection',
+    'pc:peer_connection',
     'sdk:videocapture_objc',
 ]
 WEBRTC_BUILD_TARGETS = {
