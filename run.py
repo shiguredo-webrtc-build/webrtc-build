@@ -196,6 +196,7 @@ PATCHES = {
         'macos_use_xcode_clang.patch',
         'h265.patch',
         'h265_ios.patch',
+        'arm_neon_sve_bridge.patch',
     ],
     'ios': [
         'add_deps.patch',
@@ -209,6 +210,7 @@ PATCHES = {
         'ios_proxy.patch',
         'h265.patch',
         'h265_ios.patch',
+        'arm_neon_sve_bridge.patch',
     ],
     'android': [
         'add_deps.patch',
