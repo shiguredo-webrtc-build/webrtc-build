@@ -65,7 +65,7 @@ jobs:
         name:
           - macos_arm64
           - ios
-    runs-on: macos-14
+    runs-on: macos-14.2
     steps:
       - uses: actions/checkout@v4
       - name: Select Xcode 15.2
