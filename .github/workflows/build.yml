@@ -65,11 +65,11 @@ jobs:
         name:
           - macos_arm64
           - ios
-    runs-on: macos-14.2
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
-      - name: Select Xcode 15.2
-        run: sudo xcode-select --switch /Applications/Xcode_15.2.app/Contents/Developer
+      - name: Select Xcode 14.3.1
+        run: sudo xcode-select --switch /Applications/Xcode_14.3.1.app/Contents/Developer
       - run: brew install ninja
       - name: Build ${{ matrix.name }} for macos
         if: matrix.name == 'macos_arm64'
