@@ -114,8 +114,8 @@ $ find $(xcode-select --print-path) | grep arm_neon
 
 シンボリック・リンクとして `$(xcode-select --print-path)/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang` 以下に `arm_neon_sve_bridge.h` を追加することでエラーが解消することも確認したが、以下の理由により採用しなかった。
 
-- libvpx 以外のビルドにもパッチの影響が広がってしまう
-- ビルドが通る状態の `arm_neon_sve_bridge.h` をパッチとして追加する方が、ビルドの再現性が高い
+- Xcode のディレクトリに修正を加えるのは望ましくない
+- webrtc-build のリリース・バイナリを参照する他のリポジトリ (Sora C++ SDK, Sora Python SDK, Sora Unity SDK) でも同様の対応が必要になる
 
 また、ファイルの追加に伴い、リリース・バイナリの NOTICE ファイルに LLVM のライセンスを追加する必要が生じたため、 run.py も併せて修正した。
 このパッチが不要になった場合、その処理は削除する必要がある。
