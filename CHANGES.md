@@ -12,6 +12,11 @@
 VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 パッチやビルドの変更のみ記録すること。
 
+## master
+
+- [FIX] リリース・バイナリを利用した Windows 向けのビルドが `error C3827: standard attribute 'deprecated' may have either no arguments or one string literal` というエラーになる問題を修正するパッチを追加する
+  - @enm10k 
+
 ## m120.6099.1.2
 
 - [ADD] DEPS ファイルを追加して、依存するバージョンを明示する
