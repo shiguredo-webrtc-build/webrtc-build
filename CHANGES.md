@@ -12,7 +12,7 @@
 VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 パッチやビルドの変更のみ記録すること。
 
-## master
+## 122.6261.0.1
 
 - [FIX] リリース・バイナリを利用した Windows 向けのビルドが `error C3827: standard attribute 'deprecated' may have either no arguments or one string literal` というエラーになる問題を修正するパッチを追加する
   - @enm10k 
