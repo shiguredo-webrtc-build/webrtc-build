@@ -27,17 +27,17 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 - [ADD] H.265 パッチを追加する WebRTC 119.6045.2.0 / WebKit f92a593e ベース
   - @tnoho
 
-## master
-
-- [CHANGE] ビルド全体で例外を有効にする
-  - @melpon
-
 ## m114.5735.2.2
 
 - [CHANGE] iOS を scalability mode に対応する
   - @szktty
 - [FIX] iOS のサイマルキャストが VP9 と AV1 で動作しない問題を修正する
   - @szktty
+
+## m114.5735.0.0 
+
+- [CHANGE] ビルド全体で例外を有効にする
+  - @melpon
 
 ## m111.5563.4.3
 
