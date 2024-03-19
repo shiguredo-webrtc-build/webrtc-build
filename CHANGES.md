@@ -14,7 +14,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## master
 
-- [UPDATE] ubuntu-20.04_x86_64, ubuntu-22.04_x86_64 のビルド時に h265.patch を適用する
+- [UPDATE] ubuntu-20.04_x86_64, ubuntu-22.04_x86_64, windows_x86_64, windows_arm64 のビルドに h265.patch を適用する
   - @enm10k
 
 ## 122.6261.0.1

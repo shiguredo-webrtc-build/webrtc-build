@@ -1565,7 +1565,7 @@ index 0000000000..5f53faab1a
 +
 +#endif  // MODULES_VIDEO_CODING_H265_SPS_PPS_TRACKER_H_
 diff --git a/modules/video_coding/include/video_codec_interface.h b/modules/video_coding/include/video_codec_interface.h
-index c6522fcc6b..de6e7ab981 100644
+index 987e1b623e..7a5cab75b0 100644
 --- a/modules/video_coding/include/video_codec_interface.h
 +++ b/modules/video_coding/include/video_codec_interface.h
 @@ -20,6 +20,9 @@
@@ -1578,9 +1578,9 @@ index c6522fcc6b..de6e7ab981 100644
  #include "modules/video_coding/codecs/vp9/include/vp9_globals.h"
  #include "modules/video_coding/include/video_error_codes.h"
  #include "rtc_base/system/rtc_export.h"
-@@ -90,10 +93,20 @@ struct CodecSpecificInfoH264 {
- };
- static_assert(std::is_pod<CodecSpecificInfoH264>::value, "");
+@@ -96,10 +99,20 @@ static_assert(std::is_trivial_v<CodecSpecificInfoH264> &&
+                   std::is_standard_layout_v<CodecSpecificInfoH264>,
+               "");
  
 +#ifdef RTC_ENABLE_H265
 +struct CodecSpecificInfoH265 {
@@ -1597,8 +1597,9 @@ index c6522fcc6b..de6e7ab981 100644
 +  CodecSpecificInfoH265 H265;
 +#endif
  };
- static_assert(std::is_pod<CodecSpecificInfoUnion>::value, "");
- 
+ static_assert(std::is_trivial_v<CodecSpecificInfoUnion> &&
+                   std::is_standard_layout_v<CodecSpecificInfoUnion>,
+               "");
 diff --git a/modules/video_coding/packet_buffer.cc b/modules/video_coding/packet_buffer.cc
 index 420a200ba9..635f90a748 100644
 --- a/modules/video_coding/packet_buffer.cc
