@@ -195,6 +195,7 @@ PATCHES = {
         "windows_fix_audio_device.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "windows_fix_typo_in_deprecated_attribute.patch",
+        "h265.patch",
     ],
     "windows_arm64": [
         "4k.patch",
