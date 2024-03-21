@@ -15,7 +15,7 @@ from typing import Dict, List, Optional
 logging.basicConfig(level=logging.INFO)
 
 
-ARM_NEON_SVE_BRIDGE_LICENSE = '''/*===---- arm_neon_sve_bridge.h - ARM NEON SVE Bridge intrinsics -----------===
+ARM_NEON_SVE_BRIDGE_LICENSE = """/*===---- arm_neon_sve_bridge.h - ARM NEON SVE Bridge intrinsics -----------===
  *
  *
  * Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -23,7 +23,7 @@ ARM_NEON_SVE_BRIDGE_LICENSE = '''/*===---- arm_neon_sve_bridge.h - ARM NEON SVE 
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  *
  *===-----------------------------------------------------------------------===
- */'''
+ */"""
 
 
 class ChangeDirectory(object):
@@ -194,7 +194,6 @@ PATCHES = {
         "windows_fix_optional.patch",
         "windows_fix_audio_device.patch",
         "ssl_verify_callback_with_native_handle.patch",
-        "windows_fix_typo_in_deprecated_attribute.patch",
     ],
     "windows_arm64": [
         "4k.patch",
@@ -204,7 +203,6 @@ PATCHES = {
         "windows_fix_optional.patch",
         "windows_fix_audio_device.patch",
         "ssl_verify_callback_with_native_handle.patch",
-        "windows_fix_typo_in_deprecated_attribute.patch",
     ],
     "macos_arm64": [
         "add_deps.patch",
@@ -1032,7 +1030,7 @@ def package_webrtc(
         os.path.join(webrtc_package_dir, "LICENSE.md"), os.path.join(webrtc_package_dir, "NOTICE")
     )
 
-    if target in ['ios', 'macos_arm64']:
+    if target in ["ios", "macos_arm64"]:
         # libwebrtc を　M123 に更新した際に、 Xcode で libvpx がビルドできなくなった
         # LLVM 由来の arm_neon_sve_bridge.h というファイルをパッチで追加してビルド・エラーを解消したので、
         # ライセンスを追加する
@@ -1042,12 +1040,12 @@ def package_webrtc(
         #
         # 当初は generate_licenses.py に `--target 'buildtools/third_party/libc++'` を指定する方法も検討したが、
         # iOS/macOS のビルドでは libc++ が gn のターゲットに含まれていないため、エラーになった
-        with open(os.path.join(webrtc_package_dir, 'NOTICE'), 'a') as f:
-            f.write(f'''# arm_neon_sve_bridge.h
+        with open(os.path.join(webrtc_package_dir, "NOTICE"), "a") as f:
+            f.write(f"""# arm_neon_sve_bridge.h
 ```
 {ARM_NEON_SVE_BRIDGE_LICENSE}
 ```
-''')
+""")
 
     # ヘッダーファイルをコピー
     copy_headers(webrtc_src_dir, webrtc_package_dir, target)
