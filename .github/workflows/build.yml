@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python 3.11
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
       - run: python3 --version
@@ -54,7 +54,7 @@ jobs:
           python3 run.py build ${{ matrix.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build'
           python3 run.py package ${{ matrix.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build'
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: webrtc.${{ matrix.name }}.zip
           path: _package/${{ matrix.name }}/webrtc.${{ matrix.name }}.zip
@@ -84,7 +84,7 @@ jobs:
           python3 run.py build ${{ matrix.name }} --webrtc-overlap-ios-build-dir
           python3 run.py package ${{ matrix.name }} --webrtc-overlap-ios-build-dir
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: webrtc.${{ matrix.name }}.tar.gz
           path: _package/${{ matrix.name }}/webrtc.${{ matrix.name }}.tar.gz
@@ -137,7 +137,7 @@ jobs:
           python3 run.py build ${{ matrix.name }}
           python3 run.py package ${{ matrix.name }}
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: webrtc.${{ matrix.name }}.tar.gz
           path: _package/${{ matrix.name }}/webrtc.${{ matrix.name }}.tar.gz
