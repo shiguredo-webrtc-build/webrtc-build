@@ -15,6 +15,17 @@ from typing import Dict, List, Optional
 logging.basicConfig(level=logging.INFO)
 
 
+ARM_NEON_SVE_BRIDGE_LICENSE = '''/*===---- arm_neon_sve_bridge.h - ARM NEON SVE Bridge intrinsics -----------===
+ *
+ *
+ * Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+ * See https://llvm.org/LICENSE.txt for license information.
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ *
+ *===-----------------------------------------------------------------------===
+ */'''
+
+
 class ChangeDirectory(object):
     def __init__(self, cwd):
         self._cwd = cwd
@@ -205,6 +216,7 @@ PATCHES = {
         "macos_use_xcode_clang.patch",
         "h265.patch",
         "h265_ios.patch",
+        "arm_neon_sve_bridge.patch",
     ],
     "ios": [
         "add_deps.patch",
@@ -218,6 +230,7 @@ PATCHES = {
         "ios_proxy.patch",
         "h265.patch",
         "h265_ios.patch",
+        "arm_neon_sve_bridge.patch",
     ],
     "android": [
         "add_deps.patch",
@@ -1018,6 +1031,23 @@ def package_webrtc(
     os.rename(
         os.path.join(webrtc_package_dir, "LICENSE.md"), os.path.join(webrtc_package_dir, "NOTICE")
     )
+
+    if target in ['ios', 'macos_arm64']:
+        # libwebrtc を　M123 に更新した際に、 Xcode で libvpx がビルドできなくなった
+        # LLVM 由来の arm_neon_sve_bridge.h というファイルをパッチで追加してビルド・エラーを解消したので、
+        # ライセンスを追加する
+        #
+        # chromium の LLVM を利用している場合は LLVM のライセンスが generate_licenses.py の出力に含まれるが、
+        # Xcode の LLVM を利用する場合はその限りではないので、この対応が必要になった
+        #
+        # 当初は generate_licenses.py に `--target 'buildtools/third_party/libc++'` を指定する方法も検討したが、
+        # iOS/macOS のビルドでは libc++ が gn のターゲットに含まれていないため、エラーになった
+        with open(os.path.join(webrtc_package_dir, 'NOTICE'), 'a') as f:
+            f.write(f'''# arm_neon_sve_bridge.h
+```
+{ARM_NEON_SVE_BRIDGE_LICENSE}
+```
+''')
 
     # ヘッダーファイルをコピー
     copy_headers(webrtc_src_dir, webrtc_package_dir, target)

@@ -87,6 +87,39 @@ PeerConnectionDependencies dependencies = PeerConnectionDependencies
 PeerConnection pc = factory.createPeerConnection(rtcConfig, dependencies);
 ```
 
+## arm_neon_sve_bridge.patch
+
+iOS/macOS における libvpx ビルド時に `arm_neon_sve_bridge.h` が見つからずにエラーになる問題に対応するパッチ。
+このエラーは libwebrtc を M122 から M123 に更新したタイミングで発生した。
+
+`arm_neon_sve_bridge.h` は LLVM に含まれるファイルだが、 Homebrew でインストールした LLVM と Xcode では配置されているパスが異なっていた。
+`arm_neon_sve_bridge.h` をパッチで追加して libvpx のビルドで参照できるようにしたところ、ビルドが成功した。
+
+```
+# llvm@15 では arm_neon_sve_bridge.h は存在しない
+$ find $(brew --prefix llvm@15)/lib | grep arm_neon
+/opt/homebrew/opt/llvm@15/lib/clang/15.0.7/include/arm_neon.h
+
+# llvm@16 から追加されている
+$ find $(brew --prefix llvm@16)/lib | grep arm_neon
+/opt/homebrew/opt/llvm@16/lib/clang/16/include/arm_neon_sve_bridge.h
+/opt/homebrew/opt/llvm@16/lib/clang/16/include/arm_neon.h
+
+# Xcode では tapi 以下に存在する
+$ find $(xcode-select --print-path) | grep arm_neon                                                           
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/15.0.0/include/arm_neon.h
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/tapi/15.0.0/include/arm_neon_sve_bridge.h
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/tapi/15.0.0/include/arm_neon.h
+```
+
+シンボリック・リンクとして `$(xcode-select --print-path)/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang` 以下に `arm_neon_sve_bridge.h` を追加することでエラーが解消することも確認したが、以下の理由により採用しなかった。
+
+- Xcode のディレクトリに修正を加えるのは望ましくない
+- webrtc-build のリリース・バイナリを参照する他のリポジトリ (Sora C++ SDK, Sora Python SDK, Sora Unity SDK) でも同様の対応が必要になる
+
+また、ファイルの追加に伴い、リリース・バイナリの NOTICE ファイルに LLVM のライセンスを追加する必要が生じたため、 run.py も併せて修正した。
+このパッチが不要になった場合、その処理は削除する必要がある。
+
 ## ios_build.patch
 
 iOS のビルドで発生した問題を修正するパッチ。  
