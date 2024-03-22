@@ -79,7 +79,7 @@ index a596af1528..2113857678 100644
   private:
    // TODO(hta): Consider replacing the union with a pointer type.
 diff --git a/call/rtp_payload_params.cc b/call/rtp_payload_params.cc
-index 4b63ebefb3..086a308d3f 100644
+index c21793ce4d..f572741eae 100644
 --- a/call/rtp_payload_params.cc
 +++ b/call/rtp_payload_params.cc
 @@ -96,6 +96,14 @@ void PopulateRtpWithCodecSpecifics(const CodecSpecificInfo& info,
@@ -94,9 +94,9 @@ index 4b63ebefb3..086a308d3f 100644
 +      return;
 +    }
 +#endif
-     case kVideoCodecMultiplex:
      case kVideoCodecGeneric:
        rtp->codec = kVideoCodecGeneric;
+       return;
 diff --git a/common_video/h265/h265_pps_parser.cc b/common_video/h265/h265_pps_parser.cc
 index 1cc9abd794..d8fa785b0e 100644
 --- a/common_video/h265/h265_pps_parser.cc
