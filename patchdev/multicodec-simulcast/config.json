@@ -1,0 +1,30 @@
+{
+    "output": "multicodec-simulcast.patch",
+    "platform": "ubuntu-20.04_x86_64",
+    "build_flags": "--debug",
+    "sources": [
+        "pc/sdp_offer_answer.cc",
+        "media/engine/webrtc_video_engine.cc",
+        "video/config/video_encoder_config.h",
+        "call/rtp_config.h",
+        "call/rtp_config.cc",
+        "media/engine/webrtc_video_engine.h",
+        "call/call.cc",
+        "call/adaptation/video_stream_input_state_provider.cc",
+        "call/adaptation/encoder_settings.cc",
+        "video/video_send_stream_impl.cc",
+        "video/video_stream_encoder.cc",
+        "media/engine/simulcast_encoder_adapter.h",
+        "media/engine/simulcast_encoder_adapter.cc",
+        "modules/video_coding/video_codec_initializer.cc",
+        "api/video_codecs/video_codec.cc",
+        "video/config/video_encoder_config.cc",
+        "video/config/encoder_stream_factory.cc",
+        "api/video_codecs/simulcast_stream.h",
+        "call/rtp_video_sender.cc",
+        "video/send_statistics_proxy.cc",
+        "p2p/base/port.cc"
+    ],
+    "jni_classpaths": [],
+    "jni_classes": {}
+}

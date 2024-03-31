@@ -11,4 +11,11 @@
       "source.organizeImports.ruff": "explicit"
     }
   },
+  "files.associations": {
+    "*.cs": "csharp",
+    "CMakeLists.txt": "cmake",
+    "*.tcc": "cpp",
+    "regex": "cpp",
+    "vector": "cpp"
+  },
 }
