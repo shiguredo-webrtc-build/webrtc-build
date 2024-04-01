@@ -443,11 +443,6 @@ RtpVideoSender::RtpVideoSender(
   }
 
   bool fec_enabled = false;
-  RTC_LOG(LS_ERROR) << "rtp_streams_.size()=" << rtp_streams_.size();
-  RTC_LOG(LS_ERROR) << "payload_types.size()=" << rtp_config.payload_types.size();
-  for (size_t i = 0; i < rtp_config_.payload_types.size(); ++i) {
-    RTC_LOG(LS_ERROR) << "  payload_types[i]=" << rtp_config_.payload_types[i];
-  }
   for (size_t i = 0; i < rtp_streams_.size(); i++) {
     const RtpStreamSender& stream = rtp_streams_[i];
     // Simulcast has one module for each layer. Set the CNAME on all modules.

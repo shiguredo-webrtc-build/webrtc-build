@@ -1,5 +1,5 @@
 {
-    "output": "multi-codec-simulcast.patch",
+    "output": "multi_codec_simulcast.patch",
     "platform": "ubuntu-20.04_x86_64",
     "build_flags": "--debug",
     "sources": [

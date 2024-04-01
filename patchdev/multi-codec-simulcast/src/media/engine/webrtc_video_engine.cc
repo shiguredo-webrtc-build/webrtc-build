@@ -774,7 +774,6 @@ std::vector<VideoCodecSettings> SendCodecsToSimulcastLayers(const std::vector<Vi
     for (auto& codec : send_codecs) {
       if (codec.codec.id == payload_type) {
         codec_settings.push_back(codec);
-        RTC_LOG(LS_ERROR) << "Codec: " << rid.rid << "=" << codec.codec.id;
         break;
       }
     }
@@ -2155,7 +2154,6 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
     const std::vector<VideoCodecSettings>& codec_settings) const {
   RTC_DCHECK_RUN_ON(&thread_checker_);
   webrtc::VideoEncoderConfig encoder_config;
-  RTC_LOG(LS_ERROR) << "codec_settings.size()=" << codec_settings.size();
   for (const auto& codec : codec_settings) {
     encoder_config.codec_types.push_back(webrtc::PayloadStringToCodecType(codec.codec.name));
     encoder_config.video_formats.push_back(webrtc::SdpVideoFormat(codec.codec.name, codec.codec.params));
