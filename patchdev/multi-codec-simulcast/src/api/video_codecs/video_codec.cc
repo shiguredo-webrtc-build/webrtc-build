@@ -53,6 +53,15 @@ bool VideoCodecH264::operator==(const VideoCodecH264& other) const {
           numberOfTemporalLayers == other.numberOfTemporalLayers);
 }
 
+bool VideoCodecH265::operator==(const VideoCodecH265& other) const {
+  return (frameDroppingOn == other.frameDroppingOn &&
+          keyFrameInterval == other.keyFrameInterval &&
+          vpsLen == other.vpsLen && spsLen == other.spsLen &&
+          ppsLen == other.ppsLen &&
+          (spsLen == 0 || memcmp(spsData, other.spsData, spsLen) == 0) &&
+          (ppsLen == 0 || memcmp(ppsData, other.ppsData, ppsLen) == 0));
+}
+
 VideoCodec::VideoCodec()
     : codecType(kVideoCodecGeneric),
       width(0),
@@ -101,6 +110,16 @@ VideoCodecH264* VideoCodec::H264() {
 const VideoCodecH264& VideoCodec::H264() const {
   // RTC_DCHECK_EQ(codecType, kVideoCodecH264);
   return codec_specific_.H264;
+}
+
+VideoCodecH265* VideoCodec::H265() {
+  // RTC_DCHECK_EQ(codecType, kVideoCodecH265);
+  return &codec_specific_.H265;
+}
+
+const VideoCodecH265& VideoCodec::H265() const {
+  // RTC_DCHECK_EQ(codecType, kVideoCodecH265);
+  return codec_specific_.H265;
 }
 
 VideoCodecAV1* VideoCodec::AV1() {

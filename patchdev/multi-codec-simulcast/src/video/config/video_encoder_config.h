@@ -97,6 +97,9 @@ class VideoEncoderConfig {
     // directly.
     void FillEncoderSpecificSettings(VideoCodec* codec_struct) const;
 
+#ifdef RTC_ENABLE_H265
+    virtual void FillVideoCodecH265(VideoCodecH265* h265_settings) const;
+#endif
     virtual void FillVideoCodecVp8(VideoCodecVP8* vp8_settings) const;
     virtual void FillVideoCodecVp9(VideoCodecVP9* vp9_settings) const;
     virtual void FillVideoCodecAv1(VideoCodecAV1* av1_settings) const;

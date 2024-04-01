@@ -148,8 +148,14 @@ bool RequiresEncoderReset(const VideoCodec& prev_send_codec,
       }
       break;
     case kVideoCodecH265:
-      // TODO(bugs.webrtc.org/13485): Implement new send codec H265
+#ifdef RTC_ENABLE_H265
+      if (new_send_codec.H265() != prev_send_codec.H265()) {
+        return true;
+      }
+      break;
+#else
       [[fallthrough]];
+#endif
     default:
       break;
   }

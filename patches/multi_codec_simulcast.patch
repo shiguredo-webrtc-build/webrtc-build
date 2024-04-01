@@ -19,10 +19,10 @@ index 7c0dd5d786..3d9bc394f4 100644
  
  }  // namespace webrtc
 diff --git a/api/video_codecs/video_codec.cc b/api/video_codecs/video_codec.cc
-index 39a345d699..034927c644 100644
+index 5b53bbea15..063644b725 100644
 --- a/api/video_codecs/video_codec.cc
 +++ b/api/video_codecs/video_codec.cc
-@@ -74,42 +74,42 @@ VideoCodec::VideoCodec()
+@@ -83,52 +83,52 @@ VideoCodec::VideoCodec()
        complexity_(VideoCodecComplexity::kComplexityNormal) {}
  
  VideoCodecVP8* VideoCodec::VP8() {
@@ -59,6 +59,18 @@ index 39a345d699..034927c644 100644
 -  RTC_DCHECK_EQ(codecType, kVideoCodecH264);
 +  // RTC_DCHECK_EQ(codecType, kVideoCodecH264);
    return codec_specific_.H264;
+ }
+ 
+ VideoCodecH265* VideoCodec::H265() {
+-  RTC_DCHECK_EQ(codecType, kVideoCodecH265);
++  // RTC_DCHECK_EQ(codecType, kVideoCodecH265);
+   return &codec_specific_.H265;
+ }
+ 
+ const VideoCodecH265& VideoCodec::H265() const {
+-  RTC_DCHECK_EQ(codecType, kVideoCodecH265);
++  // RTC_DCHECK_EQ(codecType, kVideoCodecH265);
+   return codec_specific_.H265;
  }
  
  VideoCodecAV1* VideoCodec::AV1() {
@@ -1440,7 +1452,7 @@ index a4e41ad62d..8ca14d4bab 100644
                                encoder_config.bitrate_priority, max_qp_,
                                is_screenshare_ && conference_mode_,
 diff --git a/video/config/video_encoder_config.cc b/video/config/video_encoder_config.cc
-index 84442aeddf..ed9de18883 100644
+index 44f2dac910..040e8e6cfc 100644
 --- a/video/config/video_encoder_config.cc
 +++ b/video/config/video_encoder_config.cc
 @@ -49,11 +49,11 @@ std::string VideoStream::ToString() const {
@@ -1476,9 +1488,9 @@ index 84442aeddf..ed9de18883 100644
  
    ss << ", min_transmit_bitrate_bps: " << min_transmit_bitrate_bps;
    ss << '}';
-@@ -98,8 +98,8 @@ void VideoEncoderConfig::EncoderSpecificSettings::FillEncoderSpecificSettings(
-   } else if (codec->codecType == kVideoCodecAV1) {
-     FillVideoCodecAv1(codec->AV1());
+@@ -102,8 +102,8 @@ void VideoEncoderConfig::EncoderSpecificSettings::FillEncoderSpecificSettings(
+     FillVideoCodecH265(codec->H265());
+ #endif
    } else {
 -    RTC_DCHECK_NOTREACHED()
 -        << "Encoder specifics set/used for unknown codec type.";
@@ -1488,10 +1500,10 @@ index 84442aeddf..ed9de18883 100644
  }
  
 diff --git a/video/config/video_encoder_config.h b/video/config/video_encoder_config.h
-index cb0644a7fd..17961ad06e 100644
+index 7e1f986a84..e7229d93b4 100644
 --- a/video/config/video_encoder_config.h
 +++ b/video/config/video_encoder_config.h
-@@ -165,8 +165,8 @@ class VideoEncoderConfig {
+@@ -168,8 +168,8 @@ class VideoEncoderConfig {
    std::string ToString() const;
  
    // TODO(bugs.webrtc.org/6883): Consolidate on one of these.
@@ -1502,7 +1514,7 @@ index cb0644a7fd..17961ad06e 100644
  
    // Note: This factory can be unset, and VideoStreamEncoder will
    // then use the EncoderStreamFactory. The factory is only set by
-@@ -175,7 +175,7 @@ class VideoEncoderConfig {
+@@ -178,7 +178,7 @@ class VideoEncoderConfig {
    std::vector<SpatialLayer> spatial_layers;
    ContentType content_type;
    bool frame_drop_enabled;
@@ -1511,7 +1523,7 @@ index cb0644a7fd..17961ad06e 100644
  
    // Padding will be used up to this bitrate regardless of the bitrate produced
    // by the encoder. Padding above what's actually produced by the encoder helps
-@@ -211,7 +211,7 @@ class VideoEncoderConfig {
+@@ -214,7 +214,7 @@ class VideoEncoderConfig {
    // Maximum Quantization Parameter.
    // This value is fed into EncoderStreamFactory that
    // apply it to all simulcast layers/spatial layers.
@@ -1589,10 +1601,10 @@ index 23dbb7177f..d9f3338bc2 100644
      double stream_bitrate_priority_sum = 0;
      for (const auto& stream : streams) {
 diff --git a/video/video_stream_encoder.cc b/video/video_stream_encoder.cc
-index 3730f6eecb..8c93444f66 100644
+index ff2cda2214..9d712a156c 100644
 --- a/video/video_stream_encoder.cc
 +++ b/video/video_stream_encoder.cc
-@@ -376,7 +376,7 @@ VideoEncoder::EncoderInfo GetEncoderInfoWithBitrateLimitUpdate(
+@@ -382,7 +382,7 @@ VideoEncoder::EncoderInfo GetEncoderInfoWithBitrateLimitUpdate(
    VideoEncoder::EncoderInfo new_info = info;
    new_info.resolution_bitrate_limits =
        EncoderInfoSettings::GetDefaultSinglecastBitrateLimits(
@@ -1601,7 +1613,7 @@ index 3730f6eecb..8c93444f66 100644
    return new_info;
  }
  
-@@ -909,7 +909,7 @@ void VideoStreamEncoder::ConfigureEncoder(VideoEncoderConfig config,
+@@ -915,7 +915,7 @@ void VideoStreamEncoder::ConfigureEncoder(VideoEncoderConfig config,
      }
  
      pending_encoder_creation_ =
@@ -1610,7 +1622,7 @@ index 3730f6eecb..8c93444f66 100644
           max_data_payload_length_ != max_data_payload_length);
      encoder_config_ = std::move(config);
      max_data_payload_length_ = max_data_payload_length;
-@@ -940,6 +940,7 @@ void VideoStreamEncoder::ReconfigureEncoder() {
+@@ -946,6 +946,7 @@ void VideoStreamEncoder::ReconfigureEncoder() {
  
    bool encoder_reset_required = false;
    if (pending_encoder_creation_) {
@@ -1618,7 +1630,7 @@ index 3730f6eecb..8c93444f66 100644
      // Destroy existing encoder instance before creating a new one. Otherwise
      // attempt to create another instance will fail if encoder factory
      // supports only single instance of encoder of given type.
-@@ -947,17 +948,17 @@ void VideoStreamEncoder::ReconfigureEncoder() {
+@@ -953,17 +954,17 @@ void VideoStreamEncoder::ReconfigureEncoder() {
  
      encoder_ = MaybeCreateFrameDumpingEncoderWrapper(
          settings_.encoder_factory->CreateVideoEncoder(
@@ -1639,7 +1651,7 @@ index 3730f6eecb..8c93444f66 100644
      }
  
      encoder_->SetFecControllerOverride(fec_controller_override_);
-@@ -979,7 +980,7 @@ void VideoStreamEncoder::ReconfigureEncoder() {
+@@ -985,7 +986,7 @@ void VideoStreamEncoder::ReconfigureEncoder() {
    } else {
      rtc::scoped_refptr<VideoEncoderConfig::VideoStreamFactoryInterface>
          factory = rtc::make_ref_counted<cricket::EncoderStreamFactory>(
@@ -1648,7 +1660,7 @@ index 3730f6eecb..8c93444f66 100644
              encoder_config_.content_type ==
                  webrtc::VideoEncoderConfig::ContentType::kScreen,
              encoder_config_.legacy_conference_mode, encoder_->GetEncoderInfo(),
-@@ -1139,8 +1140,8 @@ void VideoStreamEncoder::ReconfigureEncoder() {
+@@ -1145,8 +1146,8 @@ void VideoStreamEncoder::ReconfigureEncoder() {
      RTC_LOG(LS_ERROR) << "Failed to create encoder configuration.";
    }
  
@@ -1659,7 +1671,7 @@ index 3730f6eecb..8c93444f66 100644
      // Spatial layers configuration might impose some parity restrictions,
      // thus some cropping might be needed.
      crop_width_ = last_frame_info_->width - codec.width;
-@@ -1166,10 +1167,12 @@ void VideoStreamEncoder::ReconfigureEncoder() {
+@@ -1172,10 +1173,12 @@ void VideoStreamEncoder::ReconfigureEncoder() {
                 << " max_qp: " << codec.simulcastStream[i].qpMax
                 << " num_tl: " << codec.simulcastStream[i].numberOfTemporalLayers
                 << " active: "
@@ -1675,7 +1687,7 @@ index 3730f6eecb..8c93444f66 100644
      log_stream << "Spatial layers:\n";
      for (int i = 0; i < GetNumSpatialLayers(codec); ++i) {
        log_stream << i << ": " << codec.spatialLayers[i].width << "x"
-@@ -1391,8 +1394,8 @@ void VideoStreamEncoder::ReconfigureEncoder() {
+@@ -1397,8 +1400,8 @@ void VideoStreamEncoder::ReconfigureEncoder() {
    }
    // Set min_bitrate_bps, max_bitrate_bps, and max padding bit rate for VP9
    // and AV1 and leave only one stream containing all necessary information.
@@ -1686,7 +1698,7 @@ index 3730f6eecb..8c93444f66 100644
        single_stream_or_non_first_inactive) {
      // Lower max bitrate to the level codec actually can produce.
      streams[0].max_bitrate_bps =
-@@ -2019,7 +2022,7 @@ void VideoStreamEncoder::EncodeVideoFrame(const VideoFrame& video_frame,
+@@ -2025,7 +2028,7 @@ void VideoStreamEncoder::EncodeVideoFrame(const VideoFrame& video_frame,
  
    if (encode_status < 0) {
      RTC_LOG(LS_ERROR) << "Encoder failed, failing encoder format: "
@@ -1695,7 +1707,7 @@ index 3730f6eecb..8c93444f66 100644
      RequestEncoderSwitch();
      return;
    }
-@@ -2087,8 +2090,13 @@ EncodedImage VideoStreamEncoder::AugmentEncodedImage(
+@@ -2093,8 +2096,13 @@ EncodedImage VideoStreamEncoder::AugmentEncodedImage(
    // TODO(https://crbug.com/webrtc/14891): If we want to support a mix of
    // simulcast and SVC we'll also need to consider the case where we have both
    // simulcast and spatial indices.
@@ -1711,7 +1723,7 @@ index 3730f6eecb..8c93444f66 100644
    frame_encode_metadata_writer_.FillTimingInfo(stream_idx, &image_copy);
    frame_encode_metadata_writer_.UpdateBitstream(codec_specific_info,
                                                  &image_copy);
-@@ -2121,6 +2129,7 @@ EncodedImageCallback::Result VideoStreamEncoder::OnEncodedImage(
+@@ -2127,6 +2135,7 @@ EncodedImageCallback::Result VideoStreamEncoder::OnEncodedImage(
    const VideoCodecType codec_type = codec_specific_info
                                          ? codec_specific_info->codecType
                                          : VideoCodecType::kVideoCodecGeneric;
