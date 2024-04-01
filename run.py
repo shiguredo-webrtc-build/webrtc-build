@@ -206,6 +206,7 @@ PATCHES = {
         "macos_use_xcode_clang.patch",
         "h265.patch",
         "h265_ios.patch",
+        "multi_codec_simulcast.patch",
     ],
     "ios": [
         "add_deps.patch",
@@ -219,6 +220,7 @@ PATCHES = {
         "ios_proxy.patch",
         "h265.patch",
         "h265_ios.patch",
+        "multi_codec_simulcast.patch",
     ],
     "android": [
         "add_deps.patch",
@@ -232,6 +234,7 @@ PATCHES = {
         "android_proxy.patch",
         "h265.patch",
         "h265_android.patch",
+        "multi_codec_simulcast.patch",
     ],
     "raspberry-pi-os_armv6": [
         "nacl_armv6_2.patch",
@@ -276,6 +279,7 @@ PATCHES = {
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
+        "multi_codec_simulcast.patch",
     ],
     "ubuntu-22.04_x86_64": [
         "add_deps.patch",
@@ -283,6 +287,7 @@ PATCHES = {
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
+        "multi_codec_simulcast.patch",
     ],
 }
 
