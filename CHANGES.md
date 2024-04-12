@@ -12,6 +12,11 @@
 VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 パッチやビルドの変更のみ記録すること。
 
+## m124.6367.0.0
+
+- [CHANGE] ios / macos_arm64 向けに `revert_asm_changes.patch` を追加
+  - @torikizi
+
 ## m123.6312.3.2
 
 - [UPDATE] support/m122.6261 ブランチの変更を取り込む

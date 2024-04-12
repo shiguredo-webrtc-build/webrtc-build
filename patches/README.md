@@ -120,6 +120,12 @@ $ find $(xcode-select --print-path) | grep arm_neon
 また、ファイルの追加に伴い、リリース・バイナリの NOTICE ファイルに LLVM のライセンスを追加する必要が生じたため、 run.py も併せて修正した。
 このパッチが不要になった場合、その処理は削除する必要がある。
 
+## revert_asm_changes.patch
+
+dav1d/libdav1d/src/arm/asm.S に入った変更を取り消すパッチ。
+m124 のタイミングで aarch64 の拡張機能のサポートチェックをするようになり、そのチェックが失敗するとビルドが失敗するようになった。
+webrtc は aarch64 の拡張機能を使っていないため、このチェックは不要であり、このパッチで取り消す。
+
 ## ios_build.patch
 
 iOS のビルドで発生した問題を修正するパッチ。  
