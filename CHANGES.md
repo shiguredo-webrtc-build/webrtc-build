@@ -12,6 +12,19 @@
 VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 パッチやビルドの変更のみ記録すること。
 
+## m123.6312.3.2
+
+- [UPDATE] support/m122.6261 ブランチの変更を取り込む
+  - ubuntu-20.04_x86_64, ubuntu-22.04_x86_64, windows_x86_64 のビルドに h265.patch を適用する
+  - @enm10k
+- [FIX] m122 のリリースのみに適用されていた fix_typo_in_deprecated_attribute.patch を m123 にも適用する
+  - @enm10k
+
+## 122.6261.0.2
+
+- [UPDATE] ubuntu-20.04_x86_64, ubuntu-22.04_x86_64, windows_x86_64 のビルドに h265.patch を適用する
+  - @enm10k
+
 ## 122.6261.0.1
 
 - [FIX] リリース・バイナリを利用した Windows 向けのビルドが `error C3827: standard attribute 'deprecated' may have either no arguments or one string literal` というエラーになる問題を修正するパッチを追加する
