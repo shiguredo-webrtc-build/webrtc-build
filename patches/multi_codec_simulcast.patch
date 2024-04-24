@@ -262,7 +262,7 @@ index 1ace08fa32..3773743360 100644
 -    stream.rtp_rtcp->SetRtxSendPayloadType(rtp_config_.rtx.payload_type,
 -                                           rtp_config_.payload_type);
 +  for (size_t i = 0; i < rtp_streams_.size(); i++) {
-+    RTC_DCHECK_GE(rtp_config_.rtx.payload_types[i], 0);
++    if (rtp_config_.rtx.payload_types[i] < 0) continue;
 +    const RtpStreamSender& stream = rtp_streams_[i];
 +    stream.rtp_rtcp->SetRtxSendPayloadType(rtp_config_.rtx.payload_types[i],
 +                                           rtp_config_.payload_types[i]);
@@ -365,7 +365,15 @@ index 4853e68996..431bf34c6d 100644
        return nullptr;
      }
  
-@@ -887,8 +896,9 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
+@@ -778,6 +787,7 @@ webrtc::VideoCodec SimulcastEncoderAdapter::MakeStreamCodec(
+   webrtc::VideoCodec codec_params = codec;
+   const SimulcastStream& stream_params = codec.simulcastStream[stream_idx];
+ 
++  codec_params.codecType = PayloadStringToCodecType(stream_params.format.name);
+   codec_params.numberOfSimulcastStreams = 0;
+   codec_params.width = stream_params.width;
+   codec_params.height = stream_params.height;
+@@ -887,8 +897,9 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
      // to be filled.
      // Create one encoder and query it.
  

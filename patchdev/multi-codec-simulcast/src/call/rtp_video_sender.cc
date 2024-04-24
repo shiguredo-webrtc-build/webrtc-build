@@ -746,7 +746,7 @@ void RtpVideoSender::ConfigureSsrcs(
 
   // Configure RTX payload types.
   for (size_t i = 0; i < rtp_streams_.size(); i++) {
-    RTC_DCHECK_GE(rtp_config_.rtx.payload_types[i], 0);
+    if (rtp_config_.rtx.payload_types[i] < 0) continue;
     const RtpStreamSender& stream = rtp_streams_[i];
     stream.rtp_rtcp->SetRtxSendPayloadType(rtp_config_.rtx.payload_types[i],
                                            rtp_config_.payload_types[i]);

@@ -787,6 +787,7 @@ webrtc::VideoCodec SimulcastEncoderAdapter::MakeStreamCodec(
   webrtc::VideoCodec codec_params = codec;
   const SimulcastStream& stream_params = codec.simulcastStream[stream_idx];
 
+  codec_params.codecType = PayloadStringToCodecType(stream_params.format.name);
   codec_params.numberOfSimulcastStreams = 0;
   codec_params.width = stream_params.width;
   codec_params.height = stream_params.height;
