@@ -1478,7 +1478,7 @@ index 5a1c43c888..bc136ea127 100644
    # Enable this flag to make webrtc::Mutex be implemented by absl::Mutex.
    rtc_use_absl_mutex = false
 diff --git i/modules/rtp_rtcp/source/video_rtp_depacketizer_h265.cc w/modules/rtp_rtcp/source/video_rtp_depacketizer_h265.cc
-index b54df7c271..3f7a4b8cac 100644
+index b54df7c271..836b8ca824 100644
 --- i/modules/rtp_rtcp/source/video_rtp_depacketizer_h265.cc
 +++ w/modules/rtp_rtcp/source/video_rtp_depacketizer_h265.cc
 @@ -26,6 +26,7 @@
@@ -1512,7 +1512,13 @@ index b54df7c271..3f7a4b8cac 100644
    parsed_payload->video_header.frame_type = VideoFrameType::kVideoFrameDelta;
  
    nalu_start_offsets.push_back(rtp_payload.size() +
-@@ -112,9 +119,23 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
+@@ -108,13 +115,28 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
+     }
+ 
+     // Insert start code before each NALU in aggregated packet.
+-    video_payload.AppendData(kStartCode);
++    // NOTE(enm10k): macOS で映像が表示されなくなったので kStartCode は入れない
++    // video_payload.AppendData(kStartCode);
      video_payload.AppendData(&payload_data[start_offset],
                               end_offset - start_offset);
  
@@ -1538,7 +1544,7 @@ index b54df7c271..3f7a4b8cac 100644
        case H265::NaluType::kBlaWLp:
        case H265::NaluType::kBlaWRadl:
        case H265::NaluType::kBlaNLp:
-@@ -139,15 +160,41 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
+@@ -139,15 +161,41 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
            // VPS->vui_parameters.def_disp_win_xx_offset into account.
            parsed_payload->video_header.width = sps->width;
            parsed_payload->video_header.height = sps->height;
@@ -1584,7 +1590,7 @@ index b54df7c271..3f7a4b8cac 100644
        // Slices below don't contain SPS or PPS ids.
        case H265::NaluType::kAud:
        case H265::NaluType::kTsaN:
-@@ -165,6 +212,14 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
+@@ -165,6 +213,14 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
          RTC_LOG(LS_WARNING) << "Unexpected AP, FU or PACI received.";
          return absl::nullopt;
      }
@@ -1599,7 +1605,7 @@ index b54df7c271..3f7a4b8cac 100644
    }
    parsed_payload->video_payload = video_payload;
    return parsed_payload;
-@@ -186,7 +241,24 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ParseFuNalu(
+@@ -186,14 +242,32 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ParseFuNalu(
  
    uint8_t original_nal_type = rtp_payload.cdata()[2] & kH265TypeMaskInFuHeader;
    bool first_fragment = rtp_payload.cdata()[2] & kH265SBitMask;
@@ -1624,7 +1630,16 @@ index b54df7c271..3f7a4b8cac 100644
      rtp_payload = rtp_payload.Slice(
          kH265FuHeaderSizeBytes, rtp_payload.size() - kH265FuHeaderSizeBytes);
      rtp_payload.MutableData()[0] = f | original_nal_type << 1 | layer_id_h;
-@@ -213,7 +285,14 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ParseFuNalu(
+     rtp_payload.MutableData()[1] = layer_id_l_unshifted | tid;
+     rtc::CopyOnWriteBuffer video_payload;
+     // Insert start code before the first fragment in FU.
+-    video_payload.AppendData(kStartCode);
++    // NOTE(enm10k): macOS で映像が表示されなくなったので kStartCode は入れない
++    // video_payload.AppendData(kStartCode);
+     video_payload.AppendData(rtp_payload);
+     parsed_payload->video_payload = video_payload;
+   } else {
+@@ -213,7 +287,14 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ParseFuNalu(
    parsed_payload->video_header.height = 0;
    parsed_payload->video_header.codec = kVideoCodecH265;
    parsed_payload->video_header.is_first_packet_in_frame = first_fragment;
