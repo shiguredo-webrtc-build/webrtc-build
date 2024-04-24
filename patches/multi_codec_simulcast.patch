@@ -1739,3 +1739,32 @@ index ff2cda2214..9d712a156c 100644
    EncodedImage image_copy =
        AugmentEncodedImage(encoded_image, codec_specific_info);
  
+diff --git a/modules/video_coding/utility/simulcast_rate_allocator.cc b/modules/video_coding/utility/simulcast_rate_allocator.cc
+index 1496934e1c..d66ae4473d 100644
+--- a/modules/video_coding/utility/simulcast_rate_allocator.cc
++++ b/modules/video_coding/utility/simulcast_rate_allocator.cc
+@@ -169,8 +169,24 @@ void SimulcastRateAllocator::DistributeAllocationToSimulcastLayers(
+       min_bitrate = std::min(hysteresis_factor * min_bitrate, target_bitrate);
+     }
+     if (left_in_stable_allocation < min_bitrate) {
++      bool is_multicodec = std::invoke([this]() -> bool {
++        std::set<std::string> codecs;
++        for (int i = 0; i < codec_.numberOfSimulcastStreams; ++i) {
++          codecs.insert(codec_.simulcastStream[i].format.name);
++        }
++        return codecs.size() > 1;
++      });
++
++      if (is_multicodec) {
++        // トータルのビットレートが低すぎると、高いレイヤーにビットレートを割り当てることができなくなるのだけど、
++        // サイマルキャストマルチコーデックでそれをされると困るので、トータルのビットレートを超えても無理やり出力する
++        left_in_stable_allocation = left_in_total_allocation = min_bitrate;
++      } else {
++
+       allocated_bitrates->set_bw_limited(true);
+       break;
++
++      }
+     }
+ 
+     // We are allocating to this layer so it is the current active allocation.

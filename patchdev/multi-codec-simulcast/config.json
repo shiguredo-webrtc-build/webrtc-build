@@ -15,6 +15,7 @@
         "media/engine/simulcast_encoder_adapter.h",
         "media/engine/webrtc_video_engine.cc",
         "media/engine/webrtc_video_engine.h",
+        "modules/video_coding/utility/simulcast_rate_allocator.cc",
         "modules/video_coding/video_codec_initializer.cc",
         "p2p/base/port.cc",
         "pc/sdp_offer_answer.cc",
