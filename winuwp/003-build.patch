@@ -102,31 +102,6 @@ index 38024bbd8d0..a40772c21e1 100644
      if (is_clang) {
        cflags = [
          "-march=armv8-a",
-diff --git a/third_party/libvpx/BUILD.gn b/third_party/libvpx/BUILD.gn
-index 758aca15407..60ef0074839 100644
---- a/third_party/libvpx/BUILD.gn
-+++ b/third_party/libvpx/BUILD.gn
-@@ -51,6 +51,8 @@ if (is_nacl) {
-   } else if (is_posix || is_fuchsia) {
-     # Should cover linux, fuchsia, mac, and the ios simulator.
-     os_category = "linux"
-+  } else if (current_os == "winuwp") {
-+    os_category = "win" 
-   } else {  # This should only match windows.
-     os_category = current_os
-   }
-@@ -92,6 +94,11 @@ config("libvpx_config") {
-       "-Wno-unused-function",
-       "-Wno-sign-compare",
-     ]
-+  } else if (current_os == "winuwp") {
-+    cflags = [
-+      "/D__ARM_FEATURE_DOTPROD",
-+      "/D__ARM_FEATURE_MATMUL_INT8",
-+    ]
-   }
- }
- 
 diff --git a/third_party/boringssl/BUILD.gn b/third_party/boringssl/BUILD.gn
 index 321a2dc2eb3..5b2045d8875 100644
 --- a/third_party/boringssl/BUILD.gn

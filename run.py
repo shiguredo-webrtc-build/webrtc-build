@@ -286,6 +286,7 @@ WINUWP_ADDITIONAL_PATCHES = [
     '006-logging.patch',
     '007-internal-error.patch',
     '008-streamer.patch',
+    '009-remove-dotprod.patch',
 ]
 WINUWP_ADDITIONAL_DIRS = [
     ['modules', 'audio_device', 'winuwp'],
