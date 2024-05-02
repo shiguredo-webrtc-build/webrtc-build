@@ -120,6 +120,12 @@ $ find $(xcode-select --print-path) | grep arm_neon
 また、ファイルの追加に伴い、リリース・バイナリの NOTICE ファイルに LLVM のライセンスを追加する必要が生じたため、 run.py も併せて修正した。
 このパッチが不要になった場合、その処理は削除する必要がある。
 
+## revert_asm_changes.patch
+
+dav1d/libdav1d/src/arm/asm.S に入った変更を取り消すパッチ。
+m124 のタイミングで aarch64 の拡張機能のサポートチェックをするようになり、そのチェックが失敗するとビルドが失敗するようになった。
+webrtc は aarch64 の拡張機能を使っていないため、このチェックは不要であり、このパッチで取り消す。
+
 ## ios_build.patch
 
 iOS のビルドで発生した問題を修正するパッチ。  
@@ -290,17 +296,6 @@ Abseil ライブラリではなく C++ 標準ライブラリを利用するよ�
 ## windows_silence_warnings.patch
 
 C++ 17 と C++ 20 の非推奨に関するワーニングを抑制するパッチ。
-
-## windows_fix_typo_in_deprecated_attribute.patch
-
-M122 に更新した際に、 `deprecated("message")` と廃止予定の API について移行を促すメッセージを指定する箇所に typo があり、 2 つのファイルで `depreacted(("message"))` と丸括弧が二重になっていた。  
-その結果、 libwebrtc のビルド自体は成功するが、 libwebrtc を依存に持つプロジェクト (Sora C++ SDK) の Windows 向けビルドが `error C3827: standard attribute 'deprecated' may have either no arguments or one string literal` というエラーで失敗するようになった。  
-
-廃止予定の API を利用しないようにコードを修正しても改善しなかったためパッチを作成した。  
-[typo が原因で Windows で deprecated のメッセージが取得できずにビルドが失敗しているので、 deprecated … · shiguredo/sora-cpp-sdk@b47dd24](https://github.com/shiguredo/sora-cpp-sdk/actions/runs/8199156250/job/22423804592)
-
-libwebrtc に送ったパッチが採用されたので、 M124 以降でこのパッチは不要になると思われる。  
-[Remove duplicated parentheses from deprecated attribute (342320) · Gerrit Code Review](https://webrtc-review.googlesource.com/c/src/+/342320)
 
 ## h265.patch
 
