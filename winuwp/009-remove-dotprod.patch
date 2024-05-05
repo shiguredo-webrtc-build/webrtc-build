@@ -78,7 +78,7 @@ index d5876833d3c..2e29d525e37 100644
                                       const uint8_t* thresh);
 -#define vpx_lpf_horizontal_16_dual vpx_lpf_horizontal_16_dual_neon
 +#define vpx_lpf_horizontal_16_dual vpx_lpf_horizontal_16_dual_c
-
+ 
  void vpx_lpf_horizontal_4_c(uint8_t* s,
                              int pitch,
 @@ -7685,215 +7685,215 @@ static void setup_rtcd_internal(void) {
