@@ -1420,7 +1420,7 @@ index badb942cd4..d032643287 100644
      packet->video_payload = std::move(codec_payload);
    }
 diff --git a/video/rtp_video_stream_receiver2.h b/video/rtp_video_stream_receiver2.h
-index 0178355262..c41bf3bf82 100644
+index 8ea3ffd310..f2988f3a22 100644
 --- a/video/rtp_video_stream_receiver2.h
 +++ b/video/rtp_video_stream_receiver2.h
 @@ -39,6 +39,9 @@
@@ -1430,10 +1430,10 @@ index 0178355262..c41bf3bf82 100644
 +#ifdef RTC_ENABLE_H265
 +#include "modules/video_coding/h265_vps_sps_pps_tracker.h"
 +#endif
+ #include "modules/video_coding/h26x_packet_buffer.h"
  #include "modules/video_coding/loss_notification_controller.h"
  #include "modules/video_coding/nack_requester.h"
- #include "modules/video_coding/packet_buffer.h"
-@@ -390,6 +393,10 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
+@@ -400,6 +403,10 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
    std::map<uint8_t, std::unique_ptr<VideoRtpDepacketizer>> payload_type_map_
        RTC_GUARDED_BY(packet_sequence_checker_);
  
@@ -1465,18 +1465,18 @@ index 84f6108807..0ef2180472 100644
        break;
    }
 diff --git a/webrtc.gni b/webrtc.gni
-index 5a1c43c888..bc136ea127 100644
+index 969cdbd2be..e6d4c205ec 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
-@@ -190,7 +190,7 @@ declare_args() {
-       proprietary_codecs && !is_android && !is_ios && !(is_win && !is_clang)
- 
-   # Enable to use H265
--  rtc_use_h265 = proprietary_codecs
-+  rtc_use_h265 = true
+@@ -197,7 +197,7 @@ declare_args() {
+   if (build_with_chromium) {
+     rtc_use_h265 = enable_hevc_parser_and_hw_decoder
+   } else {
+-    rtc_use_h265 = proprietary_codecs
++    rtc_use_h265 = true
+   }
  
    # Enable this flag to make webrtc::Mutex be implemented by absl::Mutex.
-   rtc_use_absl_mutex = false
 diff --git i/modules/rtp_rtcp/source/video_rtp_depacketizer_h265.cc w/modules/rtp_rtcp/source/video_rtp_depacketizer_h265.cc
 index cea55078e5..3e23d760ad 100644
 --- i/modules/rtp_rtcp/source/video_rtp_depacketizer_h265.cc
