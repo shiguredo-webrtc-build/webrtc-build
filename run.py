@@ -133,6 +133,13 @@ def download(url: str, output_dir: Optional[str] = None, filename: Optional[str]
     return output_path
 
 
+def downloadcap(url) -> str:
+    if shutil.which("curl") is not None:
+        return cmdcap(["curl", "-L", url])
+    else:
+        return cmdcap(["wget", "-O", "-", url])
+
+
 def read_version_file(path: str) -> Dict[str, str]:
     versions = {}
 
@@ -1184,6 +1191,91 @@ def check_target(target):
         return False
 
 
+def get_webrtc_branch_info(branch: str):
+    # 指定されたブランチのコミットハッシュとコミットポジションを取得する
+    src_commits = downloadcap(
+        f"https://webrtc.googlesource.com/src.git/+log/refs/branch-heads/{branch}"
+    )
+    r = re.search(r'\<a href="(.*?)"\>', src_commits)
+    if r is None:
+        raise Exception("Could not find commit hash")
+    url = r.group(1)
+    commit = url.split("/")[-1]
+    src_commit = downloadcap(f"https://webrtc.googlesource.com{url}")
+    r = re.search(
+        r"^Cr-Commit-Position: refs/branch-heads/([0-9]+)@\{#([0-9]+)\}", src_commit, re.MULTILINE
+    )
+    if r is None:
+        raise Exception("Could not find commit position")
+    if branch != r.group(1):
+        raise Exception("Branch mismatch")
+    position = r.group(2)
+    return commit, position
+
+
+def version_list(args):
+    milestones = json.loads(downloadcap("https://chromiumdash.appspot.com/fetch_milestones"))
+    for m in milestones[:5]:
+        milestone = m["milestone"]
+        branch = m["webrtc_branch"]
+        commit, position = get_webrtc_branch_info(branch)
+        print(f"m{milestone} {branch} {position} {commit}")
+
+
+def version_update(args):
+    milestones = json.loads(downloadcap("https://chromiumdash.appspot.com/fetch_milestones"))
+    # milestones は以下のようなデータになっている
+    # [
+    #   {
+    #     "angle_branch": "6422",
+    #     "bling_ldap": "govind",
+    #     "bling_owner": "Krishna Govind",
+    #     "chromium_branch": "6422",
+    #     "chromium_main_branch_hash": "9012208d0ce02e0cf0adb9b62558627c356f3278",
+    #     "chromium_main_branch_position": 1287751,
+    #     "clank_ldap": "govind",
+    #     "clank_owner": "Krishna Govind",
+    #     "cros_ldap": "matthewjoseph",
+    #     "cros_owner": "Matt Nelson",
+    #     "dawn_branch": "6422",
+    #     "desktop_ldap": "pbommana",
+    #     "desktop_owner": "Prudhvi Bommana",
+    #     "devtools_branch": "6422",
+    #     "merge_phase": "medium_priority",
+    #     "milestone": 125,
+    #     "pdfium_branch": "6422",
+    #     "schedule_active": true,
+    #     "schedule_phase": "beta",
+    #     "skia_branch": "m125",
+    #     "v8_branch": "12.5",
+    #     "webrtc_branch": "6422"
+    #   },
+    #   ...
+    # ]
+    for m in milestones:
+        milestone = m["milestone"]
+        branch = m["webrtc_branch"]
+        if args.target == f"m{milestone}":
+            version_file = read_version_file("VERSION")
+            rmilestone, rbranch, rposition, rbuild = version_file["WEBRTC_BUILD_VERSION"].split(".")
+
+            commit, position = get_webrtc_branch_info(branch)
+
+            # 同じバージョンなら元のビルド番号を利用する
+            if rmilestone == str(milestone) and rbranch == branch and rposition == position:
+                build = rbuild
+            else:
+                build = 0
+
+            print(f"WEBRTC_BUILD_VERSION={milestone}.{branch}.{position}.{build}")
+            print(f"WEBRTC_VERSION={milestone}.{branch}.{position}")
+            print(f"WEBRTC_READABLE_VERSION=M{milestone}.{branch}@{{#{position}}}")
+            print(f"WEBRTC_COMMIT={commit}")
+            return
+    else:
+        raise Exception(f"Could not find milestone {args.target}")
+
+
 def main():
     """
     メモ
@@ -1232,10 +1324,25 @@ def main():
     pp.add_argument("--webrtc-source-dir")
     pp.add_argument("--webrtc-package-dir")
     pp.add_argument("--webrtc-overlap-ios-build-dir", action="store_true")
+    # バージョン操作系
+    vup = sp.add_parser("version_update")
+    vup.set_defaults(op="version_update")
+    vup.add_argument("target")
+    vlp = sp.add_parser("version_list")
+    vlp.set_defaults(op="version_list")
+
     args = parser.parse_args()
 
     if not hasattr(args, "op"):
         parser.error("Required subcommand")
+
+    if args.op == "version_list":
+        version_list(args)
+        return
+
+    if args.op == "version_update":
+        version_update(args)
+        return
 
     if not check_target(args.target):
         raise Exception(f"Target {args.target} is not supported on your platform")
