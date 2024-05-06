@@ -19,7 +19,7 @@ REMOTE=$(git remote)
 # master ブランチの run.py の内容をコピーして利用する
 cp run.py _run.py
 
-LINES=$(python3 _run.py version_list | head -n 1)
+LINES=$(python3 _run.py version_list | head -n 3)
 while read -r milestone branch position commit; do
   echo "${milestone} ${branch} ${position} ${commit}"
   STATUS=$(git branch -a | grep -q "remotes/${REMOTE}/feature/${milestone}.${branch}"; echo $?)
