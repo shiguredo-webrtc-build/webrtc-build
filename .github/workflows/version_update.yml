@@ -1,0 +1,17 @@
+name: version update
+on:
+  schedule:
+    # 毎日 09:00 JST
+    - cron: "0 0 * * *"
+jobs:
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run versipn_update.sh
+        # 自身のファイルがチェックアウトによって消えると困るので
+        # コピーして消されないようにする
+        cp ./scripts/version_update.sh _version_update.sh
+        ./_version_update.sh

@@ -1252,11 +1252,12 @@ def version_update(args):
     #   },
     #   ...
     # ]
+    version_path = os.path.join(BASE_DIR, "VERSION")
     for m in milestones:
         milestone = m["milestone"]
         branch = m["webrtc_branch"]
         if args.target == f"m{milestone}":
-            version_file = read_version_file("VERSION")
+            version_file = read_version_file(version_path)
             rmilestone, rbranch, rposition, rbuild = version_file["WEBRTC_BUILD_VERSION"].split(".")
 
             commit, position = get_webrtc_branch_info(branch)
@@ -1267,10 +1268,11 @@ def version_update(args):
             else:
                 build = 0
 
-            print(f"WEBRTC_BUILD_VERSION={milestone}.{branch}.{position}.{build}")
-            print(f"WEBRTC_VERSION={milestone}.{branch}.{position}")
-            print(f"WEBRTC_READABLE_VERSION=M{milestone}.{branch}@{{#{position}}}")
-            print(f"WEBRTC_COMMIT={commit}")
+            with open(version_path, "w") as f:
+                f.write(f"WEBRTC_BUILD_VERSION={milestone}.{branch}.{position}.{build}\n")
+                f.write(f"WEBRTC_VERSION={milestone}.{branch}.{position}\n")
+                f.write(f"WEBRTC_READABLE_VERSION=M{milestone}.{branch}@{{#{position}}}\n")
+                f.write(f"WEBRTC_COMMIT={commit}\n")
             return
     else:
         raise Exception(f"Could not find milestone {args.target}")
