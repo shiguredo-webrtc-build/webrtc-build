@@ -1,5 +1,9 @@
 name: version update
 on:
+  # 試しに push を契機に実行してみる
+  push:
+    paths-ignore:
+      - "VERSION"
   schedule:
     # 毎日 09:00 JST
     - cron: "0 0 * * *"
