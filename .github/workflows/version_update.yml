@@ -5,12 +5,13 @@ on:
     # 毎日 09:00 JST
     - cron: "0 0 * * *"
 jobs:
-  build-linux:
+  run:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
       - name: Run versipn_update.sh
         run: |
           # 自身のファイルがチェックアウトによって消えると困るので
