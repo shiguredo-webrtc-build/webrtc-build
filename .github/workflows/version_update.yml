@@ -1,9 +1,6 @@
 name: version update
 on:
-  # 試しに push を契機に実行してみる
-  push:
-    paths-ignore:
-      - "VERSION"
+  workflow_dispatch:
   schedule:
     # 毎日 09:00 JST
     - cron: "0 0 * * *"
