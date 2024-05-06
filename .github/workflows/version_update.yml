@@ -11,8 +11,8 @@ jobs:
         with:
           fetch-depth: 0
       - name: Run versipn_update.sh
-      - run: |
-        # 自身のファイルがチェックアウトによって消えると困るので
-        # コピーして消されないようにする
-        cp ./scripts/version_update.sh _version_update.sh
-        ./_version_update.sh
+        run: |
+          # 自身のファイルがチェックアウトによって消えると困るので
+          # コピーして消されないようにする
+          cp ./scripts/version_update.sh _version_update.sh
+          ./_version_update.sh
