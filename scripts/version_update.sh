@@ -25,8 +25,10 @@ while read -r milestone branch position commit; do
   STATUS=$(git branch -a | grep -q "remotes/${REMOTE}/feature/${milestone}.${branch}"; echo $?)
   if [ "$STATUS" == "0" ]; then
     git checkout "feature/${milestone}.${branch}"
+    CREATED=0
   else
-    git checkout -b "feature/${milestone}.${branch}"
+    git checkout -b "feature/${milestone}.${branch}" master
+    CREATED=1
   fi
 
   source VERSION
@@ -34,13 +36,17 @@ while read -r milestone branch position commit; do
   STATUS=$(git diff --exit-code --quiet VERSION; echo $?)
   if [ "$STATUS" == "1" ]; then
     git add VERSION
-    git commit -m "[update] Update version m$WEBRTC_VERSION to ${milestone}.${branch}.${position}"
+    if [ "$CREATED" == "0" ]; then
+      git commit -m "[update] Update version m$WEBRTC_VERSION to ${milestone}.${branch}.${position}"
+    else
+      git commit -m "[create] Create new branch feature/${milestone}.${branch}"
+    fi
   fi
 done <<< "$LINES"
 
 # GitHub Actions から実行する場合は push までやる
 if [ "$GITHUB_ACTIONS" == "true" ]; then
-  git push origin --all
+  git push $REMOTE --all
 fi
 
 git checkout master
