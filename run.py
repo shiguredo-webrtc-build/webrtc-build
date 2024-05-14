@@ -1228,6 +1228,7 @@ def main():
     pp.add_argument("--source-dir")
     pp.add_argument("--build-dir")
     pp.add_argument("--package-dir")
+    pp.add_argument("--depottools-fetch", action="store_true")
     pp.add_argument("--webrtc-build-dir")
     pp.add_argument("--webrtc-source-dir")
     pp.add_argument("--webrtc-package-dir")
@@ -1362,6 +1363,9 @@ def main():
     if args.op == "package":
         mkdir_p(package_dir)
         with cd(BASE_DIR):
+            dir = get_depot_tools(source_dir, fetch=args.depottools_fetch)
+            add_path(dir)
+
             package_webrtc(
                 source_dir,
                 build_dir,
