@@ -2,3 +2,4 @@
 /_build
 /_package
 /patchdev/*/_build
+/validation/_build
