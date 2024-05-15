@@ -1205,11 +1205,16 @@ def get_webrtc_branch_info(branch: str):
     r = re.search(
         r"^Cr-Commit-Position: refs/branch-heads/([0-9]+)@\{#([0-9]+)\}", src_commit, re.MULTILINE
     )
-    if r is None:
+    r2 = re.search(r"^Cr-Commit-Position: refs/heads/main@{#[0-9]+}", src_commit, re.MULTILINE)
+    if r is None and r2 is None:
         raise Exception("Could not find commit position")
-    if branch != r.group(1):
-        raise Exception("Branch mismatch")
-    position = r.group(2)
+    if r is not None:
+        if branch != r.group(1):
+            raise Exception("Branch mismatch")
+        position = r.group(2)
+    else:
+        # 最初のコミットの場合は refs/heads/main になって、コミットポジションは存在しない
+        position = 0
     return commit, position
 
 
