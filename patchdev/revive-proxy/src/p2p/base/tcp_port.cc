@@ -596,7 +596,9 @@ void TCPConnection::CreateOutgoingTcpSocket() {
   tcp_opts.opts = opts;
   socket_.reset(port()->socket_factory()->CreateClientTcpSocket(
       rtc::SocketAddress(port()->Network()->GetBestIP(), 0),
-      remote_candidate().address(), port()->get_proxy(), port()->get_user_agent(), tcp_opts));
+      remote_candidate().address(),
+      port()->get_proxy(), port()->get_user_agent(),
+      tcp_opts));
   if (socket_) {
     RTC_LOG(LS_VERBOSE) << ToString() << ": Connecting from "
                         << socket_->GetLocalAddress().ToSensitiveString()
