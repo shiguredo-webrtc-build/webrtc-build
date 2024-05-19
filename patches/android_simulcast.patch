@@ -240,10 +240,10 @@ index 4bd9ee0e1d..dfc7f17f6d 100644
    ScopedJavaLocalRef<jobject> j_ssrc =
 diff --git a/sdk/android/src/jni/simulcast_video_encoder.cc b/sdk/android/src/jni/simulcast_video_encoder.cc
 new file mode 100644
-index 0000000000..46a1642b5e
+index 0000000000..3f0ca5331c
 --- /dev/null
 +++ b/sdk/android/src/jni/simulcast_video_encoder.cc
-@@ -0,0 +1,37 @@
+@@ -0,0 +1,35 @@
 +#include <jni.h>
 +
 +#include "api/transport/field_trial_based_config.h"
@@ -266,7 +266,6 @@ index 0000000000..46a1642b5e
 +    RTC_LOG(LS_INFO) << "Create simulcast video encoder";
 +    JavaParamRef<jobject> info_ref(info);
 +    SdpVideoFormat format = VideoCodecInfoToSdpVideoFormat(env, info_ref);
-+    auto field_trials = webrtc::FieldTrialBasedConfig();
 +
 +    // TODO: 影響は軽微だが、リークする可能性があるので将来的に修正したい
 +    // https://github.com/shiguredo-webrtc-build/webrtc-build/pull/16#pullrequestreview-600675795
@@ -274,8 +273,7 @@ index 0000000000..46a1642b5e
 +                            *reinterpret_cast<const webrtc::Environment*>(webrtcEnvRef),
 +                            JavaToNativeVideoEncoderFactory(env, primary).release(),
 +                            fallback != nullptr ? JavaToNativeVideoEncoderFactory(env, fallback).release() : nullptr,
-+                            format,
-+                            field_trials).release());
++                            format).release());
 +}
 +
 +#ifdef __cplusplus
