@@ -19,7 +19,7 @@ jobs:
         name:
           - windows_x86_64
           - windows_arm64
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python 3.11
@@ -66,7 +66,7 @@ jobs:
         name:
           - macos_arm64
           - ios
-    runs-on: macos-13
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
       - name: Select Xcode 14.3.1
@@ -75,13 +75,11 @@ jobs:
       - name: Build ${{ matrix.name }} for macos
         if: matrix.name == 'macos_arm64'
         run: |
-          pip3 install setuptools
           python3 run.py build ${{ matrix.name }}
           python3 run.py package ${{ matrix.name }}
       - name: Build ${{ matrix.name }} for ios
         if: matrix.name == 'ios'
         run: |
-          pip3 install setuptools
           python3 run.py build ${{ matrix.name }} --webrtc-overlap-ios-build-dir
           python3 run.py package ${{ matrix.name }} --webrtc-overlap-ios-build-dir
       - name: Upload Artifact

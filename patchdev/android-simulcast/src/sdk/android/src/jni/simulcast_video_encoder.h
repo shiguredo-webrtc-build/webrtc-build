@@ -10,11 +10,10 @@ extern "C" {
 /*
  * Class:     org_webrtc_SimulcastVideoEncoder
  * Method:    nativeCreateEncoder
- * Signature: (Lorg/webrtc/VideoEncoderFactory;Lorg/webrtc/VideoEncoderFactory;Lorg/webrtc/VideoCodecInfo;)J
+ * Signature: (JLorg/webrtc/VideoEncoderFactory;Lorg/webrtc/VideoEncoderFactory;Lorg/webrtc/VideoCodecInfo;)J
  */
-
 JNIEXPORT jlong JNICALL Java_org_webrtc_SimulcastVideoEncoder_nativeCreateEncoder
-  (JNIEnv *, jclass, jobject, jobject, jobject);
+  (JNIEnv *, jclass, jlong, jobject, jobject, jobject);
 
 #ifdef __cplusplus
 }

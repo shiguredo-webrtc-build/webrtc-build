@@ -58,12 +58,13 @@ diff --git a/sdk/objc/api/peerconnection/RTCPeerConnection.mm b/sdk/objc/api/pee
 index f4db472380..45a2b873f2 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnection.mm
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnection.mm
-@@ -322,6 +322,36 @@ void OnFailure(RTCError error) override {
+@@ -322,6 +322,37 @@ void OnFailure(RTCError error) override {
  
  }  // namespace webrtc
  
 +#include "p2p/client/basic_port_allocator.h"
 +#include "pc/rtp_media_utils.h"
++#include "rtc_base/proxy_info_revive.h"
 +
 +namespace webrtc {
 +
@@ -129,11 +130,11 @@ index f4db472380..45a2b873f2 100644
 +        config->port_allocator_config.max_port);
 +    dependencies->allocator->set_flags(config->port_allocator_config.flags);
 +
-+    rtc::ProxyInfo pi;
++    rtc::revive::ProxyInfo pi;
 +    pi.type =
-+        proxyType == RTCProxyTypeNone ? rtc::PROXY_NONE :
-+        proxyType == RTCProxyTypeHttps ? rtc::PROXY_HTTPS :
-+        proxyType == RTCProxyTypeSocks5 ? rtc::PROXY_SOCKS5 : rtc::PROXY_UNKNOWN;
++        proxyType == RTCProxyTypeNone ? rtc::revive::PROXY_NONE :
++        proxyType == RTCProxyTypeHttps ? rtc::revive::PROXY_HTTPS :
++        proxyType == RTCProxyTypeSocks5 ? rtc::revive::PROXY_SOCKS5 : rtc::revive::PROXY_UNKNOWN;
 +    pi.address = rtc::SocketAddress([proxyHostname UTF8String], proxyPort);
 +    pi.username = [proxyUsername UTF8String];
 +    pi.password = rtc::CryptString(webrtc::RawCryptString([proxyPassword UTF8String]));
