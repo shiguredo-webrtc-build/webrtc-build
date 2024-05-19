@@ -133,6 +133,13 @@ def download(url: str, output_dir: Optional[str] = None, filename: Optional[str]
     return output_path
 
 
+def downloadcap(url) -> str:
+    if shutil.which("curl") is not None:
+        return cmdcap(["curl", "-L", url])
+    else:
+        return cmdcap(["wget", "-O", "-", url])
+
+
 def read_version_file(path: str) -> Dict[str, str]:
     versions = {}
 
@@ -333,17 +340,14 @@ def apply_patch(patch, dir, depth):
                 cmd(["patch", f"-p{depth}"], stdin=stdin)
 
 
-def get_webrtc(
-    source_dir, patch_dir, version, target, webrtc_source_dir=None, force=False, fetch=False
-):
+def get_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir=None):
     if webrtc_source_dir is None:
         webrtc_source_dir = os.path.join(source_dir, "webrtc")
-    if force:
-        rm_rf(webrtc_source_dir)
 
     mkdir_p(webrtc_source_dir)
 
-    if not os.path.exists(os.path.join(webrtc_source_dir, "src")):
+    src_dir = os.path.join(webrtc_source_dir, "src")
+    if not os.path.exists(src_dir):
         with cd(webrtc_source_dir):
             cmd(["gclient"])
             cmd(["fetch", "webrtc"])
@@ -353,22 +357,46 @@ def get_webrtc(
             if target == "ios":
                 with open(".gclient", "a") as f:
                     f.write("target_os = [ 'ios' ]\n")
-            fetch = True
 
-    src_dir = os.path.join(webrtc_source_dir, "src")
-    if fetch:
         with cd(src_dir):
             cmd(["git", "fetch"])
-            if version == "HEAD":
-                cmd(["git", "checkout", "-f", "origin/HEAD"])
-            else:
-                cmd(["git", "checkout", "-f", version])
+            cmd(["git", "checkout", "-f", version])
             cmd(["git", "clean", "-df"])
             cmd(["gclient", "sync", "-D", "--force", "--reset", "--with_branch_heads"])
             for patch in PATCHES[target]:
                 depth, dirs = PATCH_INFO.get(patch, (1, ["."]))
                 dir = os.path.join(src_dir, *dirs)
                 apply_patch(os.path.join(patch_dir, patch), dir, depth)
+
+
+def fetch_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir=None):
+    if webrtc_source_dir is None:
+        webrtc_source_dir = os.path.join(source_dir, "webrtc")
+
+    src_dir = os.path.join(webrtc_source_dir, "src")
+    with cd(src_dir):
+        cmd(["git", "fetch"])
+        cmd(["git", "checkout", "-f", version])
+        cmd(["git", "clean", "-df"])
+        cmd(["gclient", "sync", "-D", "--force", "--reset", "--with_branch_heads"])
+        for patch in PATCHES[target]:
+            depth, dirs = PATCH_INFO.get(patch, (1, ["."]))
+            dir = os.path.join(src_dir, *dirs)
+            apply_patch(os.path.join(patch_dir, patch), dir, depth)
+
+
+def revert_webrtc(source_dir, patch_dir, target, webrtc_source_dir=None):
+    if webrtc_source_dir is None:
+        webrtc_source_dir = os.path.join(source_dir, "webrtc")
+
+    src_dir = os.path.join(webrtc_source_dir, "src")
+    with cd(src_dir):
+        cmd(["gclient", "recurse", "git", "reset", "--hard"])
+        cmd(["gclient", "recurse", "git", "clean", "-df"])
+        for patch in PATCHES[target]:
+            depth, dirs = PATCH_INFO.get(patch, (1, ["."]))
+            dir = os.path.join(src_dir, *dirs)
+            apply_patch(os.path.join(patch_dir, patch), dir, depth)
 
 
 def git_get_url_and_revision(dir):
@@ -1197,6 +1225,98 @@ def check_target(target):
         return False
 
 
+def get_webrtc_branch_info(branch: str):
+    # 指定されたブランチのコミットハッシュとコミットポジションを取得する
+    src_commits = downloadcap(
+        f"https://webrtc.googlesource.com/src.git/+log/refs/branch-heads/{branch}"
+    )
+    r = re.search(r'\<a href="(.*?)"\>', src_commits)
+    if r is None:
+        raise Exception("Could not find commit hash")
+    url = r.group(1)
+    commit = url.split("/")[-1]
+    src_commit = downloadcap(f"https://webrtc.googlesource.com{url}")
+    r = re.search(
+        r"^Cr-Commit-Position: refs/branch-heads/([0-9]+)@\{#([0-9]+)\}", src_commit, re.MULTILINE
+    )
+    r2 = re.search(r"^Cr-Commit-Position: refs/heads/main@{#[0-9]+}", src_commit, re.MULTILINE)
+    if r is None and r2 is None:
+        raise Exception("Could not find commit position")
+    if r is not None:
+        if branch != r.group(1):
+            raise Exception("Branch mismatch")
+        position = r.group(2)
+    else:
+        # 最初のコミットの場合は refs/heads/main になって、コミットポジションは存在しない
+        position = 0
+    return commit, position
+
+
+def version_list(args):
+    milestones = json.loads(downloadcap("https://chromiumdash.appspot.com/fetch_milestones"))
+    for m in milestones[:5]:
+        milestone = m["milestone"]
+        branch = m["webrtc_branch"]
+        commit, position = get_webrtc_branch_info(branch)
+        print(f"m{milestone} {branch} {position} {commit}")
+
+
+def version_update(args):
+    milestones = json.loads(downloadcap("https://chromiumdash.appspot.com/fetch_milestones"))
+    # milestones は以下のようなデータになっている
+    # [
+    #   {
+    #     "angle_branch": "6422",
+    #     "bling_ldap": "govind",
+    #     "bling_owner": "Krishna Govind",
+    #     "chromium_branch": "6422",
+    #     "chromium_main_branch_hash": "9012208d0ce02e0cf0adb9b62558627c356f3278",
+    #     "chromium_main_branch_position": 1287751,
+    #     "clank_ldap": "govind",
+    #     "clank_owner": "Krishna Govind",
+    #     "cros_ldap": "matthewjoseph",
+    #     "cros_owner": "Matt Nelson",
+    #     "dawn_branch": "6422",
+    #     "desktop_ldap": "pbommana",
+    #     "desktop_owner": "Prudhvi Bommana",
+    #     "devtools_branch": "6422",
+    #     "merge_phase": "medium_priority",
+    #     "milestone": 125,
+    #     "pdfium_branch": "6422",
+    #     "schedule_active": true,
+    #     "schedule_phase": "beta",
+    #     "skia_branch": "m125",
+    #     "v8_branch": "12.5",
+    #     "webrtc_branch": "6422"
+    #   },
+    #   ...
+    # ]
+    version_path = os.path.join(BASE_DIR, "VERSION")
+    for m in milestones:
+        milestone = m["milestone"]
+        branch = m["webrtc_branch"]
+        if args.target == f"m{milestone}":
+            version_file = read_version_file(version_path)
+            rmilestone, rbranch, rposition, rbuild = version_file["WEBRTC_BUILD_VERSION"].split(".")
+
+            commit, position = get_webrtc_branch_info(branch)
+
+            # 同じバージョンなら元のビルド番号を利用する
+            if rmilestone == str(milestone) and rbranch == branch and rposition == position:
+                build = rbuild
+            else:
+                build = 0
+
+            with open(version_path, "w") as f:
+                f.write(f"WEBRTC_BUILD_VERSION={milestone}.{branch}.{position}.{build}\n")
+                f.write(f"WEBRTC_VERSION={milestone}.{branch}.{position}\n")
+                f.write(f"WEBRTC_READABLE_VERSION=M{milestone}.{branch}@{{#{position}}}\n")
+                f.write(f"WEBRTC_COMMIT={commit}\n")
+            return
+    else:
+        raise Exception(f"Could not find milestone {args.target}")
+
+
 def main():
     """
     メモ
@@ -1221,8 +1341,6 @@ def main():
     bp.add_argument("--build-dir")
     bp.add_argument("--rootfs-fetch-force", action="store_true")
     bp.add_argument("--depottools-fetch", action="store_true")
-    bp.add_argument("--webrtc-fetch", action="store_true")
-    bp.add_argument("--webrtc-fetch-force", action="store_true")
     bp.add_argument("--webrtc-gen", action="store_true")
     bp.add_argument("--webrtc-gen-force", action="store_true")
     bp.add_argument("--webrtc-extra-gn-args", default="")
@@ -1232,6 +1350,24 @@ def main():
     bp.add_argument("--webrtc-overlap-ios-build-dir", action="store_true")
     bp.add_argument("--webrtc-build-dir")
     bp.add_argument("--webrtc-source-dir")
+    # VERSION で指定されたバージョンのソースを取得する
+    fp = sp.add_parser("fetch")
+    fp.set_defaults(op="fetch")
+    fp.add_argument("target", choices=TARGETS)
+    fp.add_argument("--debug", action="store_true")
+    fp.add_argument("--source-dir")
+    fp.add_argument("--build-dir")
+    fp.add_argument("--webrtc-source-dir")
+    fp.add_argument("--webrtc-build-dir")
+    # ソースコードの状態を現在のバージョンに戻す
+    rp = sp.add_parser("revert")
+    rp.set_defaults(op="revert")
+    rp.add_argument("target", choices=TARGETS)
+    rp.add_argument("--debug", action="store_true")
+    rp.add_argument("--source-dir")
+    rp.add_argument("--build-dir")
+    rp.add_argument("--webrtc-source-dir")
+    rp.add_argument("--webrtc-build-dir")
     # 現在 build と package を分ける意味は無いのだけど、
     # 今後複数のビルドを纏めてパッケージングする時に備えて別コマンドにしておく
     pp = sp.add_parser("package")
@@ -1246,10 +1382,25 @@ def main():
     pp.add_argument("--webrtc-source-dir")
     pp.add_argument("--webrtc-package-dir")
     pp.add_argument("--webrtc-overlap-ios-build-dir", action="store_true")
+    # バージョン操作系
+    vup = sp.add_parser("version_update")
+    vup.set_defaults(op="version_update")
+    vup.add_argument("target")
+    vlp = sp.add_parser("version_list")
+    vlp.set_defaults(op="version_list")
+
     args = parser.parse_args()
 
     if not hasattr(args, "op"):
         parser.error("Required subcommand")
+
+    if args.op == "version_list":
+        version_list(args)
+        return
+
+    if args.op == "version_update":
+        version_update(args)
+        return
 
     if not check_target(args.target):
         raise Exception(f"Target {args.target} is not supported on your platform")
@@ -1341,8 +1492,6 @@ def main():
                 version_info.webrtc_commit,
                 args.target,
                 webrtc_source_dir=webrtc_source_dir,
-                fetch=args.webrtc_fetch,
-                force=args.webrtc_fetch_force,
             )
 
             # ビルド
@@ -1372,6 +1521,33 @@ def main():
                 )
             else:
                 build_webrtc(**build_webrtc_args, target=args.target)
+
+    if args.op == "fetch":
+        mkdir_p(source_dir)
+
+        with cd(BASE_DIR):
+            dir = get_depot_tools(source_dir, fetch=False)
+            add_path(dir)
+            fetch_webrtc(
+                source_dir,
+                patch_dir,
+                version_info.webrtc_commit,
+                args.target,
+                webrtc_source_dir=webrtc_source_dir,
+            )
+
+    if args.op == "revert":
+        mkdir_p(source_dir)
+
+        with cd(BASE_DIR):
+            dir = get_depot_tools(source_dir, fetch=False)
+            add_path(dir)
+            revert_webrtc(
+                source_dir,
+                patch_dir,
+                args.target,
+                webrtc_source_dir=webrtc_source_dir,
+            )
 
     if args.op == "package":
         mkdir_p(package_dir)

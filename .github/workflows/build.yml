@@ -6,6 +6,7 @@ on:
       - "LICENSE"
       - "NOTICE"
       - ".gitignore"
+      - "scripts/version_update.sh"
     branches-ignore:
       - daily
     tags:
