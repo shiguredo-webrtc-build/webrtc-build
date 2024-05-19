@@ -12,6 +12,19 @@
 VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 パッチやビルドの変更のみ記録すること。
 
+## 2024-05-20
+
+- [CHANGE] --webrtc-fetch, --webrtc-fetch-force オプションを削除
+  - 代わりに run.py fetch コマンドを利用する
+  - @melpon
+- [ADD] run.py に fetch コマンドと revert コマンドを追加
+  - @melpon
+
+## 2024-05-06
+
+- [ADD] run.py にバージョン操作系のコマンド `version_list` と `version_update` を追加
+  - @melpon
+
 ## m124.6367.0.0
 
 - [CHANGE] ios / macos_arm64 向けに `revert_asm_changes.patch` を追加
