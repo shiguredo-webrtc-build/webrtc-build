@@ -112,6 +112,12 @@ public class RtpParameters {
 
     @Nullable
     @CalledByNative("Encoding")
+    String getScalabilityMode() {
+      return scalabilityMode;
+    }
+
+    @Nullable
+    @CalledByNative("Encoding")
     String getRid() {
       return rid;
     }
@@ -160,12 +166,6 @@ public class RtpParameters {
     @CalledByNative("Encoding")
     Double getScaleResolutionDownBy() {
       return scaleResolutionDownBy;
-    }
-
-    @Nullable
-    @CalledByNative("Encoding")
-    String getScalabilityMode() {
-      return scalabilityMode;
     }
 
     @CalledByNative("Encoding")

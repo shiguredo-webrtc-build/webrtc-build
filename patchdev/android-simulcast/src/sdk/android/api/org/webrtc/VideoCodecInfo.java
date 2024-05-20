@@ -96,6 +96,4 @@ public class VideoCodecInfo {
   void setScalabilityModes(int[] values) {
     scalabilityModes = values;
   }
-
-
 }

@@ -195,6 +195,7 @@ PATCH_INFO = {
 PATCHES = {
     "windows_x86_64": [
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "windows_add_deps.patch",
         "windows_silence_warnings.patch",
@@ -205,6 +206,7 @@ PATCHES = {
     ],
     "windows_arm64": [
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "windows_add_deps.patch",
         "windows_silence_warnings.patch",
@@ -215,6 +217,7 @@ PATCHES = {
     "macos_arm64": [
         "add_deps.patch",
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "macos_screen_capture.patch",
         "ios_simulcast.patch",
@@ -228,6 +231,7 @@ PATCHES = {
     "ios": [
         "add_deps.patch",
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "macos_screen_capture.patch",
         "ios_manual_audio_input.patch",
@@ -243,6 +247,7 @@ PATCHES = {
     "android": [
         "add_deps.patch",
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "android_webrtc_version.patch",
@@ -257,42 +262,49 @@ PATCHES = {
         "nacl_armv6_2.patch",
         "add_deps.patch",
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
     ],
     "raspberry-pi-os_armv7": [
         "add_deps.patch",
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
     ],
     "raspberry-pi-os_armv8": [
         "add_deps.patch",
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
     ],
     "ubuntu-18.04_armv8": [
         "add_deps.patch",
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
     ],
     "ubuntu-20.04_armv8": [
         "add_deps.patch",
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
     ],
     "ubuntu-22.04_armv8": [
         "add_deps.patch",
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
     ],
     "ubuntu-20.04_x86_64": [
         "add_deps.patch",
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
@@ -300,6 +312,7 @@ PATCHES = {
     "ubuntu-22.04_x86_64": [
         "add_deps.patch",
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
@@ -1364,6 +1377,7 @@ def main():
     pp.add_argument("--source-dir")
     pp.add_argument("--build-dir")
     pp.add_argument("--package-dir")
+    pp.add_argument("--depottools-fetch", action="store_true")
     pp.add_argument("--webrtc-build-dir")
     pp.add_argument("--webrtc-source-dir")
     pp.add_argument("--webrtc-package-dir")
@@ -1538,6 +1552,9 @@ def main():
     if args.op == "package":
         mkdir_p(package_dir)
         with cd(BASE_DIR):
+            dir = get_depot_tools(source_dir, fetch=args.depottools_fetch)
+            add_path(dir)
+
             package_webrtc(
                 source_dir,
                 build_dir,

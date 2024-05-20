@@ -37,7 +37,6 @@ ScopedJavaLocalRef<jobject> SdpVideoFormatToVideoCodecInfo(
     const SdpVideoFormat& format) {
   ScopedJavaLocalRef<jobject> j_params =
       NativeToJavaStringMap(jni, format.parameters);
-
   ScopedJavaLocalRef<jobject> codec = Java_VideoCodecInfo_Constructor(
       jni, NativeToJavaString(jni, format.name), j_params);
 
