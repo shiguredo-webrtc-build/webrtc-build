@@ -30,19 +30,27 @@ python3 run.py build <target>
 
 WebRTC のソースを手で書き換えた場合は、単にもう一度 build コマンドを実行するだけで良い。
 
-### --webrtc-fetch
+### fetch
 
-WebRTC のソースをリポジトリから取得し直したい場合は `--webrtc-fetch` 引数を利用すれば良い。
+WebRTC のソースをリポジトリから取得し直したい場合は `fetch` コマンドを利用すれば良い。
 
 ```
-python3 run.py build <target> --webrtc-fetch
+python3 run.py fetch <target>
 ```
 
-これで WebRTC のソースは `VERSION` ファイルの `WEBRTC_COMMIT` に書かれた内容になり、その上でパッチを当てた状態でビルドされる。
+これで WebRTC のソースは `VERSION` ファイルの `WEBRTC_COMMIT` に書かれた内容になり、その上でパッチを当てた状態になる。ビルドは行わない。
 
 ソースを手で書き換えた部分や追加したファイルも含め、全て元に戻るので注意すること。
 
-なお既存のソースを全て破棄して取得し直す `--webrtc-fetch-force` 引数も存在する。
+### revert
+
+WebRTC のソースを元に戻したい場合や、パッチを当て直す場合は `revert` コマンドを利用すれば良い。
+
+```
+python3 run.py revert <target>
+```
+
+これは関連する全てのリポジトリに対して `git clean -df` と `git reset --hard` を実行する。
 
 ### --webrtc-gen
 
