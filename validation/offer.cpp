@@ -28,6 +28,8 @@
 #include <rtc_base/ref_counted_object.h>
 #include <rtc_base/ssl_adapter.h>
 
+#include "fake_video_capturer.h"
+
 class CreateSessionDescriptionThunk
     : public webrtc::CreateSessionDescriptionObserver {
  public:
@@ -327,14 +329,23 @@ int main() {
     return -1;
   }
   auto peer_connection = result.value();
+
+  //auto video_track = peer_connection_factory->CreateVideoTrack(
+  //    CreateFakeVideoCapturer({640, 480, 30}), "video-track-id");
+  //peer_connection->AddTrack(video_track, {"video-stream-id"});
+
   webrtc::RtpTransceiverInit init;
   webrtc::RtpCodecCapability vp9_codec;
   webrtc::RtpCodecCapability av1_codec;
   vp9_codec.kind = cricket::MEDIA_TYPE_VIDEO;
   vp9_codec.name = "VP9";
+  vp9_codec.parameters["profile-id"] = "0";
+  vp9_codec.clock_rate = 90000;
   av1_codec.kind = cricket::MEDIA_TYPE_VIDEO;
   av1_codec.name = "AV1";
-  init.direction = webrtc::RtpTransceiverDirection::kSendOnly;
+  av1_codec.clock_rate = 90000;
+  //init.direction = webrtc::RtpTransceiverDirection::kSendOnly;
+  init.direction = webrtc::RtpTransceiverDirection::kSendRecv;
   init.stream_ids = {"s0", "s1", "s2"};
   init.send_encodings.resize(3);
   init.send_encodings[0].rid = "r0";
@@ -353,27 +364,31 @@ int main() {
                       << transceiver_result.error().message();
     return -1;
   }
-  auto transceiver = transceiver_result.value();
-  std::vector<webrtc::RtpCodecCapability> codecs = {vp9_codec};
-  transceiver->SetCodecPreferences(codecs);
-  webrtc::RtpParameters rtp_parameters = transceiver->sender()->GetParameters();
-  rtp_parameters.codecs.clear();
-  rtp_parameters.codecs.resize(1);
-  rtp_parameters.codecs[0].name = vp9_codec.name;
-  rtp_parameters.codecs[0].kind = vp9_codec.kind;
-  rtp_parameters.codecs[0].payload_type = 90;
-  rtp_parameters.header_extensions.emplace_back(
-      webrtc::RtpExtension::kRepairedRidUri, 1);
-  rtp_parameters.header_extensions.emplace_back(webrtc::RtpExtension::kRidUri,
-                                                2);
-  rtp_parameters.header_extensions.emplace_back(webrtc::RtpExtension::kMidUri,
-                                                3);
-  rtp_parameters.header_extensions.emplace_back(
-      webrtc::RtpExtension::kDependencyDescriptorUri, 4);
-  rtp_parameters.encodings.clear();
-  rtp_parameters.encodings.resize(3);
-  rtp_parameters.encodings = init.send_encodings;
-  transceiver->sender()->SetParameters(rtp_parameters);
+  //auto transceiver = transceiver_result.value();
+  //std::vector<webrtc::RtpCodecCapability> codecs = {vp9_codec};
+  //transceiver->SetCodecPreferences(codecs);
+  //webrtc::RtpParameters rtp_parameters = transceiver->sender()->GetParameters();
+  //rtp_parameters.codecs.clear();
+  //rtp_parameters.codecs.resize(1);
+  //rtp_parameters.codecs[0].name = vp9_codec.name;
+  //rtp_parameters.codecs[0].kind = vp9_codec.kind;
+  //rtp_parameters.codecs[0].payload_type = 90;
+  //rtp_parameters.header_extensions.emplace_back(
+  //    webrtc::RtpExtension::kRepairedRidUri, 1);
+  //rtp_parameters.header_extensions.emplace_back(webrtc::RtpExtension::kRidUri,
+  //                                              2);
+  //rtp_parameters.header_extensions.emplace_back(webrtc::RtpExtension::kMidUri,
+  //                                              3);
+  //rtp_parameters.header_extensions.emplace_back(
+  //    webrtc::RtpExtension::kDependencyDescriptorUri, 4);
+  //rtp_parameters.encodings.clear();
+  //rtp_parameters.encodings.resize(3);
+  //rtp_parameters.encodings = init.send_encodings;
+  //transceiver->sender()->SetParameters(rtp_parameters);
+  webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
+  //options.offer_to_receive_video = webrtc::PeerConnectionInterface::
+  //    RTCOfferAnswerOptions::kOfferToReceiveMediaTrue;
+  options.num_simulcast_layers = 3;
   peer_connection->CreateOffer(
       CreateSessionDescriptionThunk::Create(
           [&promise,
@@ -393,7 +408,7 @@ int main() {
           },
           [&promise](webrtc::RTCError error) { promise.set_value(); })
           .get(),
-      webrtc::PeerConnectionInterface::RTCOfferAnswerOptions());
+      options);
 
   future.wait();
 }
