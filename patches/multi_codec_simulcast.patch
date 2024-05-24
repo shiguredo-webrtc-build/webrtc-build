@@ -269,6 +269,24 @@ index 1ace08fa32..3773743360 100644
      stream.rtp_rtcp->SetRtxSendStatus(kRtxRetransmitted |
                                        kRtxRedundantPayloads);
    }
+diff --git a/media/base/media_engine.cc b/media/base/media_engine.cc
+index 7304ab03d7..839cad9af3 100644
+--- a/media/base/media_engine.cc
++++ b/media/base/media_engine.cc
+@@ -187,13 +187,6 @@ webrtc::RTCError CheckRtpParametersValues(
+                            "Attempted to set scale_resolution_down_by and "
+                            "requested_resolution simultaniously.");
+     }
+-
+-    if (i > 0 && rtp_parameters.encodings[i - 1].codec !=
+-                     rtp_parameters.encodings[i].codec) {
+-      LOG_AND_RETURN_ERROR(RTCErrorType::UNSUPPORTED_OPERATION,
+-                           "Attempted to use different codec values for "
+-                           "different encodings.");
+-    }
+   }
+ 
+   return CheckScalabilityModeValues(rtp_parameters, codec_preferences,
 diff --git a/media/engine/simulcast_encoder_adapter.cc b/media/engine/simulcast_encoder_adapter.cc
 index 4853e68996..431bf34c6d 100644
 --- a/media/engine/simulcast_encoder_adapter.cc
@@ -467,7 +485,7 @@ index a5b46d3344..12c5345923 100644
                                             config)) {
        encoding.scalability_mode = webrtc::kDefaultScalabilityModeStr;
        RTC_LOG(LS_INFO) << " -> " << *encoding.scalability_mode;
-@@ -758,6 +760,33 @@ int ParseReceiveBufferSize(const webrtc::FieldTrialsView& trials) {
+@@ -758,6 +760,36 @@ int ParseReceiveBufferSize(const webrtc::FieldTrialsView& trials) {
    return size_bytes.Get();
  }
  
@@ -475,6 +493,9 @@ index a5b46d3344..12c5345923 100644
 +  std::vector<VideoCodecSettings> codec_settings;
 +  if (rids.empty()) {
 +    return send_codecs;
++  }
++  if (send_codecs.empty()) {
++    return {};
 +  }
 +
 +  for (const RidDescription& rid : rids) {
@@ -942,7 +963,7 @@ index a5b46d3344..12c5345923 100644
    // Set codecs and options.
 -  if (params.send_codec) {
 -    SetCodec(*params.send_codec);
-+  if (params.send_codecs) {
++  if (params.send_codecs && !params.send_codecs->empty()) {
 +    SetCodecs(SendCodecsToSimulcastLayers(*params.send_codecs, rids_));
      recreate_stream = false;  // SetCodec has already recreated the stream.
 -  } else if (params.conference_mode && parameters_.codec_settings) {

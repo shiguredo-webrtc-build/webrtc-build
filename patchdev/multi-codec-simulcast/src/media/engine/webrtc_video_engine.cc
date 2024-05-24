@@ -765,6 +765,9 @@ std::vector<VideoCodecSettings> SendCodecsToSimulcastLayers(const std::vector<Vi
   if (rids.empty()) {
     return send_codecs;
   }
+  if (send_codecs.empty()) {
+    return {};
+  }
 
   for (const RidDescription& rid : rids) {
     if (rid.payload_types.empty()) {

@@ -11,6 +11,7 @@
         "call/rtp_config.cc",
         "call/rtp_config.h",
         "call/rtp_video_sender.cc",
+        "media/base/media_engine.cc",
         "media/engine/simulcast_encoder_adapter.cc",
         "media/engine/simulcast_encoder_adapter.h",
         "media/engine/webrtc_video_engine.cc",
