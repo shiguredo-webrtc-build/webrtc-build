@@ -2,6 +2,7 @@ import argparse
 import collections
 import json
 import logging
+import multiprocessing
 import os
 import platform
 import re
@@ -206,6 +207,7 @@ PATCHES = {
         "macos_use_xcode_clang.patch",
         "h265.patch",
         "h265_ios.patch",
+        "multi_codec_simulcast.patch",
     ],
     "ios": [
         "add_deps.patch",
@@ -219,6 +221,7 @@ PATCHES = {
         "ios_proxy.patch",
         "h265.patch",
         "h265_ios.patch",
+        "multi_codec_simulcast.patch",
     ],
     "android": [
         "add_deps.patch",
@@ -232,6 +235,7 @@ PATCHES = {
         "android_proxy.patch",
         "h265.patch",
         "h265_android.patch",
+        "multi_codec_simulcast.patch",
     ],
     "raspberry-pi-os_armv6": [
         "nacl_armv6_2.patch",
@@ -276,6 +280,7 @@ PATCHES = {
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
+        "multi_codec_simulcast.patch",
     ],
     "ubuntu-22.04_x86_64": [
         "add_deps.patch",
@@ -283,6 +288,7 @@ PATCHES = {
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
+        "multi_codec_simulcast.patch",
     ],
 }
 
@@ -1202,6 +1208,16 @@ def main():
     pp.add_argument("--webrtc-source-dir")
     pp.add_argument("--webrtc-package-dir")
     pp.add_argument("--webrtc-overlap-ios-build-dir", action="store_true")
+    # validation
+    vp = sp.add_parser("validate")
+    vp.set_defaults(op="validate")
+    vp.add_argument("target", choices=TARGETS)
+    vp.add_argument("--debug", action="store_true")
+    vp.add_argument("--source-dir")
+    vp.add_argument("--build-dir")
+    vp.add_argument("--webrtc-build-dir")
+    vp.add_argument("--webrtc-source-dir")
+
     args = parser.parse_args()
 
     if not hasattr(args, "op"):
@@ -1342,6 +1358,39 @@ def main():
                 webrtc_package_dir=webrtc_package_dir,
                 overlap_ios_build_dir=args.webrtc_overlap_ios_build_dir,
             )
+
+    if args.op == "validate":
+        with cd(BASE_DIR):
+            validation_build_dir = os.path.join(build_dir, "validation")
+            validation_source_dir = os.path.join(BASE_DIR, "validation")
+            if webrtc_source_dir is None:
+                webrtc_source_dir = os.path.join(source_dir, "webrtc")
+            if webrtc_build_dir is None:
+                webrtc_build_dir = os.path.join(build_dir, "webrtc")
+            cmake_configuration = "Debug" if args.debug else "Release"
+            mkdir_p(validation_build_dir)
+            with cd(validation_build_dir):
+                cmd(
+                    [
+                        "cmake",
+                        validation_source_dir,
+                        f"-DCMAKE_BUILD_TYPE={cmake_configuration}",
+                        f"-DWEBRTC_SOURCE_DIR={webrtc_source_dir}/src",
+                        f"-DWEBRTC_BUILD_DIR={webrtc_build_dir}",
+                        f"-DWEBRTC_LIBCXX_DIR={webrtc_source_dir}/src/third_party/libc++/src",
+                    ]
+                )
+                cmd(
+                    [
+                        "cmake",
+                        "--build",
+                        ".",
+                        f"-j{multiprocessing.cpu_count()}",
+                        "--config",
+                        configuration,
+                    ]
+                )
+                cmd(["./offer"])
 
 
 if __name__ == "__main__":

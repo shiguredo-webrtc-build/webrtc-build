@@ -1,6 +1,9 @@
 {
   "python.analysis.autoImportCompletions": true,
   "python.analysis.typeCheckingMode": "basic",
+  "[cpp]": {
+    "editor.formatOnSave": true,
+  },
   "[python]": {
     "editor.formatOnSave": true,
     "editor.formatOnSaveMode": "file",
@@ -10,5 +13,13 @@
       "source.fixAll.ruff": "always",
       "source.organizeImports.ruff": "explicit"
     }
+  },
+  "files.associations": {
+    "*.cs": "csharp",
+    "CMakeLists.txt": "cmake",
+    "*.tcc": "cpp",
+    "regex": "cpp",
+    "vector": "cpp",
+    "future": "cpp"
   },
 }

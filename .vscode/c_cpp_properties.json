@@ -1,0 +1,45 @@
+{
+    "configurations": [
+        {
+            "name": "Android",
+            "includePath": [
+                "${workspaceFolder}/_source/android/webrtc/src",
+                "${workspaceFolder}/_source/android/webrtc/src/third_party/abseil-cpp",
+                "${workspaceFolder}/_source/android/webrtc/src/third_party/boringssl/src/include",
+                "${workspaceFolder}/_source/android/webrtc/src/third_party/libyuv/include",
+                "${workspaceFolder}/_source/android/webrtc/src/third_party/zlib",
+                "${workspaceFolder}/_source/android/webrtc/src/third_party/android_ndk/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include",
+                "${workspaceFolder}/_build/android/release/webrtc/arm64-v8a/gen"
+            ],
+            "defines": [
+                "WEBRTC_POSIX",
+                "WEBRTC_LINUX",
+                "WEBRTC_ANDROID"
+            ],
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c11",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "linux-clang-x64"
+        },
+        {
+            "name": "Ubuntu 20.04 x86_64",
+            "includePath": [
+                "${workspaceFolder}/_source/ubuntu-20.04_x86_64/webrtc/src",
+                "${workspaceFolder}/_source/ubuntu-20.04_x86_64/webrtc/src/third_party/abseil-cpp",
+                "${workspaceFolder}/_source/ubuntu-20.04_x86_64/webrtc/src/third_party/boringssl/src/include",
+                "${workspaceFolder}/_source/ubuntu-20.04_x86_64/webrtc/src/third_party/libyuv/include",
+                "${workspaceFolder}/_source/ubuntu-20.04_x86_64/webrtc/src/third_party/zlib",
+                "${workspaceFolder}/_build/ubuntu-20.04_x86_64/release/webrtc/gen"
+            ],
+            "defines": [
+                "WEBRTC_POSIX",
+                "WEBRTC_LINUX"
+            ],
+            "compilerPath": "${workspaceFolder}/_source/ubuntu-20.04_x86_64/webrtc/src/third_party/llvm-build/Release+Asserts/bin/clang++",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-clang-x64"
+        }
+    ],
+    "version": 4
+}
