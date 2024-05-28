@@ -341,7 +341,7 @@ def _deps_dirs(src_dir):
     return rel_dirs
 
 
-def apply_patches(target, patch_dir, src_dir, patch_until):
+def apply_patches(target, patch_dir, src_dir, patch_until, commit_patch):
     # patch_until が指定されている場合、そのパッチファイルまで適用とコミットして、
     # patch_until のパッチに関しては適用だけ行う
     if patch_until is not None:
@@ -351,7 +351,7 @@ def apply_patches(target, patch_dir, src_dir, patch_until):
     with cd(src_dir):
         for patch in PATCHES[target]:
             apply_patch(os.path.join(patch_dir, patch), src_dir, 1)
-            if patch == patch_until:
+            if patch == patch_until and not commit_patch:
                 break
             cmd(["gclient", "recurse", "git", "add", "--", ":!*.orig"])
             cmd(
@@ -365,6 +365,8 @@ def apply_patches(target, patch_dir, src_dir, patch_until):
                     f"[shiguredo-patch] Apply {patch}",
                 ]
             )
+            if patch == patch_until and commit_patch:
+                break
 
 
 def get_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir):
@@ -390,7 +392,7 @@ def get_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir):
             cmd(["git", "checkout", "-f", version])
             cmd(["git", "clean", "-df"])
             cmd(["gclient", "sync", "-D", "--force", "--reset", "--with_branch_heads"])
-            apply_patches(target, patch_dir, src_dir, None)
+            apply_patches(target, patch_dir, src_dir, None, False)
 
 
 def fetch_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir):
@@ -403,10 +405,10 @@ def fetch_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir):
         cmd(["git", "checkout", "-f", version])
         cmd(["git", "clean", "-df"])
         cmd(["gclient", "sync", "-D", "--force", "--reset", "--with_branch_heads"])
-        apply_patches(target, patch_dir, src_dir, None)
+        apply_patches(target, patch_dir, src_dir, None, False)
 
 
-def revert_webrtc(source_dir, patch_dir, target, webrtc_source_dir, patch):
+def revert_webrtc(source_dir, patch_dir, target, webrtc_source_dir, patch, commit):
     if webrtc_source_dir is None:
         webrtc_source_dir = os.path.join(source_dir, "webrtc")
 
@@ -420,12 +422,12 @@ def revert_webrtc(source_dir, patch_dir, target, webrtc_source_dir, patch):
                 for line in lines:
                     if "[shiguredo-patch]" in line:
                         continue
-                    commit = line.split(" ")[0]
+                    commit_hash = line.split(" ")[0]
                     break
-                cmd(["git", "reset", "--soft", commit])
+                cmd(["git", "reset", "--soft", commit_hash])
         cmd(["gclient", "recurse", "git", "reset", "--hard"])
         cmd(["gclient", "recurse", "git", "clean", "-df"])
-        apply_patches(target, patch_dir, src_dir, patch)
+        apply_patches(target, patch_dir, src_dir, patch, commit)
 
 
 def diff_webrtc(source_dir, webrtc_source_dir):
@@ -1429,6 +1431,7 @@ def main():
     rp.add_argument("--webrtc-source-dir")
     rp.add_argument("--webrtc-build-dir")
     rp.add_argument("--patch")
+    rp.add_argument("--commit", action="store_true")
     # ソースコードの差分を出力する
     dp = sp.add_parser("diff")
     dp.set_defaults(op="diff")
@@ -1618,6 +1621,7 @@ def main():
                 target=args.target,
                 webrtc_source_dir=webrtc_source_dir,
                 patch=args.patch,
+                commit=args.commit,
             )
 
     if args.op == "diff":

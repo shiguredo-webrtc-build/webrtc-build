@@ -137,6 +137,16 @@ python3 run.py revert <target> --patch <patch>
 
 これによって、このパッチより前に当てるべきパッチを適用/コミットした後、このパッチを適用し、コミットしていない状態になる
 
+`--patch` オプションで指定したパッチのコミットも行っておきたい場合、`--commit` オプションを指定する。
+
+```
+python3 run.py revert <target> --patch <patch> --commit
+```
+
+これによって、このパッチまでの全てのパッチが適用/コミットされる。
+
+`--commit` オプションは、パッチの適用順序を変えたい場合に利用する。
+
 ## libwebrtc のソース差分を出力する
 
 WebRTC のソースの差分を確認する場合、以下のコマンドを利用する
@@ -155,6 +165,17 @@ python3 run.py diff <target>
 4. run.py の PATCHES に追加したパッチを最後に付け加える
 5. `python3 run.py revert <target>` でパッチが正しく適用されているか確認する
 
+上記の方法は追加したパッチを最後に適用する場合の方法である。
+
+パッチの途中に新しいパッチを適用したい場合は、`--patch` と `--commit` オプションを利用する。
+
+1. `python3 run.py revert <target> --patch <patch> --commit` コマンドで、新しく作るパッチより前に適用しておきたいパッチを適用しておく
+2. libwebrtc のソースを編集する
+3. `python3 run.py diff <target>` コマンドで差分を確認した後、問題なければ `python3 run.py diff <target> > <patch>` でパッチをファイルに出力する
+4. run.py の PATCHES に、追加したパッチを最初に追加したパッチの次の位置に付け加える
+5. `python3 run.py revert <target>` でパッチが正しく適用されているか確認する
+  - 適用順序が変わっているので、以降のパッチ適用でエラーが発生する可能性もある
+
 ## パッチを編集する
 
 既存のパッチを編集する場合、以下の手順で行う
@@ -162,4 +183,4 @@ python3 run.py diff <target>
 1. `python3 run.py revert <target> --patch <patch>` コマンドで、このパッチを適用してコミットしていない状態にする
 2. libwebrtc のソースを編集して正しい状態にする
 3. `python3 run.py diff <target>` コマンドで差分を確認した後、問題なければ `python3 run.py diff <target> > <patch>` でパッチを上書きする
-5. `python3 run.py revert <target>` でパッチが正しく適用されているか確認する
+4. `python3 run.py revert <target>` でパッチが正しく適用されているか確認する
