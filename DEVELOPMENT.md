@@ -184,3 +184,47 @@ python3 run.py diff <target>
 2. libwebrtc のソースを編集して正しい状態にする
 3. `python3 run.py diff <target>` コマンドで差分を確認した後、問題なければ `python3 run.py diff <target> > <patch>` でパッチを上書きする
 4. `python3 run.py revert <target>` でパッチが正しく適用されているか確認する
+
+## エラーになったパッチを修正する
+
+基本的にはパッチを編集する場合と同じ。
+
+```bash
+# エラーになっているブランチをチェックアウト
+git checkout feature/<libwebrtc-version>
+# エラーになっているバージョンを取ってくる
+python3 run.py fetch <target>
+```
+
+この `fetch` 時に、どれかのパッチ適用でエラーになっているのが前提となる。
+
+1. エラーになったパッチファイルを確認して `python3 run.py revert <target> --patch <patch>` コマンドを実行する
+  - この時にエラーが出るけれども、気にせず次に進む
+2. libwebrtc のソースを編集して正しい状態にする
+  - 元のパッチファイルの差分を見て、どうするべきかを考えて修正する
+  - 場合によっては旧バージョンのソースファイルも確認する必要があるかもしれないが、ローカルにダウンロードするのは大変なので https://source.chromium.org/chromium あたりから探すのが良い
+3. `python3 run.py diff <target>` コマンドで差分を確認した後、問題なければ `python3 run.py diff <target> > <patch>` でパッチを上書きする
+4. `python3 run.py revert <target>` でパッチが正しく適用されているか確認する
+
+## libwebrtc に新しいバージョンがあるか確認する
+
+libwebrtc に新しいバージョンがあるか確認する場合、以下のコマンドを利用する
+
+```
+$ python3 run.py version_list
+m126 6478 1 a18e38fed2307edd6382760213fa3ddf199fa181
+m125 6422 2 8505a9838ea91c66c96c173d30cd66f9dbcc7548
+m124 6367 3 a55ff9e83e4592010969d428bee656bace8cbc3b
+m123 6312 3 41b1493ddb5d98e9125d5cb002fd57ce76ebd8a7
+m122 6261 1 6b419a0536b1a0ccfff3682f997c6f19bcbd9bd8
+```
+
+## libwebrtc のバージョンを変更する
+
+libwebrtc のバージョンを変更する場合、以下のコマンドを利用する
+
+```
+$ python3 run.py version_update m126
+```
+
+ただし、バージョンの更新は GitHub Actions によって自動で行われるため、基本的に手動で行う必要はない。
