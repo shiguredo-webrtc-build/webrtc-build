@@ -83,13 +83,11 @@ jobs:
       - name: Build ${{ matrix.platform.name }} for macos
         if: matrix.platform.name == 'macos_arm64'
         run: |
-          pip3 install setuptools
           python3 run.py build ${{ matrix.platform.name }}
           python3 run.py package ${{ matrix.platform.name }}
       - name: Build ${{ matrix.platform.name }} for ios
         if: matrix.platform.name == 'ios'
         run: |
-          pip3 install setuptools
           python3 run.py build ${{ matrix.platform.name }} --webrtc-overlap-ios-build-dir
           python3 run.py package ${{ matrix.platform.name }} --webrtc-overlap-ios-build-dir
       - name: Upload Artifact
@@ -133,7 +131,10 @@ jobs:
           sudo du -h -d1 /usr/local/share
           sudo du -h -d1 /usr/local/lib
           sudo du -h -d1 /usr/share
-          docker rmi `docker images -q -a`
+          RMI=`docker images -q -a`
+          if [ -n "$RMI" ]; then
+            docker rmi $RMI
+          fi
           # 4.6G
           sudo rm -rf /usr/local/.ghcup
           # 1.7G
