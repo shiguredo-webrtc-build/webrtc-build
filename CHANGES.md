@@ -17,7 +17,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 - [CHANGE] --webrtc-fetch, --webrtc-fetch-force オプションを削除
   - 代わりに run.py fetch コマンドを利用する
   - @melpon
-- [ADD] run.py に fetch コマンドと revert コマンドを追加
+- [ADD] run.py に fetch コマンドと revert コマンドと diff コマンドを追加
   - @melpon
 
 ## 2024-05-06
