@@ -47,6 +47,10 @@ jobs:
             Remove-Item -Recurse -Force $Env:JAVA_HOME_8_X64 -ErrorAction Ignore
           }
           Get-PSDrive
+      - name: Setup Git User
+        run: |
+          git config --global user.name  "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
       - name: Build ${{ matrix.name }}
         run: |
           # リポジトリの下に置きたいが、GitHub Actions の D:\ の容量が少なくてビルド出来ない問題があるので
@@ -72,6 +76,10 @@ jobs:
       - name: Select Xcode 14.3.1
         run: sudo xcode-select --switch /Applications/Xcode_14.3.1.app/Contents/Developer
       - run: brew install ninja
+      - name: Setup Git User
+        run: |
+          git config --global user.name  "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
       - name: Build ${{ matrix.name }} for macos
         if: matrix.name == 'macos_arm64'
         run: |
@@ -131,6 +139,10 @@ jobs:
       - name: Setup ${{ matrix.name }} for android
         if: matrix.name == 'android'
         run: sudo scripts/apt_install_x86_64.sh && sudo apt-get install -y openjdk-11-jdk
+      - name: Setup Git User
+        run: |
+          git config --global user.name  "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
       - name: Build ${{ matrix.name }}
         run: |
           python3 run.py build ${{ matrix.name }}

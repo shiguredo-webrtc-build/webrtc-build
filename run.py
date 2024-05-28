@@ -186,12 +186,6 @@ def get_depot_tools(source_dir, fetch=False):
     return dir
 
 
-PATCH_INFO = {
-    "macos_screen_capture.patch": (2, []),
-    "macos_use_xcode_clang.patch": (1, ["build"]),
-    "windows_fix_optional.patch": (1, ["third_party"]),
-}
-
 PATCHES = {
     "windows_x86_64": [
         "4k.patch",
@@ -340,7 +334,42 @@ def apply_patch(patch, dir, depth):
                 cmd(["patch", f"-p{depth}"], stdin=stdin)
 
 
-def get_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir=None):
+def _deps_dirs(src_dir):
+    cap = cmdcap(["gclient", "recurse", "-j1", "pwd"])
+    abs_dirs = cap.split("\n")
+    rel_dirs = [os.path.relpath(abs_dir, src_dir) for abs_dir in abs_dirs]
+    return rel_dirs
+
+
+def apply_patches(target, patch_dir, src_dir, patch_until, commit_patch):
+    # patch_until が指定されている場合、そのパッチファイルまで適用とコミットして、
+    # patch_until のパッチに関しては適用だけ行う
+    if patch_until is not None:
+        if patch_until not in PATCHES[target]:
+            raise Exception(f"{patch_until} file is not in PATCHES")
+
+    with cd(src_dir):
+        for patch in PATCHES[target]:
+            apply_patch(os.path.join(patch_dir, patch), src_dir, 1)
+            if patch == patch_until and not commit_patch:
+                break
+            cmd(["gclient", "recurse", "git", "add", "--", ":!*.orig"])
+            cmd(
+                [
+                    "gclient",
+                    "recurse",
+                    "git",
+                    "commit",
+                    "--allow-empty",
+                    "-am",
+                    f"[shiguredo-patch] Apply {patch}",
+                ]
+            )
+            if patch == patch_until and commit_patch:
+                break
+
+
+def get_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir):
     if webrtc_source_dir is None:
         webrtc_source_dir = os.path.join(source_dir, "webrtc")
 
@@ -363,13 +392,10 @@ def get_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir=None):
             cmd(["git", "checkout", "-f", version])
             cmd(["git", "clean", "-df"])
             cmd(["gclient", "sync", "-D", "--force", "--reset", "--with_branch_heads"])
-            for patch in PATCHES[target]:
-                depth, dirs = PATCH_INFO.get(patch, (1, ["."]))
-                dir = os.path.join(src_dir, *dirs)
-                apply_patch(os.path.join(patch_dir, patch), dir, depth)
+            apply_patches(target, patch_dir, src_dir, None, False)
 
 
-def fetch_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir=None):
+def fetch_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir):
     if webrtc_source_dir is None:
         webrtc_source_dir = os.path.join(source_dir, "webrtc")
 
@@ -379,24 +405,60 @@ def fetch_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir=None)
         cmd(["git", "checkout", "-f", version])
         cmd(["git", "clean", "-df"])
         cmd(["gclient", "sync", "-D", "--force", "--reset", "--with_branch_heads"])
-        for patch in PATCHES[target]:
-            depth, dirs = PATCH_INFO.get(patch, (1, ["."]))
-            dir = os.path.join(src_dir, *dirs)
-            apply_patch(os.path.join(patch_dir, patch), dir, depth)
+        apply_patches(target, patch_dir, src_dir, None, False)
 
 
-def revert_webrtc(source_dir, patch_dir, target, webrtc_source_dir=None):
+def revert_webrtc(source_dir, patch_dir, target, webrtc_source_dir, patch, commit):
     if webrtc_source_dir is None:
         webrtc_source_dir = os.path.join(source_dir, "webrtc")
 
     src_dir = os.path.join(webrtc_source_dir, "src")
     with cd(src_dir):
+        dirs = _deps_dirs(src_dir)
+        for dir in dirs:
+            with cd(dir):
+                # 時雨堂パッチが当たっていない最新のコミットを取得する
+                lines = cmdcap(["git", "log", "--oneline", "-n30"]).split("\n")
+                for line in lines:
+                    if "[shiguredo-patch]" in line:
+                        continue
+                    commit_hash = line.split(" ")[0]
+                    break
+                cmd(["git", "reset", "--soft", commit_hash])
         cmd(["gclient", "recurse", "git", "reset", "--hard"])
         cmd(["gclient", "recurse", "git", "clean", "-df"])
-        for patch in PATCHES[target]:
-            depth, dirs = PATCH_INFO.get(patch, (1, ["."]))
-            dir = os.path.join(src_dir, *dirs)
-            apply_patch(os.path.join(patch_dir, patch), dir, depth)
+        apply_patches(target, patch_dir, src_dir, patch, commit)
+
+
+def diff_webrtc(source_dir, webrtc_source_dir):
+    if webrtc_source_dir is None:
+        webrtc_source_dir = os.path.join(source_dir, "webrtc")
+
+    src_dir = os.path.join(webrtc_source_dir, "src")
+    with cd(src_dir):
+        cmd(["gclient", "recurse", "git", "add", "-N", "--", ":!*.orig"])
+        dirs = _deps_dirs(src_dir)
+        for dir in dirs:
+            with cd(dir):
+                dir = os.path.normpath(dir)
+                if dir == ".":
+                    src_prefix = "a/"
+                    dst_prefix = "b/"
+                else:
+                    src_prefix = f"a/{dir}/".replace("\\", "/")
+                    dst_prefix = f"b/{dir}/".replace("\\", "/")
+                cmd(
+                    [
+                        "git",
+                        "--no-pager",
+                        "diff",
+                        "--ignore-submodules",
+                        "--src-prefix",
+                        src_prefix,
+                        "--dst-prefix",
+                        dst_prefix,
+                    ]
+                )
 
 
 def git_get_url_and_revision(dir):
@@ -1368,6 +1430,17 @@ def main():
     rp.add_argument("--build-dir")
     rp.add_argument("--webrtc-source-dir")
     rp.add_argument("--webrtc-build-dir")
+    rp.add_argument("--patch")
+    rp.add_argument("--commit", action="store_true")
+    # ソースコードの差分を出力する
+    dp = sp.add_parser("diff")
+    dp.set_defaults(op="diff")
+    dp.add_argument("target", choices=TARGETS)
+    dp.add_argument("--debug", action="store_true")
+    dp.add_argument("--source-dir")
+    dp.add_argument("--build-dir")
+    dp.add_argument("--webrtc-source-dir")
+    dp.add_argument("--webrtc-build-dir")
     # 現在 build と package を分ける意味は無いのだけど、
     # 今後複数のビルドを纏めてパッケージングする時に備えて別コマンドにしておく
     pp = sp.add_parser("package")
@@ -1529,10 +1602,10 @@ def main():
             dir = get_depot_tools(source_dir, fetch=False)
             add_path(dir)
             fetch_webrtc(
-                source_dir,
-                patch_dir,
-                version_info.webrtc_commit,
-                args.target,
+                source_dir=source_dir,
+                patch_dir=patch_dir,
+                version=version_info.webrtc_commit,
+                target=args.target,
                 webrtc_source_dir=webrtc_source_dir,
             )
 
@@ -1543,9 +1616,22 @@ def main():
             dir = get_depot_tools(source_dir, fetch=False)
             add_path(dir)
             revert_webrtc(
-                source_dir,
-                patch_dir,
-                args.target,
+                source_dir=source_dir,
+                patch_dir=patch_dir,
+                target=args.target,
+                webrtc_source_dir=webrtc_source_dir,
+                patch=args.patch,
+                commit=args.commit,
+            )
+
+    if args.op == "diff":
+        mkdir_p(source_dir)
+
+        with cd(BASE_DIR):
+            dir = get_depot_tools(source_dir, fetch=False)
+            add_path(dir)
+            diff_webrtc(
+                source_dir=source_dir,
                 webrtc_source_dir=webrtc_source_dir,
             )
 
@@ -1556,10 +1642,10 @@ def main():
             add_path(dir)
 
             package_webrtc(
-                source_dir,
-                build_dir,
-                package_dir,
-                args.target,
+                source_dir=source_dir,
+                build_dir=build_dir,
+                package_dir=package_dir,
+                target=args.target,
                 webrtc_source_dir=webrtc_source_dir,
                 webrtc_build_dir=webrtc_build_dir,
                 webrtc_package_dir=webrtc_package_dir,
