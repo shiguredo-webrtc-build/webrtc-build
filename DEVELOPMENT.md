@@ -30,28 +30,6 @@ python3 run.py build <target>
 
 WebRTC のソースを手で書き換えた場合は、単にもう一度 build コマンドを実行するだけで良い。
 
-### fetch
-
-WebRTC のソースをリポジトリから取得し直したい場合は `fetch` コマンドを利用すれば良い。
-
-```
-python3 run.py fetch <target>
-```
-
-これで WebRTC のソースは `VERSION` ファイルの `WEBRTC_COMMIT` に書かれた内容になり、その上でパッチを当てた状態になる。ビルドは行わない。
-
-ソースを手で書き換えた部分や追加したファイルも含め、全て元に戻るので注意すること。
-
-### revert
-
-WebRTC のソースを元に戻したい場合や、パッチを当て直す場合は `revert` コマンドを利用すれば良い。
-
-```
-python3 run.py revert <target>
-```
-
-これは関連する全てのリポジトリに対して `git clean -df` と `git reset --hard` を実行する。
-
 ### --webrtc-gen
 
 同様に gn gen コマンドを実行し直したい場合は `--webrtc-gen` 引数を利用すれば良い。
@@ -128,3 +106,60 @@ webrtc-build/
   - `ubuntu-20.04_x86_64` の場合は Ubuntu 20.04 が必要
 - Ubuntu の x86_64 でない環境ではビルド不可能。
 - Ubuntu 以外の Linux 系 OS ではビルド不可能。
+
+## ソースの取得
+
+WebRTC のソースをリポジトリから取得し直したい場合は `fetch` コマンドを利用すれば良い。
+
+```
+python3 run.py fetch <target>
+```
+
+これで WebRTC のソースは `VERSION` ファイルの `WEBRTC_COMMIT` に書かれた内容になり、その上でパッチを当てた状態になる。ビルドは行わない。
+
+ソースを手で書き換えた部分や追加したファイルも含め、全て元に戻るので注意すること。
+
+## 編集したソースを元に戻す
+
+WebRTC のソースを元に戻したい場合や、パッチを当て直す場合は `revert` コマンドを利用すれば良い。
+
+```
+python3 run.py revert <target>
+```
+
+これは関連する全てのリポジトリに対して `git clean -df` と `git reset --hard` を実行する。
+
+また、パッチを編集する際には `--patch` コマンドを使うと良い
+
+```
+python3 run.py revert <target> --patch <patch>
+```
+
+これによって、このパッチより前に当てるべきパッチを適用/コミットした後、このパッチを適用し、コミットしていない状態になる
+
+## libwebrtc のソース差分を出力する
+
+WebRTC のソースの差分を確認する場合、以下のコマンドを利用する
+
+```
+python3 run.py diff <target>
+```
+
+## パッチを作成する
+
+新しいパッチを作成する場合、以下の手順で行う
+
+1. `python3 run.py revert <target>` コマンドでソースを綺麗にする
+2. libwebrtc のソースを編集する
+3. `python3 run.py diff <target>` コマンドで差分を確認した後、問題なければ `python3 run.py diff <target> > <patch>` でパッチをファイルに出力する
+4. run.py の PATCHES に追加したパッチを最後に付け加える
+5. `python3 run.py revert <target>` でパッチが正しく適用されているか確認する
+
+## パッチを編集する
+
+既存のパッチを編集する場合、以下の手順で行う
+
+1. `python3 run.py revert <target> --patch <patch>` コマンドで、このパッチを適用してコミットしていない状態にする
+2. libwebrtc のソースを編集して正しい状態にする
+3. `python3 run.py diff <target>` コマンドで差分を確認した後、問題なければ `python3 run.py diff <target> > <patch>` でパッチを上書きする
+5. `python3 run.py revert <target>` でパッチが正しく適用されているか確認する
