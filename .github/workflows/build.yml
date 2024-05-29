@@ -144,6 +144,13 @@ jobs:
           # 13G
           sudo rm -rf /usr/local/lib/android
           df -h
+      - name: Get stats
+        run: |
+          set -x
+          cat /etc/lsb-release
+          uname -a
+          cat /proc/cpuinfo
+          cat /proc/meminfo
       - name: Setup ${{ matrix.platform.name }} for x86_64
         if: endsWith(matrix.platform.name, '_x86_64')
         run: sudo scripts/apt_install_x86_64.sh
