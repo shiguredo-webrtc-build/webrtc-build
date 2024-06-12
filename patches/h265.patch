@@ -218,7 +218,7 @@ index c7534dee40..937a14c022 100644
 @@ -60,11 +74,11 @@ std::unique_ptr<RtpPacketizer> RtpPacketizer::Create(
        return std::make_unique<RtpPacketizerAv1>(
            payload, limits, rtp_video_header.frame_type,
-           rtp_video_header.is_last_frame_in_picture);
+           rtp_video_header.is_last_frame_in_picture, enable_av1_even_split);
 -#ifdef RTC_ENABLE_H265
 -    case kVideoCodecH265: {
 -      return std::make_unique<RtpPacketizerH265>(payload, limits);
@@ -1540,13 +1540,10 @@ index cea55078e5..3e23d760ad 100644
        case H265::NaluType::kRsvIrapVcl23:
          // Mark IRAP(Intra Random Access Point) frames as key frames. Their NALU
          // types are in the range of BLA_W_LP (16) to RSV_IRAP_VCL23 (23),
-@@ -134,7 +143,18 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
-         // https://datatracker.ietf.org/doc/html/rfc7798#section-3.1.1
+@@ -134,6 +143,16 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
          parsed_payload->video_header.frame_type =
              VideoFrameType::kVideoFrameKey;
--        ABSL_FALLTHROUGH_INTENDED;
-+        // ABSL_FALLTHROUGH_INTENDED;
-+        break;
+         break;
 +      case H265::NaluType::kVps: {
 +        absl::optional<H265VpsParser::VpsState> vps = H265VpsParser::ParseVps(
 +            &payload_data[start_offset], end_offset - start_offset);
