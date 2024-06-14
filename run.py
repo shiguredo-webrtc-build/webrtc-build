@@ -213,6 +213,7 @@ PATCHES = {
         "windows_fix_optional.patch",
         "windows_fix_audio_device.patch",
         "ssl_verify_callback_with_native_handle.patch",
+        "h265.patch",
     ],
     "macos_arm64": [
         "add_deps.patch",
@@ -265,6 +266,7 @@ PATCHES = {
         "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
+        "h265.patch",
     ],
     "raspberry-pi-os_armv7": [
         "add_deps.patch",
@@ -272,6 +274,7 @@ PATCHES = {
         "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
+        "h265.patch",
     ],
     "raspberry-pi-os_armv8": [
         "add_deps.patch",
@@ -279,6 +282,7 @@ PATCHES = {
         "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
+        "h265.patch",
     ],
     "ubuntu-18.04_armv8": [
         "add_deps.patch",
@@ -286,6 +290,7 @@ PATCHES = {
         "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
+        "h265.patch",
     ],
     "ubuntu-20.04_armv8": [
         "add_deps.patch",
@@ -293,6 +298,7 @@ PATCHES = {
         "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
+        "h265.patch",
     ],
     "ubuntu-22.04_armv8": [
         "add_deps.patch",
@@ -300,6 +306,7 @@ PATCHES = {
         "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
+        "h265.patch",
     ],
     "ubuntu-20.04_x86_64": [
         "add_deps.patch",
