@@ -1,7 +1,7 @@
-diff --git a/abseil-cpp/absl/types/internal/optional.h b/abseil-cpp/absl/types/internal/optional.h
+diff --git a/third_party/abseil-cpp/absl/types/internal/optional.h b/third_party/abseil-cpp/absl/types/internal/optional.h
 index 6ed0c6699c9..681acb7a1c5 100644
---- a/abseil-cpp/absl/types/internal/optional.h
-+++ b/abseil-cpp/absl/types/internal/optional.h
+--- a/third_party/abseil-cpp/absl/types/internal/optional.h
++++ b/third_party/abseil-cpp/absl/types/internal/optional.h
 @@ -179,8 +179,8 @@ class optional_data_base : public optional_data_dtor_base<T> {
  // Also, we should be checking is_trivially_copyable here, which is not
  // supported now, so we use is_trivially_* traits instead.

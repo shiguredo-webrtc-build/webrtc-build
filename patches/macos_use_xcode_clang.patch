@@ -1,7 +1,7 @@
-diff --git a/config/compiler/BUILD.gn b/config/compiler/BUILD.gn
+diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
 index 80bc79e5f..5835cb0f8 100644
---- a/config/compiler/BUILD.gn
-+++ b/config/compiler/BUILD.gn
+--- a/build/config/compiler/BUILD.gn
++++ b/build/config/compiler/BUILD.gn
 @@ -484,8 +484,8 @@ config("compiler") {
      # faster.
      # On arm64, this is already the default behavior.
@@ -69,10 +69,10 @@ index 80bc79e5f..5835cb0f8 100644
    # C11/C++11 compiler flags setup.
    # ---------------------------
    if (is_linux || is_chromeos || is_android || (is_nacl && is_clang) ||
-diff --git a/toolchain/apple/toolchain.gni b/toolchain/apple/toolchain.gni
+diff --git a/build/toolchain/apple/toolchain.gni b/build/toolchain/apple/toolchain.gni
 index 399a62f03..fcb2fdf2c 100644
---- a/toolchain/apple/toolchain.gni
-+++ b/toolchain/apple/toolchain.gni
+--- a/build/toolchain/apple/toolchain.gni
++++ b/build/toolchain/apple/toolchain.gni
 @@ -121,7 +121,8 @@ template("apple_toolchain") {
        toolchain_is_component_build = is_component_build
      }

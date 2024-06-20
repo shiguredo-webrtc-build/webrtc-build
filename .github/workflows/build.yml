@@ -16,9 +16,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name:
-          - windows_x86_64
-          - windows_arm64
+        platform:
+          - name: windows_x86_64
+          - name: windows_arm64
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
@@ -47,61 +47,80 @@ jobs:
             Remove-Item -Recurse -Force $Env:JAVA_HOME_8_X64 -ErrorAction Ignore
           }
           Get-PSDrive
-      - name: Build ${{ matrix.name }}
+      - name: Setup Git User
+        run: |
+          git config --global user.name  "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+      - name: Build ${{ matrix.platform.name }}
         run: |
           # リポジトリの下に置きたいが、GitHub Actions の D:\ の容量が少なくてビルド出来ない問題があるので
           # このパスにソースを配置する。
           # また、WebRTC のビルドしたファイルは同じドライブに無いといけないっぽいのでこちらも設定する。
-          python3 run.py build ${{ matrix.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build'
-          python3 run.py package ${{ matrix.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build'
+          python3 run.py build ${{ matrix.platform.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build'
+          python3 run.py package ${{ matrix.platform.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build'
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: webrtc.${{ matrix.name }}.zip
-          path: _package/${{ matrix.name }}/webrtc.${{ matrix.name }}.zip
+          name: webrtc.${{ matrix.platform.name }}.zip
+          path: _package/${{ matrix.platform.name }}/webrtc.${{ matrix.platform.name }}.zip
   build-macos:
     strategy:
       fail-fast: false
       matrix:
-        name:
-          - macos_arm64
-          - ios
+        platform:
+          - name: macos_arm64
+          - name: ios
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
       - name: Select Xcode 14.3.1
         run: sudo xcode-select --switch /Applications/Xcode_14.3.1.app/Contents/Developer
       - run: brew install ninja
-      - name: Build ${{ matrix.name }} for macos
-        if: matrix.name == 'macos_arm64'
+      - name: Setup Git User
         run: |
-          python3 run.py build ${{ matrix.name }}
-          python3 run.py package ${{ matrix.name }}
-      - name: Build ${{ matrix.name }} for ios
-        if: matrix.name == 'ios'
+          git config --global user.name  "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+      - name: Build ${{ matrix.platform.name }} for macos
+        if: matrix.platform.name == 'macos_arm64'
         run: |
-          python3 run.py build ${{ matrix.name }} --webrtc-overlap-ios-build-dir
-          python3 run.py package ${{ matrix.name }} --webrtc-overlap-ios-build-dir
+          python3 run.py build ${{ matrix.platform.name }}
+          python3 run.py package ${{ matrix.platform.name }}
+      - name: Build ${{ matrix.platform.name }} for ios
+        if: matrix.platform.name == 'ios'
+        run: |
+          python3 run.py build ${{ matrix.platform.name }} --webrtc-overlap-ios-build-dir
+          python3 run.py package ${{ matrix.platform.name }} --webrtc-overlap-ios-build-dir
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: webrtc.${{ matrix.name }}.tar.gz
-          path: _package/${{ matrix.name }}/webrtc.${{ matrix.name }}.tar.gz
+          name: webrtc.${{ matrix.platform.name }}.tar.gz
+          path: _package/${{ matrix.platform.name }}/webrtc.${{ matrix.platform.name }}.tar.gz
   build-linux:
     strategy:
       fail-fast: false
       matrix:
-        name:
-          - raspberry-pi-os_armv6
-          - raspberry-pi-os_armv7
-          - raspberry-pi-os_armv8
-          - ubuntu-18.04_armv8
-          - ubuntu-20.04_armv8
-          - ubuntu-22.04_armv8
-          - ubuntu-20.04_x86_64
-          - ubuntu-22.04_x86_64
-          - android
-    runs-on: ${{ startsWith(matrix.name, 'ubuntu-22.04') && 'ubuntu-22.04' || 'ubuntu-20.04' }}
+        platform:
+          - name: raspberry-pi-os_armv6
+            runs-on: ubuntu-20.04
+          - name: raspberry-pi-os_armv7
+            runs-on: ubuntu-20.04
+          - name: raspberry-pi-os_armv8
+            runs-on: ubuntu-20.04
+          - name: ubuntu-18.04_armv8
+            runs-on: ubuntu-20.04
+          - name: ubuntu-20.04_armv8
+            runs-on: ubuntu-20.04
+          - name: ubuntu-22.04_armv8
+            runs-on: ubuntu-20.04
+          - name: ubuntu-20.04_x86_64
+            runs-on: ubuntu-20.04
+          - name: ubuntu-22.04_x86_64
+            runs-on: ubuntu-22.04
+          - name: ubuntu-24.04_x86_64
+            runs-on: ubuntu-24.04
+          - name: android
+            runs-on: ubuntu-20.04
+    runs-on: ${{ matrix.platform.runs-on }}
     steps:
       - uses: actions/checkout@v4
       - name: Disk Cleanup
@@ -112,7 +131,10 @@ jobs:
           sudo du -h -d1 /usr/local/share
           sudo du -h -d1 /usr/local/lib
           sudo du -h -d1 /usr/share
-          docker rmi `docker images -q -a`
+          RMI=`docker images -q -a`
+          if [ -n "$RMI" ]; then
+            docker rmi $RMI
+          fi
           # 4.6G
           sudo rm -rf /usr/local/.ghcup
           # 1.7G
@@ -122,24 +144,35 @@ jobs:
           # 13G
           sudo rm -rf /usr/local/lib/android
           df -h
-      - name: Setup ${{ matrix.name }} for x86_64
-        if: endsWith(matrix.name, '_x86_64')
-        run: sudo scripts/apt_install_x86_64.sh
-      - name: Setup ${{ matrix.name }} for arm
-        if: contains(matrix.name, '_armv')
-        run: sudo scripts/apt_install_arm.sh
-      - name: Setup ${{ matrix.name }} for android
-        if: matrix.name == 'android'
-        run: sudo scripts/apt_install_x86_64.sh && sudo apt-get install -y openjdk-11-jdk
-      - name: Build ${{ matrix.name }}
+      - name: Get stats
         run: |
-          python3 run.py build ${{ matrix.name }}
-          python3 run.py package ${{ matrix.name }}
+          set -x
+          cat /etc/lsb-release
+          uname -a
+          cat /proc/cpuinfo
+          cat /proc/meminfo
+      - name: Setup ${{ matrix.platform.name }} for x86_64
+        if: endsWith(matrix.platform.name, '_x86_64')
+        run: sudo scripts/apt_install_x86_64.sh
+      - name: Setup ${{ matrix.platform.name }} for arm
+        if: contains(matrix.platform.name, '_armv')
+        run: sudo scripts/apt_install_arm.sh
+      - name: Setup ${{ matrix.platform.name }} for android
+        if: matrix.platform.name == 'android'
+        run: sudo scripts/apt_install_x86_64.sh && sudo apt-get install -y openjdk-11-jdk
+      - name: Setup Git User
+        run: |
+          git config --global user.name  "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+      - name: Build ${{ matrix.platform.name }}
+        run: |
+          python3 run.py build ${{ matrix.platform.name }}
+          python3 run.py package ${{ matrix.platform.name }}
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: webrtc.${{ matrix.name }}.tar.gz
-          path: _package/${{ matrix.name }}/webrtc.${{ matrix.name }}.tar.gz
+          name: webrtc.${{ matrix.platform.name }}.tar.gz
+          path: _package/${{ matrix.platform.name }}/webrtc.${{ matrix.platform.name }}.tar.gz
   create-release:
     name: Create Release
     if: contains(github.ref, 'tags/m')
@@ -186,6 +219,9 @@ jobs:
       - uses: ./.github/actions/download
         with:
           platform: ubuntu-22.04_x86_64
+      - uses: ./.github/actions/download
+        with:
+          platform: ubuntu-24.04_x86_64
       - uses: ./.github/actions/download
         with:
           platform: android
