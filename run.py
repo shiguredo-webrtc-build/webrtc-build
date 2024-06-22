@@ -384,6 +384,16 @@ def apply_patches(target, patch_dir, src_dir, patch_until, commit_patch):
                 break
 
 
+# 時雨堂パッチが当たっていない最新のコミットを取得する
+def get_base_commit(n=30):
+    lines = cmdcap(["git", "log", "--format=%H %s", f"-n{n}"]).split("\n")
+    for line in lines:
+        if "[shiguredo-patch]" in line:
+            continue
+        return line.split(" ")[0]
+    raise Exception("base commit not found")
+
+
 def get_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir):
     if webrtc_source_dir is None:
         webrtc_source_dir = os.path.join(source_dir, "webrtc")
@@ -432,13 +442,8 @@ def revert_webrtc(source_dir, patch_dir, target, webrtc_source_dir, patch, commi
         dirs = _deps_dirs(src_dir)
         for dir in dirs:
             with cd(dir):
-                # 時雨堂パッチが当たっていない最新のコミットを取得する
-                lines = cmdcap(["git", "log", "--oneline", "-n30"]).split("\n")
-                for line in lines:
-                    if "[shiguredo-patch]" in line:
-                        continue
-                    commit_hash = line.split(" ")[0]
-                    break
+                commit_hash = get_base_commit()
+                # どうせこの後全部 reset --hard するので、ここでは reset --soft でいい
                 cmd(["git", "reset", "--soft", commit_hash])
         cmd(["gclient", "recurse", "git", "reset", "--hard"])
         cmd(["gclient", "recurse", "git", "clean", "-df"])
@@ -478,7 +483,7 @@ def diff_webrtc(source_dir, webrtc_source_dir):
 
 def git_get_url_and_revision(dir):
     with cd(dir):
-        rev = cmdcap(["git", "rev-parse", "HEAD"])
+        rev = get_base_commit()
         url = cmdcap(["git", "remote", "get-url", "origin"])
         return url, rev
 
