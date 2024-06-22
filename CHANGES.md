@@ -12,6 +12,11 @@
 VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 パッチやビルドの変更のみ記録すること。
 
+## 2024-06-21
+
+- [ADD] Ubuntu 24.04 に対応
+  - @melpon
+
 ## 2024-05-20
 
 - [CHANGE] --webrtc-fetch, --webrtc-fetch-force オプションを削除
