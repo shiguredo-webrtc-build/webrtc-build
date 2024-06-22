@@ -16,6 +16,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 - [ADD] Ubuntu 24.04 に対応
   - @melpon
+- [FIX] 生成した VERSIONS ファイルの指すコミットが shiguredo-patch パッチ適用後のコミットになっていたのを修正
+  - @melpon
 
 ## 2024-05-20
 
