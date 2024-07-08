@@ -30,20 +30,6 @@ python3 run.py build <target>
 
 WebRTC のソースを手で書き換えた場合は、単にもう一度 build コマンドを実行するだけで良い。
 
-### --webrtc-fetch
-
-WebRTC のソースをリポジトリから取得し直したい場合は `--webrtc-fetch` 引数を利用すれば良い。
-
-```
-python3 run.py build <target> --webrtc-fetch
-```
-
-これで WebRTC のソースは `VERSION` ファイルの `WEBRTC_COMMIT` に書かれた内容になり、その上でパッチを当てた状態でビルドされる。
-
-ソースを手で書き換えた部分や追加したファイルも含め、全て元に戻るので注意すること。
-
-なお既存のソースを全て破棄して取得し直す `--webrtc-fetch-force` 引数も存在する。
-
 ### --webrtc-gen
 
 同様に gn gen コマンドを実行し直したい場合は `--webrtc-gen` 引数を利用すれば良い。
@@ -120,3 +106,125 @@ webrtc-build/
   - `ubuntu-20.04_x86_64` の場合は Ubuntu 20.04 が必要
 - Ubuntu の x86_64 でない環境ではビルド不可能。
 - Ubuntu 以外の Linux 系 OS ではビルド不可能。
+
+## ソースの取得
+
+WebRTC のソースをリポジトリから取得し直したい場合は `fetch` コマンドを利用すれば良い。
+
+```
+python3 run.py fetch <target>
+```
+
+これで WebRTC のソースは `VERSION` ファイルの `WEBRTC_COMMIT` に書かれた内容になり、その上でパッチを当てた状態になる。ビルドは行わない。
+
+ソースを手で書き換えた部分や追加したファイルも含め、全て元に戻るので注意すること。
+
+## 編集したソースを元に戻す
+
+WebRTC のソースを元に戻したい場合や、パッチを当て直す場合は `revert` コマンドを利用すれば良い。
+
+```
+python3 run.py revert <target>
+```
+
+これは関連する全てのリポジトリに対して `git clean -df` と `git reset --hard` を実行する。
+
+また、パッチを編集する際には `--patch` コマンドを使うと良い
+
+```
+python3 run.py revert <target> --patch <patch>
+```
+
+これによって、このパッチより前に当てるべきパッチを適用/コミットした後、このパッチを適用し、コミットしていない状態になる
+
+`--patch` オプションで指定したパッチのコミットも行っておきたい場合、`--commit` オプションを指定する。
+
+```
+python3 run.py revert <target> --patch <patch> --commit
+```
+
+これによって、このパッチまでの全てのパッチが適用/コミットされる。
+
+`--commit` オプションは、パッチの適用順序を変えたい場合に利用する。
+
+## libwebrtc のソース差分を出力する
+
+WebRTC のソースの差分を確認する場合、以下のコマンドを利用する
+
+```
+python3 run.py diff <target>
+```
+
+## パッチを作成する
+
+新しいパッチを作成する場合、以下の手順で行う
+
+1. `python3 run.py revert <target>` コマンドでソースを綺麗にする
+2. libwebrtc のソースを編集する
+3. `python3 run.py diff <target>` コマンドで差分を確認した後、問題なければ `python3 run.py diff <target> > <patch>` でパッチをファイルに出力する
+4. run.py の PATCHES に追加したパッチを最後に付け加える
+5. `python3 run.py revert <target>` でパッチが正しく適用されているか確認する
+
+上記の方法は追加したパッチを最後に適用する場合の方法である。
+
+パッチの途中に新しいパッチを適用したい場合は、`--patch` と `--commit` オプションを利用する。
+
+1. `python3 run.py revert <target> --patch <patch> --commit` コマンドで、新しく作るパッチより前に適用しておきたいパッチを適用しておく
+2. libwebrtc のソースを編集する
+3. `python3 run.py diff <target>` コマンドで差分を確認した後、問題なければ `python3 run.py diff <target> > <patch>` でパッチをファイルに出力する
+4. run.py の PATCHES に、追加したパッチを最初に追加したパッチの次の位置に付け加える
+5. `python3 run.py revert <target>` でパッチが正しく適用されているか確認する
+  - 適用順序が変わっているので、以降のパッチ適用でエラーが発生する可能性もある
+
+## パッチを編集する
+
+既存のパッチを編集する場合、以下の手順で行う
+
+1. `python3 run.py revert <target> --patch <patch>` コマンドで、このパッチを適用してコミットしていない状態にする
+2. libwebrtc のソースを編集して正しい状態にする
+3. `python3 run.py diff <target>` コマンドで差分を確認した後、問題なければ `python3 run.py diff <target> > <patch>` でパッチを上書きする
+4. `python3 run.py revert <target>` でパッチが正しく適用されているか確認する
+
+## エラーになったパッチを修正する
+
+基本的にはパッチを編集する場合と同じ。
+
+```bash
+# エラーになっているブランチをチェックアウト
+git checkout feature/<libwebrtc-version>
+# エラーになっているバージョンを取ってくる
+python3 run.py fetch <target>
+```
+
+この `fetch` 時に、どれかのパッチ適用でエラーになっているのが前提となる。
+
+1. エラーになったパッチファイルを確認して `python3 run.py revert <target> --patch <patch>` コマンドを実行する
+  - この時にエラーが出るけれども、気にせず次に進む
+2. libwebrtc のソースを編集して正しい状態にする
+  - 元のパッチファイルの差分を見て、どうするべきかを考えて修正する
+  - 場合によっては旧バージョンのソースファイルも確認する必要があるかもしれないが、ローカルにダウンロードするのは大変なので https://source.chromium.org/chromium あたりから探すのが良い
+3. `python3 run.py diff <target>` コマンドで差分を確認した後、問題なければ `python3 run.py diff <target> > <patch>` でパッチを上書きする
+4. `python3 run.py revert <target>` でパッチが正しく適用されているか確認する
+
+## libwebrtc に新しいバージョンがあるか確認する
+
+libwebrtc に新しいバージョンがあるか確認する場合、以下のコマンドを利用する
+
+```
+$ python3 run.py version_list
+m126 6478 1 a18e38fed2307edd6382760213fa3ddf199fa181
+m125 6422 2 8505a9838ea91c66c96c173d30cd66f9dbcc7548
+m124 6367 3 a55ff9e83e4592010969d428bee656bace8cbc3b
+m123 6312 3 41b1493ddb5d98e9125d5cb002fd57ce76ebd8a7
+m122 6261 1 6b419a0536b1a0ccfff3682f997c6f19bcbd9bd8
+```
+
+## libwebrtc のバージョンを変更する
+
+libwebrtc のバージョンを変更する場合、以下のコマンドを利用する
+
+```
+$ python3 run.py version_update m126
+```
+
+ただし、バージョンの更新は GitHub Actions によって自動で行われるため、基本的に手動で行う必要はない。

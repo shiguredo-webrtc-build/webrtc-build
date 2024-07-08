@@ -1,0 +1,20 @@
+name: version update
+on:
+  workflow_dispatch:
+  schedule:
+    # 毎日 09:00 JST
+    - cron: "0 0 * * *"
+jobs:
+  run:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+      - name: Run versipn_update.sh
+        run: |
+          # 自身のファイルがチェックアウトによって消えると困るので
+          # コピーして消されないようにする
+          cp ./scripts/version_update.sh _version_update.sh
+          ./_version_update.sh

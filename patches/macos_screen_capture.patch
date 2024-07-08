@@ -1,7 +1,7 @@
-diff --git a/src/modules/desktop_capture/mac/screen_capturer_mac.mm b/src/modules/desktop_capture/mac/screen_capturer_mac.mm
+diff --git a/modules/desktop_capture/mac/screen_capturer_mac.mm b/modules/desktop_capture/mac/screen_capturer_mac.mm
 index a79384c7a3..83da322e60 100644
---- a/src/modules/desktop_capture/mac/screen_capturer_mac.mm
-+++ b/src/modules/desktop_capture/mac/screen_capturer_mac.mm
+--- a/modules/desktop_capture/mac/screen_capturer_mac.mm
++++ b/modules/desktop_capture/mac/screen_capturer_mac.mm
 @@ -222,9 +222,7 @@ void ScreenCapturerMac::CaptureFrame() {
    // With CGI method, the zooming will be ignored and the whole screen contents
    // will be captured as before.

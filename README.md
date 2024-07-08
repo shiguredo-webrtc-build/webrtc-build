@@ -95,9 +95,9 @@ H.265 が利用可能なバイナリを配布する事は、ライセンスが�
 Apache License 2.0
 
 ```
-Copyright 2019-2023, Wandbox LLC (Original Author)
-Copyright 2019-2023, tnoho (Original Author)
-Copyright 2019-2023, Shiguredo Inc.
+Copyright 2019-2024, Wandbox LLC (Original Author)
+Copyright 2019-2024, tnoho (Original Author)
+Copyright 2019-2024, Shiguredo Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -139,8 +139,23 @@ limitations under the License.
   - 次のリリースブランチが決まるまでは feature 上でタグを打ちます
 - 次のリリースブランチが確定したら master にマージします
   - ブランチから変更が無ければタグを打つ必要はありません
+- コミットポジションは右から 2 番目の値を変更します
 - libwebrtc のコミットポジションは変更せずに何か変更がある場合は一番右の数値を増やします
   - m94.4606.0.0 から m94.4606.0.1 のようにする
+
+### タグの読み方
+
+`m124.6367.3.1` は m124 で、ブランチが `6367` で、コミットポジションが `3` で、
+shiguredo/webrtc-build としてのリリース回数が `1` という意味です。
+
+### コミットポジションについて
+
+コミットポジションとは libwebrtc ブランチの [Cr-Commit-Position: refs/branch-heads/6367@{#3}](https://webrtc.googlesource.com/src.git/+/a55ff9e83e4592010969d428bee656bace8cbc3b) の `#3` の部分です。
+
+たとえばこの 6367 は m124 のブランチ番号なのですが、libwebrtc にバックポートなどが入ってもブランチ番号は変更されません。
+その代わりコミットポジションが +1 されていきます。
+
+main だけでコミットポジションがない場合はコミットポジション 0 として扱います。
 
 ## パッチ運用について
 

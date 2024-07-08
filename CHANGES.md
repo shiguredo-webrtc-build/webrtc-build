@@ -29,6 +29,54 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 - [ADD] マルチコーデックサイマルキャスト対応のパッチを追加する
   - @melpon
 
+## 2024-06-21
+
+- [ADD] Ubuntu 24.04 に対応
+  - @melpon
+- [FIX] 生成した VERSIONS ファイルの指すコミットが shiguredo-patch パッチ適用後のコミットになっていたのを修正
+  - @melpon
+
+## 2024-05-20
+
+- [CHANGE] --webrtc-fetch, --webrtc-fetch-force オプションを削除
+  - 代わりに run.py fetch コマンドを利用する
+  - @melpon
+- [ADD] run.py に fetch コマンドと revert コマンドと diff コマンドを追加
+  - @melpon
+
+## 2024-05-06
+
+- [ADD] run.py にバージョン操作系のコマンド `version_list` と `version_update` を追加
+  - @melpon
+
+## m124.6367.0.0
+
+- [CHANGE] ios / macos_arm64 向けに `revert_asm_changes.patch` を追加
+  - @torikizi
+
+## m123.6312.3.5
+
+- [FIX] H.265 の映像を受信した際に、最初の映像が描画されるまでに時間がかかることがある問題を修正する
+  - @enm10k
+
+## m123.6312.3.4
+
+- [FIX] macOS で H.265 の受信が動作していなかった問題を修正する
+  - @enm10k
+
+## m123.6312.3.3
+
+- [FIX] H.265 受信時にクラッシュする問題を修正する
+  - @enm10k
+
+## m123.6312.3.2
+
+- [UPDATE] support/m122.6261 ブランチの変更を取り込む
+  - ubuntu-20.04_x86_64, ubuntu-22.04_x86_64, windows_x86_64 のビルドに h265.patch を適用する
+  - @enm10k
+- [FIX] m122 のリリースのみに適用されていた fix_typo_in_deprecated_attribute.patch を m123 にも適用する
+  - @enm10k
+
 ## 122.6261.0.2
 
 - [UPDATE] ubuntu-20.04_x86_64, ubuntu-22.04_x86_64, windows_x86_64 のビルドに h265.patch を適用する

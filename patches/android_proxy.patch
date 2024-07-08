@@ -228,7 +228,7 @@ index 7dc9443ea5..eb1dcc27a7 100644
  };
 
 diff --git a/sdk/android/src/jni/pc/peer_connection_factory.cc b/sdk/android/src/jni/pc/peer_connection_factory.cc
-index 4d2a41355c..2aa5e34abd 100644
+index 9a21e10ede..b9bfea734e 100644
 --- a/sdk/android/src/jni/pc/peer_connection_factory.cc
 +++ b/sdk/android/src/jni/pc/peer_connection_factory.cc
 @@ -15,6 +15,7 @@
@@ -314,7 +314,7 @@ index 4d2a41355c..2aa5e34abd 100644
  // Following parameters are optional:
  // `audio_device_module`, `jencoder_factory`, `jdecoder_factory`,
  // `audio_processor`, `fec_controller_factory`,
-@@ -292,9 +328,24 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
+@@ -291,9 +327,24 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
        absl::WrapUnique(CreateVideoDecoderFactory(jni, jdecoder_factory));
    EnableMedia(dependencies);
  
@@ -342,7 +342,7 @@ index 4d2a41355c..2aa5e34abd 100644
    RTC_CHECK(factory) << "Failed to create the peer connection factory; "
                          "WebRTC/libjingle init likely failed on this device";
    // TODO(honghaiz): Maybe put the options as the argument of
-@@ -304,7 +355,7 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
+@@ -303,7 +354,7 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
  
    return NativeToScopedJavaPeerConnectionFactory(
        jni, factory, std::move(socket_server), std::move(network_thread),
@@ -351,7 +351,7 @@ index 4d2a41355c..2aa5e34abd 100644
  }
  
  static ScopedJavaLocalRef<jobject>
-@@ -425,13 +476,41 @@ static void JNI_PeerConnectionFactory_StopAecDump(JNIEnv* jni,
+@@ -424,13 +475,41 @@ static void JNI_PeerConnectionFactory_StopAecDump(JNIEnv* jni,
    PeerConnectionFactoryFromJava(native_factory)->StopAecDump();
  }
  
@@ -394,7 +394,7 @@ index 4d2a41355c..2aa5e34abd 100644
    std::unique_ptr<PeerConnectionObserver> observer(
        reinterpret_cast<PeerConnectionObserver*>(observer_p));
  
-@@ -468,8 +547,49 @@ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
+@@ -467,8 +546,49 @@ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
              jni, j_sslCertificateVerifier);
    }
  
@@ -408,26 +408,26 @@ index 4d2a41355c..2aa5e34abd 100644
 +      rtc_config.port_allocator_config.max_port);
 +  peer_connection_dependencies.allocator->set_flags(rtc_config.port_allocator_config.flags);
 +
-+  rtc::ProxyType proxyType = rtc::PROXY_NONE;
++  rtc::revive::ProxyType proxyType = rtc::revive::PROXY_NONE;
 +  {
 +    std::string enum_name = GetJavaEnumName(jni, j_proxyType);
 +    if (enum_name == "NONE") {
-+      proxyType = rtc::PROXY_NONE;
++      proxyType = rtc::revive::PROXY_NONE;
 +    } else if (enum_name == "HTTPS") {
-+      proxyType = rtc::PROXY_HTTPS;
++      proxyType = rtc::revive::PROXY_HTTPS;
 +    } else if (enum_name == "SOCKS5") {
-+      proxyType = rtc::PROXY_SOCKS5;
++      proxyType = rtc::revive::PROXY_SOCKS5;
 +    } else if (enum_name == "UNKNOWN") {
-+      proxyType = rtc::PROXY_UNKNOWN;
++      proxyType = rtc::revive::PROXY_UNKNOWN;
 +    }
 +  }
-+  if (proxyType != rtc::PROXY_NONE) {
++  if (proxyType != rtc::revive::PROXY_NONE) {
 +    auto hostname = JavaToNativeString(jni, j_proxyHostname);
 +    auto agent = JavaToNativeString(jni, j_proxyAgent);
 +    auto username = JavaToNativeString(jni, j_proxyUsername);
 +    auto password = JavaToNativeString(jni, j_proxyPassword);
 +
-+    rtc::ProxyInfo pi;
++    rtc::revive::ProxyInfo pi;
 +    pi.type = proxyType;
 +    pi.address = rtc::SocketAddress(hostname, proxyPort);
 +    if (!username.empty()) {

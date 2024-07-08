@@ -16,6 +16,17 @@ from typing import Dict, List, Optional
 logging.basicConfig(level=logging.INFO)
 
 
+ARM_NEON_SVE_BRIDGE_LICENSE = """/*===---- arm_neon_sve_bridge.h - ARM NEON SVE Bridge intrinsics -----------===
+ *
+ *
+ * Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+ * See https://llvm.org/LICENSE.txt for license information.
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ *
+ *===-----------------------------------------------------------------------===
+ */"""
+
+
 class ChangeDirectory(object):
     def __init__(self, cwd):
         self._cwd = cwd
@@ -123,6 +134,13 @@ def download(url: str, output_dir: Optional[str] = None, filename: Optional[str]
     return output_path
 
 
+def downloadcap(url) -> str:
+    if shutil.which("curl") is not None:
+        return cmdcap(["curl", "-L", url])
+    else:
+        return cmdcap(["wget", "-O", "-", url])
+
+
 def read_version_file(path: str) -> Dict[str, str]:
     versions = {}
 
@@ -169,15 +187,10 @@ def get_depot_tools(source_dir, fetch=False):
     return dir
 
 
-PATCH_INFO = {
-    "macos_screen_capture.patch": (2, []),
-    "macos_use_xcode_clang.patch": (1, ["build"]),
-    "windows_fix_optional.patch": (1, ["third_party"]),
-}
-
 PATCHES = {
     "windows_x86_64": [
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "windows_add_deps.patch",
         "windows_silence_warnings.patch",
@@ -189,17 +202,19 @@ PATCHES = {
     ],
     "windows_arm64": [
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "windows_add_deps.patch",
         "windows_silence_warnings.patch",
         "windows_fix_optional.patch",
         "windows_fix_audio_device.patch",
         "ssl_verify_callback_with_native_handle.patch",
-        "windows_fix_typo_in_deprecated_attribute.patch",
+        "h265.patch",
     ],
     "macos_arm64": [
         "add_deps.patch",
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "macos_screen_capture.patch",
         "ios_simulcast.patch",
@@ -208,10 +223,13 @@ PATCHES = {
         "h265.patch",
         "h265_ios.patch",
         "multi_codec_simulcast.patch",
+        "arm_neon_sve_bridge.patch",
+        "revert_asm_changes.patch",
     ],
     "ios": [
         "add_deps.patch",
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "macos_screen_capture.patch",
         "ios_manual_audio_input.patch",
@@ -222,10 +240,13 @@ PATCHES = {
         "h265.patch",
         "h265_ios.patch",
         "multi_codec_simulcast.patch",
+        "arm_neon_sve_bridge.patch",
+        "revert_asm_changes.patch",
     ],
     "android": [
         "add_deps.patch",
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "android_webrtc_version.patch",
@@ -241,42 +262,55 @@ PATCHES = {
         "nacl_armv6_2.patch",
         "add_deps.patch",
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
+        "h265.patch",
     ],
     "raspberry-pi-os_armv7": [
         "add_deps.patch",
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
+        "h265.patch",
     ],
     "raspberry-pi-os_armv8": [
         "add_deps.patch",
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
+        "h265.patch",
     ],
     "ubuntu-18.04_armv8": [
         "add_deps.patch",
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
+        "h265.patch",
     ],
     "ubuntu-20.04_armv8": [
         "add_deps.patch",
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
+        "h265.patch",
     ],
     "ubuntu-22.04_armv8": [
         "add_deps.patch",
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
+        "h265.patch",
     ],
     "ubuntu-20.04_x86_64": [
         "add_deps.patch",
         "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
@@ -285,6 +319,16 @@ PATCHES = {
     "ubuntu-22.04_x86_64": [
         "add_deps.patch",
         "4k.patch",
+        "revive_proxy.patch",
+        "add_license_dav1d.patch",
+        "ssl_verify_callback_with_native_handle.patch",
+        "h265.patch",
+        "multi_codec_simulcast.patch",
+    ],
+    "ubuntu-24.04_x86_64": [
+        "add_deps.patch",
+        "4k.patch",
+        "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
@@ -313,17 +357,59 @@ def apply_patch(patch, dir, depth):
                 cmd(["patch", f"-p{depth}"], stdin=stdin)
 
 
-def get_webrtc(
-    source_dir, patch_dir, version, target, webrtc_source_dir=None, force=False, fetch=False
-):
+def _deps_dirs(src_dir):
+    cap = cmdcap(["gclient", "recurse", "-j1", "pwd"])
+    abs_dirs = cap.split("\n")
+    rel_dirs = [os.path.relpath(abs_dir, src_dir) for abs_dir in abs_dirs]
+    return rel_dirs
+
+
+def apply_patches(target, patch_dir, src_dir, patch_until, commit_patch):
+    # patch_until が指定されている場合、そのパッチファイルまで適用とコミットして、
+    # patch_until のパッチに関しては適用だけ行う
+    if patch_until is not None:
+        if patch_until not in PATCHES[target]:
+            raise Exception(f"{patch_until} file is not in PATCHES")
+
+    with cd(src_dir):
+        for patch in PATCHES[target]:
+            apply_patch(os.path.join(patch_dir, patch), src_dir, 1)
+            if patch == patch_until and not commit_patch:
+                break
+            cmd(["gclient", "recurse", "git", "add", "--", ":!*.orig"])
+            cmd(
+                [
+                    "gclient",
+                    "recurse",
+                    "git",
+                    "commit",
+                    "--allow-empty",
+                    "-am",
+                    f"[shiguredo-patch] Apply {patch}",
+                ]
+            )
+            if patch == patch_until and commit_patch:
+                break
+
+
+# 時雨堂パッチが当たっていない最新のコミットを取得する
+def get_base_commit(n=30):
+    lines = cmdcap(["git", "log", "--format=%H %s", f"-n{n}"]).split("\n")
+    for line in lines:
+        if "[shiguredo-patch]" in line:
+            continue
+        return line.split(" ")[0]
+    raise Exception("base commit not found")
+
+
+def get_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir):
     if webrtc_source_dir is None:
         webrtc_source_dir = os.path.join(source_dir, "webrtc")
-    if force:
-        rm_rf(webrtc_source_dir)
 
     mkdir_p(webrtc_source_dir)
 
-    if not os.path.exists(os.path.join(webrtc_source_dir, "src")):
+    src_dir = os.path.join(webrtc_source_dir, "src")
+    if not os.path.exists(src_dir):
         with cd(webrtc_source_dir):
             cmd(["gclient"])
             cmd(["fetch", "webrtc"])
@@ -333,27 +419,79 @@ def get_webrtc(
             if target == "ios":
                 with open(".gclient", "a") as f:
                     f.write("target_os = [ 'ios' ]\n")
-            fetch = True
 
-    src_dir = os.path.join(webrtc_source_dir, "src")
-    if fetch:
         with cd(src_dir):
             cmd(["git", "fetch"])
-            if version == "HEAD":
-                cmd(["git", "checkout", "-f", "origin/HEAD"])
-            else:
-                cmd(["git", "checkout", "-f", version])
+            cmd(["git", "checkout", "-f", version])
             cmd(["git", "clean", "-df"])
             cmd(["gclient", "sync", "-D", "--force", "--reset", "--with_branch_heads"])
-            for patch in PATCHES[target]:
-                depth, dirs = PATCH_INFO.get(patch, (1, ["."]))
-                dir = os.path.join(src_dir, *dirs)
-                apply_patch(os.path.join(patch_dir, patch), dir, depth)
+            apply_patches(target, patch_dir, src_dir, None, False)
+
+
+def fetch_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir):
+    if webrtc_source_dir is None:
+        webrtc_source_dir = os.path.join(source_dir, "webrtc")
+
+    src_dir = os.path.join(webrtc_source_dir, "src")
+    with cd(src_dir):
+        cmd(["git", "fetch"])
+        cmd(["git", "checkout", "-f", version])
+        cmd(["git", "clean", "-df"])
+        cmd(["gclient", "sync", "-D", "--force", "--reset", "--with_branch_heads"])
+        apply_patches(target, patch_dir, src_dir, None, False)
+
+
+def revert_webrtc(source_dir, patch_dir, target, webrtc_source_dir, patch, commit):
+    if webrtc_source_dir is None:
+        webrtc_source_dir = os.path.join(source_dir, "webrtc")
+
+    src_dir = os.path.join(webrtc_source_dir, "src")
+    with cd(src_dir):
+        dirs = _deps_dirs(src_dir)
+        for dir in dirs:
+            with cd(dir):
+                commit_hash = get_base_commit()
+                # どうせこの後全部 reset --hard するので、ここでは reset --soft でいい
+                cmd(["git", "reset", "--soft", commit_hash])
+        cmd(["gclient", "recurse", "git", "reset", "--hard"])
+        cmd(["gclient", "recurse", "git", "clean", "-df"])
+        apply_patches(target, patch_dir, src_dir, patch, commit)
+
+
+def diff_webrtc(source_dir, webrtc_source_dir):
+    if webrtc_source_dir is None:
+        webrtc_source_dir = os.path.join(source_dir, "webrtc")
+
+    src_dir = os.path.join(webrtc_source_dir, "src")
+    with cd(src_dir):
+        cmd(["gclient", "recurse", "git", "add", "-N", "--", ":!*.orig"])
+        dirs = _deps_dirs(src_dir)
+        for dir in dirs:
+            with cd(dir):
+                dir = os.path.normpath(dir)
+                if dir == ".":
+                    src_prefix = "a/"
+                    dst_prefix = "b/"
+                else:
+                    src_prefix = f"a/{dir}/".replace("\\", "/")
+                    dst_prefix = f"b/{dir}/".replace("\\", "/")
+                cmd(
+                    [
+                        "git",
+                        "--no-pager",
+                        "diff",
+                        "--ignore-submodules",
+                        "--src-prefix",
+                        src_prefix,
+                        "--dst-prefix",
+                        dst_prefix,
+                    ]
+                )
 
 
 def git_get_url_and_revision(dir):
     with cd(dir):
-        rev = cmdcap(["git", "rev-parse", "HEAD"])
+        rev = get_base_commit()
         url = cmdcap(["git", "remote", "get-url", "origin"])
         return url, rev
 
@@ -825,7 +963,7 @@ def build_webrtc(
                     "arm_use_neon=false",
                     "enable_libaom=false",
                 ]
-        elif target in ("ubuntu-20.04_x86_64", "ubuntu-22.04_x86_64"):
+        elif target in ("ubuntu-20.04_x86_64", "ubuntu-22.04_x86_64", "ubuntu-24.04_x86_64"):
             gn_args += [
                 'target_os="linux"',
                 "rtc_use_pipewire=false",
@@ -1028,6 +1166,23 @@ def package_webrtc(
         os.path.join(webrtc_package_dir, "LICENSE.md"), os.path.join(webrtc_package_dir, "NOTICE")
     )
 
+    if target in ["ios", "macos_arm64"]:
+        # libwebrtc を　M123 に更新した際に、 Xcode で libvpx がビルドできなくなった
+        # LLVM 由来の arm_neon_sve_bridge.h というファイルをパッチで追加してビルド・エラーを解消したので、
+        # ライセンスを追加する
+        #
+        # chromium の LLVM を利用している場合は LLVM のライセンスが generate_licenses.py の出力に含まれるが、
+        # Xcode の LLVM を利用する場合はその限りではないので、この対応が必要になった
+        #
+        # 当初は generate_licenses.py に `--target 'buildtools/third_party/libc++'` を指定する方法も検討したが、
+        # iOS/macOS のビルドでは libc++ が gn のターゲットに含まれていないため、エラーになった
+        with open(os.path.join(webrtc_package_dir, "NOTICE"), "a") as f:
+            f.write(f"""# arm_neon_sve_bridge.h
+```
+{ARM_NEON_SVE_BRIDGE_LICENSE}
+```
+""")
+
     # ヘッダーファイルをコピー
     copy_headers(webrtc_src_dir, webrtc_package_dir, target)
 
@@ -1102,6 +1257,7 @@ TARGETS = [
     "macos_arm64",
     "ubuntu-20.04_x86_64",
     "ubuntu-22.04_x86_64",
+    "ubuntu-24.04_x86_64",
     "ubuntu-18.04_armv8",
     "ubuntu-20.04_armv8",
     "ubuntu-22.04_armv8",
@@ -1154,10 +1310,104 @@ def check_target(target):
             return True
         if target == "ubuntu-22.04_x86_64" and osver == "22.04":
             return True
+        if target == "ubuntu-24.04_x86_64" and osver == "24.04":
+            return True
 
         return False
     else:
         return False
+
+
+def get_webrtc_branch_info(branch: str):
+    # 指定されたブランチのコミットハッシュとコミットポジションを取得する
+    src_commits = downloadcap(
+        f"https://webrtc.googlesource.com/src.git/+log/refs/branch-heads/{branch}"
+    )
+    r = re.search(r'\<a href="(.*?)"\>', src_commits)
+    if r is None:
+        raise Exception("Could not find commit hash")
+    url = r.group(1)
+    commit = url.split("/")[-1]
+    src_commit = downloadcap(f"https://webrtc.googlesource.com{url}")
+    r = re.search(
+        r"^Cr-Commit-Position: refs/branch-heads/([0-9]+)@\{#([0-9]+)\}", src_commit, re.MULTILINE
+    )
+    r2 = re.search(r"^Cr-Commit-Position: refs/heads/main@{#[0-9]+}", src_commit, re.MULTILINE)
+    if r is None and r2 is None:
+        raise Exception("Could not find commit position")
+    if r is not None:
+        if branch != r.group(1):
+            raise Exception("Branch mismatch")
+        position = r.group(2)
+    else:
+        # 最初のコミットの場合は refs/heads/main になって、コミットポジションは存在しない
+        position = 0
+    return commit, position
+
+
+def version_list(args):
+    milestones = json.loads(downloadcap("https://chromiumdash.appspot.com/fetch_milestones"))
+    for m in milestones[:5]:
+        milestone = m["milestone"]
+        branch = m["webrtc_branch"]
+        commit, position = get_webrtc_branch_info(branch)
+        print(f"m{milestone} {branch} {position} {commit}")
+
+
+def version_update(args):
+    milestones = json.loads(downloadcap("https://chromiumdash.appspot.com/fetch_milestones"))
+    # milestones は以下のようなデータになっている
+    # [
+    #   {
+    #     "angle_branch": "6422",
+    #     "bling_ldap": "govind",
+    #     "bling_owner": "Krishna Govind",
+    #     "chromium_branch": "6422",
+    #     "chromium_main_branch_hash": "9012208d0ce02e0cf0adb9b62558627c356f3278",
+    #     "chromium_main_branch_position": 1287751,
+    #     "clank_ldap": "govind",
+    #     "clank_owner": "Krishna Govind",
+    #     "cros_ldap": "matthewjoseph",
+    #     "cros_owner": "Matt Nelson",
+    #     "dawn_branch": "6422",
+    #     "desktop_ldap": "pbommana",
+    #     "desktop_owner": "Prudhvi Bommana",
+    #     "devtools_branch": "6422",
+    #     "merge_phase": "medium_priority",
+    #     "milestone": 125,
+    #     "pdfium_branch": "6422",
+    #     "schedule_active": true,
+    #     "schedule_phase": "beta",
+    #     "skia_branch": "m125",
+    #     "v8_branch": "12.5",
+    #     "webrtc_branch": "6422"
+    #   },
+    #   ...
+    # ]
+    version_path = os.path.join(BASE_DIR, "VERSION")
+    for m in milestones:
+        milestone = m["milestone"]
+        branch = m["webrtc_branch"]
+        if args.target == f"m{milestone}":
+            version_file = read_version_file(version_path)
+            rmilestone, rbranch, rposition, rbuild = version_file["WEBRTC_BUILD_VERSION"].split(".")
+
+            commit, position = get_webrtc_branch_info(branch)
+
+            # 同じバージョンなら元のビルド番号を利用する
+            if rmilestone == str(milestone) and rbranch == branch and rposition == position:
+                build = rbuild
+            else:
+                build = 0
+
+            with open(version_path, "w") as f:
+                f.write(f"WEBRTC_BUILD_VERSION={milestone}.{branch}.{position}.{build}\n")
+                f.write(f"WEBRTC_VERSION={milestone}.{branch}.{position}\n")
+                f.write(f"WEBRTC_READABLE_VERSION=M{milestone}.{branch}@{{#{position}}}\n")
+                f.write(f"WEBRTC_COMMIT={commit}\n")
+            return
+    else:
+        raise Exception(f"Could not find milestone {args.target}")
 
 
 def main():
@@ -1184,8 +1434,6 @@ def main():
     bp.add_argument("--build-dir")
     bp.add_argument("--rootfs-fetch-force", action="store_true")
     bp.add_argument("--depottools-fetch", action="store_true")
-    bp.add_argument("--webrtc-fetch", action="store_true")
-    bp.add_argument("--webrtc-fetch-force", action="store_true")
     bp.add_argument("--webrtc-gen", action="store_true")
     bp.add_argument("--webrtc-gen-force", action="store_true")
     bp.add_argument("--webrtc-extra-gn-args", default="")
@@ -1195,6 +1443,35 @@ def main():
     bp.add_argument("--webrtc-overlap-ios-build-dir", action="store_true")
     bp.add_argument("--webrtc-build-dir")
     bp.add_argument("--webrtc-source-dir")
+    # VERSION で指定されたバージョンのソースを取得する
+    fp = sp.add_parser("fetch")
+    fp.set_defaults(op="fetch")
+    fp.add_argument("target", choices=TARGETS)
+    fp.add_argument("--debug", action="store_true")
+    fp.add_argument("--source-dir")
+    fp.add_argument("--build-dir")
+    fp.add_argument("--webrtc-source-dir")
+    fp.add_argument("--webrtc-build-dir")
+    # ソースコードの状態を現在のバージョンに戻す
+    rp = sp.add_parser("revert")
+    rp.set_defaults(op="revert")
+    rp.add_argument("target", choices=TARGETS)
+    rp.add_argument("--debug", action="store_true")
+    rp.add_argument("--source-dir")
+    rp.add_argument("--build-dir")
+    rp.add_argument("--webrtc-source-dir")
+    rp.add_argument("--webrtc-build-dir")
+    rp.add_argument("--patch")
+    rp.add_argument("--commit", action="store_true")
+    # ソースコードの差分を出力する
+    dp = sp.add_parser("diff")
+    dp.set_defaults(op="diff")
+    dp.add_argument("target", choices=TARGETS)
+    dp.add_argument("--debug", action="store_true")
+    dp.add_argument("--source-dir")
+    dp.add_argument("--build-dir")
+    dp.add_argument("--webrtc-source-dir")
+    dp.add_argument("--webrtc-build-dir")
     # 現在 build と package を分ける意味は無いのだけど、
     # 今後複数のビルドを纏めてパッケージングする時に備えて別コマンドにしておく
     pp = sp.add_parser("package")
@@ -1204,6 +1481,7 @@ def main():
     pp.add_argument("--source-dir")
     pp.add_argument("--build-dir")
     pp.add_argument("--package-dir")
+    pp.add_argument("--depottools-fetch", action="store_true")
     pp.add_argument("--webrtc-build-dir")
     pp.add_argument("--webrtc-source-dir")
     pp.add_argument("--webrtc-package-dir")
@@ -1217,11 +1495,25 @@ def main():
     vp.add_argument("--build-dir")
     vp.add_argument("--webrtc-build-dir")
     vp.add_argument("--webrtc-source-dir")
+    # バージョン操作系
+    vup = sp.add_parser("version_update")
+    vup.set_defaults(op="version_update")
+    vup.add_argument("target")
+    vlp = sp.add_parser("version_list")
+    vlp.set_defaults(op="version_list")
 
     args = parser.parse_args()
 
     if not hasattr(args, "op"):
         parser.error("Required subcommand")
+
+    if args.op == "version_list":
+        version_list(args)
+        return
+
+    if args.op == "version_update":
+        version_update(args)
+        return
 
     if not check_target(args.target):
         raise Exception(f"Target {args.target} is not supported on your platform")
@@ -1313,8 +1605,6 @@ def main():
                 version_info.webrtc_commit,
                 args.target,
                 webrtc_source_dir=webrtc_source_dir,
-                fetch=args.webrtc_fetch,
-                force=args.webrtc_fetch_force,
             )
 
             # ビルド
@@ -1345,14 +1635,57 @@ def main():
             else:
                 build_webrtc(**build_webrtc_args, target=args.target)
 
+    if args.op == "fetch":
+        mkdir_p(source_dir)
+
+        with cd(BASE_DIR):
+            dir = get_depot_tools(source_dir, fetch=False)
+            add_path(dir)
+            fetch_webrtc(
+                source_dir=source_dir,
+                patch_dir=patch_dir,
+                version=version_info.webrtc_commit,
+                target=args.target,
+                webrtc_source_dir=webrtc_source_dir,
+            )
+
+    if args.op == "revert":
+        mkdir_p(source_dir)
+
+        with cd(BASE_DIR):
+            dir = get_depot_tools(source_dir, fetch=False)
+            add_path(dir)
+            revert_webrtc(
+                source_dir=source_dir,
+                patch_dir=patch_dir,
+                target=args.target,
+                webrtc_source_dir=webrtc_source_dir,
+                patch=args.patch,
+                commit=args.commit,
+            )
+
+    if args.op == "diff":
+        mkdir_p(source_dir)
+
+        with cd(BASE_DIR):
+            dir = get_depot_tools(source_dir, fetch=False)
+            add_path(dir)
+            diff_webrtc(
+                source_dir=source_dir,
+                webrtc_source_dir=webrtc_source_dir,
+            )
+
     if args.op == "package":
         mkdir_p(package_dir)
         with cd(BASE_DIR):
+            dir = get_depot_tools(source_dir, fetch=args.depottools_fetch)
+            add_path(dir)
+
             package_webrtc(
-                source_dir,
-                build_dir,
-                package_dir,
-                args.target,
+                source_dir=source_dir,
+                build_dir=build_dir,
+                package_dir=package_dir,
+                target=args.target,
                 webrtc_source_dir=webrtc_source_dir,
                 webrtc_build_dir=webrtc_build_dir,
                 webrtc_package_dir=webrtc_package_dir,
