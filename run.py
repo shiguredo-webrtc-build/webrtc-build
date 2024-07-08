@@ -199,6 +199,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "windows_fix_typo_in_deprecated_attribute.patch",
         "h265.patch",
+        "fix_perfetto.patch",
     ],
     "windows_arm64": [
         "4k.patch",
@@ -210,6 +211,7 @@ PATCHES = {
         "windows_fix_audio_device.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
+        "fix_perfetto.patch",
     ],
     "macos_arm64": [
         "add_deps.patch",
@@ -225,6 +227,7 @@ PATCHES = {
         "multi_codec_simulcast.patch",
         "arm_neon_sve_bridge.patch",
         "revert_asm_changes.patch",
+        "fix_perfetto.patch",
     ],
     "ios": [
         "add_deps.patch",
@@ -242,6 +245,7 @@ PATCHES = {
         "multi_codec_simulcast.patch",
         "arm_neon_sve_bridge.patch",
         "revert_asm_changes.patch",
+        "fix_perfetto.patch",
     ],
     "android": [
         "add_deps.patch",
@@ -257,6 +261,7 @@ PATCHES = {
         "h265.patch",
         "h265_android.patch",
         "multi_codec_simulcast.patch",
+        "fix_perfetto.patch",
     ],
     "raspberry-pi-os_armv6": [
         "nacl_armv6_2.patch",
@@ -266,6 +271,7 @@ PATCHES = {
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
+        "fix_perfetto.patch",
     ],
     "raspberry-pi-os_armv7": [
         "add_deps.patch",
@@ -274,6 +280,7 @@ PATCHES = {
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
+        "fix_perfetto.patch",
     ],
     "raspberry-pi-os_armv8": [
         "add_deps.patch",
@@ -282,6 +289,7 @@ PATCHES = {
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
+        "fix_perfetto.patch",
     ],
     "ubuntu-18.04_armv8": [
         "add_deps.patch",
@@ -290,6 +298,7 @@ PATCHES = {
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
+        "fix_perfetto.patch",
     ],
     "ubuntu-20.04_armv8": [
         "add_deps.patch",
@@ -298,6 +307,7 @@ PATCHES = {
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
+        "fix_perfetto.patch",
     ],
     "ubuntu-22.04_armv8": [
         "add_deps.patch",
@@ -306,6 +316,7 @@ PATCHES = {
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
+        "fix_perfetto.patch",
     ],
     "ubuntu-20.04_x86_64": [
         "add_deps.patch",
@@ -315,6 +326,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "multi_codec_simulcast.patch",
+        "fix_perfetto.patch",
     ],
     "ubuntu-22.04_x86_64": [
         "add_deps.patch",
@@ -324,6 +336,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "multi_codec_simulcast.patch",
+        "fix_perfetto.patch",
     ],
     "ubuntu-24.04_x86_64": [
         "add_deps.patch",
@@ -333,6 +346,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "multi_codec_simulcast.patch",
+        "fix_perfetto.patch",
     ],
 }
 
@@ -376,7 +390,7 @@ def apply_patches(target, patch_dir, src_dir, patch_until, commit_patch):
             apply_patch(os.path.join(patch_dir, patch), src_dir, 1)
             if patch == patch_until and not commit_patch:
                 break
-            cmd(["gclient", "recurse", "git", "add", "--", ":!*.orig"])
+            cmd(["gclient", "recurse", "git", "add", "--", ":!*.orig", ":!*.rej"])
             cmd(
                 [
                     "gclient",
@@ -464,7 +478,7 @@ def diff_webrtc(source_dir, webrtc_source_dir):
 
     src_dir = os.path.join(webrtc_source_dir, "src")
     with cd(src_dir):
-        cmd(["gclient", "recurse", "git", "add", "-N", "--", ":!*.orig"])
+        cmd(["gclient", "recurse", "git", "add", "-N", "--", ":!*.orig", ":!*.rej"])
         dirs = _deps_dirs(src_dir)
         for dir in dirs:
             with cd(dir):
@@ -610,6 +624,7 @@ COMMON_GN_ARGS = [
     "rtc_build_examples=false",
     "use_rtti=true",
     "rtc_build_tools=false",
+    "rtc_use_perfetto=false",
 ]
 
 WEBRTC_BUILD_TARGETS_MACOS_COMMON = [
