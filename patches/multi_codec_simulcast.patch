@@ -1259,7 +1259,7 @@ index 14df03a1cc..2efd91ac18 100644
        RTC_GUARDED_BY(thread_checker_);
  
 diff --git a/modules/video_coding/utility/simulcast_rate_allocator.cc b/modules/video_coding/utility/simulcast_rate_allocator.cc
-index 1496934e1c..d66ae4473d 100644
+index 1496934e1c..76c4879679 100644
 --- a/modules/video_coding/utility/simulcast_rate_allocator.cc
 +++ b/modules/video_coding/utility/simulcast_rate_allocator.cc
 @@ -169,8 +169,24 @@ void SimulcastRateAllocator::DistributeAllocationToSimulcastLayers(
@@ -1287,6 +1287,15 @@ index 1496934e1c..d66ae4473d 100644
      }
  
      // We are allocating to this layer so it is the current active allocation.
+@@ -331,7 +347,7 @@ const VideoCodec& webrtc::SimulcastRateAllocator::GetCodec() const {
+ int SimulcastRateAllocator::NumTemporalStreams(size_t simulcast_id) const {
+   return std::max<uint8_t>(
+       1,
+-      codec_.codecType == kVideoCodecVP8 && codec_.numberOfSimulcastStreams == 0
++      codec_.simulcastStream[simulcast_id].format.IsSameCodec(webrtc::SdpVideoFormat::VP8()) && codec_.numberOfSimulcastStreams == 0
+           ? codec_.VP8().numberOfTemporalLayers
+           : codec_.simulcastStream[simulcast_id].numberOfTemporalLayers);
+ }
 diff --git a/modules/video_coding/video_codec_initializer.cc b/modules/video_coding/video_codec_initializer.cc
 index 2ec419a76d..6b7b414f8a 100644
 --- a/modules/video_coding/video_codec_initializer.cc
