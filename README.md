@@ -112,26 +112,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-### コントリビューター
-
-- melpon - _Original Author_
-  - Android サポート
-  - iOS サポート
-  - CentOS 8 サポート
-  - iOS / Android 認証付き HTTP Proxy サポート
-  - Ubuntu 22.04 x86_64 サポート
-  - Ubuntu 20.04 arm64 サポート
-- tnoho - _Original Author_
-  - macOS 向け AV1 サポート
-  - iOS / Android 向け H.265 サポート
-- hakobera
-  - Ubuntu 20.04 x86_64 サポート
-  - macOS 11 arm64 サポート
-- enm10k
-  - iOS 向けデバッグビルド追加
-- soudegesu
-  - macOS 向け ObjC ヘッダー追加
-
 ## タグやブランチ運用について
 
 **かなり特殊なブランチ運用です**
