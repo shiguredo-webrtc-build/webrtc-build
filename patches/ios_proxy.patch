@@ -68,7 +68,7 @@ index f4db472380..45a2b873f2 100644
 +
 +namespace webrtc {
 +
-+class RawCryptString : public rtc::CryptStringImpl {
++class RawCryptString : public rtc::revive::CryptStringImpl {
 + public:
 +  RawCryptString(const std::string& str) : str_(str) {}
 +  size_t GetLength() const override { return str_.size(); }
@@ -81,7 +81,7 @@ index f4db472380..45a2b873f2 100644
 +    }
 +  }
 +  std::string UrlEncode() const override { return ""; }
-+  CryptStringImpl* Copy() const override { return new RawCryptString(str_); }
++  rtc::revive::CryptStringImpl* Copy() const override { return new RawCryptString(str_); }
 +  void CopyRawTo(std::vector<unsigned char>* dest) const override {
 +    dest->assign(str_.begin(), str_.end());
 +  }
@@ -137,7 +137,7 @@ index f4db472380..45a2b873f2 100644
 +        proxyType == RTCProxyTypeSocks5 ? rtc::revive::PROXY_SOCKS5 : rtc::revive::PROXY_UNKNOWN;
 +    pi.address = rtc::SocketAddress([proxyHostname UTF8String], proxyPort);
 +    pi.username = [proxyUsername UTF8String];
-+    pi.password = rtc::CryptString(webrtc::RawCryptString([proxyPassword UTF8String]));
++    pi.password = rtc::revive::CryptString(webrtc::RawCryptString([proxyPassword UTF8String]));
 +    dependencies->allocator->set_proxy([proxyAgent UTF8String], pi);
 +  }
 +  return [self initWithDependencies:factory
