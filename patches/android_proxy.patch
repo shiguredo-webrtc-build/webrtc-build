@@ -355,7 +355,7 @@ index 9a21e10ede..b9bfea734e 100644
    PeerConnectionFactoryFromJava(native_factory)->StopAecDump();
  }
  
-+class RawCryptString : public rtc::CryptStringImpl {
++class RawCryptString : public rtc::revive::CryptStringImpl {
 + public:
 +  RawCryptString(const std::string& str) : str_(str) {}
 +  size_t GetLength() const override { return str_.size(); }
@@ -368,7 +368,7 @@ index 9a21e10ede..b9bfea734e 100644
 +    }
 +  }
 +  std::string UrlEncode() const override { return ""; }
-+  rtc::CryptStringImpl* Copy() const override { return new RawCryptString(str_); }
++  rtc::revive::CryptStringImpl* Copy() const override { return new RawCryptString(str_); }
 +  void CopyRawTo(std::vector<unsigned char>* dest) const override {
 +    dest->assign(str_.begin(), str_.end());
 +  }
@@ -434,7 +434,7 @@ index 9a21e10ede..b9bfea734e 100644
 +      pi.username = username;
 +    }
 +    if (!password.empty()) {
-+      pi.password = rtc::CryptString(RawCryptString(password));
++      pi.password = rtc::revive::CryptString(RawCryptString(password));
 +    }
 +    peer_connection_dependencies.allocator->set_proxy(agent, pi);
 +  }

@@ -69,7 +69,7 @@ index b172d34db6..4f8f98cb98 100644
  
    std::unique_ptr<webrtc::AsyncDnsResolverInterface> CreateAsyncDnsResolver()
 diff --git a/p2p/base/port.h b/p2p/base/port.h
-index 6cf71f4f82..be3b120f76 100644
+index 2df1d35b8e..091a0573b0 100644
 --- a/p2p/base/port.h
 +++ b/p2p/base/port.h
 @@ -60,6 +60,8 @@
@@ -81,7 +81,7 @@ index 6cf71f4f82..be3b120f76 100644
  namespace cricket {
  
  // RFC 6544, TCP candidate encoding rules.
-@@ -364,6 +366,17 @@ class RTC_EXPORT Port : public PortInterface, public sigslot::has_slots<> {
+@@ -365,6 +367,17 @@ class RTC_EXPORT Port : public PortInterface, public sigslot::has_slots<> {
  
    void GetStunStats(absl::optional<StunStats>* stats) override {}
  
@@ -100,7 +100,7 @@ index 6cf71f4f82..be3b120f76 100644
    void UpdateNetworkCost() override;
  
 diff --git a/p2p/base/port_allocator.h b/p2p/base/port_allocator.h
-index 7958538e1c..8d4e979b3d 100644
+index 0ae2182c39..851d79b83a 100644
 --- a/p2p/base/port_allocator.h
 +++ b/p2p/base/port_allocator.h
 @@ -35,6 +35,8 @@
@@ -140,10 +140,10 @@ index 7958538e1c..8d4e979b3d 100644
    int min_port() const {
      CheckRunOnValidThreadIfInitialized();
 diff --git a/p2p/base/port_interface.h b/p2p/base/port_interface.h
-index 48189823f1..ab8606e007 100644
+index 34f835d138..9d12664280 100644
 --- a/p2p/base/port_interface.h
 +++ b/p2p/base/port_interface.h
-@@ -25,6 +25,8 @@
+@@ -27,6 +27,8 @@
  #include "rtc_base/callback_list.h"
  #include "rtc_base/socket_address.h"
  
@@ -152,7 +152,7 @@ index 48189823f1..ab8606e007 100644
  namespace rtc {
  class Network;
  struct PacketOptions;
-@@ -164,6 +166,9 @@ class PortInterface {
+@@ -166,6 +168,9 @@ class PortInterface {
    // Called when the Connection discovers a local peer reflexive candidate.
    virtual void AddPrflxCandidate(const Candidate& local) = 0;
  
@@ -163,10 +163,10 @@ index 48189823f1..ab8606e007 100644
    PortInterface();
    virtual void UpdateNetworkCost() = 0;
 diff --git a/p2p/base/tcp_port.cc b/p2p/base/tcp_port.cc
-index 4d4373f6ee..7ea7791eba 100644
+index 78c6e4799e..5c7b0bcc0a 100644
 --- a/p2p/base/tcp_port.cc
 +++ b/p2p/base/tcp_port.cc
-@@ -596,7 +596,9 @@ void TCPConnection::CreateOutgoingTcpSocket() {
+@@ -583,7 +583,9 @@ void TCPConnection::CreateOutgoingTcpSocket() {
    tcp_opts.opts = opts;
    socket_.reset(port()->socket_factory()->CreateClientTcpSocket(
        rtc::SocketAddress(port()->Network()->GetBestIP(), 0),
@@ -178,10 +178,10 @@ index 4d4373f6ee..7ea7791eba 100644
      RTC_LOG(LS_VERBOSE) << ToString() << ": Connecting from "
                          << socket_->GetLocalAddress().ToSensitiveString()
 diff --git a/p2p/base/turn_port.cc b/p2p/base/turn_port.cc
-index 3e29dedc5b..e45c58aae9 100644
+index 71deb693c1..a67703ba6c 100644
 --- a/p2p/base/turn_port.cc
 +++ b/p2p/base/turn_port.cc
-@@ -439,6 +439,7 @@ bool TurnPort::CreateTurnClientSocket() {
+@@ -474,6 +474,7 @@ bool TurnPort::CreateTurnClientSocket() {
      tcp_options.tls_cert_verifier = tls_cert_verifier_;
      socket_ = socket_factory()->CreateClientTcpSocket(
          rtc::SocketAddress(Network()->GetBestIP(), 0), server_address_.address,
@@ -190,7 +190,7 @@ index 3e29dedc5b..e45c58aae9 100644
    }
  
 diff --git a/p2p/client/basic_port_allocator.cc b/p2p/client/basic_port_allocator.cc
-index 832d6da27a..17deb5973f 100644
+index c8b293a290..566f39278a 100644
 --- a/p2p/client/basic_port_allocator.cc
 +++ b/p2p/client/basic_port_allocator.cc
 @@ -39,6 +39,8 @@
@@ -212,10 +212,10 @@ index 832d6da27a..17deb5973f 100644
        (flags() & PORTALLOCATOR_ENABLE_STUN_RETRANSMIT_ATTRIBUTE) != 0);
  
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index b6e1697682..0f19459a90 100644
+index 85ec8edb9b..7b1d1eb538 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
-@@ -1278,6 +1278,8 @@ rtc_library("socket_adapters") {
+@@ -1262,6 +1262,8 @@ rtc_library("socket_adapters") {
    sources = [
      "socket_adapters.cc",
      "socket_adapters.h",
@@ -224,15 +224,15 @@ index b6e1697682..0f19459a90 100644
    ]
    deps = [
      ":async_socket",
-@@ -1289,6 +1291,7 @@ rtc_library("socket_adapters") {
-     ":stringutils",
-     ":zero_memory",
+@@ -1274,6 +1276,7 @@ rtc_library("socket_adapters") {
      "../api:array_view",
+     "//third_party/abseil-cpp/absl/strings",
+     "//third_party/abseil-cpp/absl/strings:string_view",
 +    ":proxy_info",
    ]
-   absl_deps = [ "//third_party/abseil-cpp/absl/strings" ]
  }
-@@ -1396,6 +1399,20 @@ rtc_library("dscp") {
+ 
+@@ -1382,6 +1385,20 @@ rtc_library("dscp") {
    sources = [ "dscp.h" ]
  }
  
@@ -253,9 +253,167 @@ index b6e1697682..0f19459a90 100644
  rtc_library("file_rotating_stream") {
    sources = [
      "file_rotating_stream.cc",
+@@ -1662,6 +1679,13 @@ rtc_library("ssl_adapter") {
+   }
+ }
+ 
++rtc_library("crypt_string") {
++  sources = [
++    "crypt_string_revive.cc",
++    "crypt_string_revive.h",
++  ]
++}
++
+ rtc_source_set("gtest_prod") {
+   sources = [ "gtest_prod_util.h" ]
+ }
+diff --git a/rtc_base/BUILD.gn.rej b/rtc_base/BUILD.gn.rej
+new file mode 100644
+index 0000000000..83909f23af
+--- /dev/null
++++ b/rtc_base/BUILD.gn.rej
+@@ -0,0 +1,10 @@
++--- rtc_base/BUILD.gn
+++++ rtc_base/BUILD.gn
++@@ -1291,6 +1293,7 @@ rtc_library("socket_adapters") {
++     ":stringutils",
++     ":zero_memory",
++     "../api:array_view",
+++    ":proxy_info",
++   ]
++   absl_deps = [ "//third_party/abseil-cpp/absl/strings" ]
++ }
+diff --git a/rtc_base/crypt_string_revive.cc b/rtc_base/crypt_string_revive.cc
+new file mode 100644
+index 0000000000..b1a1ab5b76
+--- /dev/null
++++ b/rtc_base/crypt_string_revive.cc
+@@ -0,0 +1,46 @@
++/*
++ *  Copyright 2015 The WebRTC Project Authors. All rights reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#include "rtc_base/crypt_string_revive.h"
++
++namespace rtc::revive {
++
++size_t EmptyCryptStringImpl::GetLength() const {
++  return 0;
++}
++
++void EmptyCryptStringImpl::CopyTo(char* dest, bool nullterminate) const {
++  if (nullterminate) {
++    *dest = '\0';
++  }
++}
++
++std::string EmptyCryptStringImpl::UrlEncode() const {
++  return "";
++}
++
++CryptStringImpl* EmptyCryptStringImpl::Copy() const {
++  return new EmptyCryptStringImpl();
++}
++
++void EmptyCryptStringImpl::CopyRawTo(std::vector<unsigned char>* dest) const {
++  dest->clear();
++}
++
++CryptString::CryptString() : impl_(new EmptyCryptStringImpl()) {}
++
++CryptString::CryptString(const CryptString& other)
++    : impl_(other.impl_->Copy()) {}
++
++CryptString::CryptString(const CryptStringImpl& impl) : impl_(impl.Copy()) {}
++
++CryptString::~CryptString() = default;
++
++}  // namespace rtc::revive
+diff --git a/rtc_base/crypt_string_revive.h b/rtc_base/crypt_string_revive.h
+new file mode 100644
+index 0000000000..e1087570b7
+--- /dev/null
++++ b/rtc_base/crypt_string_revive.h
+@@ -0,0 +1,70 @@
++/*
++ *  Copyright 2004 The WebRTC Project Authors. All rights reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#ifndef RTC_BASE_CRYPT_STRING_REVIVE_H_
++#define RTC_BASE_CRYPT_STRING_REVIVE_H_
++
++#include <string.h>
++
++#include <memory>
++#include <string>
++#include <vector>
++
++namespace rtc::revive {
++
++class CryptStringImpl {
++ public:
++  virtual ~CryptStringImpl() {}
++  virtual size_t GetLength() const = 0;
++  virtual void CopyTo(char* dest, bool nullterminate) const = 0;
++  virtual std::string UrlEncode() const = 0;
++  virtual CryptStringImpl* Copy() const = 0;
++  virtual void CopyRawTo(std::vector<unsigned char>* dest) const = 0;
++};
++
++class EmptyCryptStringImpl : public CryptStringImpl {
++ public:
++  ~EmptyCryptStringImpl() override {}
++  size_t GetLength() const override;
++  void CopyTo(char* dest, bool nullterminate) const override;
++  std::string UrlEncode() const override;
++  CryptStringImpl* Copy() const override;
++  void CopyRawTo(std::vector<unsigned char>* dest) const override;
++};
++
++class CryptString {
++ public:
++  CryptString();
++  size_t GetLength() const { return impl_->GetLength(); }
++  void CopyTo(char* dest, bool nullterminate) const {
++    impl_->CopyTo(dest, nullterminate);
++  }
++  CryptString(const CryptString& other);
++  explicit CryptString(const CryptStringImpl& impl);
++  ~CryptString();
++  CryptString& operator=(const CryptString& other) {
++    if (this != &other) {
++      impl_.reset(other.impl_->Copy());
++    }
++    return *this;
++  }
++  void Clear() { impl_.reset(new EmptyCryptStringImpl()); }
++  std::string UrlEncode() const { return impl_->UrlEncode(); }
++  void CopyRawTo(std::vector<unsigned char>* dest) const {
++    return impl_->CopyRawTo(dest);
++  }
++
++ private:
++  std::unique_ptr<const CryptStringImpl> impl_;
++};
++
++}  // namespace rtc::revive
++
++#endif  // RTC_BASE_CRYPT_STRING_REVIVE_H_
 diff --git a/rtc_base/http_common_revive.cc b/rtc_base/http_common_revive.cc
 new file mode 100644
-index 0000000000..c2a5d7a4af
+index 0000000000..59ac7583bb
 --- /dev/null
 +++ b/rtc_base/http_common_revive.cc
 @@ -0,0 +1,554 @@
@@ -289,7 +447,7 @@ index 0000000000..c2a5d7a4af
 +#include <vector>
 +
 +#include "absl/strings/match.h"
-+#include "rtc_base/crypt_string.h"  // for CryptString
++#include "rtc_base/crypt_string_revive.h"  // for CryptString
 +#include "rtc_base/http_common_revive.h"
 +#include "rtc_base/logging.h"
 +#include "rtc_base/message_digest.h"
@@ -897,7 +1055,7 @@ index 0000000000..9719ec4e2b
 +}
 diff --git a/rtc_base/proxy_info_revive.h b/rtc_base/proxy_info_revive.h
 new file mode 100644
-index 0000000000..8a5df2953c
+index 0000000000..821ae8ffe1
 --- /dev/null
 +++ b/rtc_base/proxy_info_revive.h
 @@ -0,0 +1,39 @@
@@ -916,7 +1074,7 @@ index 0000000000..8a5df2953c
 +
 +#include <string>
 +
-+#include "rtc_base/crypt_string.h"
++#include "rtc_base/crypt_string_revive.h"
 +#include "rtc_base/socket_address.h"
 +
 +namespace rtc::revive {
@@ -1216,7 +1374,7 @@ index 0000000000..5d8418b1f8
 +}  // namespace rtc::revive
 diff --git a/rtc_base/socket_adapters_revive.h b/rtc_base/socket_adapters_revive.h
 new file mode 100644
-index 0000000000..c0ec20cbaf
+index 0000000000..33fe88b845
 --- /dev/null
 +++ b/rtc_base/socket_adapters_revive.h
 @@ -0,0 +1,85 @@
@@ -1236,7 +1394,7 @@ index 0000000000..c0ec20cbaf
 +#include <string>
 +
 +#include "rtc_base/async_socket.h"
-+#include "rtc_base/crypt_string.h"
++#include "rtc_base/crypt_string_revive.h"
 +#include "rtc_base/socket_adapters.h"
 +#include "rtc_base/socket_address.h"
 +
