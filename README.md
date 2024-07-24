@@ -8,11 +8,11 @@
 
 We will not respond to PRs or issues that have not been discussed on Discord. Also, Discord is only available in Japanese.
 
-Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use.
+Please read <https://github.com/shiguredo/oss/blob/master/README.en.md> before use.
 
 ## 時雨堂のオープンソースソフトウェアについて
 
-利用前に https://github.com/shiguredo/oss をお読みください。
+利用前に <https://github.com/shiguredo/oss> をお読みください。
 
 ## webrtc-build について
 
@@ -134,14 +134,21 @@ limitations under the License.
 
 ## タグやブランチ運用について
 
+**かなり特殊なブランチ運用です**
+
 - feature/m94.4606 のようにブランチを切ります
-  - branch-heads のブランチは削除してはいけません
-  - 次のリリースブランチが決まるまでは feature 上でタグを打ちます
-- 次のリリースブランチが確定したら master にマージします
-  - ブランチから変更が無ければタグを打つ必要はありません
+  - ブランチは削除してはいけません
+  - 必ず feature 上でタグを打ちます
+- feature ブランチがステーブルになったら master にマージします
 - コミットポジションは右から 2 番目の値を変更します
 - libwebrtc のコミットポジションは変更せずに何か変更がある場合は一番右の数値を増やします
   - m94.4606.0.0 から m94.4606.0.1 のようにする
+- master ブランチは 同一または上位の feature ブランチにしかマージはしてはいけません
+  - master が m94 なら m94 以上にだけマージして良い
+- 下位へのマージは禁止しています
+  - master が m94 なら m93 以下にマージはしていはいけない
+- master ブランチへの変更を下位への反映したい場合は cherry-pick を利用します
+- 下位へのみの反映は feature ブランチだけにします
 
 ### タグの読み方
 
