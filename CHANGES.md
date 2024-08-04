@@ -12,6 +12,11 @@
 VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 パッチやビルドの変更のみ記録すること。
 
+## feature/multi-codec-simulcast
+
+- [FIX] r0.active=false, r1.active=true の時に実行時エラーになってたのを修正
+  - @melpon
+
 ## 126.6478.1.1 (2024-07-11)
 
 - [FIX] サイマルキャストマルチコーデックで、r0 を H264、r1 を VP8 にすると落ちるのを修正
