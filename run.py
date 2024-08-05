@@ -199,6 +199,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "fix_perfetto.patch",
+        "simulcast_multi_codec.patch",
     ],
     "windows_arm64": [
         "4k.patch",
@@ -211,6 +212,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "fix_perfetto.patch",
+        "simulcast_multi_codec.patch",
     ],
     "macos_arm64": [
         "add_deps.patch",
@@ -223,10 +225,10 @@ PATCHES = {
         "macos_use_xcode_clang.patch",
         "h265.patch",
         "h265_ios.patch",
-        "multi_codec_simulcast.patch",
         "arm_neon_sve_bridge.patch",
         "revert_asm_changes.patch",
         "fix_perfetto.patch",
+        "simulcast_multi_codec.patch",
     ],
     "ios": [
         "add_deps.patch",
@@ -241,10 +243,10 @@ PATCHES = {
         "ios_proxy.patch",
         "h265.patch",
         "h265_ios.patch",
-        "multi_codec_simulcast.patch",
         "arm_neon_sve_bridge.patch",
         "revert_asm_changes.patch",
         "fix_perfetto.patch",
+        "simulcast_multi_codec.patch",
     ],
     "android": [
         "add_deps.patch",
@@ -259,8 +261,8 @@ PATCHES = {
         "android_proxy.patch",
         "h265.patch",
         "h265_android.patch",
-        "multi_codec_simulcast.patch",
         "fix_perfetto.patch",
+        "simulcast_multi_codec.patch",
     ],
     "raspberry-pi-os_armv6": [
         "nacl_armv6_2.patch",
@@ -271,6 +273,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "fix_perfetto.patch",
+        "simulcast_multi_codec.patch",
     ],
     "raspberry-pi-os_armv7": [
         "add_deps.patch",
@@ -280,6 +283,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "fix_perfetto.patch",
+        "simulcast_multi_codec.patch",
     ],
     "raspberry-pi-os_armv8": [
         "add_deps.patch",
@@ -289,6 +293,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "fix_perfetto.patch",
+        "simulcast_multi_codec.patch",
     ],
     "ubuntu-18.04_armv8": [
         "add_deps.patch",
@@ -298,6 +303,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "fix_perfetto.patch",
+        "simulcast_multi_codec.patch",
     ],
     "ubuntu-20.04_armv8": [
         "add_deps.patch",
@@ -307,6 +313,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "fix_perfetto.patch",
+        "simulcast_multi_codec.patch",
     ],
     "ubuntu-22.04_armv8": [
         "add_deps.patch",
@@ -316,6 +323,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "fix_perfetto.patch",
+        "simulcast_multi_codec.patch",
     ],
     "ubuntu-20.04_x86_64": [
         "add_deps.patch",
@@ -324,8 +332,8 @@ PATCHES = {
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
-        "multi_codec_simulcast.patch",
         "fix_perfetto.patch",
+        "simulcast_multi_codec.patch",
     ],
     "ubuntu-22.04_x86_64": [
         "add_deps.patch",
@@ -334,8 +342,8 @@ PATCHES = {
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
-        "multi_codec_simulcast.patch",
         "fix_perfetto.patch",
+        "simulcast_multi_codec.patch",
     ],
     "ubuntu-24.04_x86_64": [
         "add_deps.patch",
@@ -344,8 +352,8 @@ PATCHES = {
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
-        "multi_codec_simulcast.patch",
         "fix_perfetto.patch",
+        "simulcast_multi_codec.patch",
     ],
 }
 
