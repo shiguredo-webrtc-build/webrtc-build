@@ -14,6 +14,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## support/simulcast-multi-codec
 
+## 126.6478.1.0-simulcast-multi-codec.0 (2024-08-05)
+
 - [FIX] r0.active=false, r1.active=true の時に実行時エラーになってたのを修正
   - @melpon
 - [FIX] Reconfigure が走った時に実行時エラーになってたのを修正
