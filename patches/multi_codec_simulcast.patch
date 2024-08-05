@@ -288,7 +288,7 @@ index c551a58cf9..3c31b39ddb 100644
  
    return CheckScalabilityModeValues(rtp_parameters, send_codecs, send_codec);
 diff --git a/media/engine/simulcast_encoder_adapter.cc b/media/engine/simulcast_encoder_adapter.cc
-index b4a6486f71..e958f480f7 100644
+index b4a6486f71..ab439afdcc 100644
 --- a/media/engine/simulcast_encoder_adapter.cc
 +++ b/media/engine/simulcast_encoder_adapter.cc
 @@ -242,7 +242,6 @@ SimulcastEncoderAdapter::SimulcastEncoderAdapter(
@@ -299,7 +299,17 @@ index b4a6486f71..e958f480f7 100644
        total_streams_count_(0),
        bypass_mode_(false),
        encoded_complete_callback_(nullptr),
-@@ -322,7 +321,7 @@ int SimulcastEncoderAdapter::InitEncode(
+@@ -287,6 +286,9 @@ int SimulcastEncoderAdapter::Release() {
+ 
+   inited_.store(0);
+ 
++  // サイマルキャストマルチコーデック下で Reconfigure された時にうまく動かなくなるのでキャッシュは使わない
++  DestroyStoredEncoders();
++
+   return WEBRTC_VIDEO_CODEC_OK;
+ }
+ 
+@@ -322,7 +324,7 @@ int SimulcastEncoderAdapter::InitEncode(
    std::unique_ptr<EncoderContext> encoder_context = FetchOrCreateEncoderContext(
        /*is_lowest_quality_stream=*/(
            is_legacy_singlecast ||
@@ -308,7 +318,7 @@ index b4a6486f71..e958f480f7 100644
    if (encoder_context == nullptr) {
      return WEBRTC_VIDEO_CODEC_MEMORY;
    }
-@@ -337,6 +336,13 @@ int SimulcastEncoderAdapter::InitEncode(
+@@ -337,6 +339,13 @@ int SimulcastEncoderAdapter::InitEncode(
    //   and configures each to produce a single stream.
  
    int active_streams_count = CountActiveStreams(*codec_settings);
@@ -322,7 +332,7 @@ index b4a6486f71..e958f480f7 100644
    // If we only have a single active layer it is better to create an encoder
    // with only one configured layer than creating it with all-but-one disabled
    // layers because that way we control scaling.
-@@ -344,8 +350,12 @@ int SimulcastEncoderAdapter::InitEncode(
+@@ -344,8 +353,12 @@ int SimulcastEncoderAdapter::InitEncode(
    // forces the use of SEA with separate encoders to support per-layer
    // handling of PLIs.
    bool separate_encoders_needed =
@@ -337,7 +347,7 @@ index b4a6486f71..e958f480f7 100644
    RTC_LOG(LS_INFO) << "[SEA] InitEncode: total_streams_count: "
                     << total_streams_count_
                     << ", active_streams_count: " << active_streams_count
-@@ -384,10 +394,14 @@ int SimulcastEncoderAdapter::InitEncode(
+@@ -384,10 +397,14 @@ int SimulcastEncoderAdapter::InitEncode(
        continue;
      }
  
@@ -355,7 +365,7 @@ index b4a6486f71..e958f480f7 100644
      if (encoder_context == nullptr) {
        Release();
        return WEBRTC_VIDEO_CODEC_MEMORY;
-@@ -702,7 +716,7 @@ void SimulcastEncoderAdapter::DestroyStoredEncoders() {
+@@ -702,7 +719,7 @@ void SimulcastEncoderAdapter::DestroyStoredEncoders() {
  
  std::unique_ptr<SimulcastEncoderAdapter::EncoderContext>
  SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
@@ -364,7 +374,7 @@ index b4a6486f71..e958f480f7 100644
    bool prefer_temporal_support = fallback_encoder_factory_ != nullptr &&
                                   is_lowest_quality_stream &&
                                   prefer_temporal_support_on_base_layer_;
-@@ -723,11 +737,11 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
+@@ -723,11 +740,11 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
      cached_encoder_contexts_.erase(encoder_context_iter);
    } else {
      std::unique_ptr<VideoEncoder> primary_encoder =
@@ -378,7 +388,7 @@ index b4a6486f71..e958f480f7 100644
      }
  
      std::unique_ptr<VideoEncoder> encoder;
-@@ -746,14 +760,14 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
+@@ -746,14 +763,14 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
              prefer_temporal_support);
        }
      } else if (fallback_encoder != nullptr) {
@@ -395,7 +405,7 @@ index b4a6486f71..e958f480f7 100644
        return nullptr;
      }
  
-@@ -776,6 +790,7 @@ webrtc::VideoCodec SimulcastEncoderAdapter::MakeStreamCodec(
+@@ -776,6 +793,7 @@ webrtc::VideoCodec SimulcastEncoderAdapter::MakeStreamCodec(
    webrtc::VideoCodec codec_params = codec;
    const SimulcastStream& stream_params = codec.simulcastStream[stream_idx];
  
@@ -403,7 +413,7 @@ index b4a6486f71..e958f480f7 100644
    codec_params.numberOfSimulcastStreams = 0;
    codec_params.width = stream_params.width;
    codec_params.height = stream_params.height;
-@@ -885,8 +900,9 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
+@@ -885,8 +903,9 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
      // to be filled.
      // Create one encoder and query it.
  

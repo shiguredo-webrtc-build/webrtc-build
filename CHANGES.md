@@ -16,6 +16,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 - [FIX] r0.active=false, r1.active=true の時に実行時エラーになってたのを修正
   - @melpon
+- [FIX] Reconfigure が走った時に実行時エラーになってたのを修正
+  - @melpon
 
 ## 126.6478.1.1 (2024-07-11)
 
