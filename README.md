@@ -149,7 +149,7 @@ main だけでコミットポジションがない場合はコミットポジシ
 大きめのパッチで、かつメインブランチにマージが難しい場合は support ブランチを利用します。
 support ブランチでは `<webrtc-build>-<support-branch-name>.<release>` というタグを打ちます。
 
-- 例: `m127.6533.1.1-multi-codec-simulcast.1`
+- 例: `m127.6533.1.1-simulcast-multi-codec.1`
 - 例: `m127.6533.1.1-hololens2.0`
 
 ## パッチ運用について
