@@ -12,7 +12,7 @@
 VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 パッチやビルドの変更のみ記録すること。
 
-## feature/multi-codec-simulcast
+## support/simulcast-multi-codec
 
 - [FIX] r0.active=false, r1.active=true の時に実行時エラーになってたのを修正
   - @melpon
