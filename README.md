@@ -144,6 +144,14 @@ shiguredo/webrtc-build としてのリリース回数が `1` という意味で�
 
 main だけでコミットポジションがない場合はコミットポジション 0 として扱います。
 
+### support ブランチとタグ
+
+大きめのパッチで、かつメインブランチにマージが難しい場合は support ブランチを利用します。
+support ブランチでは `<webrtc-build>-<support-branch-name>.<release>` というタグを打ちます。
+
+- 例: `m127.6533.1.1-simulcast-multi-codec.1`
+- 例: `m127.6533.1.1-hololens2.0`
+
 ## パッチ運用について
 
 - 最新版でパッチが動作しない場合はパッチ作成者が修正をしてください
