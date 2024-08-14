@@ -8,6 +8,10 @@
   - 下位互換のない変更
 - FIX
   - バグ修正
+- TEST
+  - テスト関連
+- DOC
+  - ドキュメント関連
 
 VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 パッチやビルドの変更のみ記録すること。
@@ -68,7 +72,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 ## 122.6261.0.1
 
 - [FIX] リリース・バイナリを利用した Windows 向けのビルドが `error C3827: standard attribute 'deprecated' may have either no arguments or one string literal` というエラーになる問題を修正するパッチを追加する
-  - @enm10k 
+  - @enm10k
 
 ## m120.6099.1.2
 
@@ -87,7 +91,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 - [FIX] iOS のサイマルキャストが VP9 と AV1 で動作しない問題を修正する
   - @szktty
 
-## m114.5735.0.0 
+## m114.5735.0.0
 
 - [CHANGE] ビルド全体で例外を有効にする
   - @melpon
@@ -153,8 +157,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 - [FIX] iOS のビルドに、 Xcode に含まれる clang を使用する
   - こちらのパッチを作成するにあたり、以下の記事とパッチを参考にしました
-  - https://webrtchacks.com/the-webrtc-bitcode-soap-opera-saul-ibarra-corretge/
-  - https://github.com/jitsi/webrtc/releases/tag/v100.0.0
+  - <https://webrtchacks.com/the-webrtc-bitcode-soap-opera-saul-ibarra-corretge/>
+  - <https://github.com/jitsi/webrtc/releases/tag/v100.0.0>
   - @enm10k
 
 ## m101.4951.5.1
