@@ -99,7 +99,7 @@ index 16b967dad4..c880c8ddb9 100644
 +    reader.ReadExponentialGolomb();
 +  }
 +  if (!vps_sub_layer_ordering_info_present_flag) {
-+    for (int i = 0; i < vps.vps_max_sub_layers_minus1; ++i) {
++    for (uint32_t i = 0; i < vps.vps_max_sub_layers_minus1; ++i) {
 +      vps.vps_max_num_reorder_pics[i] = vps.vps_max_num_reorder_pics[vps.vps_max_sub_layers_minus1];
 +    }
 +  }
