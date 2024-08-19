@@ -14,6 +14,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## 2024-06-21
 
+- [UPDATE] GitHub Actions Android のビルド環境を Ubuntu 22.04 に上げる
+  - @zztkm
 - [ADD] Ubuntu 24.04 に対応
   - @melpon
 - [FIX] 生成した VERSIONS ファイルの指すコミットが shiguredo-patch パッチ適用後のコミットになっていたのを修正
