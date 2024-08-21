@@ -276,7 +276,7 @@ index c551a58cf9..3c31b39ddb 100644
  
    return CheckScalabilityModeValues(rtp_parameters, send_codecs, send_codec);
 diff --git a/media/engine/simulcast_encoder_adapter.cc b/media/engine/simulcast_encoder_adapter.cc
-index 08720321a5..4086ab402c 100644
+index 08720321a5..6f925cce9c 100644
 --- a/media/engine/simulcast_encoder_adapter.cc
 +++ b/media/engine/simulcast_encoder_adapter.cc
 @@ -239,7 +239,6 @@ SimulcastEncoderAdapter::SimulcastEncoderAdapter(
@@ -291,7 +291,7 @@ index 08720321a5..4086ab402c 100644
  
    inited_.store(0);
  
-+  // サイマルキャストマルチコーデック下で Reconfigure された時にうまく動かなくなるのでキャッシュは使わない
++  // When reconfigured under mixed-codec simulcast, it stops working properly, so also destroy the cache.
 +  DestroyStoredEncoders();
 +
    return WEBRTC_VIDEO_CODEC_OK;
@@ -310,7 +310,7 @@ index 08720321a5..4086ab402c 100644
    //   and configures each to produce a single stream.
  
    int active_streams_count = CountActiveStreams(*codec_settings);
-+  bool is_multicodec = std::invoke([this]() -> bool {
++  bool is_mixedcodec = std::invoke([this]() -> bool {
 +    std::set<std::string> codecs;
 +    for (int i = 0; i < codec_.numberOfSimulcastStreams; ++i) {
 +      codecs.insert(codec_.simulcastStream[i].format.name);
@@ -320,40 +320,34 @@ index 08720321a5..4086ab402c 100644
    // If we only have a single active layer it is better to create an encoder
    // with only one configured layer than creating it with all-but-one disabled
    // layers because that way we control scaling.
-@@ -341,8 +350,12 @@ int SimulcastEncoderAdapter::InitEncode(
+@@ -341,8 +350,10 @@ int SimulcastEncoderAdapter::InitEncode(
    // forces the use of SEA with separate encoders to support per-layer
    // handling of PLIs.
    bool separate_encoders_needed =
 -      !encoder_context->encoder().GetEncoderInfo().supports_simulcast ||
 -      active_streams_count == 1 || per_layer_pli_;
-+      // マルチコーデックの場合、特定のコーデックのエンコーダがマルチコーデックサイマルキャストに対応しているわけが無いので
-+      // supports_simulcast は見ない
-+      ((is_multicodec || (!is_multicodec && !encoder_context->encoder().GetEncoderInfo().supports_simulcast))
-+      // || active_streams_count == 1 は多分バグなので直しておく
++      // In the case of mixed-codec simulcast, do not check supports_simulcast.
++      ((is_mixedcodec || (!is_mixedcodec && !encoder_context->encoder().GetEncoderInfo().supports_simulcast))
 +      && active_streams_count != 1)
 +      || per_layer_pli_;
    RTC_LOG(LS_INFO) << "[SEA] InitEncode: total_streams_count: "
                     << total_streams_count_
                     << ", active_streams_count: " << active_streams_count
-@@ -381,10 +394,14 @@ int SimulcastEncoderAdapter::InitEncode(
+@@ -381,10 +392,9 @@ int SimulcastEncoderAdapter::InitEncode(
        continue;
      }
  
 -    if (encoder_context == nullptr) {
-+    // サイマルキャストマルチコーデック下では事前に作られた encoder_context と
-+    // ここで本来生成するべき encoder_context のクラスが異なってる可能性があるため
-+    // 毎回生成し直す必要がある。
-+    // 例えば r0.codec==H264 && r0.active==false && r1.codec==VP8 && r1.active==true の場合に問題が起きる
-+    //if (encoder_context == nullptr) {
-       encoder_context = FetchOrCreateEncoderContext(
+-      encoder_context = FetchOrCreateEncoderContext(
 -          /*is_lowest_quality_stream=*/stream_idx == lowest_quality_stream_idx);
 -    }
-+          /*is_lowest_quality_stream=*/stream_idx == lowest_quality_stream_idx, codec_.simulcastStream[stream_idx].format);
-+    //}
++    encoder_context = FetchOrCreateEncoderContext(
++      /*is_lowest_quality_stream=*/stream_idx == lowest_quality_stream_idx,
++      codec_.simulcastStream[stream_idx].format);
      if (encoder_context == nullptr) {
        Release();
        return WEBRTC_VIDEO_CODEC_MEMORY;
-@@ -699,7 +716,7 @@ void SimulcastEncoderAdapter::DestroyStoredEncoders() {
+@@ -699,7 +709,7 @@ void SimulcastEncoderAdapter::DestroyStoredEncoders() {
  
  std::unique_ptr<SimulcastEncoderAdapter::EncoderContext>
  SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
@@ -362,7 +356,7 @@ index 08720321a5..4086ab402c 100644
    bool prefer_temporal_support = fallback_encoder_factory_ != nullptr &&
                                   is_lowest_quality_stream &&
                                   prefer_temporal_support_on_base_layer_;
-@@ -720,11 +737,11 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
+@@ -720,11 +730,11 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
      cached_encoder_contexts_.erase(encoder_context_iter);
    } else {
      std::unique_ptr<VideoEncoder> primary_encoder =
@@ -376,7 +370,7 @@ index 08720321a5..4086ab402c 100644
      }
  
      std::unique_ptr<VideoEncoder> encoder;
-@@ -743,14 +760,14 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
+@@ -743,14 +753,14 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
              prefer_temporal_support);
        }
      } else if (fallback_encoder != nullptr) {
@@ -393,7 +387,7 @@ index 08720321a5..4086ab402c 100644
        return nullptr;
      }
  
-@@ -773,6 +790,7 @@ webrtc::VideoCodec SimulcastEncoderAdapter::MakeStreamCodec(
+@@ -773,6 +783,7 @@ webrtc::VideoCodec SimulcastEncoderAdapter::MakeStreamCodec(
    webrtc::VideoCodec codec_params = codec;
    const SimulcastStream& stream_params = codec.simulcastStream[stream_idx];
  
@@ -401,7 +395,7 @@ index 08720321a5..4086ab402c 100644
    codec_params.numberOfSimulcastStreams = 0;
    codec_params.width = stream_params.width;
    codec_params.height = stream_params.height;
-@@ -882,8 +900,9 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
+@@ -882,8 +893,9 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
      // to be filled.
      // Create one encoder and query it.
  
@@ -436,7 +430,7 @@ index d7130437e6..24d8413382 100644
    int total_streams_count_;
    bool bypass_mode_;
 diff --git a/media/engine/webrtc_video_engine.cc b/media/engine/webrtc_video_engine.cc
-index 70176e88af..80ce56e8a1 100644
+index 70176e88af..6928d9852b 100644
 --- a/media/engine/webrtc_video_engine.cc
 +++ b/media/engine/webrtc_video_engine.cc
 @@ -395,16 +395,16 @@ static bool ValidateStreamParams(const StreamParams& sp) {
@@ -1115,7 +1109,7 @@ index 70176e88af..80ce56e8a1 100644
 -    common_info.codec_name = parameters_.codec_settings->codec.name;
 -    common_info.codec_payload_type = parameters_.codec_settings->codec.id;
 -  }
-+  // Stats の更新でエラーになるので値を設定しないでおく
++  // FIXME(melpon): An error occurs when updating Stats, so do not set the value.
 +  //if (!parameters_.codec_settings.empty()) {
 +  //  common_info.codec_name = parameters_.codec_settings.front().codec.name;
 +  //  common_info.codec_payload_type = parameters_.codec_settings.front().codec.id;
@@ -1266,14 +1260,14 @@ index 14df03a1cc..2efd91ac18 100644
        RTC_GUARDED_BY(thread_checker_);
  
 diff --git a/modules/video_coding/utility/simulcast_rate_allocator.cc b/modules/video_coding/utility/simulcast_rate_allocator.cc
-index 89522e6ca3..2dbdd857b7 100644
+index 89522e6ca3..93168e013f 100644
 --- a/modules/video_coding/utility/simulcast_rate_allocator.cc
 +++ b/modules/video_coding/utility/simulcast_rate_allocator.cc
-@@ -171,8 +171,24 @@ void SimulcastRateAllocator::DistributeAllocationToSimulcastLayers(
+@@ -171,8 +171,26 @@ void SimulcastRateAllocator::DistributeAllocationToSimulcastLayers(
        min_bitrate = std::min(hysteresis_factor * min_bitrate, target_bitrate);
      }
      if (left_in_stable_allocation < min_bitrate) {
-+      bool is_multicodec = std::invoke([this]() -> bool {
++      bool is_mixedcodec = std::invoke([this]() -> bool {
 +        std::set<std::string> codecs;
 +        for (int i = 0; i < codec_.numberOfSimulcastStreams; ++i) {
 +          codecs.insert(codec_.simulcastStream[i].format.name);
@@ -1281,9 +1275,11 @@ index 89522e6ca3..2dbdd857b7 100644
 +        return codecs.size() > 1;
 +      });
 +
-+      if (is_multicodec) {
-+        // トータルのビットレートが低すぎると、高いレイヤーにビットレートを割り当てることができなくなるのだけど、
-+        // サイマルキャストマルチコーデックでそれをされると困るので、トータルのビットレートを超えても無理やり出力する
++      if (is_mixedcodec) {
++        // If the total bitrate is too low, it's impossible to allocate enough
++        // bitrate to the higher layers. However, in the case of mixed-codec
++        // simulcast, this becomes problematic, so we force output even if it
++        // exceeds the total bitrate.
 +        left_in_stable_allocation = left_in_total_allocation = min_bitrate;
 +      } else {
 +
@@ -1294,7 +1290,7 @@ index 89522e6ca3..2dbdd857b7 100644
      }
  
      // We are allocating to this layer so it is the current active allocation.
-@@ -333,7 +349,7 @@ const VideoCodec& webrtc::SimulcastRateAllocator::GetCodec() const {
+@@ -333,7 +351,7 @@ const VideoCodec& webrtc::SimulcastRateAllocator::GetCodec() const {
  int SimulcastRateAllocator::NumTemporalStreams(size_t simulcast_id) const {
    return std::max<uint8_t>(
        1,
@@ -1456,7 +1452,7 @@ index 199d7ecfbe..a1db4ee66a 100644
          // This should only happen with rejected transceivers.
          RTC_DCHECK(content.rejected);
 diff --git a/video/config/encoder_stream_factory.cc b/video/config/encoder_stream_factory.cc
-index dd63fd1371..2ea0d45787 100644
+index dd63fd1371..cffdc330c1 100644
 --- a/video/config/encoder_stream_factory.cc
 +++ b/video/config/encoder_stream_factory.cc
 @@ -129,7 +129,7 @@ std::vector<webrtc::VideoStream> EncoderStreamFactory::CreateEncoderStreams(
@@ -1482,14 +1478,16 @@ index dd63fd1371..2ea0d45787 100644
      layer.num_temporal_layers = vp9_settings.numberOfTemporalLayers;
  
      // Number of spatial layers is signalled differently from different call
-@@ -311,12 +311,15 @@ EncoderStreamFactory::CreateSimulcastOrConferenceModeScreenshareStreams(
+@@ -311,12 +311,17 @@ EncoderStreamFactory::CreateSimulcastOrConferenceModeScreenshareStreams(
    const bool temporal_layers_supported = IsTemporalLayersSupported(codec_name_);
    // Use legacy simulcast screenshare if conference mode is explicitly enabled
    // or use the regular simulcast configuration path which is generic.
 -  layers = GetSimulcastConfig(FindRequiredActiveLayers(encoder_config),
-+  // マルチコーデックの場合、解像度によってサイマルキャストの本数を減らす処理を無くすために、min_layers = max_layers としている
-+  const bool is_multicodec = std::set<webrtc::VideoCodecType>(encoder_config.codec_types.begin(), encoder_config.codec_types.end()).size() >= 2;
-+  const size_t min_layers = is_multicodec ? encoder_config.number_of_streams : FindRequiredActiveLayers(encoder_config);
++  //
++  // In the case of mixed-codec simulcast, min_layers = max_layers is set to
++  // avoid reducing the number of simulcast layers based on resolution.
++  const bool is_mixedcodec = std::set<webrtc::VideoCodecType>(encoder_config.codec_types.begin(), encoder_config.codec_types.end()).size() >= 2;
++  const size_t min_layers = is_mixedcodec ? encoder_config.number_of_streams : FindRequiredActiveLayers(encoder_config);
 +  layers = GetSimulcastConfig(min_layers,
                                encoder_config.number_of_streams, width, height,
                                encoder_config.bitrate_priority, max_qp_,
@@ -1658,7 +1656,7 @@ index b42c577887..54f6450eb5 100644
      uint32_t encoder_max_bitrate_bps = 0;
      for (const auto& stream : streams) {
 diff --git a/video/video_stream_encoder.cc b/video/video_stream_encoder.cc
-index 3c0c78e42f..b88fdb1eb1 100644
+index 3c0c78e42f..11914c4075 100644
 --- a/video/video_stream_encoder.cc
 +++ b/video/video_stream_encoder.cc
 @@ -373,7 +373,7 @@ VideoEncoder::EncoderInfo GetEncoderInfoWithBitrateLimitUpdate(
@@ -1764,7 +1762,7 @@ index 3c0c78e42f..b88fdb1eb1 100644
      RequestEncoderSwitch();
      return;
    }
-@@ -2076,8 +2079,13 @@ EncodedImage VideoStreamEncoder::AugmentEncodedImage(
+@@ -2076,8 +2079,12 @@ EncodedImage VideoStreamEncoder::AugmentEncodedImage(
    // TODO(https://crbug.com/webrtc/14891): If we want to support a mix of
    // simulcast and SVC we'll also need to consider the case where we have both
    // simulcast and spatial indices.
@@ -1774,13 +1772,12 @@ index 3c0c78e42f..b88fdb1eb1 100644
 +  //RTC_LOG(LS_ERROR) << "simulcast_index=" << encoded_image.SimulcastIndex().value_or(-1);
 +  //int stream_idx = encoded_image.SpatialIndex().value_or(
 +  //    encoded_image.SimulcastIndex().value_or(0));
-+  // TODO(melpon): ここを変えるのは本来おかしいのだけど、なぜか stream_idx が 0,1,2 ではなく 0,0,2 という値になって、
-+  // FrameEncodeMetadataWriter に警告を出されてしまう
++  // TODO(melpon): Consider the case of mixed-codec simulcast with SVC.
 +  int stream_idx = encoded_image.SimulcastIndex().value_or(0);
    frame_encode_metadata_writer_.FillTimingInfo(stream_idx, &image_copy);
    frame_encode_metadata_writer_.UpdateBitstream(codec_specific_info,
                                                  &image_copy);
-@@ -2113,6 +2121,7 @@ EncodedImageCallback::Result VideoStreamEncoder::OnEncodedImage(
+@@ -2113,6 +2120,7 @@ EncodedImageCallback::Result VideoStreamEncoder::OnEncodedImage(
    const VideoCodecType codec_type = codec_specific_info
                                          ? codec_specific_info->codecType
                                          : VideoCodecType::kVideoCodecGeneric;
