@@ -12,6 +12,11 @@
 VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 パッチやビルドの変更のみ記録すること。
 
+## 2024-08-19
+
+- [UPDATE] GitHub Actions Android のビルド環境を Ubuntu 22.04 に上げる
+  - @zztkm
+
 ## 2024-06-21
 
 - [ADD] Ubuntu 24.04 に対応
