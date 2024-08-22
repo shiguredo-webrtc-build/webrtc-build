@@ -406,13 +406,13 @@ index e98ac6fcd1..758573bcc0 100644
      const jni_zero::JavaParamRef<jobject>& j_constraints,
      jlong observer_p,
 -    const jni_zero::JavaParamRef<jobject>& j_sslCertificateVerifier) {
-+    const JavaParamRef<jobject>& j_sslCertificateVerifier,
-+    const base::android::JavaParamRef<jobject>& j_proxyType,
-+    const base::android::JavaParamRef<jstring>& j_proxyAgent,
-+    const base::android::JavaParamRef<jstring>& j_proxyHostname,
++    const jni_zero::JavaParamRef<jobject>& j_sslCertificateVerifier,
++    const jni_zero::JavaParamRef<jobject>& j_proxyType,
++    const jni_zero::JavaParamRef<jstring>& j_proxyAgent,
++    const jni_zero::JavaParamRef<jstring>& j_proxyHostname,
 +    jint proxyPort,
-+    const base::android::JavaParamRef<jstring>& j_proxyUsername,
-+    const base::android::JavaParamRef<jstring>& j_proxyPassword) {
++    const jni_zero::JavaParamRef<jstring>& j_proxyUsername,
++    const jni_zero::JavaParamRef<jstring>& j_proxyPassword) {
    std::unique_ptr<PeerConnectionObserver> observer(
        reinterpret_cast<PeerConnectionObserver*>(observer_p));
  
