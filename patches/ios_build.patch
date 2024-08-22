@@ -1,8 +1,8 @@
 diff --git a/build/config/clang/clang.gni b/build/config/clang/clang.gni
-index 1e6621848..550b3e7e8 100644
+index 9928fc37b..0f4c72b01 100644
 --- a/build/config/clang/clang.gni
 +++ b/build/config/clang/clang.gni
-@@ -10,9 +10,9 @@ declare_args() {
+@@ -11,9 +11,9 @@ declare_args() {
    # Indicates if the build should use the Chrome-specific plugins for enforcing
    # coding guidelines, etc. Only used when compiling with Chrome's Clang, not
    # Chrome OS's.
@@ -13,13 +13,13 @@ index 1e6621848..550b3e7e8 100644
 +      # is_clang && !is_nacl && current_os != "zos" &&
 +      # default_toolchain != "//build/toolchain/cros:target"
  
-   clang_base_path = default_clang_base_path
- }
-diff --git a/build/config/compiler/BUILD.gn b/config/compiler/BUILD.gn
-index 6efe967eb..513c64612 100644
+   # Use this instead of clang_use_chrome_plugins to enable just the raw-ptr-plugin.
+   clang_use_raw_ptr_plugin = false
+diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
+index 3b809a3c0..eea57780d 100644
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
-@@ -465,8 +465,8 @@ config("compiler") {
+@@ -475,8 +475,8 @@ config("compiler") {
      # faster.
      # On arm64, this is already the default behavior.
      if (current_cpu == "x64") {
@@ -30,11 +30,11 @@ index 6efe967eb..513c64612 100644
      }
  
      # dsymutil is not available in the system, on bots, for rustc to call. Our
-@@ -545,55 +545,6 @@ config("compiler") {
+@@ -562,55 +562,6 @@ config("compiler") {
      ldflags += [ "-Wl,-z,keep-text-section-prefix" ]
    }
  
--  if (is_clang && !is_nacl && current_os != "zos") {
+-  if (is_clang && !is_nacl) {
 -    cflags += [ "-fcrash-diagnostics-dir=" + clang_diagnostic_dir ]
 -    if (save_reproducers_on_lld_crash && use_lld) {
 -      ldflags += [
@@ -87,10 +87,10 @@ index 6efe967eb..513c64612 100644
    # ---------------------------
    if (is_linux || is_chromeos || is_android || (is_nacl && is_clang) ||
 diff --git a/build/toolchain/apple/toolchain.gni b/build/toolchain/apple/toolchain.gni
-index 399a62f03..de13c3373 100644
+index ab7378fe2..9b2a869d9 100644
 --- a/build/toolchain/apple/toolchain.gni
 +++ b/build/toolchain/apple/toolchain.gni
-@@ -121,7 +121,8 @@ template("apple_toolchain") {
+@@ -153,7 +153,8 @@ template("single_apple_toolchain") {
        toolchain_is_component_build = is_component_build
      }
  
@@ -101,21 +101,20 @@ index 399a62f03..de13c3373 100644
      _cxx = "${prefix}clang++"
  
 diff --git a/build/toolchain/mac/BUILD.gn b/build/toolchain/mac/BUILD.gn
-index 3834c64b..6f74500f 100644
+index d8543c4f2..db6c76528 100644
 --- a/build/toolchain/mac/BUILD.gn
 +++ b/build/toolchain/mac/BUILD.gn
-@@ -23,7 +23,7 @@ template("mac_toolchain") {
+@@ -24,7 +24,7 @@ template("mac_toolchain") {
  
        if (target_os == "ios") {
          # Use LLD for the host part of a chrome/ios build.
 -        use_lld = true
 +        use_lld = false
  
-         # Defined in //base, would trigger a warning if the build doesn't depend
-         # on it.
- 
+         # Override `is_component_build` for the host toolchain.
+         # See https://crbug.com/gn/286 for details why this is
 diff --git a/third_party/nasm/BUILD.gn b/third_party/nasm/BUILD.gn
-index ebd8b7fe..20f6ff8a 100644
+index 3834c64b..6f74500f 100644
 --- a/third_party/nasm/BUILD.gn
 +++ b/third_party/nasm/BUILD.gn
 @@ -84,7 +84,7 @@ config("nasm_config") {
