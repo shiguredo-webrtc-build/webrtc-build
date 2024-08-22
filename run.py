@@ -225,7 +225,7 @@ PATCHES = {
         "h265_ios.patch",
         "multi_codec_simulcast.patch",
         "arm_neon_sve_bridge.patch",
-        "revert_asm_changes.patch",
+        "dav1d_config_change.patch",
         "fix_perfetto.patch",
     ],
     "ios": [
@@ -243,7 +243,7 @@ PATCHES = {
         "h265_ios.patch",
         "multi_codec_simulcast.patch",
         "arm_neon_sve_bridge.patch",
-        "revert_asm_changes.patch",
+        "dav1d_config_change.patch",
         "fix_perfetto.patch",
     ],
     "android": [
