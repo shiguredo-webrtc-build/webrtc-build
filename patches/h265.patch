@@ -131,21 +131,6 @@ index c793996bc1..6b7ac9dbd7 100644
    };
  
    // Unpack RBSP and parse VPS state from the supplied buffer.
-diff --git a/modules/rtp_rtcp/source/rtp_packetizer_h265.cc b/modules/rtp_rtcp/source/rtp_packetizer_h265.cc
-index 5f10120d81..775c50c38e 100644
---- a/modules/rtp_rtcp/source/rtp_packetizer_h265.cc
-+++ b/modules/rtp_rtcp/source/rtp_packetizer_h265.cc
-@@ -26,6 +26,10 @@ RtpPacketizerH265::RtpPacketizerH265(rtc::ArrayView<const uint8_t> payload,
-     : limits_(limits), num_packets_left_(0) {
-   for (const auto& nalu :
-        H264::FindNaluIndices(payload.data(), payload.size())) {
-+    if (!nalu.payload_size) {
-+      input_fragments_.clear();
-+      return;
-+    }
-     input_fragments_.push_back(
-         payload.subview(nalu.payload_start_offset, nalu.payload_size));
-   }
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
 index ae9cb190a0..e875a5e109 100644
 --- a/video/rtp_video_stream_receiver2.cc
