@@ -16,7 +16,7 @@ index 9928fc37b..0f4c72b01 100644
    # Use this instead of clang_use_chrome_plugins to enable just the raw-ptr-plugin.
    clang_use_raw_ptr_plugin = false
 diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
-index 3b809a3c0..eea57780d 100644
+index 3b809a3c0..5c20f6d16 100644
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
 @@ -475,8 +475,8 @@ config("compiler") {
@@ -86,6 +86,15 @@ index 3b809a3c0..eea57780d 100644
    # C11/C++11 compiler flags setup.
    # ---------------------------
    if (is_linux || is_chromeos || is_android || (is_nacl && is_clang) ||
+@@ -1997,7 +1948,7 @@ config("default_warnings") {
+ 
+   # TODO(crbug.com/355446806): Clean up and enable.
+   if (is_apple) {
+-    ldflags += [ "-Wl,-no_warn_duplicate_libraries" ]
++    # ldflags += [ "-Wl,-no_warn_duplicate_libraries" ]
+   }
+ 
+   # Rust warnings
 diff --git a/build/toolchain/apple/toolchain.gni b/build/toolchain/apple/toolchain.gni
 index ab7378fe2..9b2a869d9 100644
 --- a/build/toolchain/apple/toolchain.gni
