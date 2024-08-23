@@ -430,7 +430,7 @@ index d7130437e6..24d8413382 100644
    int total_streams_count_;
    bool bypass_mode_;
 diff --git a/media/engine/webrtc_video_engine.cc b/media/engine/webrtc_video_engine.cc
-index ac7d0f884a..c2de6cc031 100644
+index ac7d0f884a..853b12cc59 100644
 --- a/media/engine/webrtc_video_engine.cc
 +++ b/media/engine/webrtc_video_engine.cc
 @@ -395,16 +395,16 @@ static bool ValidateStreamParams(const StreamParams& sp) {
@@ -1001,30 +1001,7 @@ index ac7d0f884a..c2de6cc031 100644
  
    bool is_screencast = parameters_.options.is_screencast.value_or(false);
    if (is_screencast) {
-@@ -2141,24 +2187,24 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
-   // number of negotiated ssrcs but this may be capped below depending on the
-   // `legacy_scalability_mode` and codec used.
-   encoder_config.number_of_streams = parameters_.config.rtp.ssrcs.size();
--  bool legacy_scalability_mode = true;
--  for (const webrtc::RtpEncodingParameters& encoding :
--       rtp_parameters_.encodings) {
--    if (encoding.scalability_mode.has_value() &&
--        encoding.scale_resolution_down_by.has_value()) {
--      legacy_scalability_mode = false;
--      break;
--    }
--  }
-+  // bool legacy_scalability_mode = true;
-+  // for (const webrtc::RtpEncodingParameters& encoding :
-+  //      rtp_parameters_.encodings) {
-+  //   if (encoding.scalability_mode.has_value() &&
-+  //       encoding.scale_resolution_down_by.has_value()) {
-+  //     legacy_scalability_mode = false;
-+  //     break;
-+  //   }
-+  // }
-   // Maybe limit the number of simulcast layers depending on
-   // `legacy_scalability_mode`, codec types (VP9/AV1). This path only exists
+@@ -2155,10 +2201,11 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
    // for backwards compatibility and will one day be deleted. If you want SVC,
    // please specify with the `scalability_mode` API instead amd disabling all
    // but one encoding.
@@ -1036,10 +1013,11 @@ index ac7d0f884a..c2de6cc031 100644
 +  //                                encoder_config.codec_type)) {
 +  //  encoder_config.number_of_streams = 1;
 +  //}
++  (void)legacy_scalability_mode;
  
    // parameters_.max_bitrate comes from the max bitrate set at the SDP
    // (m-section) level with the attribute "b=AS." Note that stream max bitrate
-@@ -2175,10 +2221,18 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
+@@ -2175,10 +2222,18 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
        break;
      }
    }
@@ -1062,7 +1040,7 @@ index ac7d0f884a..c2de6cc031 100644
    }
    encoder_config.max_bitrate_bps = stream_max_bitrate;
  
-@@ -2240,9 +2294,11 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
+@@ -2240,9 +2295,12 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
    // Ensure frame dropping is always enabled.
    encoder_config.frame_drop_enabled = true;
  
@@ -1071,13 +1049,14 @@ index ac7d0f884a..c2de6cc031 100644
 -    encoder_config.max_qp = max_qp;
 +  for (const auto& codec : codec_settings) {
 +    int max_qp = -1;
-+    if (codec.codec.GetParam(kCodecParamMaxQuantization, &max_qp) && max_qp > 0) {
++    if (codec.codec.GetParam(kCodecParamMaxQuantization, &max_qp) &&
++        max_qp > 0) {
 +      encoder_config.max_qps.push_back(max_qp);
 +    }
    }
  
    return encoder_config;
-@@ -2260,20 +2316,22 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::ReconfigureEncoder(
+@@ -2260,20 +2318,22 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::ReconfigureEncoder(
  
    RTC_DCHECK_GT(parameters_.encoder_config.number_of_streams, 0);
  
@@ -1107,7 +1086,7 @@ index ac7d0f884a..c2de6cc031 100644
  
    // When switching between legacy SVC (3 encodings interpreted as 1 stream with
    // 3 spatial layers) and the standard API (3 encodings = 3 streams and spatial
-@@ -2305,10 +2363,13 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::GetPerLayerVideoSenderInfos(
+@@ -2305,10 +2365,13 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::GetPerLayerVideoSenderInfos(
      bool log_stats) {
    RTC_DCHECK_RUN_ON(&thread_checker_);
    VideoSenderInfo common_info;
@@ -1125,7 +1104,7 @@ index ac7d0f884a..c2de6cc031 100644
    std::vector<VideoSenderInfo> infos;
    webrtc::VideoSendStream::Stats stats;
    if (stream_ == nullptr) {
-@@ -2509,16 +2570,18 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::RecreateWebRtcStream() {
+@@ -2509,16 +2572,18 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::RecreateWebRtcStream() {
      call_->DestroyVideoSendStream(stream_);
    }
  
@@ -1148,7 +1127,7 @@ index ac7d0f884a..c2de6cc031 100644
      RTC_LOG(LS_WARNING) << "RTX SSRCs configured but there's no configured RTX "
                             "payload type the set codec. Ignoring RTX.";
      config.rtp.rtx.ssrcs.clear();
-@@ -2535,7 +2598,7 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::RecreateWebRtcStream() {
+@@ -2535,7 +2600,7 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::RecreateWebRtcStream() {
    stream_ = call_->CreateVideoSendStream(std::move(config),
                                           parameters_.encoder_config.Copy());
  
