@@ -1118,7 +1118,7 @@ def build_webrtc(
 
 
 def copy_headers(webrtc_src_dir, webrtc_package_dir, target):
-    if target in ["windows_x86_64", "windows_arm64"]:
+    if target in ["windows_x86_64", "windows_arm64", "windows_hololens2"]:
         # robocopy の戻り値は特殊なので、check=False にしてうまくエラーハンドリングする
         # https://docs.microsoft.com/ja-jp/troubleshoot/windows-server/backup-and-storage/return-codes-used-robocopy-utility
         r = cmd(
