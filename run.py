@@ -364,9 +364,16 @@ def apply_patch(patch, dir, depth):
 
 
 def _deps_dirs(src_dir):
-    cap = cmdcap(["gclient", "recurse", "-j1", "pwd"])
+    if platform.system() == "Windows":
+        cap = cmdcap(["gclient", "recurse", "-j1", "cd"])
+    else:
+        cap = cmdcap(["gclient", "recurse", "-j1", "pwd"])
     abs_dirs = cap.split("\n")
-    rel_dirs = [os.path.relpath(abs_dir, src_dir) for abs_dir in abs_dirs]
+    # Windows だと Updating depot_tools という行があったりするので、
+    # # 存在してるディレクトリのみを取り出して相対パスにする
+    rel_dirs = [
+        os.path.relpath(abs_dir, src_dir) for abs_dir in abs_dirs if os.path.exists(abs_dir)
+    ]
     return rel_dirs
 
 
