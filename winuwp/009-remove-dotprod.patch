@@ -11,7 +11,7 @@ index edddde48d3f..bbee5ef87f0 100644
    } else {  # This should only match windows.
      os_category = current_os
    }
-@@ -505,7 +507,7 @@ static_library("libvpx") {
+@@ -580,7 +582,7 @@ static_library("libvpx") {
        cpu_arch_full == "arm-neon-cpu-detect" || current_cpu == "arm64") {
      deps += [ ":libvpx_intrinsics_neon" ]
    }
@@ -19,7 +19,7 @@ index edddde48d3f..bbee5ef87f0 100644
 +  if (current_cpu == "arm64" && current_os != "winuwp") {
      deps += [ ":libvpx_intrinsics_neon_dotprod" ]
      deps += [ ":libvpx_intrinsics_neon_i8mm" ]
-   }
+     if (!is_win) {
 diff --git a/third_party/libvpx/source/config/win/arm64-highbd/vpx_config.asm b/third_party/libvpx/source/config/win/arm64-highbd/vpx_config.asm
 index 6db2fd4953c..d756fbae0bf 100644
 --- a/third_party/libvpx/source/config/win/arm64-highbd/vpx_config.asm
@@ -32,10 +32,10 @@ index 6db2fd4953c..d756fbae0bf 100644
 -.equ HAVE_NEON_I8MM ,  1
 +.equ HAVE_NEON_DOTPROD ,  0
 +.equ HAVE_NEON_I8MM ,  0
+ .equ HAVE_SVE ,  0
+ .equ HAVE_SVE2 ,  0
  .equ HAVE_MIPS32 ,  0
- .equ HAVE_DSPR2 ,  0
- .equ HAVE_MSA ,  0
-@@ -58,7 +58,7 @@
+@@ -60,7 +60,7 @@
  .equ CONFIG_DEBUG_LIBS ,  0
  .equ CONFIG_DEQUANT_TOKENS ,  0
  .equ CONFIG_DC_RECON ,  0
@@ -56,10 +56,10 @@ index 892d5823072..70326deeb26 100644
 -#define HAVE_NEON_I8MM 1
 +#define HAVE_NEON_DOTPROD 0
 +#define HAVE_NEON_I8MM 0
+ #define HAVE_SVE 0
+ #define HAVE_SVE2 0
  #define HAVE_MIPS32 0
- #define HAVE_DSPR2 0
- #define HAVE_MSA 0
-@@ -66,7 +66,7 @@
+@@ -68,7 +68,7 @@
  #define CONFIG_DEBUG_LIBS 0
  #define CONFIG_DEQUANT_TOKENS 0
  #define CONFIG_DC_RECON 0
@@ -72,7 +72,7 @@ diff --git a/third_party/libvpx/source/config/win/arm64-highbd/vpx_dsp_rtcd.h b/
 index d5876833d3c..2e29d525e37 100644
 --- a/third_party/libvpx/source/config/win/arm64-highbd/vpx_dsp_rtcd.h
 +++ b/third_party/libvpx/source/config/win/arm64-highbd/vpx_dsp_rtcd.h
-@@ -5369,7 +5369,7 @@ void vpx_lpf_horizontal_16_dual_neon(uint8_t* s,
+@@ -5419,7 +5419,7 @@ void vpx_lpf_horizontal_16_dual_neon(uint8_t* s,
                                       const uint8_t* blimit,
                                       const uint8_t* limit,
                                       const uint8_t* thresh);
@@ -81,7 +81,7 @@ index d5876833d3c..2e29d525e37 100644
  
  void vpx_lpf_horizontal_4_c(uint8_t* s,
                              int pitch,
-@@ -7685,215 +7685,215 @@ static void setup_rtcd_internal(void) {
+@@ -7760,235 +7760,76 @@ static void setup_rtcd_internal(void) {
    (void)flags;
  
    vpx_convolve8 = vpx_convolve8_neon;
@@ -89,355 +89,231 @@ index d5876833d3c..2e29d525e37 100644
 -    vpx_convolve8 = vpx_convolve8_neon_dotprod;
 -  if (flags & HAS_NEON_I8MM)
 -    vpx_convolve8 = vpx_convolve8_neon_i8mm;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_convolve8 = vpx_convolve8_neon_dotprod;
-+  //if (flags & HAS_NEON_I8MM)
-+  //  vpx_convolve8 = vpx_convolve8_neon_i8mm;
    vpx_convolve8_avg = vpx_convolve8_avg_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_convolve8_avg = vpx_convolve8_avg_neon_dotprod;
 -  if (flags & HAS_NEON_I8MM)
 -    vpx_convolve8_avg = vpx_convolve8_avg_neon_i8mm;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_convolve8_avg = vpx_convolve8_avg_neon_dotprod;
-+  //if (flags & HAS_NEON_I8MM)
-+  //  vpx_convolve8_avg = vpx_convolve8_avg_neon_i8mm;
    vpx_convolve8_avg_horiz = vpx_convolve8_avg_horiz_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_convolve8_avg_horiz = vpx_convolve8_avg_horiz_neon_dotprod;
 -  if (flags & HAS_NEON_I8MM)
 -    vpx_convolve8_avg_horiz = vpx_convolve8_avg_horiz_neon_i8mm;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_convolve8_avg_horiz = vpx_convolve8_avg_horiz_neon_dotprod;
-+  //if (flags & HAS_NEON_I8MM)
-+  //  vpx_convolve8_avg_horiz = vpx_convolve8_avg_horiz_neon_i8mm;
    vpx_convolve8_avg_vert = vpx_convolve8_avg_vert_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_convolve8_avg_vert = vpx_convolve8_avg_vert_neon_dotprod;
 -  if (flags & HAS_NEON_I8MM)
 -    vpx_convolve8_avg_vert = vpx_convolve8_avg_vert_neon_i8mm;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_convolve8_avg_vert = vpx_convolve8_avg_vert_neon_dotprod;
-+  //if (flags & HAS_NEON_I8MM)
-+  //  vpx_convolve8_avg_vert = vpx_convolve8_avg_vert_neon_i8mm;
    vpx_convolve8_horiz = vpx_convolve8_horiz_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_convolve8_horiz = vpx_convolve8_horiz_neon_dotprod;
 -  if (flags & HAS_NEON_I8MM)
 -    vpx_convolve8_horiz = vpx_convolve8_horiz_neon_i8mm;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_convolve8_horiz = vpx_convolve8_horiz_neon_dotprod;
-+  //if (flags & HAS_NEON_I8MM)
-+  //  vpx_convolve8_horiz = vpx_convolve8_horiz_neon_i8mm;
    vpx_convolve8_vert = vpx_convolve8_vert_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_convolve8_vert = vpx_convolve8_vert_neon_dotprod;
 -  if (flags & HAS_NEON_I8MM)
 -    vpx_convolve8_vert = vpx_convolve8_vert_neon_i8mm;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_convolve8_vert = vpx_convolve8_vert_neon_dotprod;
-+  //if (flags & HAS_NEON_I8MM)
-+  //  vpx_convolve8_vert = vpx_convolve8_vert_neon_i8mm;
    vpx_get16x16var = vpx_get16x16var_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_get16x16var = vpx_get16x16var_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_get16x16var = vpx_get16x16var_neon_dotprod;
    vpx_get4x4sse_cs = vpx_get4x4sse_cs_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_get4x4sse_cs = vpx_get4x4sse_cs_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_get4x4sse_cs = vpx_get4x4sse_cs_neon_dotprod;
    vpx_get8x8var = vpx_get8x8var_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_get8x8var = vpx_get8x8var_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_get8x8var = vpx_get8x8var_neon_dotprod;
+   vpx_highbd_8_mse16x16 = vpx_highbd_8_mse16x16_neon;
+-  if (flags & HAS_NEON_DOTPROD) {
+-    vpx_highbd_8_mse16x16 = vpx_highbd_8_mse16x16_neon_dotprod;
+-  }
+   vpx_highbd_8_mse16x8 = vpx_highbd_8_mse16x8_neon;
+-  if (flags & HAS_NEON_DOTPROD) {
+-    vpx_highbd_8_mse16x8 = vpx_highbd_8_mse16x8_neon_dotprod;
+-  }
+   vpx_highbd_8_mse8x16 = vpx_highbd_8_mse8x16_neon;
+-  if (flags & HAS_NEON_DOTPROD) {
+-    vpx_highbd_8_mse8x16 = vpx_highbd_8_mse8x16_neon_dotprod;
+-  }
+   vpx_highbd_8_mse8x8 = vpx_highbd_8_mse8x8_neon;
+-  if (flags & HAS_NEON_DOTPROD) {
+-    vpx_highbd_8_mse8x8 = vpx_highbd_8_mse8x8_neon_dotprod;
+-  }
    vpx_mse16x16 = vpx_mse16x16_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_mse16x16 = vpx_mse16x16_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_mse16x16 = vpx_mse16x16_neon_dotprod;
    vpx_mse16x8 = vpx_mse16x8_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_mse16x8 = vpx_mse16x8_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_mse16x8 = vpx_mse16x8_neon_dotprod;
    vpx_mse8x16 = vpx_mse8x16_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_mse8x16 = vpx_mse8x16_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_mse8x16 = vpx_mse8x16_neon_dotprod;
    vpx_mse8x8 = vpx_mse8x8_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_mse8x8 = vpx_mse8x8_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_mse8x8 = vpx_mse8x8_neon_dotprod;
    vpx_sad16x16 = vpx_sad16x16_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad16x16 = vpx_sad16x16_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad16x16 = vpx_sad16x16_neon_dotprod;
    vpx_sad16x16_avg = vpx_sad16x16_avg_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad16x16_avg = vpx_sad16x16_avg_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad16x16_avg = vpx_sad16x16_avg_neon_dotprod;
    vpx_sad16x16x4d = vpx_sad16x16x4d_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad16x16x4d = vpx_sad16x16x4d_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad16x16x4d = vpx_sad16x16x4d_neon_dotprod;
    vpx_sad16x32 = vpx_sad16x32_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad16x32 = vpx_sad16x32_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad16x32 = vpx_sad16x32_neon_dotprod;
    vpx_sad16x32_avg = vpx_sad16x32_avg_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad16x32_avg = vpx_sad16x32_avg_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad16x32_avg = vpx_sad16x32_avg_neon_dotprod;
    vpx_sad16x32x4d = vpx_sad16x32x4d_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad16x32x4d = vpx_sad16x32x4d_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad16x32x4d = vpx_sad16x32x4d_neon_dotprod;
    vpx_sad16x8 = vpx_sad16x8_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad16x8 = vpx_sad16x8_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad16x8 = vpx_sad16x8_neon_dotprod;
    vpx_sad16x8_avg = vpx_sad16x8_avg_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad16x8_avg = vpx_sad16x8_avg_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad16x8_avg = vpx_sad16x8_avg_neon_dotprod;
    vpx_sad16x8x4d = vpx_sad16x8x4d_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad16x8x4d = vpx_sad16x8x4d_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad16x8x4d = vpx_sad16x8x4d_neon_dotprod;
    vpx_sad32x16 = vpx_sad32x16_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad32x16 = vpx_sad32x16_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad32x16 = vpx_sad32x16_neon_dotprod;
    vpx_sad32x16_avg = vpx_sad32x16_avg_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad32x16_avg = vpx_sad32x16_avg_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad32x16_avg = vpx_sad32x16_avg_neon_dotprod;
    vpx_sad32x16x4d = vpx_sad32x16x4d_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad32x16x4d = vpx_sad32x16x4d_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad32x16x4d = vpx_sad32x16x4d_neon_dotprod;
    vpx_sad32x32 = vpx_sad32x32_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad32x32 = vpx_sad32x32_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad32x32 = vpx_sad32x32_neon_dotprod;
    vpx_sad32x32_avg = vpx_sad32x32_avg_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad32x32_avg = vpx_sad32x32_avg_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad32x32_avg = vpx_sad32x32_avg_neon_dotprod;
    vpx_sad32x32x4d = vpx_sad32x32x4d_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad32x32x4d = vpx_sad32x32x4d_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad32x32x4d = vpx_sad32x32x4d_neon_dotprod;
    vpx_sad32x64 = vpx_sad32x64_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad32x64 = vpx_sad32x64_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad32x64 = vpx_sad32x64_neon_dotprod;
    vpx_sad32x64_avg = vpx_sad32x64_avg_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad32x64_avg = vpx_sad32x64_avg_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad32x64_avg = vpx_sad32x64_avg_neon_dotprod;
    vpx_sad32x64x4d = vpx_sad32x64x4d_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad32x64x4d = vpx_sad32x64x4d_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad32x64x4d = vpx_sad32x64x4d_neon_dotprod;
    vpx_sad64x32 = vpx_sad64x32_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad64x32 = vpx_sad64x32_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad64x32 = vpx_sad64x32_neon_dotprod;
    vpx_sad64x32_avg = vpx_sad64x32_avg_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad64x32_avg = vpx_sad64x32_avg_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad64x32_avg = vpx_sad64x32_avg_neon_dotprod;
    vpx_sad64x32x4d = vpx_sad64x32x4d_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad64x32x4d = vpx_sad64x32x4d_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad64x32x4d = vpx_sad64x32x4d_neon_dotprod;
    vpx_sad64x64 = vpx_sad64x64_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad64x64 = vpx_sad64x64_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad64x64 = vpx_sad64x64_neon_dotprod;
    vpx_sad64x64_avg = vpx_sad64x64_avg_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad64x64_avg = vpx_sad64x64_avg_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad64x64_avg = vpx_sad64x64_avg_neon_dotprod;
    vpx_sad64x64x4d = vpx_sad64x64x4d_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad64x64x4d = vpx_sad64x64x4d_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad64x64x4d = vpx_sad64x64x4d_neon_dotprod;
    vpx_sad_skip_16x16 = vpx_sad_skip_16x16_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad_skip_16x16 = vpx_sad_skip_16x16_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad_skip_16x16 = vpx_sad_skip_16x16_neon_dotprod;
    vpx_sad_skip_16x16x4d = vpx_sad_skip_16x16x4d_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad_skip_16x16x4d = vpx_sad_skip_16x16x4d_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad_skip_16x16x4d = vpx_sad_skip_16x16x4d_neon_dotprod;
    vpx_sad_skip_16x32 = vpx_sad_skip_16x32_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad_skip_16x32 = vpx_sad_skip_16x32_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad_skip_16x32 = vpx_sad_skip_16x32_neon_dotprod;
    vpx_sad_skip_16x32x4d = vpx_sad_skip_16x32x4d_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad_skip_16x32x4d = vpx_sad_skip_16x32x4d_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad_skip_16x32x4d = vpx_sad_skip_16x32x4d_neon_dotprod;
    vpx_sad_skip_16x8 = vpx_sad_skip_16x8_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad_skip_16x8 = vpx_sad_skip_16x8_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad_skip_16x8 = vpx_sad_skip_16x8_neon_dotprod;
    vpx_sad_skip_16x8x4d = vpx_sad_skip_16x8x4d_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad_skip_16x8x4d = vpx_sad_skip_16x8x4d_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad_skip_16x8x4d = vpx_sad_skip_16x8x4d_neon_dotprod;
    vpx_sad_skip_32x16 = vpx_sad_skip_32x16_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad_skip_32x16 = vpx_sad_skip_32x16_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad_skip_32x16 = vpx_sad_skip_32x16_neon_dotprod;
    vpx_sad_skip_32x16x4d = vpx_sad_skip_32x16x4d_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad_skip_32x16x4d = vpx_sad_skip_32x16x4d_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad_skip_32x16x4d = vpx_sad_skip_32x16x4d_neon_dotprod;
    vpx_sad_skip_32x32 = vpx_sad_skip_32x32_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad_skip_32x32 = vpx_sad_skip_32x32_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad_skip_32x32 = vpx_sad_skip_32x32_neon_dotprod;
    vpx_sad_skip_32x32x4d = vpx_sad_skip_32x32x4d_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad_skip_32x32x4d = vpx_sad_skip_32x32x4d_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad_skip_32x32x4d = vpx_sad_skip_32x32x4d_neon_dotprod;
    vpx_sad_skip_32x64 = vpx_sad_skip_32x64_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad_skip_32x64 = vpx_sad_skip_32x64_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad_skip_32x64 = vpx_sad_skip_32x64_neon_dotprod;
    vpx_sad_skip_32x64x4d = vpx_sad_skip_32x64x4d_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad_skip_32x64x4d = vpx_sad_skip_32x64x4d_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad_skip_32x64x4d = vpx_sad_skip_32x64x4d_neon_dotprod;
    vpx_sad_skip_64x32 = vpx_sad_skip_64x32_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad_skip_64x32 = vpx_sad_skip_64x32_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad_skip_64x32 = vpx_sad_skip_64x32_neon_dotprod;
    vpx_sad_skip_64x32x4d = vpx_sad_skip_64x32x4d_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad_skip_64x32x4d = vpx_sad_skip_64x32x4d_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad_skip_64x32x4d = vpx_sad_skip_64x32x4d_neon_dotprod;
    vpx_sad_skip_64x64 = vpx_sad_skip_64x64_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad_skip_64x64 = vpx_sad_skip_64x64_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad_skip_64x64 = vpx_sad_skip_64x64_neon_dotprod;
    vpx_sad_skip_64x64x4d = vpx_sad_skip_64x64x4d_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_sad_skip_64x64x4d = vpx_sad_skip_64x64x4d_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_sad_skip_64x64x4d = vpx_sad_skip_64x64x4d_neon_dotprod;
+   vpx_sse = vpx_sse_neon;
+-  if (flags & HAS_NEON_DOTPROD) {
+-    vpx_sse = vpx_sse_neon_dotprod;
+-  }
    vpx_variance16x16 = vpx_variance16x16_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_variance16x16 = vpx_variance16x16_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_variance16x16 = vpx_variance16x16_neon_dotprod;
    vpx_variance16x32 = vpx_variance16x32_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_variance16x32 = vpx_variance16x32_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_variance16x32 = vpx_variance16x32_neon_dotprod;
    vpx_variance16x8 = vpx_variance16x8_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_variance16x8 = vpx_variance16x8_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_variance16x8 = vpx_variance16x8_neon_dotprod;
    vpx_variance32x16 = vpx_variance32x16_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_variance32x16 = vpx_variance32x16_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_variance32x16 = vpx_variance32x16_neon_dotprod;
    vpx_variance32x32 = vpx_variance32x32_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_variance32x32 = vpx_variance32x32_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_variance32x32 = vpx_variance32x32_neon_dotprod;
    vpx_variance32x64 = vpx_variance32x64_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_variance32x64 = vpx_variance32x64_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_variance32x64 = vpx_variance32x64_neon_dotprod;
    vpx_variance4x4 = vpx_variance4x4_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_variance4x4 = vpx_variance4x4_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_variance4x4 = vpx_variance4x4_neon_dotprod;
    vpx_variance4x8 = vpx_variance4x8_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_variance4x8 = vpx_variance4x8_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_variance4x8 = vpx_variance4x8_neon_dotprod;
    vpx_variance64x32 = vpx_variance64x32_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_variance64x32 = vpx_variance64x32_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_variance64x32 = vpx_variance64x32_neon_dotprod;
    vpx_variance64x64 = vpx_variance64x64_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_variance64x64 = vpx_variance64x64_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_variance64x64 = vpx_variance64x64_neon_dotprod;
    vpx_variance8x16 = vpx_variance8x16_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_variance8x16 = vpx_variance8x16_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_variance8x16 = vpx_variance8x16_neon_dotprod;
    vpx_variance8x4 = vpx_variance8x4_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_variance8x4 = vpx_variance8x4_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_variance8x4 = vpx_variance8x4_neon_dotprod;
    vpx_variance8x8 = vpx_variance8x8_neon;
 -  if (flags & HAS_NEON_DOTPROD)
 -    vpx_variance8x8 = vpx_variance8x8_neon_dotprod;
-+  //if (flags & HAS_NEON_DOTPROD)
-+  //  vpx_variance8x8 = vpx_variance8x8_neon_dotprod;
  }
  #endif
  

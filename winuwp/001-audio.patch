@@ -12,17 +12,17 @@ index b6874dc6b..7e9e7993a 100644
  
      tool("cc") {
 diff --git a/BUILD.gn b/BUILD.gn
-index 9c55478c25..6512ee25ea 100644
+index d5e7d91eb4..1a2dc46027 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
-@@ -517,7 +517,6 @@ if (!build_with_chromium) {
+@@ -565,7 +565,6 @@ if (!build_with_chromium) {
        "pc:rtc_pc",
        "sdk",
        "video",
 -      "modules/audio_device:audio_device_module_from_input_and_output",
        "//third_party/zlib",
        "rtc_base:log_sinks",
-       "media:rtc_simulcast_encoder_adapter",
+       "rtc_base:socket_adapters",
 diff --git a/modules/audio_device/BUILD.gn b/modules/audio_device/BUILD.gn
 index d441479b33..2925586b0e 100644
 --- a/modules/audio_device/BUILD.gn
@@ -70,7 +70,7 @@ diff --git a/build/config/win/BUILD.gn b/build/config/win/BUILD.gn
 index 1e76a54cc..b254b3ac8 100644
 --- a/build/config/win/BUILD.gn
 +++ b/build/config/win/BUILD.gn
-@@ -245,7 +245,11 @@ config("runtime_library") {
+@@ -245,7 +245,12 @@ config("runtime_library") {
      } else {
        defines += [ "WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP" ]
      }
@@ -79,6 +79,7 @@ index 1e76a54cc..b254b3ac8 100644
 +      "/std:c++20",  # Required for having a wrapper using the WinRT/C++ projection.
 +      "/await",
 +      "/EHsc",  # Required for having a wrapper using the WinRT/C++ projection.
++      "/Zc:__cplusplus",
 +    ]
  
      # This warning is given because the linker cannot tell the difference

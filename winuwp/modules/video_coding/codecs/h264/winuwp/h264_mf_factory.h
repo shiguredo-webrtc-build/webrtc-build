@@ -26,7 +26,8 @@ class H264MFEncoderFactory : public VideoEncoderFactory {
 
   std::vector<SdpVideoFormat> GetSupportedFormats() const override;
 
-  std::unique_ptr<VideoEncoder> CreateVideoEncoder(
+  std::unique_ptr<VideoEncoder> Create(
+      const Environment& env,
       const SdpVideoFormat& format) override;
 
  private:
@@ -40,7 +41,8 @@ class H264MFDecoderFactory : public VideoDecoderFactory {
 
   std::vector<SdpVideoFormat> GetSupportedFormats() const override;
 
-  std::unique_ptr<VideoDecoder> CreateVideoDecoder(
+  std::unique_ptr<VideoDecoder> Create(
+      const Environment& env,
       const SdpVideoFormat& format) override;
 
  private:

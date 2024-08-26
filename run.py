@@ -364,6 +364,7 @@ WINUWP_ADDITIONAL_PATCHES = [
     "007-internal-error.patch",
     "008-streamer.patch",
     "009-remove-dotprod.patch",
+    "010-remove-perfetto.patch",
 ]
 WINUWP_ADDITIONAL_DIRS = [
     ["modules", "audio_device", "winuwp"],
@@ -393,9 +394,15 @@ def apply_patch(patch, dir, depth):
 
 
 def _deps_dirs(src_dir):
-    cap = cmdcap(["gclient", "recurse", "-j1", "pwd"])
+    if platform.system() == "Windows":
+        cap = cmdcap(["gclient", "recurse", "-j1", "cd"])
+    else:
+        cap = cmdcap(["gclient", "recurse", "-j1", "pwd"])
     abs_dirs = cap.split("\n")
-    rel_dirs = [os.path.relpath(abs_dir, src_dir) for abs_dir in abs_dirs]
+    # Updating depot_tools という行があったりするので、存在してるディレクトリのみを取り出して相対パスにする
+    rel_dirs = [
+        os.path.relpath(abs_dir, src_dir) for abs_dir in abs_dirs if os.path.exists(abs_dir)
+    ]
     return rel_dirs
 
 
@@ -425,6 +432,31 @@ def apply_patches(target, patch_dir, src_dir, patch_until, commit_patch):
             )
             if patch == patch_until and commit_patch:
                 break
+
+        if target == "windows_hololens2":
+            winuwp_dir = os.path.join(BASE_DIR, "winuwp")
+            # 追加ファイルのコピー
+            for dir in WINUWP_ADDITIONAL_DIRS:
+                srcdir = os.path.join(winuwp_dir, *dir)
+                dstdir = os.path.join(src_dir, *dir)
+                rm_rf(dstdir)
+                shutil.copytree(srcdir, dstdir)
+            # 追加パッチの適用
+            for patch in WINUWP_ADDITIONAL_PATCHES:
+                apply_patch(os.path.join(winuwp_dir, patch), src_dir, 1)
+
+            cmd(["gclient", "recurse", "git", "add", "--", ":!*.orig", ":!*.rej"])
+            cmd(
+                [
+                    "gclient",
+                    "recurse",
+                    "git",
+                    "commit",
+                    "--allow-empty",
+                    "-am",
+                    "[shiguredo-patch] Apply winuwp patches",
+                ]
+            )
 
 
 # 時雨堂パッチが当たっていない最新のコミットを取得する
@@ -522,18 +554,6 @@ def diff_webrtc(source_dir, webrtc_source_dir):
                         dst_prefix,
                     ]
                 )
-
-            if target == "windows_hololens2":
-                winuwp_dir = os.path.join(BASE_DIR, "winuwp")
-                # 追加ファイルのコピー
-                for dir in WINUWP_ADDITIONAL_DIRS:
-                    srcdir = os.path.join(winuwp_dir, *dir)
-                    dstdir = os.path.join(src_dir, *dir)
-                    rm_rf(dstdir)
-                    shutil.copytree(srcdir, dstdir)
-                # 追加パッチの適用
-                for patch in WINUWP_ADDITIONAL_PATCHES:
-                    apply_patch(os.path.join(winuwp_dir, patch), src_dir, 1)
 
 
 def git_get_url_and_revision(dir):

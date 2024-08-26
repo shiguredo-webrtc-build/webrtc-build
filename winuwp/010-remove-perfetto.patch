@@ -1,0 +1,15 @@
+diff --git a/BUILD.gn b/BUILD.gn
+index b2cd069745..b2be9ccd7d 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -284,8 +284,8 @@ group("tracing") {
+       ]
+     }
+   } else {
+-    public_deps =  # no-presubmit-check TODO(webrtc:8603)
+-        [ "//third_party/perfetto/include/perfetto/tracing" ]
++    # public_deps =  # no-presubmit-check TODO(webrtc:8603)
++    #     [ "//third_party/perfetto/include/perfetto/tracing" ]
+   }
+ }
+ 

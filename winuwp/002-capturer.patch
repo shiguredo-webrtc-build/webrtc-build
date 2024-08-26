@@ -430,13 +430,13 @@ index 481326c1d2..d299c7e175 100644
      return nullptr;
    }
 diff --git a/webrtc.gni b/webrtc.gni
-index 173d66c791..f101888462 100644
+index 992c75c0e2..f89c4dd550 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
-@@ -260,6 +260,15 @@ declare_args() {
-   # WebRTC does not declare its public dependencies. See webrtc:8603. Instead
-   # WebRTC is using a global common dependencies.
-   rtc_common_public_deps = []  # no-presubmit-check TODO(webrtc:8603)
+@@ -268,6 +268,15 @@ declare_args() {
+ 
+   # When true, include the Perfetto library.
+   rtc_use_perfetto = false
 +
 +  # Defines which API should be used by the video capture module on Windows.
 +  # The following are the current options:

@@ -16,6 +16,7 @@
 #include "api/video_codecs/builtin_video_encoder_factory.h"
 #include "api/video_codecs/sdp_video_format.h"
 #include "api/video_codecs/h264_profile_level_id.h"
+#include "media/base/media_constants.h"
 #include "modules/video_coding/codecs/h264/winuwp/decoder/h264_decoder_mf_impl.h"
 #include "modules/video_coding/codecs/h264/winuwp/encoder/h264_encoder_mf_impl.h"
 #include "third_party/abseil-cpp/absl/strings/match.h"
@@ -51,13 +52,14 @@ vector<SdpVideoFormat> H264MFEncoderFactory::GetSupportedFormats() const {
   return formats;
 }
 
-unique_ptr<VideoEncoder> H264MFEncoderFactory::CreateVideoEncoder(
+unique_ptr<VideoEncoder> H264MFEncoderFactory::Create(
+    const Environment& env,
     const SdpVideoFormat& format) {
   if (absl::EqualsIgnoreCase(format.name.c_str(), cricket::kH264CodecName)) {
     return make_unique<H264EncoderMFImpl>();
   }
 
-  return builtin_video_encoder_factory_->CreateVideoEncoder(format);
+  return builtin_video_encoder_factory_->Create(env, format);
 }
 
 //
@@ -74,13 +76,14 @@ vector<SdpVideoFormat> H264MFDecoderFactory::GetSupportedFormats() const {
   return formats;
 }
 
-unique_ptr<VideoDecoder> H264MFDecoderFactory::CreateVideoDecoder(
+unique_ptr<VideoDecoder> H264MFDecoderFactory::Create(
+    const Environment& env,
     const SdpVideoFormat& format) {
   if (absl::EqualsIgnoreCase(format.name.c_str(), cricket::kH264CodecName)) {
     return make_unique<H264DecoderMFImpl>();
   }
 
-  return builtin_video_decoder_factory_->CreateVideoDecoder(format);
+  return builtin_video_decoder_factory_->Create(env, format);
 }
 
 }  // namespace webrtc

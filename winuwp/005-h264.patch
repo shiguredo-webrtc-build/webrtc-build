@@ -1,8 +1,8 @@
 diff --git a/modules/video_coding/BUILD.gn b/modules/video_coding/BUILD.gn
-index acec4570a3..5a8080c6ee 100644
+index fa93a07447..054dd48915 100644
 --- a/modules/video_coding/BUILD.gn
 +++ b/modules/video_coding/BUILD.gn
-@@ -472,15 +472,46 @@ rtc_library("webrtc_h264") {
+@@ -447,15 +447,46 @@ rtc_library("webrtc_h264") {
    visibility = [ "*" ]
    sources = [
      "codecs/h264/h264.cc",
@@ -51,10 +51,10 @@ index acec4570a3..5a8080c6ee 100644
 +      "mfuuid.lib",
 +    ]
 +  }
-+ 
++
    defines = []
    deps = [
-     ":video_codec_interface",
+     ":codec_globals_headers",
 diff --git a/webrtc.gni b/webrtc.gni
 index 71cfcabd02..421fd64344 100644
 --- a/webrtc.gni
