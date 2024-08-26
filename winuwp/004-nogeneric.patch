@@ -26,7 +26,7 @@ index 33e9c7666e..dcd0da8650 100644
    RTPVideoHeader::GenericDescriptorInfo& generic =
 -      rtp_video_header->generic.emplace();
 +      rtp_video_header->generic_.emplace();
-
+ 
    generic.frame_id = frame_id;
    generic.temporal_index = temporal_index;
 @@ -509,7 +509,7 @@ void RtpPayloadParams::Vp8ToGeneric(const CodecSpecificInfoVP8& vp8_info,
