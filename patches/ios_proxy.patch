@@ -58,16 +58,17 @@ diff --git a/sdk/objc/api/peerconnection/RTCPeerConnection.mm b/sdk/objc/api/pee
 index f4db472380..45a2b873f2 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnection.mm
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnection.mm
-@@ -322,6 +322,36 @@ void OnFailure(RTCError error) override {
+@@ -322,6 +322,37 @@ void OnFailure(RTCError error) override {
  
  }  // namespace webrtc
  
 +#include "p2p/client/basic_port_allocator.h"
 +#include "pc/rtp_media_utils.h"
++#include "rtc_base/proxy_info_revive.h"
 +
 +namespace webrtc {
 +
-+class RawCryptString : public rtc::CryptStringImpl {
++class RawCryptString : public rtc::revive::CryptStringImpl {
 + public:
 +  RawCryptString(const std::string& str) : str_(str) {}
 +  size_t GetLength() const override { return str_.size(); }
@@ -80,7 +81,7 @@ index f4db472380..45a2b873f2 100644
 +    }
 +  }
 +  std::string UrlEncode() const override { return ""; }
-+  CryptStringImpl* Copy() const override { return new RawCryptString(str_); }
++  rtc::revive::CryptStringImpl* Copy() const override { return new RawCryptString(str_); }
 +  void CopyRawTo(std::vector<unsigned char>* dest) const override {
 +    dest->assign(str_.begin(), str_.end());
 +  }
@@ -129,14 +130,14 @@ index f4db472380..45a2b873f2 100644
 +        config->port_allocator_config.max_port);
 +    dependencies->allocator->set_flags(config->port_allocator_config.flags);
 +
-+    rtc::ProxyInfo pi;
++    rtc::revive::ProxyInfo pi;
 +    pi.type =
-+        proxyType == RTCProxyTypeNone ? rtc::PROXY_NONE :
-+        proxyType == RTCProxyTypeHttps ? rtc::PROXY_HTTPS :
-+        proxyType == RTCProxyTypeSocks5 ? rtc::PROXY_SOCKS5 : rtc::PROXY_UNKNOWN;
++        proxyType == RTCProxyTypeNone ? rtc::revive::PROXY_NONE :
++        proxyType == RTCProxyTypeHttps ? rtc::revive::PROXY_HTTPS :
++        proxyType == RTCProxyTypeSocks5 ? rtc::revive::PROXY_SOCKS5 : rtc::revive::PROXY_UNKNOWN;
 +    pi.address = rtc::SocketAddress([proxyHostname UTF8String], proxyPort);
 +    pi.username = [proxyUsername UTF8String];
-+    pi.password = rtc::CryptString(webrtc::RawCryptString([proxyPassword UTF8String]));
++    pi.password = rtc::revive::CryptString(webrtc::RawCryptString([proxyPassword UTF8String]));
 +    dependencies->allocator->set_proxy([proxyAgent UTF8String], pi);
 +  }
 +  return [self initWithDependencies:factory
@@ -201,12 +202,12 @@ index 88aac990f2..feca021d9a 100644
 +
  /** Set the options to be used for subsequently created RTCPeerConnections */
  - (void)setOptions:(nonnull RTC_OBJC_TYPE(RTCPeerConnectionFactoryOptions) *)options;
- 
+
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
-index c4d89e911d..a4824cb88b 100644
+index 15f9eb9ee4..b7a6bcaae7 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
-@@ -51,6 +51,67 @@
+@@ -51,6 +51,68 @@
  #import "sdk/objc/native/api/audio_device_module.h"
  #endif
  
@@ -215,6 +216,7 @@ index c4d89e911d..a4824cb88b 100644
 +#include <api/peer_connection_interface.h>
 +#include <api/scoped_refptr.h>
 +#include <pc/connection_context.h>
++#include <api/environment/environment_factory.h>
 +
 +namespace webrtc {
 +
@@ -225,7 +227,7 @@ index c4d89e911d..a4824cb88b 100644
 +  PeerConnectionFactoryWithContext(
 +      webrtc::PeerConnectionFactoryDependencies dependencies)
 +      : PeerConnectionFactoryWithContext(
-+            webrtc::ConnectionContext::Create(&dependencies),
++            webrtc::ConnectionContext::Create(CreateEnvironment(), &dependencies),
 +            &dependencies) {}
 +  PeerConnectionFactoryWithContext(
 +      rtc::scoped_refptr<webrtc::ConnectionContext> context,
@@ -274,7 +276,7 @@ index c4d89e911d..a4824cb88b 100644
  @implementation RTC_OBJC_TYPE (RTCPeerConnectionFactory) {
    std::unique_ptr<rtc::Thread> _networkThread;
    std::unique_ptr<rtc::Thread> _workerThread;
-@@ -59,6 +120,7 @@ @implementation RTC_OBJC_TYPE (RTCPeerConnectionFactory) {
+@@ -59,6 +121,7 @@ @implementation RTC_OBJC_TYPE (RTCPeerConnectionFactory) {
  }
  
  @synthesize nativeFactory = _nativeFactory;
@@ -282,7 +284,7 @@ index c4d89e911d..a4824cb88b 100644
  
  - (rtc::scoped_refptr<webrtc::AudioDeviceModule>)audioDeviceModule {
  #if defined(WEBRTC_IOS)
-@@ -145,7 +207,7 @@ - (instancetype)initWithNoMedia {
+@@ -145,7 +208,7 @@ - (instancetype)initWithNoMedia {
      if (webrtc::field_trial::IsEnabled("WebRTC-Network-UseNWPathMonitor")) {
        dependencies.network_monitor_factory = webrtc::CreateNetworkMonitorFactory();
      }
@@ -291,7 +293,7 @@ index c4d89e911d..a4824cb88b 100644
      NSAssert(_nativeFactory, @"Failed to initialize PeerConnectionFactory!");
    }
    return self;
-@@ -213,7 +275,7 @@ - (instancetype)initWithNativeAudioEncoderFactory:
+@@ -209,7 +272,7 @@ - (instancetype)initWithNativeAudioEncoderFactory:
      dependencies.event_log_factory =
          std::make_unique<webrtc::RtcEventLogFactory>(dependencies.task_queue_factory.get());
      dependencies.network_controller_factory = std::move(networkControllerFactory);
@@ -300,7 +302,7 @@ index c4d89e911d..a4824cb88b 100644
      NSAssert(_nativeFactory, @"Failed to initialize PeerConnectionFactory!");
    }
    return self;
-@@ -265,6 +327,31 @@ - (instancetype)initWithNativeAudioEncoderFactory:
+@@ -261,6 +324,31 @@ - (instancetype)initWithNativeAudioEncoderFactory:
    return [[RTC_OBJC_TYPE(RTCMediaStream) alloc] initWithFactory:self streamId:streamId];
  }
  

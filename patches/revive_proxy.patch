@@ -1,0 +1,1465 @@
+diff --git a/api/packet_socket_factory.h b/api/packet_socket_factory.h
+index 0785888a81..f311b8adf3 100644
+--- a/api/packet_socket_factory.h
++++ b/api/packet_socket_factory.h
+@@ -19,6 +19,8 @@
+ #include "rtc_base/async_packet_socket.h"
+ #include "rtc_base/system/rtc_export.h"
+ 
++#include "rtc_base/proxy_info_revive.h"
++
+ namespace rtc {
+ 
+ class SSLCertificateVerifier;
+@@ -66,6 +68,8 @@ class RTC_EXPORT PacketSocketFactory {
+   virtual AsyncPacketSocket* CreateClientTcpSocket(
+       const SocketAddress& local_address,
+       const SocketAddress& remote_address,
++      const revive::ProxyInfo& proxy_info,
++      const std::string& user_agent,
+       const PacketSocketTcpOptions& tcp_options) = 0;
+ 
+   virtual std::unique_ptr<webrtc::AsyncDnsResolverInterface>
+diff --git a/p2p/base/basic_packet_socket_factory.cc b/p2p/base/basic_packet_socket_factory.cc
+index 294dbddbd1..2c495bece1 100644
+--- a/p2p/base/basic_packet_socket_factory.cc
++++ b/p2p/base/basic_packet_socket_factory.cc
+@@ -26,6 +26,8 @@
+ #include "rtc_base/socket_adapters.h"
+ #include "rtc_base/ssl_adapter.h"
+ 
++#include "rtc_base/socket_adapters_revive.h"
++
+ namespace rtc {
+ 
+ BasicPacketSocketFactory::BasicPacketSocketFactory(
+@@ -86,6 +88,8 @@ AsyncListenSocket* BasicPacketSocketFactory::CreateServerTcpSocket(
+ AsyncPacketSocket* BasicPacketSocketFactory::CreateClientTcpSocket(
+     const SocketAddress& local_address,
+     const SocketAddress& remote_address,
++    const revive::ProxyInfo& proxy_info,
++    const std::string& user_agent,
+     const PacketSocketTcpOptions& tcp_options) {
+   Socket* socket =
+       socket_factory_->CreateSocket(local_address.family(), SOCK_STREAM);
+@@ -117,6 +121,12 @@ AsyncPacketSocket* BasicPacketSocketFactory::CreateClientTcpSocket(
+                       << socket->GetError();
+   }
+ 
++  if (proxy_info.type == revive::PROXY_HTTPS) {
++    socket =
++        new revive::AsyncHttpsProxySocket(socket, user_agent, proxy_info.address,
++                                          proxy_info.username, proxy_info.password);
++  }
++
+   // Assert that at most one TLS option is used.
+   int tlsOpts = tcp_options.opts & (PacketSocketFactory::OPT_TLS |
+                                     PacketSocketFactory::OPT_TLS_FAKE |
+diff --git a/p2p/base/basic_packet_socket_factory.h b/p2p/base/basic_packet_socket_factory.h
+index b172d34db6..4f8f98cb98 100644
+--- a/p2p/base/basic_packet_socket_factory.h
++++ b/p2p/base/basic_packet_socket_factory.h
+@@ -43,6 +43,8 @@ class RTC_EXPORT BasicPacketSocketFactory : public PacketSocketFactory {
+   AsyncPacketSocket* CreateClientTcpSocket(
+       const SocketAddress& local_address,
+       const SocketAddress& remote_address,
++      const revive::ProxyInfo& proxy_info,
++      const std::string& user_agent,
+       const PacketSocketTcpOptions& tcp_options) override;
+ 
+   std::unique_ptr<webrtc::AsyncDnsResolverInterface> CreateAsyncDnsResolver()
+diff --git a/p2p/base/port.h b/p2p/base/port.h
+index 2df1d35b8e..091a0573b0 100644
+--- a/p2p/base/port.h
++++ b/p2p/base/port.h
+@@ -60,6 +60,8 @@
+ #include "rtc_base/thread_annotations.h"
+ #include "rtc_base/weak_ptr.h"
+ 
++#include "rtc_base/proxy_info_revive.h"
++
+ namespace cricket {
+ 
+ // RFC 6544, TCP candidate encoding rules.
+@@ -365,6 +367,17 @@ class RTC_EXPORT Port : public PortInterface, public sigslot::has_slots<> {
+ 
+   void GetStunStats(absl::optional<StunStats>* stats) override {}
+ 
++  void set_proxy(absl::string_view user_agent, const rtc::revive::ProxyInfo& proxy) {
++    revived_user_agent_ = user_agent;
++    revived_proxy_ = proxy;
++  }
++  std::string get_user_agent() const override { return revived_user_agent_; }
++  rtc::revive::ProxyInfo get_proxy() const override { return revived_proxy_; }
++ private:
++  std::string revived_user_agent_;
++  rtc::revive::ProxyInfo revived_proxy_;
++ public:
++
+  protected:
+   void UpdateNetworkCost() override;
+ 
+diff --git a/p2p/base/port_allocator.h b/p2p/base/port_allocator.h
+index 0ae2182c39..851d79b83a 100644
+--- a/p2p/base/port_allocator.h
++++ b/p2p/base/port_allocator.h
+@@ -35,6 +35,8 @@
+ #include "rtc_base/third_party/sigslot/sigslot.h"
+ #include "rtc_base/thread.h"
+ 
++#include "rtc_base/proxy_info_revive.h"
++
+ namespace webrtc {
+ class TurnCustomizer;
+ }  // namespace webrtc
+@@ -462,6 +464,26 @@ class RTC_EXPORT PortAllocator : public sigslot::has_slots<> {
+     flags_ = flags;
+   }
+ 
++  const std::string& user_agent() const {
++    CheckRunOnValidThreadIfInitialized();
++    return agent_;
++  }
++
++  const rtc::revive::ProxyInfo& proxy() const {
++    CheckRunOnValidThreadIfInitialized();
++    return proxy_;
++  }
++
++  void set_proxy(absl::string_view agent, const rtc::revive::ProxyInfo& proxy) {
++    CheckRunOnValidThreadIfInitialized();
++    agent_ = std::string(agent);
++    proxy_ = proxy;
++  }
++ private:
++  std::string agent_;
++  rtc::revive::ProxyInfo proxy_;
++ public:
++
+   // Gets/Sets the port range to use when choosing client ports.
+   int min_port() const {
+     CheckRunOnValidThreadIfInitialized();
+diff --git a/p2p/base/port_interface.h b/p2p/base/port_interface.h
+index 34f835d138..9d12664280 100644
+--- a/p2p/base/port_interface.h
++++ b/p2p/base/port_interface.h
+@@ -27,6 +27,8 @@
+ #include "rtc_base/callback_list.h"
+ #include "rtc_base/socket_address.h"
+ 
++#include "rtc_base/proxy_info_revive.h"
++
+ namespace rtc {
+ class Network;
+ struct PacketOptions;
+@@ -166,6 +168,9 @@ class PortInterface {
+   // Called when the Connection discovers a local peer reflexive candidate.
+   virtual void AddPrflxCandidate(const Candidate& local) = 0;
+ 
++  virtual std::string get_user_agent() const { return ""; }
++  virtual rtc::revive::ProxyInfo get_proxy() const { return rtc::revive::ProxyInfo(); }
++
+  protected:
+   PortInterface();
+   virtual void UpdateNetworkCost() = 0;
+diff --git a/p2p/base/tcp_port.cc b/p2p/base/tcp_port.cc
+index 78c6e4799e..5c7b0bcc0a 100644
+--- a/p2p/base/tcp_port.cc
++++ b/p2p/base/tcp_port.cc
+@@ -583,7 +583,9 @@ void TCPConnection::CreateOutgoingTcpSocket() {
+   tcp_opts.opts = opts;
+   socket_.reset(port()->socket_factory()->CreateClientTcpSocket(
+       rtc::SocketAddress(port()->Network()->GetBestIP(), 0),
+-      remote_candidate().address(), tcp_opts));
++      remote_candidate().address(),
++      port()->get_proxy(), port()->get_user_agent(),
++      tcp_opts));
+   if (socket_) {
+     RTC_LOG(LS_VERBOSE) << ToString() << ": Connecting from "
+                         << socket_->GetLocalAddress().ToSensitiveString()
+diff --git a/p2p/base/turn_port.cc b/p2p/base/turn_port.cc
+index 71deb693c1..a67703ba6c 100644
+--- a/p2p/base/turn_port.cc
++++ b/p2p/base/turn_port.cc
+@@ -474,6 +474,7 @@ bool TurnPort::CreateTurnClientSocket() {
+     tcp_options.tls_cert_verifier = tls_cert_verifier_;
+     socket_ = socket_factory()->CreateClientTcpSocket(
+         rtc::SocketAddress(Network()->GetBestIP(), 0), server_address_.address,
++        get_proxy(), get_user_agent(),
+         tcp_options);
+   }
+ 
+diff --git a/p2p/client/basic_port_allocator.cc b/p2p/client/basic_port_allocator.cc
+index c8b293a290..566f39278a 100644
+--- a/p2p/client/basic_port_allocator.cc
++++ b/p2p/client/basic_port_allocator.cc
+@@ -39,6 +39,8 @@
+ #include "rtc_base/trace_event.h"
+ #include "system_wrappers/include/metrics.h"
+ 
++#include "rtc_base/proxy_info_revive.h"
++
+ namespace cricket {
+ namespace {
+ using ::rtc::CreateRandomId;
+@@ -937,6 +939,8 @@ void BasicPortAllocatorSession::AddAllocatedPort(Port* port,
+   port->set_content_name(content_name());
+   port->set_component(component());
+   port->set_generation(generation());
++  if (allocator_->proxy().type != rtc::revive::PROXY_NONE)
++    port->set_proxy(allocator_->user_agent(), allocator_->proxy());
+   port->set_send_retransmit_count_attribute(
+       (flags() & PORTALLOCATOR_ENABLE_STUN_RETRANSMIT_ATTRIBUTE) != 0);
+ 
+diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
+index 85ec8edb9b..7b1d1eb538 100644
+--- a/rtc_base/BUILD.gn
++++ b/rtc_base/BUILD.gn
+@@ -1262,6 +1262,8 @@ rtc_library("socket_adapters") {
+   sources = [
+     "socket_adapters.cc",
+     "socket_adapters.h",
++    "socket_adapters_revive.cc",
++    "socket_adapters_revive.h",
+   ]
+   deps = [
+     ":async_socket",
+@@ -1274,6 +1276,7 @@ rtc_library("socket_adapters") {
+     "../api:array_view",
+     "//third_party/abseil-cpp/absl/strings",
+     "//third_party/abseil-cpp/absl/strings:string_view",
++    ":proxy_info",
+   ]
+ }
+ 
+@@ -1382,6 +1385,20 @@ rtc_library("dscp") {
+   sources = [ "dscp.h" ]
+ }
+ 
++rtc_library("proxy_info") {
++  visibility = [ "*" ]
++  sources = [
++    "proxy_info_revive.cc",
++    "proxy_info_revive.h",
++    "http_common_revive.cc",
++    "http_common_revive.h",
++  ]
++  deps = [
++    ":crypt_string",
++    ":socket_address",
++  ]
++}
++
+ rtc_library("file_rotating_stream") {
+   sources = [
+     "file_rotating_stream.cc",
+@@ -1662,6 +1679,13 @@ rtc_library("ssl_adapter") {
+   }
+ }
+ 
++rtc_library("crypt_string") {
++  sources = [
++    "crypt_string_revive.cc",
++    "crypt_string_revive.h",
++  ]
++}
++
+ rtc_source_set("gtest_prod") {
+   sources = [ "gtest_prod_util.h" ]
+ }
+diff --git a/rtc_base/BUILD.gn.rej b/rtc_base/BUILD.gn.rej
+new file mode 100644
+index 0000000000..83909f23af
+--- /dev/null
++++ b/rtc_base/BUILD.gn.rej
+@@ -0,0 +1,10 @@
++--- rtc_base/BUILD.gn
+++++ rtc_base/BUILD.gn
++@@ -1291,6 +1293,7 @@ rtc_library("socket_adapters") {
++     ":stringutils",
++     ":zero_memory",
++     "../api:array_view",
+++    ":proxy_info",
++   ]
++   absl_deps = [ "//third_party/abseil-cpp/absl/strings" ]
++ }
+diff --git a/rtc_base/crypt_string_revive.cc b/rtc_base/crypt_string_revive.cc
+new file mode 100644
+index 0000000000..b1a1ab5b76
+--- /dev/null
++++ b/rtc_base/crypt_string_revive.cc
+@@ -0,0 +1,46 @@
++/*
++ *  Copyright 2015 The WebRTC Project Authors. All rights reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#include "rtc_base/crypt_string_revive.h"
++
++namespace rtc::revive {
++
++size_t EmptyCryptStringImpl::GetLength() const {
++  return 0;
++}
++
++void EmptyCryptStringImpl::CopyTo(char* dest, bool nullterminate) const {
++  if (nullterminate) {
++    *dest = '\0';
++  }
++}
++
++std::string EmptyCryptStringImpl::UrlEncode() const {
++  return "";
++}
++
++CryptStringImpl* EmptyCryptStringImpl::Copy() const {
++  return new EmptyCryptStringImpl();
++}
++
++void EmptyCryptStringImpl::CopyRawTo(std::vector<unsigned char>* dest) const {
++  dest->clear();
++}
++
++CryptString::CryptString() : impl_(new EmptyCryptStringImpl()) {}
++
++CryptString::CryptString(const CryptString& other)
++    : impl_(other.impl_->Copy()) {}
++
++CryptString::CryptString(const CryptStringImpl& impl) : impl_(impl.Copy()) {}
++
++CryptString::~CryptString() = default;
++
++}  // namespace rtc::revive
+diff --git a/rtc_base/crypt_string_revive.h b/rtc_base/crypt_string_revive.h
+new file mode 100644
+index 0000000000..e1087570b7
+--- /dev/null
++++ b/rtc_base/crypt_string_revive.h
+@@ -0,0 +1,70 @@
++/*
++ *  Copyright 2004 The WebRTC Project Authors. All rights reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#ifndef RTC_BASE_CRYPT_STRING_REVIVE_H_
++#define RTC_BASE_CRYPT_STRING_REVIVE_H_
++
++#include <string.h>
++
++#include <memory>
++#include <string>
++#include <vector>
++
++namespace rtc::revive {
++
++class CryptStringImpl {
++ public:
++  virtual ~CryptStringImpl() {}
++  virtual size_t GetLength() const = 0;
++  virtual void CopyTo(char* dest, bool nullterminate) const = 0;
++  virtual std::string UrlEncode() const = 0;
++  virtual CryptStringImpl* Copy() const = 0;
++  virtual void CopyRawTo(std::vector<unsigned char>* dest) const = 0;
++};
++
++class EmptyCryptStringImpl : public CryptStringImpl {
++ public:
++  ~EmptyCryptStringImpl() override {}
++  size_t GetLength() const override;
++  void CopyTo(char* dest, bool nullterminate) const override;
++  std::string UrlEncode() const override;
++  CryptStringImpl* Copy() const override;
++  void CopyRawTo(std::vector<unsigned char>* dest) const override;
++};
++
++class CryptString {
++ public:
++  CryptString();
++  size_t GetLength() const { return impl_->GetLength(); }
++  void CopyTo(char* dest, bool nullterminate) const {
++    impl_->CopyTo(dest, nullterminate);
++  }
++  CryptString(const CryptString& other);
++  explicit CryptString(const CryptStringImpl& impl);
++  ~CryptString();
++  CryptString& operator=(const CryptString& other) {
++    if (this != &other) {
++      impl_.reset(other.impl_->Copy());
++    }
++    return *this;
++  }
++  void Clear() { impl_.reset(new EmptyCryptStringImpl()); }
++  std::string UrlEncode() const { return impl_->UrlEncode(); }
++  void CopyRawTo(std::vector<unsigned char>* dest) const {
++    return impl_->CopyRawTo(dest);
++  }
++
++ private:
++  std::unique_ptr<const CryptStringImpl> impl_;
++};
++
++}  // namespace rtc::revive
++
++#endif  // RTC_BASE_CRYPT_STRING_REVIVE_H_
+diff --git a/rtc_base/http_common_revive.cc b/rtc_base/http_common_revive.cc
+new file mode 100644
+index 0000000000..59ac7583bb
+--- /dev/null
++++ b/rtc_base/http_common_revive.cc
+@@ -0,0 +1,554 @@
++/*
++ *  Copyright 2004 The WebRTC Project Authors. All rights reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#include <time.h>
++
++#include "absl/strings/string_view.h"
++
++#if defined(WEBRTC_WIN)
++#include <windows.h>
++#include <winsock2.h>
++#include <ws2tcpip.h>
++
++#define SECURITY_WIN32
++#include <security.h>
++#endif
++
++#include <ctype.h>  // for isspace
++#include <stdio.h>  // for sprintf
++
++#include <utility>  // for pair
++#include <vector>
++
++#include "absl/strings/match.h"
++#include "rtc_base/crypt_string_revive.h"  // for CryptString
++#include "rtc_base/http_common_revive.h"
++#include "rtc_base/logging.h"
++#include "rtc_base/message_digest.h"
++#include "rtc_base/socket_address.h"
++#include "rtc_base/string_utils.h"
++#include "rtc_base/strings/string_builder.h"
++#include "rtc_base/third_party/base64/base64.h"  // for Base64
++#include "rtc_base/zero_memory.h"                // for ExplicitZeroMemory
++
++namespace rtc::revive {
++namespace {
++#if defined(WEBRTC_WIN) && !defined(WINUWP)
++///////////////////////////////////////////////////////////////////////////////
++// ConstantToLabel can be used to easily generate string names from constant
++// values.  This can be useful for logging descriptive names of error messages.
++// Usage:
++//   const ConstantToLabel LIBRARY_ERRORS[] = {
++//     KLABEL(SOME_ERROR),
++//     KLABEL(SOME_OTHER_ERROR),
++//     ...
++//     LASTLABEL
++//   }
++//
++//   int err = LibraryFunc();
++//   LOG(LS_ERROR) << "LibraryFunc returned: "
++//                 << GetErrorName(err, LIBRARY_ERRORS);
++struct ConstantToLabel {
++  int value;
++  const char* label;
++};
++
++const char* LookupLabel(int value, const ConstantToLabel entries[]) {
++  for (int i = 0; entries[i].label; ++i) {
++    if (value == entries[i].value) {
++      return entries[i].label;
++    }
++  }
++  return 0;
++}
++
++std::string GetErrorName(int err, const ConstantToLabel* err_table) {
++  if (err == 0)
++    return "No error";
++
++  if (err_table != 0) {
++    if (const char* value = LookupLabel(err, err_table))
++      return value;
++  }
++
++  char buffer[16];
++  snprintf(buffer, sizeof(buffer), "0x%08x", err);
++  return buffer;
++}
++
++#define KLABEL(x) \
++  { x, #x }
++#define LASTLABEL \
++  { 0, 0 }
++
++const ConstantToLabel SECURITY_ERRORS[] = {
++    KLABEL(SEC_I_COMPLETE_AND_CONTINUE),
++    KLABEL(SEC_I_COMPLETE_NEEDED),
++    KLABEL(SEC_I_CONTEXT_EXPIRED),
++    KLABEL(SEC_I_CONTINUE_NEEDED),
++    KLABEL(SEC_I_INCOMPLETE_CREDENTIALS),
++    KLABEL(SEC_I_RENEGOTIATE),
++    KLABEL(SEC_E_CERT_EXPIRED),
++    KLABEL(SEC_E_INCOMPLETE_MESSAGE),
++    KLABEL(SEC_E_INSUFFICIENT_MEMORY),
++    KLABEL(SEC_E_INTERNAL_ERROR),
++    KLABEL(SEC_E_INVALID_HANDLE),
++    KLABEL(SEC_E_INVALID_TOKEN),
++    KLABEL(SEC_E_LOGON_DENIED),
++    KLABEL(SEC_E_NO_AUTHENTICATING_AUTHORITY),
++    KLABEL(SEC_E_NO_CREDENTIALS),
++    KLABEL(SEC_E_NOT_OWNER),
++    KLABEL(SEC_E_OK),
++    KLABEL(SEC_E_SECPKG_NOT_FOUND),
++    KLABEL(SEC_E_TARGET_UNKNOWN),
++    KLABEL(SEC_E_UNKNOWN_CREDENTIALS),
++    KLABEL(SEC_E_UNSUPPORTED_FUNCTION),
++    KLABEL(SEC_E_UNTRUSTED_ROOT),
++    KLABEL(SEC_E_WRONG_PRINCIPAL),
++    LASTLABEL};
++#undef KLABEL
++#undef LASTLABEL
++#endif  // defined(WEBRTC_WIN) && !defined(WINUWP)
++
++typedef std::pair<std::string, std::string> HttpAttribute;
++typedef std::vector<HttpAttribute> HttpAttributeList;
++
++inline bool IsEndOfAttributeName(size_t pos, absl::string_view data) {
++  if (pos >= data.size())
++    return true;
++  if (isspace(static_cast<unsigned char>(data[pos])))
++    return true;
++  // The reason for this complexity is that some attributes may contain trailing
++  // equal signs (like base64 tokens in Negotiate auth headers)
++  if ((pos + 1 < data.size()) && (data[pos] == '=') &&
++      !isspace(static_cast<unsigned char>(data[pos + 1])) &&
++      (data[pos + 1] != '=')) {
++    return true;
++  }
++  return false;
++}
++
++void HttpParseAttributes(absl::string_view data,
++                         HttpAttributeList& attributes) {
++  size_t pos = 0;
++  const size_t len = data.size();
++  while (true) {
++    // Skip leading whitespace
++    while ((pos < len) && isspace(static_cast<unsigned char>(data[pos]))) {
++      ++pos;
++    }
++
++    // End of attributes?
++    if (pos >= len)
++      return;
++
++    // Find end of attribute name
++    size_t start = pos;
++    while (!IsEndOfAttributeName(pos, data)) {
++      ++pos;
++    }
++
++    HttpAttribute attribute;
++    attribute.first.assign(data.data() + start, data.data() + pos);
++
++    // Attribute has value?
++    if ((pos < len) && (data[pos] == '=')) {
++      ++pos;  // Skip '='
++      // Check if quoted value
++      if ((pos < len) && (data[pos] == '"')) {
++        while (++pos < len) {
++          if (data[pos] == '"') {
++            ++pos;
++            break;
++          }
++          if ((data[pos] == '\\') && (pos + 1 < len))
++            ++pos;
++          attribute.second.append(1, data[pos]);
++        }
++      } else {
++        while ((pos < len) && !isspace(static_cast<unsigned char>(data[pos])) &&
++               (data[pos] != ',')) {
++          attribute.second.append(1, data[pos++]);
++        }
++      }
++    }
++
++    attributes.push_back(attribute);
++    if ((pos < len) && (data[pos] == ','))
++      ++pos;  // Skip ','
++  }
++}
++
++bool HttpHasAttribute(const HttpAttributeList& attributes,
++                      absl::string_view name,
++                      std::string* value) {
++  for (HttpAttributeList::const_iterator it = attributes.begin();
++       it != attributes.end(); ++it) {
++    if (it->first == name) {
++      if (value) {
++        *value = it->second;
++      }
++      return true;
++    }
++  }
++  return false;
++}
++
++bool HttpHasNthAttribute(HttpAttributeList& attributes,
++                         size_t index,
++                         std::string* name,
++                         std::string* value) {
++  if (index >= attributes.size())
++    return false;
++
++  if (name)
++    *name = attributes[index].first;
++  if (value)
++    *value = attributes[index].second;
++  return true;
++}
++
++std::string quote(absl::string_view str) {
++  std::string result;
++  result.push_back('"');
++  for (size_t i = 0; i < str.size(); ++i) {
++    if ((str[i] == '"') || (str[i] == '\\'))
++      result.push_back('\\');
++    result.push_back(str[i]);
++  }
++  result.push_back('"');
++  return result;
++}
++
++#if defined(WEBRTC_WIN) && !defined(WINUWP)
++struct NegotiateAuthContext : public HttpAuthContext {
++  CredHandle cred;
++  CtxtHandle ctx;
++  size_t steps;
++  bool specified_credentials;
++
++  NegotiateAuthContext(absl::string_view auth, CredHandle c1, CtxtHandle c2)
++      : HttpAuthContext(auth),
++        cred(c1),
++        ctx(c2),
++        steps(0),
++        specified_credentials(false) {}
++
++  ~NegotiateAuthContext() override {
++    DeleteSecurityContext(&ctx);
++    FreeCredentialsHandle(&cred);
++  }
++};
++#endif  // defined(WEBRTC_WIN) && !defined(WINUWP)
++
++}  // anonymous namespace
++
++HttpAuthResult HttpAuthenticate(absl::string_view challenge,
++                                const SocketAddress& server,
++                                absl::string_view method,
++                                absl::string_view uri,
++                                absl::string_view username,
++                                const CryptString& password,
++                                HttpAuthContext*& context,
++                                std::string& response,
++                                std::string& auth_method) {
++  HttpAttributeList args;
++  HttpParseAttributes(challenge, args);
++  HttpHasNthAttribute(args, 0, &auth_method, nullptr);
++
++  if (context && (context->auth_method != auth_method))
++    return HAR_IGNORE;
++
++  // BASIC
++  if (absl::EqualsIgnoreCase(auth_method, "basic")) {
++    if (context)
++      return HAR_CREDENTIALS;  // Bad credentials
++    if (username.empty())
++      return HAR_CREDENTIALS;  // Missing credentials
++
++    context = new HttpAuthContext(auth_method);
++
++    // TODO(bugs.webrtc.org/8905): Convert sensitive to a CryptString and also
++    // return response as CryptString so contents get securely deleted
++    // automatically.
++    // std::string decoded = username + ":" + password;
++    size_t len = username.size() + password.GetLength() + 2;
++    char* sensitive = new char[len];
++    size_t pos = strcpyn(sensitive, len, username);
++    pos += strcpyn(sensitive + pos, len - pos, ":");
++    password.CopyTo(sensitive + pos, true);
++
++    response = auth_method;
++    response.append(" ");
++    // TODO: create a sensitive-source version of Base64::encode
++    response.append(Base64::Encode(sensitive));
++    ExplicitZeroMemory(sensitive, len);
++    delete[] sensitive;
++    return HAR_RESPONSE;
++  }
++
++  // DIGEST
++  if (absl::EqualsIgnoreCase(auth_method, "digest")) {
++    if (context)
++      return HAR_CREDENTIALS;  // Bad credentials
++    if (username.empty())
++      return HAR_CREDENTIALS;  // Missing credentials
++
++    context = new HttpAuthContext(auth_method);
++
++    std::string cnonce, ncount;
++    char buffer[256];
++    snprintf(buffer, sizeof(buffer), "%d", static_cast<int>(time(0)));
++    cnonce = MD5(buffer);
++    ncount = "00000001";
++
++    std::string realm, nonce, qop, opaque;
++    HttpHasAttribute(args, "realm", &realm);
++    HttpHasAttribute(args, "nonce", &nonce);
++    bool has_qop = HttpHasAttribute(args, "qop", &qop);
++    bool has_opaque = HttpHasAttribute(args, "opaque", &opaque);
++
++    // TODO(bugs.webrtc.org/8905): Convert sensitive to a CryptString and also
++    // return response as CryptString so contents get securely deleted
++    // automatically.
++    // std::string A1 = username + ":" + realm + ":" + password;
++    size_t len = username.size() + realm.size() + password.GetLength() + 3;
++    char* sensitive = new char[len];  // A1
++    size_t pos = strcpyn(sensitive, len, username);
++    pos += strcpyn(sensitive + pos, len - pos, ":");
++    pos += strcpyn(sensitive + pos, len - pos, realm);
++    pos += strcpyn(sensitive + pos, len - pos, ":");
++    password.CopyTo(sensitive + pos, true);
++
++    std::string A2 = std::string(method) + ":" + std::string(uri);
++    std::string middle;
++    if (has_qop) {
++      qop = "auth";
++      middle = nonce + ":" + ncount + ":" + cnonce + ":" + qop;
++    } else {
++      middle = nonce;
++    }
++    std::string HA1 = MD5(sensitive);
++    ExplicitZeroMemory(sensitive, len);
++    delete[] sensitive;
++    std::string HA2 = MD5(A2);
++    std::string dig_response = MD5(HA1 + ":" + middle + ":" + HA2);
++
++    rtc::StringBuilder ss;
++    ss << auth_method;
++    ss << " username=" << quote(username);
++    ss << ", realm=" << quote(realm);
++    ss << ", nonce=" << quote(nonce);
++    ss << ", uri=" << quote(uri);
++    if (has_qop) {
++      ss << ", qop=" << qop;
++      ss << ", nc=" << ncount;
++      ss << ", cnonce=" << quote(cnonce);
++    }
++    ss << ", response=\"" << dig_response << "\"";
++    if (has_opaque) {
++      ss << ", opaque=" << quote(opaque);
++    }
++    response = ss.str();
++    return HAR_RESPONSE;
++  }
++
++#if defined(WEBRTC_WIN) && !defined(WINUWP)
++#if 1
++  bool want_negotiate = absl::EqualsIgnoreCase(auth_method, "negotiate");
++  bool want_ntlm = absl::EqualsIgnoreCase(auth_method, "ntlm");
++  // SPNEGO & NTLM
++  if (want_negotiate || want_ntlm) {
++    const size_t MAX_MESSAGE = 12000, MAX_SPN = 256;
++    char out_buf[MAX_MESSAGE], spn[MAX_SPN];
++
++#if 0  // Requires funky windows versions
++    DWORD len = MAX_SPN;
++    if (DsMakeSpn("HTTP", server.HostAsURIString().c_str(), nullptr,
++                  server.port(),
++                  0, &len, spn) != ERROR_SUCCESS) {
++      RTC_LOG_F(LS_WARNING) << "(Negotiate) - DsMakeSpn failed";
++      return HAR_IGNORE;
++    }
++#else
++    snprintf(spn, MAX_SPN, "HTTP/%s", server.ToString().c_str());
++#endif
++
++    SecBuffer out_sec;
++    out_sec.pvBuffer = out_buf;
++    out_sec.cbBuffer = sizeof(out_buf);
++    out_sec.BufferType = SECBUFFER_TOKEN;
++
++    SecBufferDesc out_buf_desc;
++    out_buf_desc.ulVersion = 0;
++    out_buf_desc.cBuffers = 1;
++    out_buf_desc.pBuffers = &out_sec;
++
++    const ULONG NEG_FLAGS_DEFAULT =
++        // ISC_REQ_ALLOCATE_MEMORY
++        ISC_REQ_CONFIDENTIALITY
++        //| ISC_REQ_EXTENDED_ERROR
++        //| ISC_REQ_INTEGRITY
++        | ISC_REQ_REPLAY_DETECT | ISC_REQ_SEQUENCE_DETECT
++        //| ISC_REQ_STREAM
++        //| ISC_REQ_USE_SUPPLIED_CREDS
++        ;
++
++    ::TimeStamp lifetime;
++    SECURITY_STATUS ret = S_OK;
++    ULONG ret_flags = 0, flags = NEG_FLAGS_DEFAULT;
++
++    bool specify_credentials = !username.empty();
++    size_t steps = 0;
++
++    // uint32_t now = Time();
++
++    NegotiateAuthContext* neg = static_cast<NegotiateAuthContext*>(context);
++    if (neg) {
++      const size_t max_steps = 10;
++      if (++neg->steps >= max_steps) {
++        RTC_LOG(LS_WARNING) << "HttpAuthenticate (Negotiate) too many retries";
++        return HAR_ERROR;
++      }
++      steps = neg->steps;
++
++      std::string challenge, decoded_challenge;
++      if (HttpHasNthAttribute(args, 1, &challenge, nullptr) &&
++          Base64::Decode(challenge, Base64::DO_STRICT, &decoded_challenge,
++                         nullptr)) {
++        SecBuffer in_sec;
++        in_sec.pvBuffer = const_cast<char*>(decoded_challenge.data());
++        in_sec.cbBuffer = static_cast<unsigned long>(decoded_challenge.size());
++        in_sec.BufferType = SECBUFFER_TOKEN;
++
++        SecBufferDesc in_buf_desc;
++        in_buf_desc.ulVersion = 0;
++        in_buf_desc.cBuffers = 1;
++        in_buf_desc.pBuffers = &in_sec;
++
++        ret = InitializeSecurityContextA(
++            &neg->cred, &neg->ctx, spn, flags, 0, SECURITY_NATIVE_DREP,
++            &in_buf_desc, 0, &neg->ctx, &out_buf_desc, &ret_flags, &lifetime);
++        if (FAILED(ret)) {
++          RTC_LOG(LS_ERROR) << "InitializeSecurityContext returned: "
++                            << GetErrorName(ret, SECURITY_ERRORS);
++          return HAR_ERROR;
++        }
++      } else if (neg->specified_credentials) {
++        // Try again with default credentials
++        specify_credentials = false;
++        delete context;
++        context = neg = 0;
++      } else {
++        return HAR_CREDENTIALS;
++      }
++    }
++
++    if (!neg) {
++      unsigned char userbuf[256], passbuf[256], domainbuf[16];
++      SEC_WINNT_AUTH_IDENTITY_A auth_id, *pauth_id = 0;
++      if (specify_credentials) {
++        memset(&auth_id, 0, sizeof(auth_id));
++        size_t len = password.GetLength() + 1;
++        char* sensitive = new char[len];
++        password.CopyTo(sensitive, true);
++        absl::string_view::size_type pos = username.find('\\');
++        if (pos == absl::string_view::npos) {
++          auth_id.UserLength = static_cast<unsigned long>(
++              std::min(sizeof(userbuf) - 1, username.size()));
++          memcpy(userbuf, username.data(), auth_id.UserLength);
++          userbuf[auth_id.UserLength] = 0;
++          auth_id.DomainLength = 0;
++          domainbuf[auth_id.DomainLength] = 0;
++          auth_id.PasswordLength = static_cast<unsigned long>(
++              std::min(sizeof(passbuf) - 1, password.GetLength()));
++          memcpy(passbuf, sensitive, auth_id.PasswordLength);
++          passbuf[auth_id.PasswordLength] = 0;
++        } else {
++          auth_id.UserLength = static_cast<unsigned long>(
++              std::min(sizeof(userbuf) - 1, username.size() - pos - 1));
++          memcpy(userbuf, username.data() + pos + 1, auth_id.UserLength);
++          userbuf[auth_id.UserLength] = 0;
++          auth_id.DomainLength =
++              static_cast<unsigned long>(std::min(sizeof(domainbuf) - 1, pos));
++          memcpy(domainbuf, username.data(), auth_id.DomainLength);
++          domainbuf[auth_id.DomainLength] = 0;
++          auth_id.PasswordLength = static_cast<unsigned long>(
++              std::min(sizeof(passbuf) - 1, password.GetLength()));
++          memcpy(passbuf, sensitive, auth_id.PasswordLength);
++          passbuf[auth_id.PasswordLength] = 0;
++        }
++        ExplicitZeroMemory(sensitive, len);
++        delete[] sensitive;
++        auth_id.User = userbuf;
++        auth_id.Domain = domainbuf;
++        auth_id.Password = passbuf;
++        auth_id.Flags = SEC_WINNT_AUTH_IDENTITY_ANSI;
++        pauth_id = &auth_id;
++        RTC_LOG(LS_VERBOSE)
++            << "Negotiate protocol: Using specified credentials";
++      } else {
++        RTC_LOG(LS_VERBOSE) << "Negotiate protocol: Using default credentials";
++      }
++
++      CredHandle cred;
++      ret = AcquireCredentialsHandleA(
++          0, const_cast<char*>(want_negotiate ? NEGOSSP_NAME_A : NTLMSP_NAME_A),
++          SECPKG_CRED_OUTBOUND, 0, pauth_id, 0, 0, &cred, &lifetime);
++      if (ret != SEC_E_OK) {
++        RTC_LOG(LS_ERROR) << "AcquireCredentialsHandle error: "
++                          << GetErrorName(ret, SECURITY_ERRORS);
++        return HAR_IGNORE;
++      }
++
++      // CSecBufferBundle<5, CSecBufferBase::FreeSSPI> sb_out;
++
++      CtxtHandle ctx;
++      ret = InitializeSecurityContextA(&cred, 0, spn, flags, 0,
++                                       SECURITY_NATIVE_DREP, 0, 0, &ctx,
++                                       &out_buf_desc, &ret_flags, &lifetime);
++      if (FAILED(ret)) {
++        RTC_LOG(LS_ERROR) << "InitializeSecurityContext returned: "
++                          << GetErrorName(ret, SECURITY_ERRORS);
++        FreeCredentialsHandle(&cred);
++        return HAR_IGNORE;
++      }
++
++      RTC_DCHECK(!context);
++      context = neg = new NegotiateAuthContext(auth_method, cred, ctx);
++      neg->specified_credentials = specify_credentials;
++      neg->steps = steps;
++    }
++
++    if ((ret == SEC_I_COMPLETE_NEEDED) ||
++        (ret == SEC_I_COMPLETE_AND_CONTINUE)) {
++      ret = CompleteAuthToken(&neg->ctx, &out_buf_desc);
++      RTC_LOG(LS_VERBOSE) << "CompleteAuthToken returned: "
++                          << GetErrorName(ret, SECURITY_ERRORS);
++      if (FAILED(ret)) {
++        return HAR_ERROR;
++      }
++    }
++
++    std::string decoded(out_buf, out_buf + out_sec.cbBuffer);
++    response = auth_method;
++    response.append(" ");
++    response.append(Base64::Encode(decoded));
++    return HAR_RESPONSE;
++  }
++#endif
++#endif  // defined(WEBRTC_WIN) && !defined(WINUWP)
++
++  return HAR_IGNORE;
++}
++
++//////////////////////////////////////////////////////////////////////
++
++}  // namespace rtc::revive
+diff --git a/rtc_base/http_common_revive.h b/rtc_base/http_common_revive.h
+new file mode 100644
+index 0000000000..67d9006c2f
+--- /dev/null
++++ b/rtc_base/http_common_revive.h
+@@ -0,0 +1,57 @@
++/*
++ *  Copyright 2004 The WebRTC Project Authors. All rights reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#ifndef RTC_BASE_HTTP_COMMON_REVIVE_H_
++#define RTC_BASE_HTTP_COMMON_REVIVE_H_
++
++#include <string>
++
++#include "absl/strings/string_view.h"
++
++namespace rtc {
++
++class CryptString;
++class SocketAddress;
++
++}
++
++namespace rtc::revive {
++
++//////////////////////////////////////////////////////////////////////
++// Http Authentication
++//////////////////////////////////////////////////////////////////////
++
++struct HttpAuthContext {
++  std::string auth_method;
++  HttpAuthContext(absl::string_view auth) : auth_method(auth) {}
++  virtual ~HttpAuthContext() {}
++};
++
++enum HttpAuthResult { HAR_RESPONSE, HAR_IGNORE, HAR_CREDENTIALS, HAR_ERROR };
++
++// 'context' is used by this function to record information between calls.
++// Start by passing a null pointer, then pass the same pointer each additional
++// call.  When the authentication attempt is finished, delete the context.
++// TODO(bugs.webrtc.org/8905): Change "response" to "ZeroOnFreeBuffer".
++HttpAuthResult HttpAuthenticate(absl::string_view challenge,
++                                const SocketAddress& server,
++                                absl::string_view method,
++                                absl::string_view uri,
++                                absl::string_view username,
++                                const CryptString& password,
++                                HttpAuthContext*& context,
++                                std::string& response,
++                                std::string& auth_method);
++
++//////////////////////////////////////////////////////////////////////
++
++}  // namespace rtc::revive
++
++#endif  // RTC_BASE_HTTP_COMMON_REVIVE_H_
+diff --git a/rtc_base/proxy_info_revive.cc b/rtc_base/proxy_info_revive.cc
+new file mode 100644
+index 0000000000..9719ec4e2b
+--- /dev/null
++++ b/rtc_base/proxy_info_revive.cc
+@@ -0,0 +1,13 @@
++#include "rtc_base/proxy_info_revive.h"
++
++namespace rtc::revive {
++
++const char* ProxyToString(ProxyType proxy) {
++  const char* const PROXY_NAMES[] = {"none", "https", "socks5", "unknown"};
++  return PROXY_NAMES[proxy];
++}
++
++ProxyInfo::ProxyInfo() : type(PROXY_NONE), autodetect(false) {}
++ProxyInfo::~ProxyInfo() = default;
++
++}
+diff --git a/rtc_base/proxy_info_revive.h b/rtc_base/proxy_info_revive.h
+new file mode 100644
+index 0000000000..821ae8ffe1
+--- /dev/null
++++ b/rtc_base/proxy_info_revive.h
+@@ -0,0 +1,39 @@
++/*
++ *  Copyright 2004 The WebRTC Project Authors. All rights reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#ifndef RTC_BASE_PROXY_INFO_REVIVE_H_
++#define RTC_BASE_PROXY_INFO_REVIVE_H_
++
++#include <string>
++
++#include "rtc_base/crypt_string_revive.h"
++#include "rtc_base/socket_address.h"
++
++namespace rtc::revive {
++
++enum ProxyType { PROXY_NONE, PROXY_HTTPS, PROXY_SOCKS5, PROXY_UNKNOWN };
++const char* ProxyToString(ProxyType proxy);
++
++struct ProxyInfo {
++  ProxyType type;
++  SocketAddress address;
++  std::string autoconfig_url;
++  bool autodetect;
++  std::string bypass_list;
++  std::string username;
++  CryptString password;
++
++  ProxyInfo();
++  ~ProxyInfo();
++};
++
++}  // namespace rtc::revive
++
++#endif
+diff --git a/rtc_base/socket_adapters_revive.cc b/rtc_base/socket_adapters_revive.cc
+new file mode 100644
+index 0000000000..5d8418b1f8
+--- /dev/null
++++ b/rtc_base/socket_adapters_revive.cc
+@@ -0,0 +1,268 @@
++#include "rtc_base/socket_adapters_revive.h"
++
++#include <algorithm>
++
++#include "absl/strings/match.h"
++#include "absl/strings/string_view.h"
++#include "rtc_base/buffer.h"
++#include "rtc_base/byte_buffer.h"
++#include "rtc_base/checks.h"
++#include "rtc_base/http_common_revive.h"
++#include "rtc_base/logging.h"
++#include "rtc_base/strings/string_builder.h"
++#include "rtc_base/zero_memory.h"
++
++namespace rtc::revive {
++
++AsyncHttpsProxySocket::AsyncHttpsProxySocket(Socket* socket,
++                                             absl::string_view user_agent,
++                                             const SocketAddress& proxy,
++                                             absl::string_view username,
++                                             const CryptString& password)
++    : BufferedReadAdapter(socket, 1024),
++      proxy_(proxy),
++      agent_(user_agent),
++      user_(username),
++      pass_(password),
++      force_connect_(false),
++      state_(PS_ERROR),
++      context_(0) {}
++
++AsyncHttpsProxySocket::~AsyncHttpsProxySocket() {
++  delete context_;
++}
++
++int AsyncHttpsProxySocket::Connect(const SocketAddress& addr) {
++  int ret;
++  RTC_LOG(LS_VERBOSE) << "AsyncHttpsProxySocket::Connect("
++                      << proxy_.ToSensitiveString() << ")";
++  dest_ = addr;
++  state_ = PS_INIT;
++  if (ShouldIssueConnect()) {
++    BufferInput(true);
++  }
++  ret = BufferedReadAdapter::Connect(proxy_);
++  // TODO: Set state_ appropriately if Connect fails.
++  return ret;
++}
++
++SocketAddress AsyncHttpsProxySocket::GetRemoteAddress() const {
++  return dest_;
++}
++
++int AsyncHttpsProxySocket::Close() {
++  headers_.clear();
++  state_ = PS_ERROR;
++  dest_.Clear();
++  delete context_;
++  context_ = nullptr;
++  return BufferedReadAdapter::Close();
++}
++
++Socket::ConnState AsyncHttpsProxySocket::GetState() const {
++  if (state_ < PS_TUNNEL) {
++    return CS_CONNECTING;
++  } else if (state_ == PS_TUNNEL) {
++    return CS_CONNECTED;
++  } else {
++    return CS_CLOSED;
++  }
++}
++
++void AsyncHttpsProxySocket::OnConnectEvent(Socket* socket) {
++  RTC_LOG(LS_VERBOSE) << "AsyncHttpsProxySocket::OnConnectEvent";
++  if (!ShouldIssueConnect()) {
++    state_ = PS_TUNNEL;
++    BufferedReadAdapter::OnConnectEvent(socket);
++    return;
++  }
++  SendRequest();
++}
++
++void AsyncHttpsProxySocket::OnCloseEvent(Socket* socket, int err) {
++  RTC_LOG(LS_VERBOSE) << "AsyncHttpsProxySocket::OnCloseEvent(" << err << ")";
++  if ((state_ == PS_WAIT_CLOSE) && (err == 0)) {
++    state_ = PS_ERROR;
++    Connect(dest_);
++  } else {
++    BufferedReadAdapter::OnCloseEvent(socket, err);
++  }
++}
++
++void AsyncHttpsProxySocket::ProcessInput(char* data, size_t* len) {
++  size_t start = 0;
++  for (size_t pos = start; state_ < PS_TUNNEL && pos < *len;) {
++    if (state_ == PS_SKIP_BODY) {
++      size_t consume = std::min(*len - pos, content_length_);
++      pos += consume;
++      start = pos;
++      content_length_ -= consume;
++      if (content_length_ == 0) {
++        EndResponse();
++      }
++      continue;
++    }
++
++    if (data[pos++] != '\n')
++      continue;
++
++    size_t length = pos - start - 1;
++    if ((length > 0) && (data[start + length - 1] == '\r'))
++      --length;
++
++    data[start + length] = 0;
++    ProcessLine(data + start, length);
++    start = pos;
++  }
++
++  *len -= start;
++  if (*len > 0) {
++    memmove(data, data + start, *len);
++  }
++
++  if (state_ != PS_TUNNEL)
++    return;
++
++  bool remainder = (*len > 0);
++  BufferInput(false);
++  SignalConnectEvent(this);
++
++  // FIX: if SignalConnect causes the socket to be destroyed, we are in trouble
++  if (remainder)
++    SignalReadEvent(this);  // TODO: signal this??
++}
++
++bool AsyncHttpsProxySocket::ShouldIssueConnect() const {
++  // TODO: Think about whether a more sophisticated test
++  // than dest port == 80 is needed.
++  return force_connect_ || (dest_.port() != 80);
++}
++
++void AsyncHttpsProxySocket::SendRequest() {
++  rtc::StringBuilder ss;
++  ss << "CONNECT " << dest_.ToString() << " HTTP/1.0\r\n";
++  ss << "User-Agent: " << agent_ << "\r\n";
++  ss << "Host: " << dest_.HostAsURIString() << "\r\n";
++  ss << "Content-Length: 0\r\n";
++  ss << "Proxy-Connection: Keep-Alive\r\n";
++  ss << headers_;
++  ss << "\r\n";
++  std::string str = ss.str();
++  DirectSend(str.c_str(), str.size());
++  state_ = PS_LEADER;
++  expect_close_ = true;
++  content_length_ = 0;
++  headers_.clear();
++
++  RTC_LOG(LS_VERBOSE) << "AsyncHttpsProxySocket >> " << str;
++}
++
++void AsyncHttpsProxySocket::ProcessLine(char* data, size_t len) {
++  RTC_LOG(LS_VERBOSE) << "AsyncHttpsProxySocket << " << data;
++
++  if (len == 0) {
++    if (state_ == PS_TUNNEL_HEADERS) {
++      state_ = PS_TUNNEL;
++    } else if (state_ == PS_ERROR_HEADERS) {
++      Error(defer_error_);
++      return;
++    } else if (state_ == PS_SKIP_HEADERS) {
++      if (content_length_) {
++        state_ = PS_SKIP_BODY;
++      } else {
++        EndResponse();
++        return;
++      }
++    } else {
++      if (!unknown_mechanisms_.empty()) {
++        RTC_LOG(LS_ERROR) << "Unsupported authentication methods: "
++                          << unknown_mechanisms_;
++      }
++      // Unexpected end of headers
++      Error(0);
++      return;
++    }
++  } else if (state_ == PS_LEADER) {
++    unsigned int code;
++    if (sscanf(data, "HTTP/%*u.%*u %u", &code) != 1) {
++      Error(0);
++      return;
++    }
++    switch (code) {
++      case 200:
++        // connection good!
++        state_ = PS_TUNNEL_HEADERS;
++        return;
++#if defined(HTTP_STATUS_PROXY_AUTH_REQ) && (HTTP_STATUS_PROXY_AUTH_REQ != 407)
++#error Wrong code for HTTP_STATUS_PROXY_AUTH_REQ
++#endif
++      case 407:  // HTTP_STATUS_PROXY_AUTH_REQ
++        state_ = PS_AUTHENTICATE;
++        return;
++      default:
++        defer_error_ = 0;
++        state_ = PS_ERROR_HEADERS;
++        return;
++    }
++  } else if ((state_ == PS_AUTHENTICATE) &&
++             absl::StartsWithIgnoreCase(data, "Proxy-Authenticate:")) {
++    std::string response, auth_method;
++    switch (HttpAuthenticate(absl::string_view(data + 19, len - 19), proxy_,
++                             "CONNECT", "/", user_, pass_, context_, response,
++                             auth_method)) {
++      case HAR_IGNORE:
++        RTC_LOG(LS_VERBOSE) << "Ignoring Proxy-Authenticate: " << auth_method;
++        if (!unknown_mechanisms_.empty())
++          unknown_mechanisms_.append(", ");
++        unknown_mechanisms_.append(auth_method);
++        break;
++      case HAR_RESPONSE:
++        headers_ = "Proxy-Authorization: ";
++        headers_.append(response);
++        headers_.append("\r\n");
++        state_ = PS_SKIP_HEADERS;
++        unknown_mechanisms_.clear();
++        break;
++      case HAR_CREDENTIALS:
++        defer_error_ = SOCKET_EACCES;
++        state_ = PS_ERROR_HEADERS;
++        unknown_mechanisms_.clear();
++        break;
++      case HAR_ERROR:
++        defer_error_ = 0;
++        state_ = PS_ERROR_HEADERS;
++        unknown_mechanisms_.clear();
++        break;
++    }
++  } else if (absl::StartsWithIgnoreCase(data, "Content-Length:")) {
++    content_length_ = strtoul(data + 15, 0, 0);
++  } else if (absl::StartsWithIgnoreCase(data, "Proxy-Connection: Keep-Alive")) {
++    expect_close_ = false;
++    /*
++  } else if (absl::StartsWithIgnoreCase(data, "Connection: close") {
++    expect_close_ = true;
++    */
++  }
++}
++
++void AsyncHttpsProxySocket::EndResponse() {
++  if (!expect_close_) {
++    SendRequest();
++    return;
++  }
++
++  // No point in waiting for the server to close... let's close now
++  // TODO: Refactor out PS_WAIT_CLOSE
++  state_ = PS_WAIT_CLOSE;
++  BufferedReadAdapter::Close();
++  OnCloseEvent(this, 0);
++}
++
++void AsyncHttpsProxySocket::Error(int error) {
++  BufferInput(false);
++  Close();
++  SetError(error);
++  SignalCloseEvent(this, error);
++}
++
++}  // namespace rtc::revive
+diff --git a/rtc_base/socket_adapters_revive.h b/rtc_base/socket_adapters_revive.h
+new file mode 100644
+index 0000000000..33fe88b845
+--- /dev/null
++++ b/rtc_base/socket_adapters_revive.h
+@@ -0,0 +1,85 @@
++/*
++ *  Copyright 2004 The WebRTC Project Authors. All rights reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#ifndef RTC_BASE_SOCKET_ADAPTERS_REVIVE_H_
++#define RTC_BASE_SOCKET_ADAPTERS_REVIVE_H_
++
++#include <string>
++
++#include "rtc_base/async_socket.h"
++#include "rtc_base/crypt_string_revive.h"
++#include "rtc_base/socket_adapters.h"
++#include "rtc_base/socket_address.h"
++
++namespace rtc::revive {
++
++struct HttpAuthContext;
++
++// Implements a socket adapter that speaks the HTTP/S proxy protocol.
++class AsyncHttpsProxySocket : public BufferedReadAdapter {
++ public:
++  AsyncHttpsProxySocket(Socket* socket,
++                        absl::string_view user_agent,
++                        const SocketAddress& proxy,
++                        absl::string_view username,
++                        const CryptString& password);
++  ~AsyncHttpsProxySocket() override;
++
++  AsyncHttpsProxySocket(const AsyncHttpsProxySocket&) = delete;
++  AsyncHttpsProxySocket& operator=(const AsyncHttpsProxySocket&) = delete;
++
++  // If connect is forced, the adapter will always issue an HTTP CONNECT to the
++  // target address.  Otherwise, it will connect only if the destination port
++  // is not port 80.
++  void SetForceConnect(bool force) { force_connect_ = force; }
++
++  int Connect(const SocketAddress& addr) override;
++  SocketAddress GetRemoteAddress() const override;
++  int Close() override;
++  ConnState GetState() const override;
++
++ protected:
++  void OnConnectEvent(Socket* socket) override;
++  void OnCloseEvent(Socket* socket, int err) override;
++  void ProcessInput(char* data, size_t* len) override;
++
++  bool ShouldIssueConnect() const;
++  void SendRequest();
++  void ProcessLine(char* data, size_t len);
++  void EndResponse();
++  void Error(int error);
++
++ private:
++  SocketAddress proxy_, dest_;
++  std::string agent_, user_, headers_;
++  CryptString pass_;
++  bool force_connect_;
++  size_t content_length_;
++  int defer_error_;
++  bool expect_close_;
++  enum ProxyState {
++    PS_INIT,
++    PS_LEADER,
++    PS_AUTHENTICATE,
++    PS_SKIP_HEADERS,
++    PS_ERROR_HEADERS,
++    PS_TUNNEL_HEADERS,
++    PS_SKIP_BODY,
++    PS_TUNNEL,
++    PS_WAIT_CLOSE,
++    PS_ERROR
++  } state_;
++  HttpAuthContext* context_;
++  std::string unknown_mechanisms_;
++};
++
++}  // namespace rtc::revive
++
++#endif

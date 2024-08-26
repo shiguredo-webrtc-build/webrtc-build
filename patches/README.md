@@ -87,6 +87,45 @@ PeerConnectionDependencies dependencies = PeerConnectionDependencies
 PeerConnection pc = factory.createPeerConnection(rtcConfig, dependencies);
 ```
 
+## arm_neon_sve_bridge.patch
+
+iOS/macOS における libvpx ビルド時に `arm_neon_sve_bridge.h` が見つからずにエラーになる問題に対応するパッチ。
+このエラーは libwebrtc を M122 から M123 に更新したタイミングで発生した。
+
+`arm_neon_sve_bridge.h` は LLVM に含まれるファイルだが、 Homebrew でインストールした LLVM と Xcode では配置されているパスが異なっていた。
+`arm_neon_sve_bridge.h` をパッチで追加して libvpx のビルドで参照できるようにしたところ、ビルドが成功した。
+
+```
+# llvm@15 では arm_neon_sve_bridge.h は存在しない
+$ find $(brew --prefix llvm@15)/lib | grep arm_neon
+/opt/homebrew/opt/llvm@15/lib/clang/15.0.7/include/arm_neon.h
+
+# llvm@16 から追加されている
+$ find $(brew --prefix llvm@16)/lib | grep arm_neon
+/opt/homebrew/opt/llvm@16/lib/clang/16/include/arm_neon_sve_bridge.h
+/opt/homebrew/opt/llvm@16/lib/clang/16/include/arm_neon.h
+
+# Xcode では tapi 以下に存在する
+$ find $(xcode-select --print-path) | grep arm_neon                                                           
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/15.0.0/include/arm_neon.h
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/tapi/15.0.0/include/arm_neon_sve_bridge.h
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/tapi/15.0.0/include/arm_neon.h
+```
+
+シンボリック・リンクとして `$(xcode-select --print-path)/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang` 以下に `arm_neon_sve_bridge.h` を追加することでエラーが解消することも確認したが、以下の理由により採用しなかった。
+
+- Xcode のディレクトリに修正を加えるのは望ましくない
+- webrtc-build のリリース・バイナリを参照する他のリポジトリ (Sora C++ SDK, Sora Python SDK, Sora Unity SDK) でも同様の対応が必要になる
+
+また、ファイルの追加に伴い、リリース・バイナリの NOTICE ファイルに LLVM のライセンスを追加する必要が生じたため、 run.py も併せて修正した。
+このパッチが不要になった場合、その処理は削除する必要がある。
+
+## revert_asm_changes.patch
+
+dav1d/libdav1d/src/arm/asm.S に入った変更を取り消すパッチ。
+m124 のタイミングで aarch64 の拡張機能のサポートチェックをするようになり、そのチェックが失敗するとビルドが失敗するようになった。
+webrtc は aarch64 の拡張機能を使っていないため、このチェックは不要であり、このパッチで取り消す。
+
 ## ios_build.patch
 
 iOS のビルドで発生した問題を修正するパッチ。  
@@ -283,3 +322,10 @@ iOS で H.265 を利用できるようにするパッチ。
 h265.patch と併用することを前提とした iOS で H.265 を利用できるようにするパッチです。
 WebKit で施されている H.265 対応差分を最新の libwebrtc に適用します。おそらく macOS も同様のコードで動作しますが現状では検証しておりません。
 libwebrtc の iOS ハードウェアエンコード実装が H.265 に対応すると不要となると考えています。
+
+## fix_perfetto.patch
+
+rtc_use_perfetto=false した時にコンパイルエラーになる問題を修正するパッチ。
+
+M126 で perfetto を使うようになったけど、これは rtc_use_perfetto=false で無効にできるため試してみたところ、必要な部分が ifdef で囲まれていなかったためコンパイルエラーになった。
+このパッチはその問題を修正するもの。
