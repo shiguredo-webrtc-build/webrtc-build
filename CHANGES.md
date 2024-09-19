@@ -16,6 +16,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 - [ADD] Ubuntu 24.04 armv8 に対応
   - @melpon
+- [FIX] Windows でビルドエラーが発生するのを `fix_windows_boringssl_string_util.patch` のパッチを当てて修正
+  - これは m130 か m131 あたりで不要になるはず
+  - @melpon
 
 ## 2024-08-19
 
