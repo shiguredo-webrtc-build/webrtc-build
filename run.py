@@ -198,6 +198,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "fix_perfetto.patch",
+        "fix_windows_boringssl_string_util.patch",
     ],
     "windows_arm64": [
         "4k.patch",
@@ -210,6 +211,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "fix_perfetto.patch",
+        "fix_windows_boringssl_string_util.patch",
     ],
     "macos_arm64": [
         "add_deps.patch",
@@ -313,6 +315,15 @@ PATCHES = {
         "h265.patch",
         "fix_perfetto.patch",
     ],
+    "ubuntu-24.04_armv8": [
+        "add_deps.patch",
+        "4k.patch",
+        "revive_proxy.patch",
+        "add_license_dav1d.patch",
+        "ssl_verify_callback_with_native_handle.patch",
+        "h265.patch",
+        "fix_perfetto.patch",
+    ],
     "ubuntu-20.04_x86_64": [
         "add_deps.patch",
         "4k.patch",
@@ -364,9 +375,16 @@ def apply_patch(patch, dir, depth):
 
 
 def _deps_dirs(src_dir):
-    cap = cmdcap(["gclient", "recurse", "-j1", "pwd"])
+    if platform.system() == "Windows":
+        cap = cmdcap(["gclient", "recurse", "-j1", "cd"])
+    else:
+        cap = cmdcap(["gclient", "recurse", "-j1", "pwd"])
     abs_dirs = cap.split("\n")
-    rel_dirs = [os.path.relpath(abs_dir, src_dir) for abs_dir in abs_dirs]
+    # Windows だと Updating depot_tools という行があったりするので、
+    # # 存在してるディレクトリのみを取り出して相対パスにする
+    rel_dirs = [
+        os.path.relpath(abs_dir, src_dir) for abs_dir in abs_dirs if os.path.exists(abs_dir)
+    ]
     return rel_dirs
 
 
@@ -554,6 +572,11 @@ MULTISTRAP_CONFIGS = {
     ),
     "ubuntu-22.04_armv8": MultistrapConfig(
         config_file=["multistrap", "ubuntu-22.04_armv8.conf"],
+        arch="arm64",
+        triplet="aarch64-linux-gnu",
+    ),
+    "ubuntu-24.04_armv8": MultistrapConfig(
+        config_file=["multistrap", "ubuntu-24.04_armv8.conf"],
         arch="arm64",
         triplet="aarch64-linux-gnu",
     ),
@@ -946,6 +969,7 @@ def build_webrtc(
             "ubuntu-18.04_armv8",
             "ubuntu-20.04_armv8",
             "ubuntu-22.04_armv8",
+            "ubuntu-24.04_armv8",
         ):
             sysroot = os.path.join(source_dir, "rootfs")
             arm64_set = (
@@ -953,6 +977,7 @@ def build_webrtc(
                 "ubuntu-18.04_armv8",
                 "ubuntu-20.04_armv8",
                 "ubuntu-22.04_armv8",
+                "ubuntu-24.04_armv8",
             )
             gn_args += [
                 'target_os="linux"',
@@ -1268,6 +1293,7 @@ TARGETS = [
     "ubuntu-18.04_armv8",
     "ubuntu-20.04_armv8",
     "ubuntu-22.04_armv8",
+    "ubuntu-24.04_armv8",
     "raspberry-pi-os_armv6",
     "raspberry-pi-os_armv7",
     "raspberry-pi-os_armv8",
@@ -1303,6 +1329,7 @@ def check_target(target):
             "ubuntu-18.04_armv8",
             "ubuntu-20.04_armv8",
             "ubuntu-22.04_armv8",
+            "ubuntu-24.04_armv8",
             "raspberry-pi-os_armv6",
             "raspberry-pi-os_armv7",
             "raspberry-pi-os_armv8",
