@@ -111,7 +111,9 @@ jobs:
           - name: ubuntu-20.04_armv8
             runs-on: ubuntu-20.04
           - name: ubuntu-22.04_armv8
-            runs-on: ubuntu-20.04
+            runs-on: ubuntu-22.04
+          - name: ubuntu-24.04_armv8
+            runs-on: ubuntu-24.04
           - name: ubuntu-20.04_x86_64
             runs-on: ubuntu-20.04
           - name: ubuntu-22.04_x86_64
@@ -213,6 +215,9 @@ jobs:
       - uses: ./.github/actions/download
         with:
           platform: ubuntu-22.04_armv8
+      - uses: ./.github/actions/download
+        with:
+          platform: ubuntu-24.04_armv8
       - uses: ./.github/actions/download
         with:
           platform: ubuntu-20.04_x86_64
