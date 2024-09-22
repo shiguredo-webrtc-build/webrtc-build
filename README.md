@@ -36,10 +36,6 @@ Please read <https://github.com/shiguredo/oss/blob/master/README.en.md> before u
 - raspberry-pi-os_armv6 (Raspberry Pi Zero, 1)
 - raspberry-pi-os_armv7 (Raspberry Pi 2, 3, 4)
 - raspberry-pi-os_armv8 (Raspberry Pi Zero 2, 3, 4)
-- ubuntu-18.04_armv8
-  - Jetson Nano
-  - Jetson Xavier NX
-  - Jetson AGX Xavier
 - ubuntu-20.04_armv8
   - Jetson Xavier NX
   - Jetson AGX Xavier
@@ -67,7 +63,7 @@ Please read <https://github.com/shiguredo/oss/blob/master/README.en.md> before u
 - Ubuntu 18.04 x86_64 廃止
   - 2022 年 6 月を持って廃止しました
 - Jetson 向け ARM 版 Ubuntu 18.04 廃止
-  - 2023 年 4 月を持って廃止します
+  - 2023 年 4 月を持って廃止しました
 
 ## H.264 (AVC) と H.265 (HEVC) のライセンスについて
 

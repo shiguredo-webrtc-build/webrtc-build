@@ -288,15 +288,6 @@ PATCHES = {
         "h265.patch",
         "fix_perfetto.patch",
     ],
-    "ubuntu-18.04_armv8": [
-        "add_deps.patch",
-        "4k.patch",
-        "revive_proxy.patch",
-        "add_license_dav1d.patch",
-        "ssl_verify_callback_with_native_handle.patch",
-        "h265.patch",
-        "fix_perfetto.patch",
-    ],
     "ubuntu-20.04_armv8": [
         "add_deps.patch",
         "4k.patch",
@@ -557,11 +548,6 @@ MULTISTRAP_CONFIGS = {
     ),
     "raspberry-pi-os_armv8": MultistrapConfig(
         config_file=["multistrap", "raspberry-pi-os_armv8.conf"],
-        arch="arm64",
-        triplet="aarch64-linux-gnu",
-    ),
-    "ubuntu-18.04_armv8": MultistrapConfig(
-        config_file=["multistrap", "ubuntu-18.04_armv8.conf"],
         arch="arm64",
         triplet="aarch64-linux-gnu",
     ),
@@ -966,7 +952,6 @@ def build_webrtc(
             "raspberry-pi-os_armv6",
             "raspberry-pi-os_armv7",
             "raspberry-pi-os_armv8",
-            "ubuntu-18.04_armv8",
             "ubuntu-20.04_armv8",
             "ubuntu-22.04_armv8",
             "ubuntu-24.04_armv8",
@@ -974,7 +959,6 @@ def build_webrtc(
             sysroot = os.path.join(source_dir, "rootfs")
             arm64_set = (
                 "raspberry-pi-os_armv8",
-                "ubuntu-18.04_armv8",
                 "ubuntu-20.04_armv8",
                 "ubuntu-22.04_armv8",
                 "ubuntu-24.04_armv8",
@@ -1290,7 +1274,6 @@ TARGETS = [
     "ubuntu-20.04_x86_64",
     "ubuntu-22.04_x86_64",
     "ubuntu-24.04_x86_64",
-    "ubuntu-18.04_armv8",
     "ubuntu-20.04_armv8",
     "ubuntu-22.04_armv8",
     "ubuntu-24.04_armv8",
@@ -1326,7 +1309,6 @@ def check_target(target):
 
         # クロスコンパイルなので Ubuntu だったら任意のバージョンでビルド可能（なはず）
         if target in (
-            "ubuntu-18.04_armv8",
             "ubuntu-20.04_armv8",
             "ubuntu-22.04_armv8",
             "ubuntu-24.04_armv8",
