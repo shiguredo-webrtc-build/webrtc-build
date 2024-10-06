@@ -198,7 +198,6 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "fix_perfetto.patch",
-        "fix_windows_boringssl_string_util.patch",
     ],
     "windows_arm64": [
         "4k.patch",
@@ -211,7 +210,6 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "fix_perfetto.patch",
-        "fix_windows_boringssl_string_util.patch",
     ],
     "macos_arm64": [
         "add_deps.patch",
