@@ -12,10 +12,10 @@ index 33a535525e..3a6c13a013 100644
  # Use our own suppressions files.
  asan_suppressions_file = "//build/sanitizers/asan_suppressions.cc"
 diff --git a/common_video/h264/sps_parser.cc b/common_video/h264/sps_parser.cc
-index e14334249c..c58b7543fa 100644
+index 936080e2a7..d3d43478c1 100644
 --- a/common_video/h264/sps_parser.cc
 +++ b/common_video/h264/sps_parser.cc
-@@ -164,9 +164,11 @@ absl::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(
+@@ -164,9 +164,11 @@ std::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(
    // to signify resolutions that aren't multiples of 16.
    //
    // pic_width_in_mbs_minus1: ue(v)
@@ -58,8 +58,8 @@ index 16b967dad4..c880c8ddb9 100644
  namespace webrtc {
  
  H265VpsParser::VpsState::VpsState() = default;
-@@ -47,6 +49,51 @@ absl::optional<H265VpsParser::VpsState> H265VpsParser::ParseInternal(
-     return absl::nullopt;
+@@ -45,6 +47,51 @@ std::optional<H265VpsParser::VpsState> H265VpsParser::ParseInternal(
+     return std::nullopt;
    }
  
 +  // vps_base_layer_internal_flag u(1)
@@ -70,7 +70,7 @@ index 16b967dad4..c880c8ddb9 100644
 +  vps.vps_max_sub_layers_minus1 = reader.ReadBits(6);
 +
 +  if (!reader.Ok() || (vps.vps_max_sub_layers_minus1 >= kMaxSubLayers)) {
-+    return absl::nullopt;
++    return std::nullopt;
 +  }
 +
 +  //  vps_max_sub_layers_minus1 u(3)
@@ -82,7 +82,7 @@ index 16b967dad4..c880c8ddb9 100644
 +
 +  auto profile_tier_level = H265SpsParser::ParseProfileTierLevel(true, vps.vps_max_sub_layers_minus1, reader);
 +  if (!reader.Ok() || !profile_tier_level) {
-+    return absl::nullopt;
++    return std::nullopt;
 +  }
 +
 +  bool vps_sub_layer_ordering_info_present_flag = reader.Read<bool>();
@@ -92,7 +92,7 @@ index 16b967dad4..c880c8ddb9 100644
 +    // vps_max_num_reorder_pics[ i ]: ue(v)
 +    vps.vps_max_num_reorder_pics[i] = reader.ReadExponentialGolomb();
 +    if (!reader.Ok() || (i > 0 && vps.vps_max_num_reorder_pics[i] < vps.vps_max_num_reorder_pics[i - 1])) {
-+      return absl::nullopt;
++      return std::nullopt;
 +    }
 +
 +    // vps_max_latency_increase_plus1: ue(v)
@@ -104,7 +104,7 @@ index 16b967dad4..c880c8ddb9 100644
 +    }
 +  }
 +  if (!reader.Ok() || !profile_tier_level) {
-+    return absl::nullopt;
++    return std::nullopt;
 +  }
 +
    return vps;
