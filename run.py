@@ -224,6 +224,7 @@ PATCHES = {
         "arm_neon_sve_bridge.patch",
         "dav1d_config_change.patch",
         "fix_perfetto.patch",
+        "ios_fix_optional.patch",
     ],
     "ios": [
         "add_deps.patch",
@@ -240,6 +241,7 @@ PATCHES = {
         "arm_neon_sve_bridge.patch",
         "dav1d_config_change.patch",
         "fix_perfetto.patch",
+        "ios_fix_optional.patch",
     ],
     "android": [
         "add_deps.patch",
