@@ -132,14 +132,14 @@ index c793996bc1..6b7ac9dbd7 100644
  
    // Unpack RBSP and parse VPS state from the supplied buffer.
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index ae9cb190a0..e875a5e109 100644
+index d6c859f535..22471a1245 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
-@@ -1246,8 +1246,7 @@ void RtpVideoStreamReceiver2::StartReceive() {
+@@ -1235,8 +1235,7 @@ void RtpVideoStreamReceiver2::StartReceive() {
    RTC_DCHECK_RUN_ON(&packet_sequence_checker_);
    // |h26x_packet_buffer_| is created here instead of in the ctor because we
    // need to know the value of |sps_pps_id_is_h264_keyframe_|.
--  if (field_trials_.IsEnabled("WebRTC-Video-H26xPacketBuffer") &&
+-  if (env_.field_trials().IsEnabled("WebRTC-Video-H26xPacketBuffer") &&
 -      !h26x_packet_buffer_) {
 +  if (!h26x_packet_buffer_) {
      h26x_packet_buffer_ =
