@@ -12,6 +12,13 @@
 VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 パッチやビルドの変更のみ記録すること。
 
+## 2024-10-08
+
+- [FIX] `ios_simulcast.patch` のパッチと同等の処理が実装され不要になったため削除
+  - @tnoho
+- [FIX] macOS と iOS でビルドエラーが発生するのを `ios_fix_optional.patch` のパッチを当てて修正
+  - @tnoho
+
 ## 2024-09-19
 
 - [ADD] Ubuntu 24.04 armv8 に対応
