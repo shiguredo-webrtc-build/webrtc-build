@@ -221,17 +221,6 @@ bool success = [session configureWebRTCSession:nil];
    }
 ```
 
-## ios_simulcast.patch
-
-iOS でのサイマルキャストのサポートを追加するパッチ。次の機能を追加する。
-
-- サイマルキャストのエンコーダー (`RTCVideoEncoderFactorySimulcast`, `RTCVideoEncoderSimulcast`)
-  - この実装は C++ API の `SimulcastEncoderAdapter` の簡単なラッパーであり、新しいファイルを追加するので既存の仕様に破壊的変更を行わない
-- scalability mode のサポート (`RTCVideoCodecInfo`, `RTCRtpEncodingParameters`)
-  - C++ API でサポートされているプロパティを ObjC ラッパーに追加する
-
-同等の機能が本家に実装されるか、 PR を出して取り込まれたら削除する。
-
 ## ios_proxy.patch
 
 iOS での Proxy のサポートを追加するパッチ。
@@ -329,3 +318,7 @@ rtc_use_perfetto=false した時にコンパイルエラーになる問題を修
 
 M126 で perfetto を使うようになったけど、これは rtc_use_perfetto=false で無効にできるため試してみたところ、必要な部分が ifdef で囲まれていなかったためコンパイルエラーになった。
 このパッチはその問題を修正するもの。
+
+## ios_fix_optional.patch
+
+Abseil ライブラリではなく C++ 標準ライブラリを利用するようにするパッチ。
