@@ -1,0 +1,12 @@
+diff --git a/third_party/boringssl/src/pki/string_util.h b/third_party/boringssl/src/pki/string_util.h
+index 27be48594..1dad828c1 100644
+--- a/third_party/boringssl/src/pki/string_util.h
++++ b/third_party/boringssl/src/pki/string_util.h
+@@ -6,6 +6,7 @@
+ #define BSSL_PKI_STRING_UTIL_H_
+ 
+ #include <cstdint>
++#include <string>
+ #include <string_view>
+ #include <vector>
+ 
