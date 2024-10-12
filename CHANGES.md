@@ -43,6 +43,11 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 - [ADD] マルチコーデックサイマルキャスト対応のパッチを追加する
   - @melpon
 
+## 2024-08-19
+
+- [UPDATE] GitHub Actions Android のビルド環境を Ubuntu 22.04 に上げる
+  - @zztkm
+
 ## 2024-06-21
 
 - [ADD] Ubuntu 24.04 に対応

@@ -11,6 +11,7 @@
 #include "media/engine/internal_decoder_factory.h"
 
 #include "absl/strings/match.h"
+#include "api/environment/environment.h"
 #include "api/video_codecs/av1_profile.h"
 #include "api/video_codecs/sdp_video_format.h"
 #include "api/video_codecs/video_codec.h"
@@ -22,27 +23,27 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "system_wrappers/include/field_trial.h"
+
 #include "modules/video_coding/codecs/av1/dav1d_decoder.h"  // nogncheck
 
 namespace webrtc {
 namespace {
 constexpr bool kDav1dIsIncluded = true;
+
 }  // namespace
 
 std::vector<SdpVideoFormat> InternalDecoderFactory::GetSupportedFormats()
     const {
   std::vector<SdpVideoFormat> formats;
-  formats.push_back(SdpVideoFormat(cricket::kVp8CodecName));
+  formats.push_back(SdpVideoFormat::VP8());
   for (const SdpVideoFormat& format : SupportedVP9DecoderCodecs())
     formats.push_back(format);
   for (const SdpVideoFormat& h264_format : SupportedH264DecoderCodecs())
     formats.push_back(h264_format);
 
   if (kDav1dIsIncluded) {
-    formats.push_back(SdpVideoFormat(cricket::kAv1CodecName));
-    formats.push_back(SdpVideoFormat(
-        cricket::kAv1CodecName,
-        {{kAV1FmtpProfile, AV1ProfileToString(AV1Profile::kProfile1).data()}}));
+    formats.push_back(SdpVideoFormat::AV1Profile0());
+    formats.push_back(SdpVideoFormat::AV1Profile1());
   }
 
   return formats;
@@ -66,7 +67,8 @@ VideoDecoderFactory::CodecSupport InternalDecoderFactory::QueryCodecSupport(
   return codec_support;
 }
 
-std::unique_ptr<VideoDecoder> InternalDecoderFactory::CreateVideoDecoder(
+std::unique_ptr<VideoDecoder> InternalDecoderFactory::Create(
+    const Environment& env,
     const SdpVideoFormat& format) {
   if (!format.IsCodecInList(GetSupportedFormats())) {
     RTC_LOG(LS_WARNING) << "Trying to create decoder for unsupported format. "
@@ -75,7 +77,7 @@ std::unique_ptr<VideoDecoder> InternalDecoderFactory::CreateVideoDecoder(
   }
 
   if (absl::EqualsIgnoreCase(format.name, cricket::kVp8CodecName))
-    return VP8Decoder::Create();
+    return CreateVp8Decoder(env);
   if (absl::EqualsIgnoreCase(format.name, cricket::kVp9CodecName))
     return VP9Decoder::Create();
   if (absl::EqualsIgnoreCase(format.name, cricket::kH264CodecName))

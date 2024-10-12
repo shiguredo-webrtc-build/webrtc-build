@@ -350,6 +350,9 @@ int main() {
   av1_codec.kind = cricket::MEDIA_TYPE_VIDEO;
   av1_codec.name = "AV1";
   av1_codec.clock_rate = 90000;
+  av1_codec.parameters["level-idx"] = "5";
+  av1_codec.parameters["profile"] = "0";
+  av1_codec.parameters["tier"] = "0";
   init.direction = webrtc::RtpTransceiverDirection::kSendOnly;
   init.stream_ids = {"s0", "s1", "s2"};
   init.send_encodings.resize(3);

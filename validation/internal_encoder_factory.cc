@@ -37,12 +37,12 @@ std::vector<SdpVideoFormat> InternalEncoderFactory::GetSupportedFormats()
   return Factory().GetSupportedFormats();
 }
 
-std::unique_ptr<VideoEncoder> InternalEncoderFactory::CreateVideoEncoder(
+std::unique_ptr<VideoEncoder> InternalEncoderFactory::Create(
+    const Environment& env,
     const SdpVideoFormat& format) {
   auto original_format =
       FuzzyMatchSdpVideoFormat(Factory().GetSupportedFormats(), format);
-  return original_format ? Factory().CreateVideoEncoder(*original_format)
-                         : nullptr;
+  return original_format ? Factory().Create(env, *original_format) : nullptr;
 }
 
 VideoEncoderFactory::CodecSupport InternalEncoderFactory::QueryCodecSupport(
