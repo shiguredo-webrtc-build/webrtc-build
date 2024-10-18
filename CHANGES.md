@@ -28,3 +28,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - @melpon
 
 ## タイムライン
+
+- 2024-10-18 [RELEASE] m129.6668.1.1
+  - @melpon
+- 2024-10-18 [ADD] fix_moved_function_call.patch を追加
+  - @melpon
