@@ -329,3 +329,13 @@ rtc_use_perfetto=false した時にコンパイルエラーになる問題を修
 
 M126 で perfetto を使うようになったけど、これは rtc_use_perfetto=false で無効にできるため試してみたところ、必要な部分が ifdef で囲まれていなかったためコンパイルエラーになった。
 このパッチはその問題を修正するもの。
+
+## fix_moved_function_call.patch
+
+SesseionDescription のコールバック実行中に PeerConnection が破棄された時にクラッシュする問題を修正するパッチ。
+
+https://github.com/shiguredo/sora-cpp-sdk/blob/e1257a3e358e62512c0c77db5ba82f90e2e26353/src/session_description.cpp#L84-L94
+
+ここの中で sleep して、その間に SoraSignaling を破棄すると発生する。
+
+多分パッチを送った方がいいやつ。
