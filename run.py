@@ -221,7 +221,6 @@ PATCHES = {
         "revive_proxy.patch",
         "add_license_dav1d.patch",
         "macos_screen_capture.patch",
-        "ios_simulcast.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "macos_use_xcode_clang.patch",
         "h265.patch",
@@ -229,6 +228,7 @@ PATCHES = {
         "arm_neon_sve_bridge.patch",
         "dav1d_config_change.patch",
         "fix_perfetto.patch",
+        "ios_fix_optional.patch",
         "fix_moved_function_call.patch",
     ],
     "ios": [
@@ -238,7 +238,6 @@ PATCHES = {
         "add_license_dav1d.patch",
         "macos_screen_capture.patch",
         "ios_manual_audio_input.patch",
-        "ios_simulcast.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "ios_build.patch",
         "ios_proxy.patch",
@@ -247,6 +246,7 @@ PATCHES = {
         "arm_neon_sve_bridge.patch",
         "dav1d_config_change.patch",
         "fix_perfetto.patch",
+        "ios_fix_optional.patch",
         "fix_moved_function_call.patch",
     ],
     "android": [
