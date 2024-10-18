@@ -106,8 +106,6 @@ jobs:
             runs-on: ubuntu-20.04
           - name: raspberry-pi-os_armv8
             runs-on: ubuntu-20.04
-          - name: ubuntu-18.04_armv8
-            runs-on: ubuntu-20.04
           - name: ubuntu-20.04_armv8
             runs-on: ubuntu-20.04
           - name: ubuntu-22.04_armv8
@@ -206,9 +204,6 @@ jobs:
       - uses: ./.github/actions/download
         with:
           platform: raspberry-pi-os_armv8
-      - uses: ./.github/actions/download
-        with:
-          platform: ubuntu-18.04_armv8
       - uses: ./.github/actions/download
         with:
           platform: ubuntu-20.04_armv8

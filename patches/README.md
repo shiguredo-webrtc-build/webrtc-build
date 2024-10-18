@@ -322,3 +322,13 @@ M126 で perfetto を使うようになったけど、これは rtc_use_perfetto
 ## ios_fix_optional.patch
 
 Abseil ライブラリではなく C++ 標準ライブラリを利用するようにするパッチ。
+
+## fix_moved_function_call.patch
+
+SesseionDescription のコールバック実行中に PeerConnection が破棄された時にクラッシュする問題を修正するパッチ。
+
+https://github.com/shiguredo/sora-cpp-sdk/blob/e1257a3e358e62512c0c77db5ba82f90e2e26353/src/session_description.cpp#L84-L94
+
+ここの中で sleep して、その間に SoraSignaling を破棄すると発生する。
+
+多分パッチを送った方がいいやつ。

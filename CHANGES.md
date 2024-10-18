@@ -19,6 +19,11 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 - [FIX] macOS と iOS でビルドエラーが発生するのを `ios_fix_optional.patch` のパッチを当てて修正
   - @tnoho
 
+## 2024-09-20
+
+- [CHANGE] Ubuntu18.04 armv8 のビルドを削除
+  - @torikizi
+
 ## 2024-09-19
 
 - [ADD] Ubuntu 24.04 armv8 に対応
