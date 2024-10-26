@@ -1,0 +1,410 @@
+From c42162cacb762b3a343a0b7bd398ce77dd4ff69e Mon Sep 17 00:00:00 2001
+From: Shigemasa Watanabe <shigemasa7watanabe@gmail.com>
+Date: Thu, 03 Oct 2024 12:41:17 +0900
+Subject: [PATCH] Add multiple codec settings to RtpConfig for Mixed-codec simulcast.
+
+I have implemented that adds multiple codec settings to RtpConfig and
+passes them down to the lower layers from WebRtcVideoSendChannel.
+
+Bug: webrtc:362277533
+Change-Id: I088d6583f7dcbd4de5deb1e9e08c80a6dc10494f
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/364440
+Reviewed-by: Florent Castelli <orphis@webrtc.org>
+Commit-Queue: Florent Castelli <orphis@webrtc.org>
+Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
+Cr-Commit-Position: refs/heads/main@{#43166}
+---
+
+diff --git a/call/rtp_config.cc b/call/rtp_config.cc
+index 4c9afeb..02cc0f4 100644
+--- a/call/rtp_config.cc
++++ b/call/rtp_config.cc
+@@ -70,6 +70,30 @@
+          red_rtx_payload_type == other.red_rtx_payload_type;
+ }
+ 
++std::string RtpStreamConfig::ToString() const {
++  char buf[1024];
++  rtc::SimpleStringBuilder ss(buf);
++  ss << "{ssrc: " << ssrc;
++  ss << ", rid: " << rid;
++  ss << ", payload_name: " << payload_name;
++  ss << ", payload_type: " << payload_type;
++  ss << ", raw_payload: " << (raw_payload ? "true" : "false");
++  if (rtx.has_value()) {
++    ss << ", rtx: " << rtx->ToString();
++  }
++  ss << '}';
++  return ss.str();
++}
++
++std::string RtpStreamConfig::Rtx::ToString() const {
++  char buf[1024];
++  rtc::SimpleStringBuilder ss(buf);
++  ss << "{ssrc: " << ssrc;
++  ss << ", payload_type: " << payload_type;
++  ss << '}';
++  return ss.str();
++}
++
+ RtpConfig::RtpConfig() = default;
+ RtpConfig::RtpConfig(const RtpConfig&) = default;
+ RtpConfig::~RtpConfig() = default;
+@@ -114,6 +138,14 @@
+   ss << ", payload_type: " << payload_type;
+   ss << ", raw_payload: " << (raw_payload ? "true" : "false");
+ 
++  ss << ", stream_configs: [";
++  for (size_t i = 0; i < stream_configs.size(); ++i) {
++    ss << stream_configs[i].ToString();
++    if (i != stream_configs.size() - 1)
++      ss << ", ";
++  }
++  ss << ']';
++
+   ss << ", flexfec: {payload_type: " << flexfec.payload_type;
+   ss << ", ssrc: " << flexfec.ssrc;
+   ss << ", protected_media_ssrcs: [";
+diff --git a/call/rtp_config.h b/call/rtp_config.h
+index 0e667b2..6b79e55 100644
+--- a/call/rtp_config.h
++++ b/call/rtp_config.h
+@@ -68,6 +68,25 @@
+   int red_rtx_payload_type;
+ };
+ 
++struct RtpStreamConfig {
++  std::string ToString() const;
++
++  uint32_t ssrc = 0;
++  std::string rid;
++  std::string payload_name;
++  int payload_type = -1;
++  bool raw_payload = false;
++  struct Rtx {
++    std::string ToString() const;
++    // SSRC to use for the RTX stream.
++    uint32_t ssrc = 0;
++
++    // Payload type to use for the RTX stream.
++    int payload_type = -1;
++  };
++  std::optional<Rtx> rtx;
++};
++
+ static const size_t kDefaultMaxPacketSize = 1500 - 40;  // TCP over IPv4.
+ struct RtpConfig {
+   RtpConfig();
+@@ -115,6 +134,9 @@
+   // frame descriptor RTP header extension).
+   bool raw_payload = false;
+ 
++  // Configurations for each RTP stream
++  std::vector<RtpStreamConfig> stream_configs;
++
+   // See LntfConfig for description.
+   LntfConfig lntf;
+ 
+diff --git a/media/engine/webrtc_video_engine.cc b/media/engine/webrtc_video_engine.cc
+index 1a44a47..a094443 100644
+--- a/media/engine/webrtc_video_engine.cc
++++ b/media/engine/webrtc_video_engine.cc
+@@ -1115,7 +1115,41 @@
+     } else if (send_codec() != negotiated_codecs.front()) {
+       changed_params->send_codec = negotiated_codecs.front();
+     }
+-    changed_params->negotiated_codecs = std::move(negotiated_codecs);
++    changed_params->negotiated_codecs = negotiated_codecs;
++  }
++
++  // For mixed-codec simulcast
++  std::vector<VideoCodecSettings> send_codecs;
++  if (!send_streams_.empty() && !negotiated_codecs.empty()) {
++    bool needs_update = false;
++    auto rtp_parameters = send_streams_.begin()->second->GetRtpParameters();
++    for (auto& encoding : rtp_parameters.encodings) {
++      if (encoding.codec) {
++        auto matched_codec =
++            absl::c_find_if(negotiated_codecs, [&](auto negotiated_codec) {
++              return negotiated_codec.codec.MatchesRtpCodec(*encoding.codec);
++            });
++        if (matched_codec != negotiated_codecs.end()) {
++          send_codecs.push_back(*matched_codec);
++        } else {
++          // The requested codec has been negotiated away, we clear it from the
++          // parameters.
++          encoding.codec.reset();
++          needs_update = true;
++          send_codecs.push_back(negotiated_codecs.front());
++        }
++      } else {
++        send_codecs.push_back(negotiated_codecs.front());
++      }
++    }
++
++    if (needs_update) {
++      send_streams_.begin()->second->SetRtpParameters(rtp_parameters, nullptr);
++    }
++  }
++
++  if (send_codecs_ != send_codecs) {
++    changed_params->send_codecs = send_codecs;
+   }
+ 
+   // Handle RTP header extensions.
+@@ -1249,6 +1283,9 @@
+   if (changed_params.send_codec)
+     send_codec() = changed_params.send_codec;
+ 
++  if (changed_params.send_codecs)
++    send_codecs_ = *changed_params.send_codecs;
++
+   if (changed_params.extmap_allow_mixed) {
+     SetExtmapAllowMixed(*changed_params.extmap_allow_mixed);
+   }
+@@ -1511,7 +1548,7 @@
+   WebRtcVideoSendStream* stream = new WebRtcVideoSendStream(
+       call_, sp, std::move(config), default_send_options_,
+       video_config_.enable_cpu_adaptation, bitrate_config_.max_bitrate_bps,
+-      send_codec(), send_rtp_extensions_, send_params_);
++      send_codec(), send_codecs_, send_rtp_extensions_, send_params_);
+ 
+   uint32_t ssrc = sp.first_ssrc();
+   RTC_DCHECK(ssrc != 0);
+@@ -1716,12 +1753,14 @@
+         webrtc::VideoSendStream::Config config,
+         const VideoOptions& options,
+         int max_bitrate_bps,
+-        const std::optional<VideoCodecSettings>& codec_settings)
++        const std::optional<VideoCodecSettings>& codec_settings,
++        const std::vector<VideoCodecSettings>& codec_settings_list)
+     : config(std::move(config)),
+       options(options),
+       max_bitrate_bps(max_bitrate_bps),
+       conference_mode(false),
+-      codec_settings(codec_settings) {}
++      codec_settings(codec_settings),
++      codec_settings_list(codec_settings_list) {}
+ 
+ WebRtcVideoSendChannel::WebRtcVideoSendStream::WebRtcVideoSendStream(
+     webrtc::Call* call,
+@@ -1731,6 +1770,7 @@
+     bool enable_cpu_overuse_detection,
+     int max_bitrate_bps,
+     const std::optional<VideoCodecSettings>& codec_settings,
++    const std::vector<VideoCodecSettings>& codec_settings_list,
+     const std::optional<std::vector<webrtc::RtpExtension>>& rtp_extensions,
+     // TODO(deadbeef): Don't duplicate information between send_params,
+     // rtp_extensions, options, etc.
+@@ -1742,7 +1782,11 @@
+       enable_cpu_overuse_detection_(enable_cpu_overuse_detection),
+       source_(nullptr),
+       stream_(nullptr),
+-      parameters_(std::move(config), options, max_bitrate_bps, codec_settings),
++      parameters_(std::move(config),
++                  options,
++                  max_bitrate_bps,
++                  codec_settings,
++                  codec_settings_list),
+       rtp_parameters_(CreateRtpParametersWithEncodings(sp)),
+       sending_(false),
+       disable_automatic_resize_(
+@@ -1801,7 +1845,7 @@
+   rtp_parameters_.rtcp.reduced_size = send_params.rtcp.reduced_size;
+ 
+   if (codec_settings) {
+-    SetCodec(*codec_settings);
++    SetCodec(*codec_settings, codec_settings_list);
+   }
+ }
+ 
+@@ -1827,7 +1871,7 @@
+       // If screen content settings change, we may need to recreate the codec
+       // instance so that the correct type is used.
+ 
+-      SetCodec(*parameters_.codec_settings);
++      SetCodec(*parameters_.codec_settings, parameters_.codec_settings_list);
+       // Mark screenshare parameter as being updated, then test for any other
+       // changes that may require codec reconfiguration.
+       old_options.is_screencast = options->is_screencast;
+@@ -1902,7 +1946,8 @@
+ }
+ 
+ void WebRtcVideoSendChannel::WebRtcVideoSendStream::SetCodec(
+-    const VideoCodecSettings& codec_settings) {
++    const VideoCodecSettings& codec_settings,
++    const std::vector<VideoCodecSettings>& codec_settings_list) {
+   RTC_DCHECK_RUN_ON(&thread_checker_);
+   FallbackToDefaultScalabilityModeIfNotSupported(
+       codec_settings.codec, parameters_.config, rtp_parameters_.encodings);
+@@ -1939,6 +1984,32 @@
+ 
+   parameters_.codec_settings = codec_settings;
+ 
++  // Settings for mixed-codec simulcast
++  if (!codec_settings_list.empty()) {
++    RTC_DCHECK_EQ(parameters_.config.rtp.ssrcs.size(),
++                  codec_settings_list.size());
++    parameters_.config.rtp.stream_configs.resize(
++        parameters_.config.rtp.ssrcs.size());
++    for (size_t i = 0; i < codec_settings_list.size(); i++) {
++      auto& stream_config = parameters_.config.rtp.stream_configs[i];
++      const auto& cs = codec_settings_list[i];
++      stream_config.ssrc = parameters_.config.rtp.ssrcs[i];
++      if (i < parameters_.config.rtp.rids.size()) {
++        stream_config.rid = parameters_.config.rtp.rids[i];
++      }
++      stream_config.payload_name = cs.codec.name;
++      stream_config.payload_type = cs.codec.id;
++      stream_config.raw_payload =
++          cs.codec.packetization == kPacketizationParamRaw;
++      if (i < parameters_.config.rtp.rtx.ssrcs.size()) {
++        auto& rtx = stream_config.rtx.emplace();
++        rtx.ssrc = parameters_.config.rtp.rtx.ssrcs[i];
++        rtx.payload_type = cs.rtx_payload_type;
++      }
++    }
++  }
++  parameters_.codec_settings_list = codec_settings_list;
++
+   // TODO(bugs.webrtc.org/8830): Avoid recreation, it should be enough to call
+   // ReconfigureEncoder.
+   RTC_LOG(LS_INFO) << "RecreateWebRtcStream (send) because of SetCodec.";
+@@ -1980,10 +2051,11 @@
+ 
+   // Set codecs and options.
+   if (params.send_codec) {
+-    SetCodec(*params.send_codec);
++    SetCodec(*params.send_codec,
++             params.send_codecs.value_or(parameters_.codec_settings_list));
+     recreate_stream = false;  // SetCodec has already recreated the stream.
+   } else if (params.conference_mode && parameters_.codec_settings) {
+-    SetCodec(*parameters_.codec_settings);
++    SetCodec(*parameters_.codec_settings, parameters_.codec_settings_list);
+     recreate_stream = false;  // SetCodec has already recreated the stream.
+   }
+   if (recreate_stream) {
+@@ -2023,7 +2095,9 @@
+         (new_parameters.encodings[i].requested_resolution !=
+          rtp_parameters_.encodings[i].requested_resolution) ||
+         (new_parameters.encodings[i].scalability_mode !=
+-         rtp_parameters_.encodings[i].scalability_mode)) {
++         rtp_parameters_.encodings[i].scalability_mode) ||
++        (new_parameters.encodings[i].codec !=
++         rtp_parameters_.encodings[i].codec)) {
+       new_param = true;
+       break;
+     }
+diff --git a/media/engine/webrtc_video_engine.h b/media/engine/webrtc_video_engine.h
+index f5b5063..5224929 100644
+--- a/media/engine/webrtc_video_engine.h
++++ b/media/engine/webrtc_video_engine.h
+@@ -292,6 +292,7 @@
+     // These optionals are unset if not changed.
+     std::optional<VideoCodecSettings> send_codec;
+     std::optional<std::vector<VideoCodecSettings>> negotiated_codecs;
++    std::optional<std::vector<VideoCodecSettings>> send_codecs;
+     std::optional<std::vector<webrtc::RtpExtension>> rtp_header_extensions;
+     std::optional<std::string> mid;
+     std::optional<bool> extmap_allow_mixed;
+@@ -327,6 +328,7 @@
+         bool enable_cpu_overuse_detection,
+         int max_bitrate_bps,
+         const std::optional<VideoCodecSettings>& codec_settings,
++        const std::vector<VideoCodecSettings>& codec_settings_list,
+         const std::optional<std::vector<webrtc::RtpExtension>>& rtp_extensions,
+         const VideoSenderParameters& send_params);
+     ~WebRtcVideoSendStream();
+@@ -374,12 +376,14 @@
+           webrtc::VideoSendStream::Config config,
+           const VideoOptions& options,
+           int max_bitrate_bps,
+-          const std::optional<VideoCodecSettings>& codec_settings);
++          const std::optional<VideoCodecSettings>& codec_settings,
++          const std::vector<VideoCodecSettings>& codec_settings_list);
+       webrtc::VideoSendStream::Config config;
+       VideoOptions options;
+       int max_bitrate_bps;
+       bool conference_mode;
+       std::optional<VideoCodecSettings> codec_settings;
++      std::vector<VideoCodecSettings> codec_settings_list;
+       // Sent resolutions + bitrates etc. by the underlying VideoSendStream,
+       // typically changes when setting a new resolution or reconfiguring
+       // bitrates.
+@@ -388,7 +392,8 @@
+ 
+     rtc::scoped_refptr<webrtc::VideoEncoderConfig::EncoderSpecificSettings>
+     ConfigureVideoEncoderSettings(const Codec& codec);
+-    void SetCodec(const VideoCodecSettings& codec);
++    void SetCodec(const VideoCodecSettings& codec,
++                  const std::vector<VideoCodecSettings>& codec_settings_list);
+     void RecreateWebRtcStream();
+     webrtc::VideoEncoderConfig CreateVideoEncoderConfig(
+         const Codec& codec) const;
+@@ -499,6 +504,7 @@
+   std::optional<VideoCodecSettings> send_codec_ RTC_GUARDED_BY(thread_checker_);
+   std::vector<VideoCodecSettings> negotiated_codecs_
+       RTC_GUARDED_BY(thread_checker_);
++  std::vector<VideoCodecSettings> send_codecs_ RTC_GUARDED_BY(thread_checker_);
+ 
+   std::vector<webrtc::RtpExtension> send_rtp_extensions_
+       RTC_GUARDED_BY(thread_checker_);
+diff --git a/media/engine/webrtc_video_engine_unittest.cc b/media/engine/webrtc_video_engine_unittest.cc
+index cc92fcd..a271584 100644
+--- a/media/engine/webrtc_video_engine_unittest.cc
++++ b/media/engine/webrtc_video_engine_unittest.cc
+@@ -8846,6 +8846,54 @@
+   EXPECT_TRUE(send_channel_->SetVideoSend(last_ssrc_, nullptr, nullptr));
+ }
+ 
++TEST_F(WebRtcVideoChannelTest, SetMixedCodecSimulcastStreamConfig) {
++  webrtc::test::ScopedKeyValueConfig field_trials(
++      field_trials_, "WebRTC-MixedCodecSimulcast/Enabled/");
++
++  StreamParams sp = CreateSimStreamParams("cname", {123, 456, 789});
++
++  std::vector<cricket::RidDescription> rid_descriptions;
++  rid_descriptions.emplace_back("f", cricket::RidDirection::kSend);
++  rid_descriptions.emplace_back("h", cricket::RidDirection::kSend);
++  rid_descriptions.emplace_back("q", cricket::RidDirection::kSend);
++  sp.set_rids(rid_descriptions);
++
++  ASSERT_TRUE(send_channel_->AddSendStream(sp));
++
++  webrtc::RtpParameters rtp_parameters =
++      send_channel_->GetRtpSendParameters(last_ssrc_);
++  EXPECT_EQ(3UL, rtp_parameters.encodings.size());
++  cricket::Codec vp8 = GetEngineCodec("VP8");
++  cricket::Codec vp9 = GetEngineCodec("VP9");
++  rtp_parameters.encodings[0].codec = vp8.ToCodecParameters();
++  rtp_parameters.encodings[1].codec = vp8.ToCodecParameters();
++  rtp_parameters.encodings[2].codec = vp9.ToCodecParameters();
++  EXPECT_TRUE(
++      send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters).ok());
++
++  cricket::VideoSenderParameters parameters;
++  parameters.codecs.push_back(vp8);
++  parameters.codecs.push_back(vp9);
++  EXPECT_TRUE(send_channel_->SetSenderParameters(parameters));
++
++  const auto& streams = fake_call_->GetVideoSendStreams();
++  ASSERT_EQ(1u, streams.size());
++  auto stream = streams[0];
++  ASSERT_NE(stream, nullptr);
++  const auto& config = stream->GetConfig();
++  // RtpStreamConfig should have the correct codec name and payload type.
++  ASSERT_THAT(config.rtp.stream_configs, SizeIs(3));
++  EXPECT_EQ(config.rtp.stream_configs[0].rid, "f");
++  EXPECT_EQ(config.rtp.stream_configs[1].rid, "h");
++  EXPECT_EQ(config.rtp.stream_configs[2].rid, "q");
++  EXPECT_EQ(config.rtp.stream_configs[0].payload_name, vp8.name);
++  EXPECT_EQ(config.rtp.stream_configs[1].payload_name, vp8.name);
++  EXPECT_EQ(config.rtp.stream_configs[2].payload_name, vp9.name);
++  EXPECT_EQ(config.rtp.stream_configs[0].payload_type, vp8.id);
++  EXPECT_EQ(config.rtp.stream_configs[1].payload_type, vp8.id);
++  EXPECT_EQ(config.rtp.stream_configs[2].payload_type, vp9.id);
++}
++
+ // Test that min and max bitrate values set via RtpParameters are correctly
+ // propagated to the underlying encoder for a single stream.
+ TEST_F(WebRtcVideoChannelTest, MinAndMaxBitratePropagatedToEncoder) {

@@ -1,0 +1,195 @@
+From d2123d9a38420b5c33c8ba59c9b4ecc0ba96b098 Mon Sep 17 00:00:00 2001
+From: Shigemasa Watanabe <shigemasa7watanabe@gmail.com>
+Date: Fri, 06 Sep 2024 21:44:08 +0900
+Subject: [PATCH] Associate payload_type with rid
+
+When a value is set in RtpEncodingParameters::codec, the corresponding
+payload_type will be set in the SDP a=rid: line.
+
+a=rtpmap:96 VP8/90000
+...
+a=rtpmap:97 VP9/90000
+...
+a=rid:r0 send pt=96
+a=rid:r1 send pt=97
+
+Bug: webrtc:362277533
+Change-Id: Ia9688a5fc83c53cf46621d97e87f8dd363a4d7f0
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/361240
+Reviewed-by: Harald Alvestrand <hta@webrtc.org>
+Commit-Queue: Florent Castelli <orphis@webrtc.org>
+Reviewed-by: Florent Castelli <orphis@webrtc.org>
+Cr-Commit-Position: refs/heads/main@{#43049}
+---
+
+diff --git a/AUTHORS b/AUTHORS
+index 064e126..971987d 100644
+--- a/AUTHORS
++++ b/AUTHORS
+@@ -122,6 +122,7 @@
+ Saul Kravitz <Saul.Kravitz@celera.com>
+ Sergio Garcia Murillo <sergio.garcia.murillo@gmail.com>
+ Shaofan Qi <vshaqi@gmail.com>
++Shigemasa Watanabe <shigemasa7watanabe@gmail.com>
+ Shuhai Peng <shuhai.peng@intel.com>
+ Seija <doremylover123@gmail.com>
+ Silviu Caragea <silviu.cpp@gmail.com>
+diff --git a/pc/rtp_sender.h b/pc/rtp_sender.h
+index 6c654ca..d8a4d82 100644
+--- a/pc/rtp_sender.h
++++ b/pc/rtp_sender.h
+@@ -105,6 +105,7 @@
+   // Used by the owning transceiver to inform the sender on the currently
+   // selected codecs.
+   virtual void SetSendCodecs(std::vector<cricket::Codec> send_codecs) = 0;
++  virtual std::vector<cricket::Codec> GetSendCodecs() const = 0;
+ };
+ 
+ // Shared implementation for RtpSenderInternal interface.
+@@ -225,6 +226,9 @@
+   void SetSendCodecs(std::vector<cricket::Codec> send_codecs) override {
+     send_codecs_ = send_codecs;
+   }
++  std::vector<cricket::Codec> GetSendCodecs() const override {
++    return send_codecs_;
++  }
+ 
+  protected:
+   // If `set_streams_observer` is not null, it is invoked when SetStreams()
+diff --git a/pc/sdp_offer_answer.cc b/pc/sdp_offer_answer.cc
+index 9d49296..5386faf 100644
+--- a/pc/sdp_offer_answer.cc
++++ b/pc/sdp_offer_answer.cc
+@@ -794,7 +794,17 @@
+     if (encoding.rid.empty()) {
+       continue;
+     }
+-    send_rids.push_back(RidDescription(encoding.rid, RidDirection::kSend));
++    auto send_rid = RidDescription(encoding.rid, RidDirection::kSend);
++    if (encoding.codec) {
++      auto send_codecs = transceiver->sender_internal()->GetSendCodecs();
++      for (const cricket::Codec& codec : send_codecs) {
++        if (codec.MatchesRtpCodec(*encoding.codec)) {
++          send_rid.payload_types.push_back(codec.id);
++          break;
++        }
++      }
++    }
++    send_rids.push_back(send_rid);
+     send_layers.AddLayer(SimulcastLayer(encoding.rid, !encoding.active));
+   }
+ 
+diff --git a/pc/sdp_offer_answer_unittest.cc b/pc/sdp_offer_answer_unittest.cc
+index 1ee5215..3cbda98 100644
+--- a/pc/sdp_offer_answer_unittest.cc
++++ b/pc/sdp_offer_answer_unittest.cc
+@@ -41,7 +41,9 @@
+ #include "rtc_base/rtc_certificate_generator.h"
+ #include "rtc_base/thread.h"
+ #include "system_wrappers/include/metrics.h"
++#include "test/gmock.h"
+ #include "test/gtest.h"
++#include "test/scoped_key_value_config.h"
+ 
+ // This file contains unit tests that relate to the behavior of the
+ // SdpOfferAnswer module.
+@@ -87,7 +89,9 @@
+                                             OpenH264DecoderTemplateAdapter,
+                                             Dav1dDecoderTemplateAdapter>>(),
+             nullptr /* audio_mixer */,
+-            nullptr /* audio_processing */)) {
++            nullptr /* audio_processing */,
++            nullptr /* audio_frame_processor */,
++            std::make_unique<test::ScopedKeyValueConfig>(field_trials_, ""))) {
+     metrics::Reset();
+   }
+ 
+@@ -108,7 +112,21 @@
+         pc_factory_, result.MoveValue(), std::move(observer));
+   }
+ 
++  std::optional<RtpCodecCapability> FindFirstSendCodecWithName(
++      cricket::MediaType media_type,
++      const std::string& name) const {
++    std::vector<RtpCodecCapability> codecs =
++        pc_factory_->GetRtpSenderCapabilities(media_type).codecs;
++    for (const auto& codec : codecs) {
++      if (absl::EqualsIgnoreCase(codec.name, name)) {
++        return codec;
++      }
++    }
++    return std::nullopt;
++  }
++
+  protected:
++  test::ScopedKeyValueConfig field_trials_;
+   std::unique_ptr<rtc::Thread> signaling_thread_;
+   rtc::scoped_refptr<PeerConnectionFactoryInterface> pc_factory_;
+ 
+@@ -610,6 +628,51 @@
+   EXPECT_TRUE(pc->SetRemoteDescription(std::move(rejected_answer)));
+ }
+ 
++TEST_F(SdpOfferAnswerTest, SimulcastOfferWithMixedCodec) {
++  test::ScopedKeyValueConfig field_trials(
++      field_trials_, "WebRTC-MixedCodecSimulcast/Enabled/");
++
++  auto pc = CreatePeerConnection();
++
++  std::optional<RtpCodecCapability> vp8_codec = FindFirstSendCodecWithName(
++      cricket::MEDIA_TYPE_VIDEO, cricket::kVp8CodecName);
++  ASSERT_TRUE(vp8_codec);
++  std::optional<RtpCodecCapability> vp9_codec = FindFirstSendCodecWithName(
++      cricket::MEDIA_TYPE_VIDEO, cricket::kVp9CodecName);
++  ASSERT_TRUE(vp9_codec);
++
++  RtpTransceiverInit init;
++  RtpEncodingParameters rid1;
++  rid1.rid = "1";
++  rid1.codec = *vp8_codec;
++  init.send_encodings.push_back(rid1);
++  RtpEncodingParameters rid2;
++  rid2.rid = "2";
++  rid2.codec = *vp9_codec;
++  init.send_encodings.push_back(rid2);
++
++  auto transceiver = pc->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
++  auto offer = pc->CreateOffer();
++  auto& offer_contents = offer->description()->contents();
++  auto send_codecs = offer_contents[0].media_description()->codecs();
++  // Verify that the serialized SDP includes pt=.
++  std::string sdp;
++  offer->ToString(&sdp);
++  EXPECT_THAT(sdp, testing::HasSubstr("a=rid:1 send pt=" +
++                                      std::to_string(send_codecs[0].id)));
++  EXPECT_THAT(sdp, testing::HasSubstr("a=rid:2 send pt=" +
++                                      std::to_string(send_codecs[1].id)));
++  // Verify that SDP containing pt= can be parsed correctly.
++  auto offer2 = CreateSessionDescription(SdpType::kOffer, sdp);
++  auto& offer_contents2 = offer2->description()->contents();
++  auto send_rids2 = offer_contents2[0].media_description()->streams()[0].rids();
++  auto send_codecs2 = offer_contents2[0].media_description()->codecs();
++  EXPECT_EQ(send_rids2[0].payload_types.size(), 1u);
++  EXPECT_EQ(send_rids2[0].payload_types[0], send_codecs2[0].id);
++  EXPECT_EQ(send_rids2[1].payload_types.size(), 1u);
++  EXPECT_EQ(send_rids2[1].payload_types[0], send_codecs2[1].id);
++}
++
+ TEST_F(SdpOfferAnswerTest, ExpectAllSsrcsSpecifiedInSsrcGroupFid) {
+   auto pc = CreatePeerConnection();
+   std::string sdp =
+diff --git a/pc/test/mock_rtp_sender_internal.h b/pc/test/mock_rtp_sender_internal.h
+index 925e9ec..a8ef817 100644
+--- a/pc/test/mock_rtp_sender_internal.h
++++ b/pc/test/mock_rtp_sender_internal.h
+@@ -69,6 +69,10 @@
+               (const RtpParameters&),
+               (override));
+   MOCK_METHOD(void, SetSendCodecs, (std::vector<cricket::Codec>), (override));
++  MOCK_METHOD(std::vector<cricket::Codec>,
++              GetSendCodecs,
++              (),
++              (const, override));
+   MOCK_METHOD(rtc::scoped_refptr<DtmfSenderInterface>,
+               GetDtmfSender,
+               (),

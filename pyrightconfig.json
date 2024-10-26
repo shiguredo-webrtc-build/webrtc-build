@@ -1,0 +1,7 @@
+{
+    "exclude": [
+        "_source/**",
+        "_build/**",
+        "_package/**"
+    ]
+}
