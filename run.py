@@ -200,6 +200,7 @@ PATCHES = {
         "h265.patch",
         "fix_perfetto.patch",
         "fix_windows_boringssl_string_util.patch",
+        "fix_moved_function_call.patch",
         "multi_codec_simulcast.patch",
     ],
     "windows_arm64": [
@@ -214,6 +215,7 @@ PATCHES = {
         "h265.patch",
         "fix_perfetto.patch",
         "fix_windows_boringssl_string_util.patch",
+        "fix_moved_function_call.patch",
         "multi_codec_simulcast.patch",
     ],
     "macos_arm64": [
@@ -230,6 +232,7 @@ PATCHES = {
         "arm_neon_sve_bridge.patch",
         "dav1d_config_change.patch",
         "fix_perfetto.patch",
+        "fix_moved_function_call.patch",
         "multi_codec_simulcast.patch",
     ],
     "ios": [
@@ -248,6 +251,7 @@ PATCHES = {
         "arm_neon_sve_bridge.patch",
         "dav1d_config_change.patch",
         "fix_perfetto.patch",
+        "fix_moved_function_call.patch",
         "multi_codec_simulcast.patch",
     ],
     "android": [
@@ -264,6 +268,7 @@ PATCHES = {
         "h265.patch",
         "h265_android.patch",
         "fix_perfetto.patch",
+        "fix_moved_function_call.patch",
         "multi_codec_simulcast.patch",
     ],
     "raspberry-pi-os_armv6": [
@@ -275,6 +280,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "fix_perfetto.patch",
+        "fix_moved_function_call.patch",
         "multi_codec_simulcast.patch",
     ],
     "raspberry-pi-os_armv7": [
@@ -285,6 +291,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "fix_perfetto.patch",
+        "fix_moved_function_call.patch",
         "multi_codec_simulcast.patch",
     ],
     "raspberry-pi-os_armv8": [
@@ -295,16 +302,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "fix_perfetto.patch",
-        "multi_codec_simulcast.patch",
-    ],
-    "ubuntu-18.04_armv8": [
-        "add_deps.patch",
-        "4k.patch",
-        "revive_proxy.patch",
-        "add_license_dav1d.patch",
-        "ssl_verify_callback_with_native_handle.patch",
-        "h265.patch",
-        "fix_perfetto.patch",
+        "fix_moved_function_call.patch",
         "multi_codec_simulcast.patch",
     ],
     "ubuntu-20.04_armv8": [
@@ -315,6 +313,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "fix_perfetto.patch",
+        "fix_moved_function_call.patch",
         "multi_codec_simulcast.patch",
     ],
     "ubuntu-22.04_armv8": [
@@ -325,6 +324,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "fix_perfetto.patch",
+        "fix_moved_function_call.patch",
         "multi_codec_simulcast.patch",
     ],
     "ubuntu-24.04_armv8": [
@@ -335,6 +335,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "fix_perfetto.patch",
+        "fix_moved_function_call.patch",
     ],
     "ubuntu-20.04_x86_64": [
         "add_deps.patch",
@@ -344,6 +345,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "fix_perfetto.patch",
+        "fix_moved_function_call.patch",
         "multi_codec_simulcast.patch",
     ],
     "ubuntu-22.04_x86_64": [
@@ -354,6 +356,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "fix_perfetto.patch",
+        "fix_moved_function_call.patch",
         "multi_codec_simulcast.patch",
     ],
     "ubuntu-24.04_x86_64": [
@@ -364,6 +367,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "fix_perfetto.patch",
+        "fix_moved_function_call.patch",
         "multi_codec_simulcast.patch",
     ],
 }
@@ -415,7 +419,19 @@ def apply_patches(target, patch_dir, src_dir, patch_until, commit_patch):
             apply_patch(os.path.join(patch_dir, patch), src_dir, 1)
             if patch == patch_until and not commit_patch:
                 break
-            cmd(["gclient", "recurse", "git", "add", "--", ":!*.orig", ":!*.rej"])
+            cmd(
+                [
+                    "gclient",
+                    "recurse",
+                    "git",
+                    "add",
+                    "--",
+                    ":!*.orig",
+                    ":!*.rej",
+                    ":!:__config_site",
+                    ":!:__assertion_handler",
+                ]
+            )
             cmd(
                 [
                     "gclient",
@@ -503,7 +519,20 @@ def diff_webrtc(source_dir, webrtc_source_dir):
 
     src_dir = os.path.join(webrtc_source_dir, "src")
     with cd(src_dir):
-        cmd(["gclient", "recurse", "git", "add", "-N", "--", ":!*.orig", ":!*.rej"])
+        cmd(
+            [
+                "gclient",
+                "recurse",
+                "git",
+                "add",
+                "-N",
+                "--",
+                ":!*.orig",
+                ":!*.rej",
+                ":!:__config_site",
+                ":!:__assertion_handler",
+            ]
+        )
         dirs = _deps_dirs(src_dir)
         for dir in dirs:
             with cd(dir):
@@ -572,11 +601,6 @@ MULTISTRAP_CONFIGS = {
     ),
     "raspberry-pi-os_armv8": MultistrapConfig(
         config_file=["multistrap", "raspberry-pi-os_armv8.conf"],
-        arch="arm64",
-        triplet="aarch64-linux-gnu",
-    ),
-    "ubuntu-18.04_armv8": MultistrapConfig(
-        config_file=["multistrap", "ubuntu-18.04_armv8.conf"],
         arch="arm64",
         triplet="aarch64-linux-gnu",
     ),
@@ -981,7 +1005,6 @@ def build_webrtc(
             "raspberry-pi-os_armv6",
             "raspberry-pi-os_armv7",
             "raspberry-pi-os_armv8",
-            "ubuntu-18.04_armv8",
             "ubuntu-20.04_armv8",
             "ubuntu-22.04_armv8",
             "ubuntu-24.04_armv8",
@@ -989,7 +1012,6 @@ def build_webrtc(
             sysroot = os.path.join(source_dir, "rootfs")
             arm64_set = (
                 "raspberry-pi-os_armv8",
-                "ubuntu-18.04_armv8",
                 "ubuntu-20.04_armv8",
                 "ubuntu-22.04_armv8",
                 "ubuntu-24.04_armv8",
@@ -1305,7 +1327,6 @@ TARGETS = [
     "ubuntu-20.04_x86_64",
     "ubuntu-22.04_x86_64",
     "ubuntu-24.04_x86_64",
-    "ubuntu-18.04_armv8",
     "ubuntu-20.04_armv8",
     "ubuntu-22.04_armv8",
     "ubuntu-24.04_armv8",
@@ -1341,7 +1362,6 @@ def check_target(target):
 
         # クロスコンパイルなので Ubuntu だったら任意のバージョンでビルド可能（なはず）
         if target in (
-            "ubuntu-18.04_armv8",
             "ubuntu-20.04_armv8",
             "ubuntu-22.04_armv8",
             "ubuntu-24.04_armv8",
