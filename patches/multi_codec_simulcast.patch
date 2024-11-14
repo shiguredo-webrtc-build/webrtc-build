@@ -637,7 +637,7 @@ index d7130437e6..dd7b9aaa89 100644
    webrtc::VideoCodec MakeStreamCodec(const webrtc::VideoCodec& codec,
                                       int stream_idx,
 diff --git a/media/engine/webrtc_video_engine.cc b/media/engine/webrtc_video_engine.cc
-index ac7d0f884a..89cfc6030c 100644
+index ac7d0f884a..9852b80590 100644
 --- a/media/engine/webrtc_video_engine.cc
 +++ b/media/engine/webrtc_video_engine.cc
 @@ -396,15 +396,15 @@ static bool ValidateStreamParams(const StreamParams& sp) {
@@ -982,6 +982,30 @@ index ac7d0f884a..89cfc6030c 100644
      encoder_config.simulcast_layers[i].requested_resolution =
          rtp_parameters_.encodings[i].requested_resolution;
    }
+@@ -2269,8 +2381,9 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::ReconfigureEncoder(
+   // Latest config, with and without encoder specfic settings.
+   webrtc::VideoEncoderConfig encoder_config =
+       CreateVideoEncoderConfig(codec_settings.codec);
+-  encoder_config.encoder_specific_settings =
+-      ConfigureVideoEncoderSettings(codec_settings.codec);
++  // encoder_config.encoder_specific_settings =
++  //     ConfigureVideoEncoderSettings(codec_settings.codec);
++  encoder_config.encoder_specific_settings = nullptr;
+   webrtc::VideoEncoderConfig encoder_config_with_specifics =
+       encoder_config.Copy();
+   encoder_config.encoder_specific_settings = nullptr;
+@@ -2514,8 +2627,9 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::RecreateWebRtcStream() {
+                  webrtc::VideoEncoderConfig::ContentType::kScreen),
+                 parameters_.options.is_screencast.value_or(false))
+       << "encoder content type inconsistent with screencast option";
+-  parameters_.encoder_config.encoder_specific_settings =
+-      ConfigureVideoEncoderSettings(parameters_.codec_settings->codec);
++  // parameters_.encoder_config.encoder_specific_settings =
++  //     ConfigureVideoEncoderSettings(parameters_.codec_settings->codec);
++  parameters_.encoder_config.encoder_specific_settings = nullptr;
+ 
+   webrtc::VideoSendStream::Config config = parameters_.config.Copy();
+   if (!config.rtp.rtx.ssrcs.empty() && config.rtp.rtx.payload_type == -1) {
 diff --git a/media/engine/webrtc_video_engine.h b/media/engine/webrtc_video_engine.h
 index 14df03a1cc..c68b71b94f 100644
 --- a/media/engine/webrtc_video_engine.h
