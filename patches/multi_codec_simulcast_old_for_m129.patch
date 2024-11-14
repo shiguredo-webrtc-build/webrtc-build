@@ -1,0 +1,242 @@
+diff --git a/media/engine/webrtc_video_engine.cc b/media/engine/webrtc_video_engine.cc
+index 6d86f2f85e..4183bf9a0d 100644
+--- a/media/engine/webrtc_video_engine.cc
++++ b/media/engine/webrtc_video_engine.cc
+@@ -2285,7 +2285,6 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
+ 
+   for (size_t i = 0; i < codec_settings.size(); i++) {
+   auto& codec = codec_settings[i];
+-  auto& codec_type = encoder_config.codec_types[i];
+   int max_qp = -1;
+   if (codec.codec.GetParam(kCodecParamMaxQuantization, &max_qp) && max_qp > 0) {
+     encoder_config.max_qps.push_back(max_qp);
+diff --git a/modules/video_coding/utility/simulcast_utility.cc b/modules/video_coding/utility/simulcast_utility.cc
+index b637e7fdd0..d6c3acb8cf 100644
+--- a/modules/video_coding/utility/simulcast_utility.cc
++++ b/modules/video_coding/utility/simulcast_utility.cc
+@@ -85,8 +85,8 @@ bool SimulcastUtility::IsConferenceModeScreenshare(
+   return encoder_config.content_type ==
+              VideoEncoderConfig::ContentType::kScreen &&
+          encoder_config.legacy_conference_mode &&
+-         (encoder_config.codec_type == webrtc::VideoCodecType::kVideoCodecVP8 ||
+-          encoder_config.codec_type == webrtc::VideoCodecType::kVideoCodecH264);
++         (encoder_config.codec_types[0] == webrtc::VideoCodecType::kVideoCodecVP8 ||
++          encoder_config.codec_types[0] == webrtc::VideoCodecType::kVideoCodecH264);
+ }
+ 
+ int SimulcastUtility::NumberOfTemporalLayers(const VideoCodec& codec,
+diff --git a/video/config/encoder_stream_factory.cc b/video/config/encoder_stream_factory.cc
+index ca4b7ee8e3..b342628446 100644
+--- a/video/config/encoder_stream_factory.cc
++++ b/video/config/encoder_stream_factory.cc
+@@ -144,15 +144,14 @@ void OverrideStreamSettings(
+                                       webrtc::kDefaultMinVideoBitrateBps))
+                                   .bps<int>();
+ 
+-  const bool temporal_layers_supported =
+-      IsTemporalLayersSupported(encoder_config.codec_type);
+-
+   for (size_t i = 0; i < layers.size(); ++i) {
+     const webrtc::VideoStream& overrides = encoder_config.simulcast_layers[i];
+     webrtc::VideoStream& layer = layers[i];
+     layer.active = overrides.active;
+     layer.scalability_mode = overrides.scalability_mode;
+     layer.requested_resolution = overrides.requested_resolution;
++    const bool temporal_layers_supported =
++        IsTemporalLayersSupported(encoder_config.codec_types[i]);
+     // Update with configured num temporal layers if supported by codec.
+     if (overrides.num_temporal_layers > 0 && temporal_layers_supported) {
+       layer.num_temporal_layers = *overrides.num_temporal_layers;
+@@ -201,10 +200,10 @@ void OverrideStreamSettings(
+ 
+     if (overrides.max_qp > 0) {
+       layer.max_qp = overrides.max_qp;
+-    } else if (encoder_config.max_qp > 0) {
+-      layer.max_qp = encoder_config.max_qp;
++    } else if (i < encoder_config.max_qps.size() && encoder_config.max_qps[i] > 0) {
++      layer.max_qp = encoder_config.max_qps[i];
+     } else {
+-      layer.max_qp = GetDefaultMaxQp(encoder_config.codec_type);
++      layer.max_qp = GetDefaultMaxQp(encoder_config.codec_types[i]);
+     }
+   }
+ 
+@@ -379,7 +378,7 @@ EncoderStreamFactory::CreateDefaultVideoStreams(
+         kMinLayerSize);
+   }
+ 
+-  if (encoder_config.codec_type == webrtc::VideoCodecType::kVideoCodecVP9) {
++  if (encoder_config.codec_types[0] == webrtc::VideoCodecType::kVideoCodecVP9) {
+     RTC_DCHECK(!encoder_config.encoder_specific_settings.empty());
+     // Use VP9 SVC layering from codec settings which might be initialized
+     // though field trial in ConfigureVideoEncoderSettings.
+@@ -429,13 +428,13 @@ EncoderStreamFactory::CreateDefaultVideoStreams(
+   layer.max_bitrate_bps = max_bitrate_bps;
+   layer.bitrate_priority = encoder_config.bitrate_priority;
+ 
+-  if (encoder_config.max_qp > 0) {
+-    layer.max_qp = encoder_config.max_qp;
++  if (!encoder_config.max_qps.empty() && encoder_config.max_qps[0] > 0) {
++    layer.max_qp = encoder_config.max_qps[0];
+   } else {
+-    layer.max_qp = GetDefaultMaxQp(encoder_config.codec_type);
++    layer.max_qp = GetDefaultMaxQp(encoder_config.codec_types[0]);
+   }
+ 
+-  if (IsTemporalLayersSupported(encoder_config.codec_type)) {
++  if (IsTemporalLayersSupported(encoder_config.codec_types[0])) {
+     // Use configured number of temporal layers if set.
+     if (encoder_config.simulcast_layers[0].num_temporal_layers) {
+       layer.num_temporal_layers =
+@@ -461,8 +460,8 @@ EncoderStreamFactory::CreateSimulcastOrConferenceModeScreenshareStreams(
+   std::vector<webrtc::VideoStream> layers = GetSimulcastConfig(
+       resolutions,
+       webrtc::SimulcastUtility::IsConferenceModeScreenshare(encoder_config),
+-      IsTemporalLayersSupported(encoder_config.codec_type), trials,
+-      encoder_config.codec_type);
++      IsTemporalLayersSupported(encoder_config.codec_types[0]), trials,
++      encoder_config.codec_types[0]);
+ 
+   OverrideStreamSettings(encoder_config, experimental_min_bitrate, layers);
+ 
+diff --git a/video/config/video_encoder_config.cc b/video/config/video_encoder_config.cc
+index 7d7842c683..d0715b94d3 100644
+--- a/video/config/video_encoder_config.cc
++++ b/video/config/video_encoder_config.cc
+@@ -60,7 +60,7 @@ VideoEncoderConfig::VideoEncoderConfig()
+       number_of_streams(0),
+       legacy_conference_mode(false),
+       is_quality_scaling_allowed(false),
+-      max_qp(-1) {}
++      max_qps() {}
+ 
+ VideoEncoderConfig::VideoEncoderConfig(VideoEncoderConfig&&) = default;
+ 
+diff --git a/third_party/libc++/src/include/__assertion_handler b/third_party/libc++/src/include/__assertion_handler
+new file mode 100644
+index 000000000..81964f62f
+--- /dev/null
++++ b/third_party/libc++/src/include/__assertion_handler
+@@ -0,0 +1,40 @@
++// -*- C++ -*-
++//===----------------------------------------------------------------------===//
++//
++// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
++// See https://llvm.org/LICENSE.txt for license information.
++// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
++//
++//===----------------------------------------------------------------------===//
++
++#ifndef _LIBCPP___ASSERTION_HANDLER
++#define _LIBCPP___ASSERTION_HANDLER
++
++#include <__config>
++#include <__verbose_abort>
++
++#if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
++#  pragma GCC system_header
++#endif
++
++// Based on CHECK_WILL_STREAM() defined in base/check.h
++#if defined(OFFICIAL_BUILD) && !defined(DCHECK_ALWAYS_ON)
++
++_LIBCPP_BEGIN_NAMESPACE_STD
++
++_LIBCPP_NORETURN inline _LIBCPP_HIDE_FROM_ABI void __libcpp_hardening_failure() {
++  __builtin_trap();
++}
++
++_LIBCPP_END_NAMESPACE_STD
++
++// TODO(hardening): use `__builtin_verbose_trap(message)` once that becomes available.
++#  define _LIBCPP_ASSERTION_HANDLER(message) ((void)message, __libcpp_hardening_failure())
++
++#else
++
++#  define _LIBCPP_ASSERTION_HANDLER(message) _LIBCPP_VERBOSE_ABORT("%s", message)
++
++#endif // defined(NDEBUG) && defined(OFFICIAL_BUILD) && !defined(DCHECK_ALWAYS_ON) 
++
++#endif // _LIBCPP___ASSERTION_HANDLER
+diff --git a/third_party/libc++/src/include/__config_site b/third_party/libc++/src/include/__config_site
+new file mode 100644
+index 000000000..39cc404dd
+--- /dev/null
++++ b/third_party/libc++/src/include/__config_site
+@@ -0,0 +1,76 @@
++#ifndef _LIBCPP_CONFIG_SITE
++#define _LIBCPP_CONFIG_SITE
++
++// Dynamic libc++ configuration macros are in
++// build/config/libc++:runtime_library. This file only has defines
++// that are constant across platforms, or easily set via preprocessor checks.
++// Things that are set depending on GN args are not here.
++
++// We set a custom _LIBCPP_ABI_NAMESPACE for the following reasons:
++//
++// 1. When libcxx_is_shared is true, symbols from libc++.so are exported for all
++//    DSOs to use.  If the system libc++ gets loaded (indirectly through a
++//    a system library), then it will conflict with our libc++.so.
++// 2. The default value of _LIBCPP_ABI_NAMESPACE is the string
++//    "_LIBCPP_ABI_NAMESPACE". This contributes to an increase in binary size;
++//    on Windows, the increase is great enough that we go above the 4GB size
++//    limit for PDBs (https://crbug.com/1327710#c5). To fix this, we set
++//    _LIBCPP_ABI_NAMESPACE to a shorter value.
++#define _LIBCPP_ABI_NAMESPACE __Cr
++
++#define _LIBCPP_ABI_VERSION 2
++
++/* #undef _LIBCPP_ABI_FORCE_ITANIUM */
++/* #undef _LIBCPP_ABI_FORCE_MICROSOFT */
++/* #undef _LIBCPP_HAS_NO_THREADS */
++/* #undef _LIBCPP_HAS_NO_MONOTONIC_CLOCK */
++/* #undef _LIBCPP_HAS_MUSL_LIBC */
++/* #undef _LIBCPP_HAS_THREAD_API_PTHREAD */
++/* #undef _LIBCPP_HAS_THREAD_API_EXTERNAL */
++/* #undef _LIBCPP_HAS_THREAD_API_WIN32 */
++/* #undef _LIBCPP_HAS_THREAD_LIBRARY_EXTERNAL */
++/* #undef _LIBCPP_DISABLE_VISIBILITY_ANNOTATIONS */
++#define _LIBCPP_HAS_NO_VENDOR_AVAILABILITY_ANNOTATIONS
++/* #undef _LIBCPP_NO_VCRUNTIME */
++/* #undef _LIBCPP_TYPEINFO_COMPARISON_IMPLEMENTATION */
++/* #undef _LIBCPP_HAS_NO_FILESYSTEM */
++/* #undef _LIBCPP_HAS_PARALLEL_ALGORITHMS */
++/* #undef _LIBCPP_HAS_NO_RANDOM_DEVICE */
++/* #undef _LIBCPP_HAS_NO_LOCALIZATION */
++/* #undef _LIBCPP_HAS_NO_WIDE_CHARACTERS */
++
++// TODO(thakis): Is this right?
++/* #undef _LIBCPP_HAS_NO_STD_MODULES */
++
++// TODO(thakis): Is this right?
++/* #undef _LIBCPP_HAS_NO_TIME_ZONE_DATABASE */
++
++// PSTL backends
++/* #undef _LIBCPP_PSTL_BACKEND_SERIAL */
++#if defined(__APPLE__)
++#define _LIBCPP_PSTL_BACKEND_LIBDISPATCH
++#else
++#define _LIBCPP_PSTL_BACKEND_STD_THREAD
++#endif
++
++// Settings below aren't part of __config_site upstream.
++// We set them here since we want them to take effect everywhere,
++// unconditionally.
++
++// Prevent libc++ from embedding linker flags to try to automatically link
++// against its runtime library. This is unnecessary with our build system,
++// and can also result in build failures if libc++'s name for a library
++// does not match ours.  Only has an effect on Windows.
++#define _LIBCPP_NO_AUTO_LINK
++
++// Don't add ABI tags to libc++ symbols. ABI tags increase mangled name sizes.
++// This only exists to allow multiple // libc++ versions to be linked into a
++// binary, which Chrome doesn't do.
++#define _LIBCPP_NO_ABI_TAG
++
++// Explicitly define  _LIBCPP_VERBOSE_ABORT(...) to call the termination
++// function because by default, this macro will does not call the verbose
++// termination function on Apple platforms.
++#define _LIBCPP_VERBOSE_ABORT(...) ::std::__libcpp_verbose_abort(__VA_ARGS__)
++
++#endif // _LIBCPP_CONFIG_SITE
