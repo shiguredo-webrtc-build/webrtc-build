@@ -201,7 +201,7 @@ PATCHES = {
         "fix_perfetto.patch",
         "fix_windows_boringssl_string_util.patch",
         "fix_moved_function_call.patch",
-        "multi_codec_simulcast_old_for_m129.patch",
+        "multi_codec_simulcast.patch",
     ],
     "windows_arm64": [
         "4k.patch",
@@ -216,7 +216,7 @@ PATCHES = {
         "fix_perfetto.patch",
         "fix_windows_boringssl_string_util.patch",
         "fix_moved_function_call.patch",
-        "multi_codec_simulcast_old_for_m129.patch",
+        "multi_codec_simulcast.patch",
     ],
     "macos_arm64": [
         "add_deps.patch",
@@ -233,7 +233,7 @@ PATCHES = {
         "dav1d_config_change.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
-        "multi_codec_simulcast_old_for_m129.patch",
+        "multi_codec_simulcast.patch",
     ],
     "ios": [
         "add_deps.patch",
@@ -252,7 +252,7 @@ PATCHES = {
         "dav1d_config_change.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
-        "multi_codec_simulcast_old_for_m129.patch",
+        "multi_codec_simulcast.patch",
     ],
     "android": [
         "add_deps.patch",
@@ -269,7 +269,7 @@ PATCHES = {
         "h265_android.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
-        "multi_codec_simulcast_old_for_m129.patch",
+        "multi_codec_simulcast.patch",
     ],
     "raspberry-pi-os_armv6": [
         "nacl_armv6_2.patch",
@@ -281,7 +281,7 @@ PATCHES = {
         "h265.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
-        "multi_codec_simulcast_old_for_m129.patch",
+        "multi_codec_simulcast.patch",
     ],
     "raspberry-pi-os_armv7": [
         "add_deps.patch",
@@ -292,7 +292,7 @@ PATCHES = {
         "h265.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
-        "multi_codec_simulcast_old_for_m129.patch",
+        "multi_codec_simulcast.patch",
     ],
     "raspberry-pi-os_armv8": [
         "add_deps.patch",
@@ -303,7 +303,7 @@ PATCHES = {
         "h265.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
-        "multi_codec_simulcast_old_for_m129.patch",
+        "multi_codec_simulcast.patch",
     ],
     "ubuntu-20.04_armv8": [
         "add_deps.patch",
@@ -314,7 +314,7 @@ PATCHES = {
         "h265.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
-        "multi_codec_simulcast_old_for_m129.patch",
+        "multi_codec_simulcast.patch",
     ],
     "ubuntu-22.04_armv8": [
         "add_deps.patch",
@@ -325,7 +325,7 @@ PATCHES = {
         "h265.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
-        "multi_codec_simulcast_old_for_m129.patch",
+        "multi_codec_simulcast.patch",
     ],
     "ubuntu-24.04_armv8": [
         "add_deps.patch",
@@ -346,7 +346,7 @@ PATCHES = {
         "h265.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
-        "multi_codec_simulcast_old_for_m129.patch",
+        "multi_codec_simulcast.patch",
     ],
     "ubuntu-22.04_x86_64": [
         "add_deps.patch",
@@ -357,7 +357,7 @@ PATCHES = {
         "h265.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
-        "multi_codec_simulcast_old_for_m129.patch",
+        "multi_codec_simulcast.patch",
     ],
     "ubuntu-24.04_x86_64": [
         "add_deps.patch",
@@ -368,7 +368,7 @@ PATCHES = {
         "h265.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
-        "multi_codec_simulcast_old_for_m129.patch",
+        "multi_codec_simulcast.patch",
     ],
 }
 

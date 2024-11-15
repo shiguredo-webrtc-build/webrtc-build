@@ -637,7 +637,7 @@ index d7130437e6..dd7b9aaa89 100644
    webrtc::VideoCodec MakeStreamCodec(const webrtc::VideoCodec& codec,
                                       int stream_idx,
 diff --git a/media/engine/webrtc_video_engine.cc b/media/engine/webrtc_video_engine.cc
-index ac7d0f884a..9852b80590 100644
+index ac7d0f884a..fc63b17a50 100644
 --- a/media/engine/webrtc_video_engine.cc
 +++ b/media/engine/webrtc_video_engine.cc
 @@ -396,15 +396,15 @@ static bool ValidateStreamParams(const StreamParams& sp) {
@@ -863,16 +863,10 @@ index ac7d0f884a..9852b80590 100644
    RTC_DCHECK_RUN_ON(&thread_checker_);
    FallbackToDefaultScalabilityModeIfNotSupported(
        codec_settings.codec, parameters_.config, rtp_parameters_.encodings);
-@@ -1926,6 +1998,38 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::SetCodec(
+@@ -1926,6 +1998,32 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::SetCodec(
  
    parameters_.codec_settings = codec_settings;
  
-+  RTC_LOG(LS_ERROR) << "codec_settings=" << codec_settings.codec.name;
-+  RTC_LOG(LS_ERROR) << "size=" << codec_settings_list.size();
-+  for (size_t i = 0; i < codec_settings_list.size(); i++) {
-+    RTC_LOG(LS_ERROR) << "[" << i << "]=" << codec_settings_list[i].codec.name;
-+  }
-+
 +  // Settings for mixed-codec simulcast
 +  if (!codec_settings_list.empty()) {
 +    RTC_DCHECK_EQ(parameters_.config.rtp.ssrcs.size(),
@@ -902,7 +896,7 @@ index ac7d0f884a..9852b80590 100644
    // TODO(bugs.webrtc.org/8830): Avoid recreation, it should be enough to call
    // ReconfigureEncoder.
    RTC_LOG(LS_INFO) << "RecreateWebRtcStream (send) because of SetCodec.";
-@@ -1967,10 +2071,11 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::SetSenderParameters(
+@@ -1967,10 +2065,11 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::SetSenderParameters(
  
    // Set codecs and options.
    if (params.send_codec) {
@@ -916,7 +910,7 @@ index ac7d0f884a..9852b80590 100644
      recreate_stream = false;  // SetCodec has already recreated the stream.
    }
    if (recreate_stream) {
-@@ -2010,7 +2115,9 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::SetRtpParameters(
+@@ -2010,7 +2109,9 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::SetRtpParameters(
          (new_parameters.encodings[i].requested_resolution !=
           rtp_parameters_.encodings[i].requested_resolution) ||
          (new_parameters.encodings[i].scalability_mode !=
@@ -927,7 +921,7 @@ index ac7d0f884a..9852b80590 100644
        new_param = true;
        break;
      }
-@@ -2141,24 +2248,24 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
+@@ -2141,24 +2242,24 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
    // number of negotiated ssrcs but this may be capped below depending on the
    // `legacy_scalability_mode` and codec used.
    encoder_config.number_of_streams = parameters_.config.rtp.ssrcs.size();
@@ -970,7 +964,7 @@ index ac7d0f884a..9852b80590 100644
  
    // parameters_.max_bitrate comes from the max bitrate set at the SDP
    // (m-section) level with the attribute "b=AS." Note that stream max bitrate
-@@ -2226,6 +2333,11 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
+@@ -2226,6 +2327,11 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
        encoder_config.simulcast_layers[i].num_temporal_layers =
            *rtp_parameters_.encodings[i].num_temporal_layers;
      }
@@ -982,30 +976,6 @@ index ac7d0f884a..9852b80590 100644
      encoder_config.simulcast_layers[i].requested_resolution =
          rtp_parameters_.encodings[i].requested_resolution;
    }
-@@ -2269,8 +2381,9 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::ReconfigureEncoder(
-   // Latest config, with and without encoder specfic settings.
-   webrtc::VideoEncoderConfig encoder_config =
-       CreateVideoEncoderConfig(codec_settings.codec);
--  encoder_config.encoder_specific_settings =
--      ConfigureVideoEncoderSettings(codec_settings.codec);
-+  // encoder_config.encoder_specific_settings =
-+  //     ConfigureVideoEncoderSettings(codec_settings.codec);
-+  encoder_config.encoder_specific_settings = nullptr;
-   webrtc::VideoEncoderConfig encoder_config_with_specifics =
-       encoder_config.Copy();
-   encoder_config.encoder_specific_settings = nullptr;
-@@ -2514,8 +2627,9 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::RecreateWebRtcStream() {
-                  webrtc::VideoEncoderConfig::ContentType::kScreen),
-                 parameters_.options.is_screencast.value_or(false))
-       << "encoder content type inconsistent with screencast option";
--  parameters_.encoder_config.encoder_specific_settings =
--      ConfigureVideoEncoderSettings(parameters_.codec_settings->codec);
-+  // parameters_.encoder_config.encoder_specific_settings =
-+  //     ConfigureVideoEncoderSettings(parameters_.codec_settings->codec);
-+  parameters_.encoder_config.encoder_specific_settings = nullptr;
- 
-   webrtc::VideoSendStream::Config config = parameters_.config.Copy();
-   if (!config.rtp.rtx.ssrcs.empty() && config.rtp.rtx.payload_type == -1) {
 diff --git a/media/engine/webrtc_video_engine.h b/media/engine/webrtc_video_engine.h
 index 14df03a1cc..c68b71b94f 100644
 --- a/media/engine/webrtc_video_engine.h
@@ -1662,131 +1632,3 @@ index a9391e0cea..828f296bd6 100644
  
    // Encoded is called on whatever thread the real encoder implementation run
    // on. In the case of hardware encoders, there might be several encoders
-diff --git a/third_party/libc++/src/include/__assertion_handler b/third_party/libc++/src/include/__assertion_handler
-new file mode 100644
-index 000000000..81964f62f
---- /dev/null
-+++ b/third_party/libc++/src/include/__assertion_handler
-@@ -0,0 +1,40 @@
-+// -*- C++ -*-
-+//===----------------------------------------------------------------------===//
-+//
-+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-+// See https://llvm.org/LICENSE.txt for license information.
-+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-+//
-+//===----------------------------------------------------------------------===//
-+
-+#ifndef _LIBCPP___ASSERTION_HANDLER
-+#define _LIBCPP___ASSERTION_HANDLER
-+
-+#include <__config>
-+#include <__verbose_abort>
-+
-+#if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
-+#  pragma GCC system_header
-+#endif
-+
-+// Based on CHECK_WILL_STREAM() defined in base/check.h
-+#if defined(OFFICIAL_BUILD) && !defined(DCHECK_ALWAYS_ON)
-+
-+_LIBCPP_BEGIN_NAMESPACE_STD
-+
-+_LIBCPP_NORETURN inline _LIBCPP_HIDE_FROM_ABI void __libcpp_hardening_failure() {
-+  __builtin_trap();
-+}
-+
-+_LIBCPP_END_NAMESPACE_STD
-+
-+// TODO(hardening): use `__builtin_verbose_trap(message)` once that becomes available.
-+#  define _LIBCPP_ASSERTION_HANDLER(message) ((void)message, __libcpp_hardening_failure())
-+
-+#else
-+
-+#  define _LIBCPP_ASSERTION_HANDLER(message) _LIBCPP_VERBOSE_ABORT("%s", message)
-+
-+#endif // defined(NDEBUG) && defined(OFFICIAL_BUILD) && !defined(DCHECK_ALWAYS_ON) 
-+
-+#endif // _LIBCPP___ASSERTION_HANDLER
-diff --git a/third_party/libc++/src/include/__config_site b/third_party/libc++/src/include/__config_site
-new file mode 100644
-index 000000000..39cc404dd
---- /dev/null
-+++ b/third_party/libc++/src/include/__config_site
-@@ -0,0 +1,76 @@
-+#ifndef _LIBCPP_CONFIG_SITE
-+#define _LIBCPP_CONFIG_SITE
-+
-+// Dynamic libc++ configuration macros are in
-+// build/config/libc++:runtime_library. This file only has defines
-+// that are constant across platforms, or easily set via preprocessor checks.
-+// Things that are set depending on GN args are not here.
-+
-+// We set a custom _LIBCPP_ABI_NAMESPACE for the following reasons:
-+//
-+// 1. When libcxx_is_shared is true, symbols from libc++.so are exported for all
-+//    DSOs to use.  If the system libc++ gets loaded (indirectly through a
-+//    a system library), then it will conflict with our libc++.so.
-+// 2. The default value of _LIBCPP_ABI_NAMESPACE is the string
-+//    "_LIBCPP_ABI_NAMESPACE". This contributes to an increase in binary size;
-+//    on Windows, the increase is great enough that we go above the 4GB size
-+//    limit for PDBs (https://crbug.com/1327710#c5). To fix this, we set
-+//    _LIBCPP_ABI_NAMESPACE to a shorter value.
-+#define _LIBCPP_ABI_NAMESPACE __Cr
-+
-+#define _LIBCPP_ABI_VERSION 2
-+
-+/* #undef _LIBCPP_ABI_FORCE_ITANIUM */
-+/* #undef _LIBCPP_ABI_FORCE_MICROSOFT */
-+/* #undef _LIBCPP_HAS_NO_THREADS */
-+/* #undef _LIBCPP_HAS_NO_MONOTONIC_CLOCK */
-+/* #undef _LIBCPP_HAS_MUSL_LIBC */
-+/* #undef _LIBCPP_HAS_THREAD_API_PTHREAD */
-+/* #undef _LIBCPP_HAS_THREAD_API_EXTERNAL */
-+/* #undef _LIBCPP_HAS_THREAD_API_WIN32 */
-+/* #undef _LIBCPP_HAS_THREAD_LIBRARY_EXTERNAL */
-+/* #undef _LIBCPP_DISABLE_VISIBILITY_ANNOTATIONS */
-+#define _LIBCPP_HAS_NO_VENDOR_AVAILABILITY_ANNOTATIONS
-+/* #undef _LIBCPP_NO_VCRUNTIME */
-+/* #undef _LIBCPP_TYPEINFO_COMPARISON_IMPLEMENTATION */
-+/* #undef _LIBCPP_HAS_NO_FILESYSTEM */
-+/* #undef _LIBCPP_HAS_PARALLEL_ALGORITHMS */
-+/* #undef _LIBCPP_HAS_NO_RANDOM_DEVICE */
-+/* #undef _LIBCPP_HAS_NO_LOCALIZATION */
-+/* #undef _LIBCPP_HAS_NO_WIDE_CHARACTERS */
-+
-+// TODO(thakis): Is this right?
-+/* #undef _LIBCPP_HAS_NO_STD_MODULES */
-+
-+// TODO(thakis): Is this right?
-+/* #undef _LIBCPP_HAS_NO_TIME_ZONE_DATABASE */
-+
-+// PSTL backends
-+/* #undef _LIBCPP_PSTL_BACKEND_SERIAL */
-+#if defined(__APPLE__)
-+#define _LIBCPP_PSTL_BACKEND_LIBDISPATCH
-+#else
-+#define _LIBCPP_PSTL_BACKEND_STD_THREAD
-+#endif
-+
-+// Settings below aren't part of __config_site upstream.
-+// We set them here since we want them to take effect everywhere,
-+// unconditionally.
-+
-+// Prevent libc++ from embedding linker flags to try to automatically link
-+// against its runtime library. This is unnecessary with our build system,
-+// and can also result in build failures if libc++'s name for a library
-+// does not match ours.  Only has an effect on Windows.
-+#define _LIBCPP_NO_AUTO_LINK
-+
-+// Don't add ABI tags to libc++ symbols. ABI tags increase mangled name sizes.
-+// This only exists to allow multiple // libc++ versions to be linked into a
-+// binary, which Chrome doesn't do.
-+#define _LIBCPP_NO_ABI_TAG
-+
-+// Explicitly define  _LIBCPP_VERBOSE_ABORT(...) to call the termination
-+// function because by default, this macro will does not call the verbose
-+// termination function on Apple platforms.
-+#define _LIBCPP_VERBOSE_ABORT(...) ::std::__libcpp_verbose_abort(__VA_ARGS__)
-+
-+#endif // _LIBCPP_CONFIG_SITE
