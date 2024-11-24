@@ -1,8 +1,8 @@
-diff --git c/third_party/libaom/source/libaom/aom_dsp/arm/arm_neon_sve_bridge.h i/third_party/libaom/source/libaom/aom_dsp/arm/arm_neon_sve_bridge.h
+diff --git c/third_party/libaom/source/libaom/arm_neon_sve_bridge.h i/third_party/libaom/source/libaom/arm_neon_sve_bridge.h
 new file mode 100644
 index 000000000..17699d8d1
 --- /dev/null
-+++ i/third_party/libaom/source/libaom/aom_dsp/arm/arm_neon_sve_bridge.h
++++ i/third_party/libaom/source/libaom/arm_neon_sve_bridge.h
 @@ -0,0 +1,184 @@
 +/*===---- arm_neon_sve_bridge.h - ARM NEON SVE Bridge intrinsics -----------===
 + *
@@ -188,6 +188,49 @@ index 000000000..17699d8d1
 +#endif
 +
 +#endif //__ARM_NEON_SVE_BRIDGE_H
+diff --git a/third_party/libaom/source/libaom/aom_dsp/arm/aom_neon_sve2_bridge.h b/third_party/libaom/source/libaom/aom_dsp/arm/aom_neon_sve2_bridge.h
+index 458abbf262..618a7a738a 100644
+--- a/third_party/libaom/source/libaom/aom_dsp/arm/aom_neon_sve2_bridge.h
++++ b/third_party/libaom/source/libaom/aom_dsp/arm/aom_neon_sve2_bridge.h
+@@ -12,8 +12,7 @@
+ #ifndef AOM_AOM_DSP_ARM_AOM_NEON_SVE2_BRIDGE_H_
+ #define AOM_AOM_DSP_ARM_AOM_NEON_SVE2_BRIDGE_H_
+ 
+-#include <arm_neon_sve_bridge.h>
+-
++#include "arm_neon_sve_bridge.h"
+ #include "config/aom_dsp_rtcd.h"
+ #include "config/aom_config.h"
+ 
+diff --git a/third_party/libaom/source/libaom/aom_dsp/arm/aom_neon_sve_bridge.h b/third_party/libaom/source/libaom/aom_dsp/arm/aom_neon_sve_bridge.h
+index 38dba10149..60adbf5f36 100644
+--- a/third_party/libaom/source/libaom/aom_dsp/arm/aom_neon_sve_bridge.h
++++ b/third_party/libaom/source/libaom/aom_dsp/arm/aom_neon_sve_bridge.h
+@@ -12,8 +12,7 @@
+ #ifndef AOM_AOM_DSP_ARM_AOM_NEON_SVE_BRIDGE_H_
+ #define AOM_AOM_DSP_ARM_AOM_NEON_SVE_BRIDGE_H_
+ 
+-#include <arm_neon_sve_bridge.h>
+-
++#include "arm_neon_sve_bridge.h"
+ #include "config/aom_dsp_rtcd.h"
+ #include "config/aom_config.h"
+ 
+diff --git a/third_party/libaom/source/libaom/av1/common/arm/highbd_warp_plane_sve.c b/third_party/libaom/source/libaom/av1/common/arm/highbd_warp_plane_sve.c
+index 9183fd027e..6990abc6c9 100644
+--- a/third_party/libaom/source/libaom/av1/common/arm/highbd_warp_plane_sve.c
++++ b/third_party/libaom/source/libaom/av1/common/arm/highbd_warp_plane_sve.c
+@@ -12,8 +12,8 @@
+ #include <arm_neon.h>
+ #include <assert.h>
+ #include <stdbool.h>
+-#include <arm_neon_sve_bridge.h>
+ 
++#include "arm_neon_sve_bridge.h"
+ #include "aom_dsp/aom_dsp_common.h"
+ #include "aom_dsp/arm/aom_neon_sve_bridge.h"
+ #include "aom_dsp/arm/mem_neon.h"
+ 
 diff --git c/third_party/libvpx/source/libvpx/arm_neon_sve_bridge.h i/third_party/libvpx/source/libvpx/arm_neon_sve_bridge.h
 new file mode 100644
 index 000000000..17699d8d1

@@ -120,7 +120,8 @@ $ find $(xcode-select --print-path) | grep arm_neon
 また、ファイルの追加に伴い、リリース・バイナリの NOTICE ファイルに LLVM のライセンスを追加する必要が生じたため、 run.py も併せて修正した。
 このパッチが不要になった場合、その処理は削除する必要がある。
 
-M131 において libaom においても同様の問題が発生したので、両方 third_party 以下のため同じファイルを libaom にも配置することで解決する
+M131 において libaom においても同様の問題が発生したので、両方 third_party 以下のため同じファイルを libaom にも配置する。
+libaom は include の angled と quotes を厳密に見るようなので、それにも対応する。
 
 ## revert_asm_changes.patch
 
