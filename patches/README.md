@@ -120,6 +120,9 @@ $ find $(xcode-select --print-path) | grep arm_neon
 また、ファイルの追加に伴い、リリース・バイナリの NOTICE ファイルに LLVM のライセンスを追加する必要が生じたため、 run.py も併せて修正した。
 このパッチが不要になった場合、その処理は削除する必要がある。
 
+M131 において libaom においても同様の問題が発生したので、両方 third_party 以下のため同じファイルを libaom にも配置する。
+libaom は include の angled と quotes を厳密に見るようなので、それにも対応する。
+
 ## revert_asm_changes.patch
 
 dav1d/libdav1d/src/arm/asm.S に入った変更を取り消すパッチ。
@@ -332,3 +335,7 @@ https://github.com/shiguredo/sora-cpp-sdk/blob/e1257a3e358e62512c0c77db5ba82f90e
 ここの中で sleep して、その間に SoraSignaling を破棄すると発生する。
 
 多分パッチを送った方がいいやつ。
+
+# windows_add_optional.patch
+
+Windows で std::optional が参照エラーになるのを改善するパッチ。

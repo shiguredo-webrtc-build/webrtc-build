@@ -199,6 +199,7 @@ PATCHES = {
         "h265.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
+        "windows_add_optional.patch",
     ],
     "windows_arm64": [
         "4k.patch",
@@ -212,6 +213,7 @@ PATCHES = {
         "h265.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
+        "windows_add_optional.patch",
     ],
     "macos_arm64": [
         "add_deps.patch",
