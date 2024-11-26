@@ -28,6 +28,10 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - @melpon
 
 ## タイムライン
+- 2024-11-25 [RELEASE] m131.6778.3.1
+  - @melpon
+- 2024-11-25 [FIX] `*.inc` ファイルもリリースに含める
+  - @melpon
 - 2024-11-25 [RELEASE] m131.6778.3.0
   - @torikizi
 - 2024-11-24 [ADD] windows_add_optional.patch を追加
