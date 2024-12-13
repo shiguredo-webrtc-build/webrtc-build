@@ -5,7 +5,7 @@ set -ex
 # grub-efi-amd64-signed がエラーになるので hold で回避する
 # ref: https://github.com/community/community/discussions/47863
 apt-mark hold grub-efi-amd64-signed
-# apt-get update --fix-missing
+apt-get update --fix-missing
 # apt-get upgrade
 
 # Ubuntu 18.04 では tzdata を noninteractive にしないと実行が止まってしまう
