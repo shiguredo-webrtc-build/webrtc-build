@@ -29,6 +29,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 - 2024-11-25 [RELEASE] m131.6778.4.0
+  - apt_install_arm.sh の `apt update` のコメントアウトを解除
   - @torikizi
 - 2024-11-25 [RELEASE] m131.6778.3.1
   - @melpon
