@@ -28,6 +28,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - @melpon
 
 ## タイムライン
+- 2024-12-20 [RELEASE] m132.6834.5.0
+  - @melpon @torikizi
 - 2024-12-20 [RELEASE] m132.6834.4.0
   - @melpon
 - 2024-12-14 [RELEASE] m131.6778.4.0
