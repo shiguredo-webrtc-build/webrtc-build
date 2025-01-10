@@ -339,3 +339,17 @@ https://github.com/shiguredo/sora-cpp-sdk/blob/e1257a3e358e62512c0c77db5ba82f90e
 # windows_add_optional.patch
 
 Windows で std::optional が参照エラーになるのを改善するパッチ。
+
+## ios_simulcast.patch
+
+iOS でのサイマルキャストのサポートを追加するパッチ。この実装は C++ の `SimulcastEncoderAdapter` の簡単なラッパーであり、既存の仕様に破壊的変更も行わない。
+以下の API を追加する。
+
+- `RTCVideoEncoderFactorySimulcast`
+- `RTCVideoEncoderSimulcast`
+
+同等の機能が本家に実装されたら削除する。
+
+[libwebrtcの変更](https://webrtc-review.googlesource.com/c/src/+/358866)を取り込んだため、従来の ios_simulcast.patch とは異なる。
+
+特に scalabilityMode は libwebrtc 側で NSString 記述となったため RTCScalabilityMode ENUM を削除した。変数名は同じだが NSNumber から NSString に型が変更になっているので注意すること。
