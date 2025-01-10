@@ -12,6 +12,11 @@
 VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 パッチやビルドの変更のみ記録すること。
 
+## 2025-01-10
+
+- [CHANGE] libwebrtc の iOS Simulcast 対応が不十分だったので、`ios_simulcast.patch` パッチを復活させた。 scalabilityMode の型が変更になっている。詳細は[こちら](patches/README.md#ios_simulcastpatch)
+  - @tnoho
+
 ## 2024-10-08
 
 - [FIX] `ios_simulcast.patch` のパッチと同等の処理が実装され不要になったため削除
