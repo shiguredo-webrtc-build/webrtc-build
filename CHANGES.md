@@ -32,6 +32,10 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - @melpon @torikizi
 - 2024-12-20 [RELEASE] m132.6834.4.0
   - @melpon
+- 2025-01-10 [RELEASE] m130.6723.2.1
+  - @miosakuma
+- 2025-01-10 [CHANGE] libwebrtc の iOS Simulcast 対応が不十分だったので、`ios_simulcast.patch` パッチを復活させた。 scalabilityMode の型が変更になっている。詳細は[こちら](patches/README.md#ios_simulcastpatch)
+  - @tnoho
 - 2024-12-14 [RELEASE] m131.6778.4.0
   - apt_install_arm.sh の `apt update` のコメントアウトを解除
   - @torikizi
