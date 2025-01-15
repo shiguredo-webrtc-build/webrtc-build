@@ -1,0 +1,40 @@
+{
+    // IntelliSense を使用して利用可能な属性を学べます。
+    // 既存の属性の説明をホバーして表示します。
+    // 詳細情報は次を確認してください: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb-dap",
+            "request": "launch",
+            "name": "Validation Debug",
+            "program": "${workspaceRoot}/_build/ubuntu-24.04_x86_64/debug/validation/offer",
+            "args": [],
+            "env": [],
+            "initCommands": [
+                "settings set target.debug-file-search-paths ${workspaceRoot}/_build/ubuntu-24.04_x86_64/debug/webrtc",
+            ],
+            "sourceMap": [
+                ["../../../../_source/ubuntu-24.04_x86_64/webrtc", "${workspaceRoot}/_source/ubuntu-24.04_x86_64/webrtc"],
+            ],
+            "cwd": "${workspaceRoot}",
+            "runInTerminal": true
+        },
+        {
+            "type": "lldb-dap",
+            "request": "launch",
+            "name": "Validation Release",
+            "program": "${workspaceRoot}/_build/ubuntu-24.04_x86_64/release/validation/offer",
+            "args": [],
+            "env": [],
+            "initCommands": [
+                "settings set target.debug-file-search-paths ${workspaceRoot}/_build/ubuntu-24.04_x86_64/debug/webrtc",
+            ],
+            "sourceMap": [
+                ["../../../../_source/ubuntu-24.04_x86_64/webrtc", "${workspaceRoot}/_source/ubuntu-24.04_x86_64/webrtc"],
+            ],
+            "cwd": "${workspaceRoot}",
+            "runInTerminal": true
+        }
+    ]
+}

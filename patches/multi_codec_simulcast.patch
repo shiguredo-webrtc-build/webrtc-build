@@ -1211,21 +1211,12 @@ index 199d7ecfbe..2fb1f2d0b1 100644
    // NOTE: a stopping transceiver should be treated as a stopped one in
    // createOffer as specified in
    // https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-createoffer.
-@@ -793,7 +810,25 @@ cricket::MediaDescriptionOptions GetMediaDescriptionOptionsForTransceiver(
+@@ -793,7 +810,16 @@ cricket::MediaDescriptionOptions GetMediaDescriptionOptionsForTransceiver(
      if (encoding.rid.empty()) {
        continue;
      }
 -    send_rids.push_back(RidDescription(encoding.rid, RidDirection::kSend));
 +    auto send_rid = RidDescription(encoding.rid, RidDirection::kSend);
-+    if (is_create_offer && encoding.codec) {
-+      auto send_codecs = transceiver->sender_internal()->GetSendCodecs();
-+      for (const cricket::Codec& codec : send_codecs) {
-+        if (codec.MatchesRtpCodec(*encoding.codec)) {
-+          send_rid.payload_types.push_back(codec.id);
-+          break;
-+        }
-+      }
-+    }
 +    if (!is_create_offer && encoding.codec) {
 +      for (const auto& receive_rid : receive_rids) {
 +        if (receive_rid.rid == encoding.rid) {

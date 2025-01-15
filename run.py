@@ -169,6 +169,140 @@ def enum_all_files(dir, dir2):
             yield os.path.relpath(os.path.join(root, file), dir2)
 
 
+def git_clone_shallow(url, hash, dir, submodule=False):
+    rm_rf(dir)
+    mkdir_p(dir)
+    with cd(dir):
+        cmd(["git", "init"])
+        cmd(["git", "remote", "add", "origin", url])
+        cmd(["git", "fetch", "--depth=1", "origin", hash])
+        cmd(["git", "reset", "--hard", "FETCH_HEAD"])
+        if submodule:
+            cmd(
+                [
+                    "git",
+                    "submodule",
+                    "update",
+                    "--init",
+                    "--recursive",
+                    "--recommend-shallow",
+                    "--depth",
+                    "1",
+                ]
+            )
+
+
+def versioned(func):
+    def wrapper(version, version_file, *args, **kwargs):
+        if "ignore_version" in kwargs:
+            if kwargs.get("ignore_version"):
+                rm_rf(version_file)
+            del kwargs["ignore_version"]
+
+        if os.path.exists(version_file):
+            ver = open(version_file).read()
+            if ver.strip() == version.strip():
+                return
+
+        r = func(version=version, *args, **kwargs)
+
+        with open(version_file, "w") as f:
+            f.write(version)
+
+        return r
+
+    return wrapper
+
+
+def replace_vcproj_static_runtime(project_file: str):
+    # なぜか MSVC_STATIC_RUNTIME が効かずに DLL ランタイムを使ってしまうので
+    # 生成されたプロジェクトに対して静的ランタイムを使うように変更する
+    s = open(project_file, "r", encoding="utf-8").read()
+    s = s.replace("MultiThreadedDLL", "MultiThreaded")
+    s = s.replace("MultiThreadedDebugDLL", "MultiThreadedDebug")
+    open(project_file, "w", encoding="utf-8").write(s)
+
+
+def cmake_path(path: str) -> str:
+    return path.replace("\\", "/")
+
+
+@versioned
+def install_blend2d(
+    version,
+    configuration,
+    source_dir,
+    build_dir,
+    install_dir,
+    blend2d_version,
+    asmjit_version,
+    ios,
+    cmake_args,
+):
+    rm_rf(os.path.join(source_dir, "blend2d"))
+    rm_rf(os.path.join(build_dir, "blend2d"))
+    rm_rf(os.path.join(install_dir, "blend2d"))
+
+    git_clone_shallow(
+        "https://github.com/blend2d/blend2d", blend2d_version, os.path.join(source_dir, "blend2d")
+    )
+    mkdir_p(os.path.join(source_dir, "blend2d", "3rdparty"))
+    git_clone_shallow(
+        "https://github.com/asmjit/asmjit",
+        asmjit_version,
+        os.path.join(source_dir, "blend2d", "3rdparty", "asmjit"),
+    )
+
+    mkdir_p(os.path.join(build_dir, "blend2d"))
+    with cd(os.path.join(build_dir, "blend2d")):
+        cmd(
+            [
+                "cmake",
+                os.path.join(source_dir, "blend2d"),
+                f"-DCMAKE_BUILD_TYPE={configuration}",
+                f"-DCMAKE_INSTALL_PREFIX={cmake_path(os.path.join(install_dir, 'blend2d'))}",
+                "-DBLEND2D_STATIC=ON",
+                *cmake_args,
+            ]
+        )
+        # 生成されたプロジェクトに対して静的ランタイムを使うように変更する
+        project_path = os.path.join(build_dir, "blend2d", "blend2d.vcxproj")
+        if os.path.exists(project_path):
+            replace_vcproj_static_runtime(project_path)
+
+        if ios:
+            cmd(
+                [
+                    "cmake",
+                    "--build",
+                    ".",
+                    f"-j{multiprocessing.cpu_count()}",
+                    "--config",
+                    configuration,
+                    "--target",
+                    "blend2d",
+                    "--",
+                    "-arch",
+                    "arm64",
+                    "-sdk",
+                    "iphoneos",
+                ]
+            )
+            cmd(["cmake", "--build", ".", "--target", "install", "--config", configuration])
+        else:
+            cmd(
+                [
+                    "cmake",
+                    "--build",
+                    ".",
+                    f"-j{multiprocessing.cpu_count()}",
+                    "--config",
+                    configuration,
+                ]
+            )
+            cmd(["cmake", "--build", ".", "--target", "install", "--config", configuration])
+
+
 def get_depot_tools(source_dir, fetch=False):
     dir = os.path.join(source_dir, "depot_tools")
     if os.path.exists(dir):
@@ -1770,6 +1904,52 @@ def main():
             if webrtc_build_dir is None:
                 webrtc_build_dir = os.path.join(build_dir, "webrtc")
             cmake_configuration = "Debug" if args.debug else "Release"
+
+            BLEND2D_VERSION = "ca5403c1d02b2bc9d2de581e4cb13e5e80f33860"
+            ASMJIT_VERSION = "2e93826348d6cd1325a8b1f7629e193c58332da9"
+            install_dir = os.path.join(BASE_DIR, "_install", args.target, configuration)
+            install_blend2d_args = {
+                "version": f"{BLEND2D_VERSION}-{ASMJIT_VERSION}",
+                "version_file": os.path.join(install_dir, "blend2d.version"),
+                "configuration": cmake_configuration,
+                "source_dir": source_dir,
+                "build_dir": build_dir,
+                "install_dir": install_dir,
+                "blend2d_version": BLEND2D_VERSION,
+                "asmjit_version": ASMJIT_VERSION,
+                "ios": args.target == "ios",
+                "cmake_args": [],
+            }
+            cmake_args = []
+            if args.target in ("ubuntu-22.04_x86_64", "ubuntu-24.04_x86_64"):
+                clang_dir = os.path.join(
+                    webrtc_source_dir, "src", "third_party", "llvm-build", "Release+Asserts"
+                )
+                cmake_args.append(
+                    f"-DCMAKE_C_COMPILER={cmake_path(os.path.join(clang_dir, 'bin', 'clang'))}"
+                )
+                cmake_args.append(
+                    f"-DCMAKE_CXX_COMPILER={cmake_path(os.path.join(clang_dir, 'bin', 'clang'))}"
+                )
+                libcxx_include_dir = os.path.join(
+                    webrtc_source_dir, "src", "third_party", "libc++", "src", "include"
+                )
+                libcxx_include_dir2 = os.path.join(
+                    webrtc_source_dir, "src", "buildtools", "third_party", "libc++"
+                )
+                cmake_args.append(
+                    f"-DCMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES={cmake_path(libcxx_include_dir)};{cmake_path(libcxx_include_dir2)}"
+                )
+                cxxflags = [
+                    "-nostdinc++",
+                    "-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE",
+                ]
+                cmake_args.append(f"-DCMAKE_CXX_FLAGS={' '.join(cxxflags)}")
+            else:
+                raise Exception(f"This platform not supported: {args.target}")
+            install_blend2d_args["cmake_args"] = cmake_args
+            install_blend2d(**install_blend2d_args)
+
             mkdir_p(validation_build_dir)
             with cd(validation_build_dir):
                 cmd(
@@ -1780,6 +1960,7 @@ def main():
                         f"-DWEBRTC_SOURCE_DIR={webrtc_source_dir}/src",
                         f"-DWEBRTC_BUILD_DIR={webrtc_build_dir}",
                         f"-DWEBRTC_LIBCXX_DIR={webrtc_source_dir}/src/third_party/libc++/src",
+                        f"-DBLEND2D_ROOT_DIR={cmake_path(os.path.join(install_dir, 'blend2d'))}",
                     ]
                 )
                 cmd(

@@ -7,6 +7,8 @@ project(validation C CXX)
 
 find_package(Threads REQUIRED)
 
+find_library(Blend2D_LIBRARY NAMES blend2d PATHS ${BLEND2D_ROOT_DIR}/lib)
+
 add_executable(offer)
 set_target_properties(offer PROPERTIES CXX_STANDARD 20 C_STANDARD 20)
 target_include_directories(offer
@@ -25,7 +27,11 @@ target_sources(offer
     offer.cpp
     internal_encoder_factory.cc
     internal_decoder_factory.cc
+    fake_video_capturer.cpp
 )
+target_compile_definitions(offer PRIVATE BL_STATIC=1)
+target_include_directories(offer PRIVATE ${BLEND2D_ROOT_DIR}/include)
+target_link_libraries(offer PRIVATE ${Blend2D_LIBRARY})
 
 target_compile_options(offer
   PRIVATE

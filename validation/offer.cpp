@@ -15,6 +15,7 @@
 #include <api/video_codecs/builtin_video_encoder_factory.h>
 #include <media/engine/internal_decoder_factory.h>
 #include <media/engine/internal_encoder_factory.h>
+#include <media/engine/simulcast_encoder_adapter.h>
 #include <media/engine/webrtc_media_engine.h>
 #include <modules/audio_device/include/audio_device.h>
 #include <modules/audio_device/include/audio_device_factory.h>
@@ -25,9 +26,12 @@
 #include <pc/peer_connection_factory_proxy.h>
 #include <pc/session_description.h>
 #include <pc/video_track_source_proxy.h>
+#include <rtc_base/crypto_random.h>
 #include <rtc_base/logging.h>
 #include <rtc_base/ref_counted_object.h>
 #include <rtc_base/ssl_adapter.h>
+
+#include "fake_video_capturer.h"
 
 class CreateSessionDescriptionThunk
     : public webrtc::CreateSessionDescriptionObserver {
@@ -271,115 +275,23 @@ class PeerConnectionObserverThunk : public webrtc::PeerConnectionObserver {
   }
 };
 
-int main() {
-  //rtc::LogMessage::LogToDebug(rtc::LS_INFO);
-  rtc::LogMessage::LogToDebug(rtc::LS_WARNING);
-  rtc::LogMessage::LogTimestamps();
-  rtc::LogMessage::LogThreads();
-
-  rtc::InitializeSSL();
-
-  auto network_thread_ = rtc::Thread::CreateWithSocketServer();
-  network_thread_->Start();
-  auto worker_thread_ = rtc::Thread::Create();
-  worker_thread_->Start();
-  auto signaling_thread_ = rtc::Thread::Create();
-  signaling_thread_->Start();
-
-  webrtc::PeerConnectionFactoryDependencies dependencies;
-  dependencies.network_thread = network_thread_.get();
-  dependencies.worker_thread = worker_thread_.get();
-  dependencies.signaling_thread = signaling_thread_.get();
-  dependencies.task_queue_factory = webrtc::CreateDefaultTaskQueueFactory();
-
-  dependencies.adm = worker_thread_->BlockingCall([&] {
-    auto audio_layer = webrtc::AudioDeviceModule::kDummyAudio;
-    auto task_queue_factory = dependencies.task_queue_factory.get();
-    return webrtc::AudioDeviceModule::Create(audio_layer, task_queue_factory);
-  });
-
-  dependencies.audio_encoder_factory =
-      webrtc::CreateBuiltinAudioEncoderFactory();
-  dependencies.audio_decoder_factory =
-      webrtc::CreateBuiltinAudioDecoderFactory();
-
-  dependencies.video_encoder_factory =
-      std::make_unique<webrtc::InternalEncoderFactory>();
-  dependencies.video_decoder_factory =
-      std::make_unique<webrtc::InternalDecoderFactory>();
-
-  dependencies.audio_mixer = nullptr;
-  dependencies.audio_processing = webrtc::AudioProcessingBuilder().Create();
-
-  webrtc::EnableMedia(dependencies);
-
-  auto peer_connection_factory =
-      webrtc::CreateModularPeerConnectionFactory(std::move(dependencies));
-
-  webrtc::PeerConnectionFactoryInterface::Options factory_options;
-  factory_options.disable_encryption = false;
-  factory_options.ssl_max_version = rtc::SSL_PROTOCOL_DTLS_12;
-  factory_options.crypto_options.srtp.enable_gcm_crypto_suites = true;
-  peer_connection_factory->SetOptions(factory_options);
-
-  webrtc::PeerConnectionInterface::RTCConfiguration rtc_config;
-  PeerConnectionObserverThunk pc_observer;
-
-  rtc_config.sdp_semantics = webrtc::SdpSemantics::kUnifiedPlan;
-  webrtc::PeerConnectionDependencies pc_dependencies(&pc_observer);
-
+std::string CreateOffer(
+    rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection,
+    rtc::scoped_refptr<webrtc::VideoTrackInterface> video_track) {
   std::promise<std::string> promise;
   auto future = promise.get_future();
 
-  auto result = peer_connection_factory->CreatePeerConnectionOrError(
-      rtc_config, std::move(pc_dependencies));
-  if (!result.ok()) {
-    RTC_LOG(LS_ERROR) << "Failed to create PeerConnection: "
-                      << result.error().message();
-    return -1;
-  }
-  auto peer_connection = result.value();
-
-  webrtc::RtpTransceiverInit init;
-  webrtc::RtpCodecCapability vp9_codec;
-  webrtc::RtpCodecCapability av1_codec;
-  vp9_codec.kind = cricket::MEDIA_TYPE_VIDEO;
-  vp9_codec.name = "VP9";
-  vp9_codec.parameters["profile-id"] = "0";
-  vp9_codec.clock_rate = 90000;
-  av1_codec.kind = cricket::MEDIA_TYPE_VIDEO;
-  av1_codec.name = "AV1";
-  av1_codec.clock_rate = 90000;
-  av1_codec.parameters["level-idx"] = "5";
-  av1_codec.parameters["profile"] = "0";
-  av1_codec.parameters["tier"] = "0";
-  init.direction = webrtc::RtpTransceiverDirection::kSendOnly;
-  init.stream_ids = {"s0", "s1", "s2"};
-  init.send_encodings.resize(3);
-  init.send_encodings[0].rid = "r0";
-  init.send_encodings[0].codec = vp9_codec;
-  init.send_encodings[0].scale_resolution_down_by = 4.0;
-  init.send_encodings[1].rid = "r1";
-  init.send_encodings[1].codec = vp9_codec;
-  init.send_encodings[1].scale_resolution_down_by = 2.0;
-  init.send_encodings[2].rid = "r2";
-  init.send_encodings[2].codec = av1_codec;
-  init.send_encodings[2].scale_resolution_down_by = 1.0;
-  auto transceiver_result =
-      peer_connection->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
-  if (!transceiver_result.ok()) {
-    RTC_LOG(LS_ERROR) << "Failed to AddTransceiver: "
-                      << transceiver_result.error().message();
-    return -1;
-  }
   webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
   peer_connection->CreateOffer(
       CreateSessionDescriptionThunk::Create(
-          [&promise,
-           peer_connection](webrtc::SessionDescriptionInterface* desc) {
+          [&promise, peer_connection,
+           video_track](webrtc::SessionDescriptionInterface* desc) {
+            // ビデオトラックを設定する
+            auto sender = peer_connection->GetTransceivers()[0]->sender();
+            sender->SetTrack(video_track.get());
+
             // 各 RtpEncodingParameters の利用するコーデックと payload_type を関連付ける
             std::map<std::string, int> rid_payload_type_map;
-            auto sender = peer_connection->GetTransceivers()[0]->sender();
             auto send_encodings = sender->init_send_encodings();
             auto& content = desc->description()->contents()[0];
             auto media_desc = content.media_description();
@@ -405,6 +317,13 @@ int main() {
             }
             track.set_rids(rids);
 
+            auto parameters = sender->GetParameters();
+            for (auto& encoding : parameters.encodings) {
+              RTC_LOG(LS_WARNING)
+                  << "Encoding Parameters: rid=" << encoding.rid << " codec="
+                  << (encoding.codec ? encoding.codec->name : "none");
+            }
+
             std::string sdp;
             desc->ToString(&sdp);
             RTC_LOG(LS_WARNING) << "Offer SDP: " << sdp;
@@ -425,75 +344,343 @@ int main() {
           .get(),
       options);
 
-  auto sdp = future.get();
-  if (sdp.empty()) {
-    RTC_LOG(LS_ERROR) << "Failed to create offer";
-    return -1;
-  }
-  auto description =
-      webrtc::CreateSessionDescription(webrtc::SdpType::kOffer, sdp);
+  return future.get();
+}
 
-  std::promise<std::string> promise2;
-  auto future2 = promise2.get_future();
+std::string SetRemoteDescriptionAndAnswer(
+    rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection,
+    std::unique_ptr<webrtc::SessionDescriptionInterface> description) {
+  std::promise<std::string> promise;
+  auto future = promise.get_future();
 
-  auto result2 = peer_connection_factory->CreatePeerConnectionOrError(
-      rtc_config, std::move(pc_dependencies));
-  if (!result2.ok()) {
-    RTC_LOG(LS_ERROR) << "Failed to create PeerConnection: "
-                      << result2.error().message();
-    return -1;
-  }
-  auto peer_connection2 = result2.value();
-  peer_connection2->SetRemoteDescription(
+  peer_connection->SetRemoteDescription(
       std::move(description),
-      SetRemoteDescriptionThunk::Create([&promise2, peer_connection2, init,
-                                         peer_connection_factory](
+      SetRemoteDescriptionThunk::Create([&promise, peer_connection](
                                             webrtc::RTCError error) {
         if (!error.ok()) {
           RTC_LOG(LS_WARNING) << "Failed to SetRemoteDescription";
-          promise2.set_value("");
+          promise.set_value("");
           return;
         }
+        RTC_LOG(LS_WARNING)
+            << "Receivers: " << peer_connection->GetReceivers().size();
+        auto receiver = peer_connection->GetReceivers()[0];
+        RTC_LOG(LS_WARNING) << "Streams: " << receiver->streams().size();
+        for (auto stream : receiver->streams()) {
+          RTC_LOG(LS_WARNING) << "id: " << stream->id();
+        }
+
         webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
-        peer_connection2->CreateAnswer(
+        peer_connection->CreateAnswer(
             CreateSessionDescriptionThunk::Create(
-                [&promise2,
-                 peer_connection2](webrtc::SessionDescriptionInterface* desc) {
+                [&promise,
+                 peer_connection](webrtc::SessionDescriptionInterface* desc) {
+                  RTC_LOG(LS_WARNING)
+                      << "Content: " << desc->description()->contents().size();
+                  auto& content = desc->description()->contents()[0];
+                  auto media_desc = content.media_description();
+                  RTC_LOG(LS_WARNING)
+                      << "MediaDescription: " << media_desc->streams().size();
+                  std::vector<cricket::RidDescription> rids;
+                  rids.push_back(cricket::RidDescription(
+                      "r0", cricket::RidDirection::kReceive));
+                  rids.push_back(cricket::RidDescription(
+                      "r1", cricket::RidDirection::kReceive));
+                  rids.push_back(cricket::RidDescription(
+                      "r2", cricket::RidDirection::kReceive));
+                  media_desc->set_receive_rids(rids);
+                  cricket::SimulcastDescription simulcast;
+                  simulcast.receive_layers().AddLayer(
+                      cricket::SimulcastLayer("r0", false));
+                  simulcast.receive_layers().AddLayer(
+                      cricket::SimulcastLayer("r1", false));
+                  simulcast.receive_layers().AddLayer(
+                      cricket::SimulcastLayer("r2", false));
+                  media_desc->set_simulcast_description(simulcast);
+                  //auto& track = media_desc->mutable_streams()[0];
+                  //RTC_LOG(LS_WARNING) << "Track: " << track.rids().size();
+
                   std::string sdp;
                   desc->ToString(&sdp);
                   RTC_LOG(LS_WARNING) << "Answer SDP: " << sdp;
-                  promise2.set_value(sdp);
+                  peer_connection->SetLocalDescription(
+                      std::unique_ptr<webrtc::SessionDescriptionInterface>(
+                          desc),
+                      SetLocalDescriptionThunk::Create(
+                          [&promise, sdp](webrtc::RTCError error) {
+                            if (!error.ok()) {
+                              RTC_LOG(LS_WARNING)
+                                  << "Failed to SetLocalDescription";
+                              promise.set_value("");
+                              return;
+                            }
+                            RTC_LOG(LS_WARNING)
+                                << "Succeeded to SetLocalDescription";
+                            promise.set_value(sdp);
+                          }));
                 },
-                [&promise2](webrtc::RTCError error) { promise2.set_value(""); })
+                [&promise](webrtc::RTCError error) { promise.set_value(""); })
                 .get(),
             options);
       }));
 
-  future2.wait();
+  return future.get();
+}
 
-  auto sdp2 = future2.get();
-  if (sdp2.empty()) {
+bool SetRemoteDescription(
+    rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection,
+    std::unique_ptr<webrtc::SessionDescriptionInterface> description) {
+  std::promise<bool> promise;
+  auto future = promise.get_future();
+
+  auto sender = peer_connection->GetTransceivers()[0]->sender();
+  auto parameters = sender->GetParameters();
+  for (auto& encoding : parameters.encodings) {
+    RTC_LOG(LS_WARNING) << "Encoding Parameters: rid=" << encoding.rid
+                        << " codec="
+                        << (encoding.codec ? encoding.codec->name : "none");
+  }
+
+  peer_connection->SetRemoteDescription(
+      std::move(description),
+      SetRemoteDescriptionThunk::Create([&promise, peer_connection](
+                                            webrtc::RTCError error) {
+        auto sender = peer_connection->GetTransceivers()[0]->sender();
+        auto parameters = sender->GetParameters();
+        for (auto& encoding : parameters.encodings) {
+          RTC_LOG(LS_WARNING)
+              << "Encoding Parameters: rid=" << encoding.rid
+              << " codec=" << (encoding.codec ? encoding.codec->name : "none");
+        }
+
+        if (!error.ok()) {
+          RTC_LOG(LS_WARNING) << "Failed to SetRemoteDescription";
+          promise.set_value(false);
+          return;
+        }
+        RTC_LOG(LS_WARNING) << "Succeeded to SetRemoteDescription";
+        promise.set_value(true);
+      }));
+
+  return future.get();
+}
+
+class VideoEncoderFactory : public webrtc::VideoEncoderFactory {
+  std::unique_ptr<webrtc::InternalEncoderFactory> factory_;
+
+ public:
+  VideoEncoderFactory()
+      : factory_(std::make_unique<webrtc::InternalEncoderFactory>()) {}
+
+  std::vector<webrtc::SdpVideoFormat> GetSupportedFormats() const override {
+    return factory_->GetSupportedFormats();
+  }
+
+  std::unique_ptr<webrtc::VideoEncoder> Create(
+      const webrtc::Environment& env,
+      const webrtc::SdpVideoFormat& format) override {
+    return std::make_unique<webrtc::SimulcastEncoderAdapter>(
+        env, factory_.get(), nullptr, format);
+  }
+};
+
+class Sink : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
+ public:
+  void OnFrame(const webrtc::VideoFrame& frame) override {
+    RTC_LOG(LS_WARNING) << "Received frame: width=" << frame.width()
+                        << " height=" << frame.height();
+  }
+};
+
+int main() {
+  rtc::LogMessage::LogToDebug(rtc::LS_INFO);
+  //rtc::LogMessage::LogToDebug(rtc::LS_WARNING);
+  rtc::LogMessage::LogTimestamps();
+  rtc::LogMessage::LogThreads();
+
+  rtc::InitializeSSL();
+
+  auto network_thread = rtc::Thread::CreateWithSocketServer();
+  network_thread->Start();
+  auto worker_thread = rtc::Thread::Create();
+  worker_thread->Start();
+  auto signaling_thread = rtc::Thread::Create();
+  signaling_thread->Start();
+
+  // PC Factory を作る
+  rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
+      peer_connection_factory;
+  {
+    webrtc::PeerConnectionFactoryDependencies dependencies;
+    dependencies.network_thread = network_thread.get();
+    dependencies.worker_thread = worker_thread.get();
+    dependencies.signaling_thread = signaling_thread.get();
+    dependencies.task_queue_factory = webrtc::CreateDefaultTaskQueueFactory();
+
+    dependencies.adm = worker_thread->BlockingCall([&] {
+      auto audio_layer = webrtc::AudioDeviceModule::kDummyAudio;
+      auto task_queue_factory = dependencies.task_queue_factory.get();
+      return webrtc::AudioDeviceModule::Create(audio_layer, task_queue_factory);
+    });
+
+    dependencies.audio_encoder_factory =
+        webrtc::CreateBuiltinAudioEncoderFactory();
+    dependencies.audio_decoder_factory =
+        webrtc::CreateBuiltinAudioDecoderFactory();
+
+    dependencies.video_encoder_factory =
+        std::make_unique<VideoEncoderFactory>();
+    dependencies.video_decoder_factory =
+        std::make_unique<webrtc::InternalDecoderFactory>();
+
+    dependencies.audio_mixer = nullptr;
+    dependencies.audio_processing = webrtc::AudioProcessingBuilder().Create();
+
+    webrtc::EnableMedia(dependencies);
+
+    peer_connection_factory =
+        webrtc::CreateModularPeerConnectionFactory(std::move(dependencies));
+
+    webrtc::PeerConnectionFactoryInterface::Options factory_options;
+    factory_options.disable_encryption = false;
+    factory_options.ssl_max_version = rtc::SSL_PROTOCOL_DTLS_12;
+    factory_options.crypto_options.srtp.enable_gcm_crypto_suites = true;
+    peer_connection_factory->SetOptions(factory_options);
+  }
+
+  // Fake キャプチャラを持つビデオトラックを作る
+  rtc::scoped_refptr<webrtc::VideoTrackInterface> video_track;
+  {
+    FakeVideoCapturerConfig fake_config;
+    fake_config.width = 1920;
+    fake_config.height = 1080;
+    fake_config.fps = 30;
+    auto video_source = CreateFakeVideoCapturer(fake_config);
+    std::string video_track_id = rtc::CreateRandomString(16);
+    video_track =
+        peer_connection_factory->CreateVideoTrack(video_source, video_track_id);
+  }
+
+  rtc::scoped_refptr<webrtc::PeerConnectionInterface> local_pc;
+  rtc::scoped_refptr<webrtc::PeerConnectionInterface> remote_pc;
+  PeerConnectionObserverThunk local_pc_observer;
+  PeerConnectionObserverThunk remote_pc_observer;
+
+  // Offer 側の PC を作る
+  {
+    webrtc::PeerConnectionInterface::RTCConfiguration rtc_config;
+    rtc_config.sdp_semantics = webrtc::SdpSemantics::kUnifiedPlan;
+
+    local_pc_observer.on_ice_candidate =
+        [&remote_pc](const webrtc::IceCandidateInterface* candidate) {
+          std::string sdp;
+          if (!candidate->ToString(&sdp)) {
+            RTC_LOG(LS_ERROR) << "Failed to serialize candidate";
+            return;
+          }
+          RTC_LOG(LS_WARNING)
+              << "OnIceCandidate: sdp=" << sdp
+              << " mid=" << candidate->sdp_mid()
+              << " mline_index=" << candidate->sdp_mline_index();
+          remote_pc->AddIceCandidate(candidate);
+        };
+
+    webrtc::PeerConnectionDependencies pc_dependencies(&local_pc_observer);
+
+    auto result = peer_connection_factory->CreatePeerConnectionOrError(
+        rtc_config, std::move(pc_dependencies));
+    if (!result.ok()) {
+      RTC_LOG(LS_ERROR) << "Failed to create PeerConnection: "
+                        << result.error().message();
+      return -1;
+    }
+    local_pc = result.value();
+  }
+
+  webrtc::RtpTransceiverInit init;
+  webrtc::RtpCodecCapability vp9_codec;
+  webrtc::RtpCodecCapability av1_codec;
+  vp9_codec.kind = cricket::MEDIA_TYPE_VIDEO;
+  vp9_codec.name = "VP9";
+  vp9_codec.parameters["profile-id"] = "0";
+  vp9_codec.clock_rate = 90000;
+  av1_codec.kind = cricket::MEDIA_TYPE_VIDEO;
+  av1_codec.name = "AV1";
+  av1_codec.clock_rate = 90000;
+  av1_codec.parameters["level-idx"] = "5";
+  av1_codec.parameters["profile"] = "0";
+  av1_codec.parameters["tier"] = "0";
+  init.direction = webrtc::RtpTransceiverDirection::kSendOnly;
+  init.stream_ids = {"s0"};
+  init.send_encodings.resize(3);
+  init.send_encodings[0].rid = "r0";
+  init.send_encodings[0].codec = vp9_codec;
+  init.send_encodings[0].scale_resolution_down_by = 4.0;
+  init.send_encodings[1].rid = "r1";
+  init.send_encodings[1].codec = vp9_codec;
+  init.send_encodings[1].scale_resolution_down_by = 2.0;
+  init.send_encodings[2].rid = "r2";
+  init.send_encodings[2].codec = vp9_codec;
+  init.send_encodings[2].scale_resolution_down_by = 1.0;
+  auto transceiver_result =
+      local_pc->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
+  if (!transceiver_result.ok()) {
+    RTC_LOG(LS_ERROR) << "Failed to AddTransceiver: "
+                      << transceiver_result.error().message();
+    return -1;
+  }
+
+  std::string local_sdp = CreateOffer(local_pc, video_track);
+  if (local_sdp.empty()) {
     RTC_LOG(LS_ERROR) << "Failed to create offer";
     return -1;
   }
-  auto description2 =
-      webrtc::CreateSessionDescription(webrtc::SdpType::kAnswer, sdp2);
+  auto local_desc =
+      webrtc::CreateSessionDescription(webrtc::SdpType::kOffer, local_sdp);
 
-  std::promise<int> promise3;
-  auto future3 = promise3.get_future();
+  // Answer 側の PC を作る
+  {
+    webrtc::PeerConnectionInterface::RTCConfiguration rtc_config;
+    rtc_config.sdp_semantics = webrtc::SdpSemantics::kUnifiedPlan;
 
-  peer_connection->SetRemoteDescription(
-      std::move(description2),
-      SetRemoteDescriptionThunk::Create([&promise3](webrtc::RTCError error) {
-        if (!error.ok()) {
-          RTC_LOG(LS_WARNING) << "Failed to SetRemoteDescription";
-          promise3.set_value(-1);
-          return;
-        }
-        RTC_LOG(LS_WARNING) << "SetRemoteDescription success";
-        promise3.set_value(0);
-      }));
+    remote_pc_observer.on_track =
+        [](rtc::scoped_refptr<webrtc::RtpTransceiverInterface> transceiver) {
+          RTC_LOG(LS_WARNING) << "OnTrack";
+          rtc::scoped_refptr<webrtc::MediaStreamTrackInterface> track =
+              transceiver->receiver()->track();
+          if (track->kind() == webrtc::MediaStreamTrackInterface::kVideoKind) {
+            webrtc::VideoTrackInterface* video_track =
+                static_cast<webrtc::VideoTrackInterface*>(track.get());
+            video_track->AddOrUpdateSink(new Sink(), rtc::VideoSinkWants());
+          }
+        };
+    webrtc::PeerConnectionDependencies pc_dependencies(&remote_pc_observer);
 
-  auto r = future3.get();
-  return r;
+    auto result = peer_connection_factory->CreatePeerConnectionOrError(
+        rtc_config, std::move(pc_dependencies));
+    if (!result.ok()) {
+      RTC_LOG(LS_ERROR) << "Failed to create PeerConnection: "
+                        << result.error().message();
+      return -1;
+    }
+    remote_pc = result.value();
+  }
+
+  auto remote_sdp =
+      SetRemoteDescriptionAndAnswer(remote_pc, std::move(local_desc));
+  if (remote_sdp.empty()) {
+    RTC_LOG(LS_ERROR) << "Failed to SetRemoteDescription";
+    return -1;
+  }
+  auto remote_desc =
+      webrtc::CreateSessionDescription(webrtc::SdpType::kAnswer, remote_sdp);
+
+  {
+    bool r = SetRemoteDescription(local_pc, std::move(remote_desc));
+    if (!r) {
+      return -1;
+    }
+  }
+
+  std::this_thread::sleep_for(std::chrono::seconds(5));
 }
