@@ -368,7 +368,7 @@ index 0ce26ff9b6..1f327753d2 100644
  
    if (has_scale_resolution_down_to &&
 diff --git a/media/engine/simulcast_encoder_adapter.cc b/media/engine/simulcast_encoder_adapter.cc
-index f0d7bf9fd1..b1bfda036c 100644
+index f0d7bf9fd1..48f51480ae 100644
 --- a/media/engine/simulcast_encoder_adapter.cc
 +++ b/media/engine/simulcast_encoder_adapter.cc
 @@ -307,6 +307,10 @@ int SimulcastEncoderAdapter::Release() {
@@ -412,21 +412,15 @@ index f0d7bf9fd1..b1bfda036c 100644
    // If we only have a single active layer it is better to create an encoder
    // with only one configured layer than creating it with all-but-one disabled
    // layers because that way we control scaling.
-@@ -364,8 +382,11 @@ int SimulcastEncoderAdapter::InitEncode(
+@@ -364,6 +382,7 @@ int SimulcastEncoderAdapter::InitEncode(
    // forces the use of SEA with separate encoders to support per-layer
    // handling of PLIs.
    bool separate_encoders_needed =
--      !encoder_context->encoder().GetEncoderInfo().supports_simulcast ||
--      active_streams_count == 1 || per_layer_pli_;
-+      ((is_mixed_codec ||
-+        (!is_mixed_codec &&
-+         !encoder_context->encoder().GetEncoderInfo().supports_simulcast)) &&
-+       active_streams_count != 1) ||
-+      per_layer_pli_;
++      is_mixed_codec ||
+       !encoder_context->encoder().GetEncoderInfo().supports_simulcast ||
+       active_streams_count == 1 || per_layer_pli_;
    RTC_LOG(LS_INFO) << "[SEA] InitEncode: total_streams_count: "
-                    << total_streams_count_
-                    << ", active_streams_count: " << active_streams_count
-@@ -409,10 +430,23 @@ int SimulcastEncoderAdapter::InitEncode(
+@@ -409,10 +428,23 @@ int SimulcastEncoderAdapter::InitEncode(
        continue;
      }
  
@@ -454,7 +448,7 @@ index f0d7bf9fd1..b1bfda036c 100644
      if (encoder_context == nullptr) {
        Release();
        return WEBRTC_VIDEO_CODEC_MEMORY;
-@@ -729,7 +763,8 @@ void SimulcastEncoderAdapter::DestroyStoredEncoders() {
+@@ -729,7 +761,8 @@ void SimulcastEncoderAdapter::DestroyStoredEncoders() {
  
  std::unique_ptr<SimulcastEncoderAdapter::EncoderContext>
  SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
@@ -464,7 +458,7 @@ index f0d7bf9fd1..b1bfda036c 100644
    RTC_DCHECK_RUN_ON(&encoder_queue_);
    bool prefer_temporal_support = fallback_encoder_factory_ != nullptr &&
                                   is_lowest_quality_stream &&
-@@ -751,11 +786,11 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
+@@ -751,11 +784,11 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
      cached_encoder_contexts_.erase(encoder_context_iter);
    } else {
      std::unique_ptr<VideoEncoder> primary_encoder =
@@ -478,7 +472,7 @@ index f0d7bf9fd1..b1bfda036c 100644
      }
  
      std::unique_ptr<VideoEncoder> encoder;
-@@ -774,14 +809,14 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
+@@ -774,14 +807,14 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
              prefer_temporal_support);
        }
      } else if (fallback_encoder != nullptr) {
@@ -495,7 +489,7 @@ index f0d7bf9fd1..b1bfda036c 100644
        return nullptr;
      }
  
-@@ -804,6 +839,7 @@ webrtc::VideoCodec SimulcastEncoderAdapter::MakeStreamCodec(
+@@ -804,6 +837,7 @@ webrtc::VideoCodec SimulcastEncoderAdapter::MakeStreamCodec(
    webrtc::VideoCodec codec_params = codec;
    const SimulcastStream& stream_params = codec.simulcastStream[stream_idx];
  
@@ -503,7 +497,7 @@ index f0d7bf9fd1..b1bfda036c 100644
    codec_params.numberOfSimulcastStreams = 0;
    codec_params.width = stream_params.width;
    codec_params.height = stream_params.height;
-@@ -921,7 +957,7 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
+@@ -921,7 +955,7 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
      // Create one encoder and query it.
  
      std::unique_ptr<SimulcastEncoderAdapter::EncoderContext> encoder_context =
