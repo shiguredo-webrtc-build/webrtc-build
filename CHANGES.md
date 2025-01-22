@@ -30,7 +30,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 ## タイムライン
 
 - 2025-01-22 [FIX] kVTVideoEncoderSpecification_RequiredLowLatency を h265_ios.patch から削除する
-  - libwebrtc を組み込んだ iOS アプリを AApp Store Connect にアップロードが失敗する問題への対処
+  - libwebrtc を組み込んだ iOS アプリを App Store Connect にアップロードが失敗する問題への対処
   - 非公開シンボルである kVTVideoEncoderSpecification_RequiredLowLatency を参照しているとのエラーメッセージであったため、参照している箇所を削除した
   - @miosakuma
 - 2025-01-14 [RELEASE] m132.6834.5.1
