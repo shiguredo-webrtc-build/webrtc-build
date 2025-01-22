@@ -1,8 +1,8 @@
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index da967d555e..9d9efc723f 100644
+index 1df3a48fd6..d0e39c5e0e 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
-@@ -689,6 +689,16 @@ if (is_ios || is_mac) {
+@@ -688,6 +688,16 @@ if (is_ios || is_mac) {
          ]
        }
  
@@ -19,7 +19,7 @@ index da967d555e..9d9efc723f 100644
        public_configs = [ ":common_config_objc" ]
        deps = [
          ":base_objc",
-@@ -1360,6 +1370,15 @@ if (is_ios || is_mac) {
+@@ -1375,6 +1385,15 @@ if (is_ios || is_mac) {
            "objc/api/video_frame_buffer/RTCNativeMutableI420Buffer.h",
          ]
  
@@ -35,7 +35,7 @@ index da967d555e..9d9efc723f 100644
          if (!build_with_chromium) {
            common_objc_headers += [
              "objc/api/logging/RTCCallbackLogger.h",
-@@ -1729,6 +1748,17 @@ if (is_ios || is_mac) {
+@@ -1745,6 +1764,17 @@ if (is_ios || is_mac) {
          "objc/components/video_codec/RTCVideoEncoderH264.mm",
        ]
  
@@ -865,10 +865,10 @@ index 0000000000..54d86807ec
 \ No newline at end of file
 diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderH265.mm b/sdk/objc/components/video_codec/RTCVideoEncoderH265.mm
 new file mode 100644
-index 0000000000..b9ba2c139e
+index 0000000000..42284c1ab3
 --- /dev/null
 +++ b/sdk/objc/components/video_codec/RTCVideoEncoderH265.mm
-@@ -0,0 +1,614 @@
+@@ -0,0 +1,606 @@
 +/*
 + *  Copyright (c) 2018 The WebRTC project authors. All Rights Reserved.
 + *
@@ -907,8 +907,6 @@ index 0000000000..b9ba2c139e
 +#include "rtc_base/time_utils.h"
 +#include "sdk/objc/Framework/Classes/VideoToolbox/nalu_rewriter.h"
 +#include "system_wrappers/include/clock.h"
-+
-+VT_EXPORT const CFStringRef kVTVideoEncoderSpecification_RequiredLowLatency;
 +
 +static constexpr int ErrorCallbackDefaultValue = -1;
 +
@@ -1293,10 +1291,6 @@ index 0000000000..b9ba2c139e
 +#if defined(WEBRTC_MAC) && !defined(WEBRTC_IOS)
 +  CFDictionarySetValue(encoder_specs, kVTVideoEncoderSpecification_EnableHardwareAcceleratedVideoEncoder, kCFBooleanTrue);
 +#endif
-+#if HAVE_VTB_REQUIREDLOWLATENCY
-+  if (_isLowLatencyEnabled)
-+    CFDictionarySetValue(encoder_specs, kVTVideoEncoderSpecification_RequiredLowLatency, kCFBooleanTrue);
-+#endif
 +  OSStatus status = VTCompressionSessionCreate(
 +      nullptr,  // use default allocator
 +      _width, _height, kCMVideoCodecType_HEVC,
@@ -1305,8 +1299,6 @@ index 0000000000..b9ba2c139e
 +      nullptr,  // use default compressed data allocator
 +      compressionOutputCallback, nullptr, &_compressionSession);
 +  if (status != noErr) {
-+    if (encoder_specs)
-+      CFDictionaryRemoveValue(encoder_specs, kVTVideoEncoderSpecification_RequiredLowLatency);
 +    status = VTCompressionSessionCreate(
 +        nullptr,  // use default allocator
 +        _width, _height, kCMVideoCodecType_HEVC,
@@ -1638,7 +1630,7 @@ index 0000000000..fcaccb8bbc
 +}
 \ No newline at end of file
 diff --git a/sdk/objc/components/video_codec/nalu_rewriter.cc b/sdk/objc/components/video_codec/nalu_rewriter.cc
-index 73c0ed0abd..4a160565e1 100644
+index 054d6f9284..301dd7f8c9 100644
 --- a/sdk/objc/components/video_codec/nalu_rewriter.cc
 +++ b/sdk/objc/components/video_codec/nalu_rewriter.cc
 @@ -18,6 +18,7 @@
@@ -2321,7 +2313,7 @@ index c2b9e4875e..a88e4d5c26 100644
   private:
    // Returns the the next offset that contains NALU data.
 diff --git a/sdk/objc/native/src/objc_video_encoder_factory.mm b/sdk/objc/native/src/objc_video_encoder_factory.mm
-index 1085cb8cb4..359ca67a4b 100644
+index 919848a161..40050361fe 100644
 --- a/sdk/objc/native/src/objc_video_encoder_factory.mm
 +++ b/sdk/objc/native/src/objc_video_encoder_factory.mm
 @@ -16,6 +16,7 @@
@@ -2332,7 +2324,7 @@ index 1085cb8cb4..359ca67a4b 100644
  #import "sdk/objc/api/peerconnection/RTCEncodedImage+Private.h"
  #import "sdk/objc/api/peerconnection/RTCVideoCodecInfo+Private.h"
  #import "sdk/objc/api/peerconnection/RTCVideoEncoderSettings+Private.h"
-@@ -59,6 +60,9 @@ int32_t RegisterEncodeCompleteCallback(EncodedImageCallback *callback) override
+@@ -60,6 +61,9 @@ int32_t RegisterEncodeCompleteCallback(EncodedImageCallback *callback) override
          if ([info isKindOfClass:[RTC_OBJC_TYPE(RTCCodecSpecificInfoH264) class]]) {
            codecSpecificInfo =
                [(RTC_OBJC_TYPE(RTCCodecSpecificInfoH264) *)info nativeCodecSpecificInfo];
