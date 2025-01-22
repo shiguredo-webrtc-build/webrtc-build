@@ -908,8 +908,6 @@ index 0000000000..b9ba2c139e
 +#include "sdk/objc/Framework/Classes/VideoToolbox/nalu_rewriter.h"
 +#include "system_wrappers/include/clock.h"
 +
-+VT_EXPORT const CFStringRef kVTVideoEncoderSpecification_RequiredLowLatency;
-+
 +static constexpr int ErrorCallbackDefaultValue = -1;
 +
 +@interface RTC_OBJC_TYPE (RTCVideoEncoderH265) ()
@@ -1293,10 +1291,6 @@ index 0000000000..b9ba2c139e
 +#if defined(WEBRTC_MAC) && !defined(WEBRTC_IOS)
 +  CFDictionarySetValue(encoder_specs, kVTVideoEncoderSpecification_EnableHardwareAcceleratedVideoEncoder, kCFBooleanTrue);
 +#endif
-+#if HAVE_VTB_REQUIREDLOWLATENCY
-+  if (_isLowLatencyEnabled)
-+    CFDictionarySetValue(encoder_specs, kVTVideoEncoderSpecification_RequiredLowLatency, kCFBooleanTrue);
-+#endif
 +  OSStatus status = VTCompressionSessionCreate(
 +      nullptr,  // use default allocator
 +      _width, _height, kCMVideoCodecType_HEVC,
@@ -1305,8 +1299,6 @@ index 0000000000..b9ba2c139e
 +      nullptr,  // use default compressed data allocator
 +      compressionOutputCallback, nullptr, &_compressionSession);
 +  if (status != noErr) {
-+    if (encoder_specs)
-+      CFDictionaryRemoveValue(encoder_specs, kVTVideoEncoderSpecification_RequiredLowLatency);
 +    status = VTCompressionSessionCreate(
 +        nullptr,  // use default allocator
 +        _width, _height, kCMVideoCodecType_HEVC,
