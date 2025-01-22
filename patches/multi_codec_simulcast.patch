@@ -521,7 +521,7 @@ index 92d10a4ab8..8806a7f607 100644
    webrtc::VideoCodec MakeStreamCodec(const webrtc::VideoCodec& codec,
                                       int stream_idx,
 diff --git a/media/engine/webrtc_video_engine.cc b/media/engine/webrtc_video_engine.cc
-index 781e997cc4..8712b7f456 100644
+index 781e997cc4..19c648596c 100644
 --- a/media/engine/webrtc_video_engine.cc
 +++ b/media/engine/webrtc_video_engine.cc
 @@ -400,15 +400,15 @@ static bool ValidateStreamParams(const StreamParams& sp) {
@@ -559,7 +559,7 @@ index 781e997cc4..8712b7f456 100644
    if (changed_params.extmap_allow_mixed) {
      SetExtmapAllowMixed(*changed_params.extmap_allow_mixed);
    }
-@@ -1421,28 +1424,48 @@ webrtc::RTCError WebRtcVideoSendChannel::SetRtpSendParameters(
+@@ -1421,28 +1424,50 @@ webrtc::RTCError WebRtcVideoSendChannel::SetRtpSendParameters(
          break;
      }
  
@@ -580,7 +580,9 @@ index 781e997cc4..8712b7f456 100644
 -            callback, webrtc::RTCError(
 -                          webrtc::RTCErrorType::INVALID_MODIFICATION,
 -                          "Attempted to use an unsupported codec for layer 0"));
-+    if (send_codec_) {
++    if (send_codec_ &&
++        std::any_of(parameters.encodings.begin(), parameters.encodings.end(),
++                    [](const auto& e) { return e.codec; })) {
 +      std::vector<VideoCodecSettings> send_codecs;
 +
 +      for (size_t i = 0; i < parameters.encodings.size(); i++) {
@@ -590,7 +592,7 @@ index 781e997cc4..8712b7f456 100644
 +          found_codec = *send_codec_;
 +        } else if (i < send_codecs_.size()) {
 +          const auto& send_codec = send_codecs_[i];
-+          if (send_codec.codec.MatchesRtpCodec(*codec)) {
++          if (IsSameRtpCodec(send_codec.codec, *codec)) {
 +            found_codec = send_codec;
 +          }
 +        }
@@ -598,7 +600,7 @@ index 781e997cc4..8712b7f456 100644
 +          RTC_DCHECK(codec);
 +          auto matched_codec =
 +              absl::c_find_if(negotiated_codecs_, [&](auto negotiated_codec) {
-+                return negotiated_codec.codec.MatchesRtpCodec(*codec);
++                return IsSameRtpCodec(negotiated_codec.codec, *codec);
 +              });
 +          if (matched_codec == negotiated_codecs_.end()) {
 +            return webrtc::InvokeSetParametersCallback(
@@ -628,7 +630,7 @@ index 781e997cc4..8712b7f456 100644
      }
  
      SetPreferredDscp(new_dscp);
-@@ -2008,6 +2031,32 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::SetCodec(
+@@ -2008,6 +2033,32 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::SetCodec(
    }
    parameters_.codec_settings_list = codec_settings_list;
  
@@ -661,7 +663,7 @@ index 781e997cc4..8712b7f456 100644
    // TODO(bugs.webrtc.org/8830): Avoid recreation, it should be enough to call
    // ReconfigureEncoder.
    RTC_LOG(LS_INFO) << "RecreateWebRtcStream (send) because of SetCodec.";
-@@ -2226,25 +2275,25 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
+@@ -2226,25 +2277,25 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
    // number of negotiated ssrcs but this may be capped below depending on the
    // `legacy_scalability_mode` and codec used.
    encoder_config.number_of_streams = parameters_.config.rtp.ssrcs.size();
@@ -701,7 +703,7 @@ index 781e997cc4..8712b7f456 100644
  
    // parameters_.max_bitrate comes from the max bitrate set at the SDP
    // (m-section) level with the attribute "b=AS." Note that stream max bitrate
-@@ -2312,6 +2361,11 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
+@@ -2312,6 +2363,11 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
        encoder_config.simulcast_layers[i].num_temporal_layers =
            *rtp_parameters_.encodings[i].num_temporal_layers;
      }
