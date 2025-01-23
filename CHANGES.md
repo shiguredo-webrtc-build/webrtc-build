@@ -29,6 +29,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-01-23 apt_install_x86_64.sh の `apt-get update` のコメントアウトを解除
+  - apt-get install で vim のパッケージが 404 エラーになったため
+  - @miosakuma
 - 2025-01-22 [FIX] kVTVideoEncoderSpecification_RequiredLowLatency を h265_ios.patch から削除する
   - libwebrtc を組み込んだ iOS アプリを App Store Connect にアップロードが失敗する問題への対処
   - 非公開シンボルである kVTVideoEncoderSpecification_RequiredLowLatency を参照しているとのエラーメッセージであったため、参照している箇所を削除した
