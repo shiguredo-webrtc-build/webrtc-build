@@ -43,6 +43,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 - 2024-12-20 [RELEASE] m132.6834.5.0
   - @melpon @torikizi
 - 2024-12-20 [RELEASE] m132.6834.4.0
+  - ios_proxy.patch を libwebrtc 側の処理変更に追従して修正する
   - @melpon
 - 2025-01-10 [RELEASE] m130.6723.2.1
   - @miosakuma
