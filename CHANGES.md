@@ -28,6 +28,27 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - @melpon
 
 ## タイムライン
+
+- 2025-01-23 [RELEASE] m132.6834.5.2
+  - @miosakuma
+- 2025-01-23 [FIX] apt_install_x86_64.sh の `apt-get update` のコメントアウトを解除
+  - apt-get install で vim のパッケージが 404 エラーになったため
+  - @miosakuma
+- 2025-01-22 [FIX] kVTVideoEncoderSpecification_RequiredLowLatency を h265_ios.patch から削除する
+  - libwebrtc を組み込んだ iOS アプリを App Store Connect にアップロードが失敗する問題への対処
+  - 非公開シンボルである kVTVideoEncoderSpecification_RequiredLowLatency を参照しているとのエラーメッセージであったため、参照している箇所を削除した
+  - @miosakuma
+- 2025-01-14 [RELEASE] m132.6834.5.1
+  - @miosakuma
+- 2024-12-20 [RELEASE] m132.6834.5.0
+  - @melpon @torikizi
+- 2024-12-20 [RELEASE] m132.6834.4.0
+  - ios_proxy.patch を libwebrtc 側の処理変更に追従して修正する
+  - @melpon
+- 2025-01-10 [RELEASE] m130.6723.2.1
+  - @miosakuma
+- 2025-01-10 [CHANGE] libwebrtc の iOS Simulcast 対応が不十分だったので、`ios_simulcast.patch` パッチを復活させた。 scalabilityMode の型が変更になっている。詳細は[こちら](patches/README.md#ios_simulcastpatch)
+  - @tnoho
 - 2024-12-14 [RELEASE] m131.6778.4.0
   - apt_install_arm.sh の `apt update` のコメントアウトを解除
   - @torikizi
