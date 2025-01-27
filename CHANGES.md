@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-01-25 [ADD] Android と iOS の RtpEncodingParameters に scaleResolutionDownTo を定義する
+  - @melpon
 - 2025-01-23 [RELEASE] m132.6834.5.2
   - @miosakuma
 - 2025-01-23 [FIX] apt_install_x86_64.sh の `apt-get update` のコメントアウトを解除
