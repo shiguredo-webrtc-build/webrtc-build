@@ -2,7 +2,7 @@ diff --git a/BUILD.gn b/BUILD.gn
 index 533262e03b..9978e67db1 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
-@@ -501,6 +501,10 @@ if (!build_with_chromium) {
+@@ -501,6 +501,11 @@ if (!build_with_chromium) {
        "pc:rtc_pc",
        "sdk",
        "video",
@@ -10,6 +10,7 @@ index 533262e03b..9978e67db1 100644
 +      "rtc_base:log_sinks",
 +      "rtc_base:socket_adapters",
 +      "media:rtc_simulcast_encoder_adapter",
++      "api:enable_media_with_defaults",
      ]
  
      if (rtc_include_builtin_audio_codecs) {
