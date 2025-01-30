@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-01-30 [FIX] Windows のビルド依存に api:enable_media_with_defaults を追加し忘れていた
+  - @melpon
 - 2025-01-30 [RELEASE] m132.6834.5.4
   - @melpon
 - 2025-01-30 [ADD] ビルド依存に api:enable_media_with_defaults を追加
