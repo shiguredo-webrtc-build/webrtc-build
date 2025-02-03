@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-01-30 [RELEASE] m132.6834.5.6
+  - @voluntas
 - 2025-01-31 [UPDATE] iOS の scaleResolutionDownTo のプロパティの setter を assign から copy に変更する
   - @zztkm
 - 2025-01-30 [RELEASE] m132.6834.5.5
