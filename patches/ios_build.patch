@@ -1,5 +1,5 @@
 diff --git a/build/config/clang/clang.gni b/build/config/clang/clang.gni
-index 9928fc37b..0f4c72b01 100644
+index 6913de9bb..68d0e8eac 100644
 --- a/build/config/clang/clang.gni
 +++ b/build/config/clang/clang.gni
 @@ -11,9 +11,9 @@ declare_args() {
@@ -16,10 +16,10 @@ index 9928fc37b..0f4c72b01 100644
    # Use this instead of clang_use_chrome_plugins to enable just the raw-ptr-plugin.
    clang_use_raw_ptr_plugin = false
 diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
-index 3b809a3c0..5c20f6d16 100644
+index 88109264e..31785f1ce 100644
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
-@@ -475,8 +475,8 @@ config("compiler") {
+@@ -485,8 +485,8 @@ config("compiler") {
      # faster.
      # On arm64, this is already the default behavior.
      if (current_cpu == "x64") {
@@ -30,7 +30,7 @@ index 3b809a3c0..5c20f6d16 100644
      }
  
      # dsymutil is not available in the system, on bots, for rustc to call. Our
-@@ -562,55 +562,6 @@ config("compiler") {
+@@ -578,62 +578,6 @@ config("compiler") {
      ldflags += [ "-Wl,-z,keep-text-section-prefix" ]
    }
  
@@ -81,12 +81,19 @@ index 3b809a3c0..5c20f6d16 100644
 -    } else {
 -      cflags += [ "-ffp-contract=off" ]
 -    }
--  }
 -
+-    # Enable ELF CREL (see crbug.com/357878242) for all platforms that use ELF
+-    # (excluding toolchains that use an older version of LLVM).
+-    # TODO(crbug.com/376278218): This causes segfault on Linux ARM builds.
+-    if (is_linux && !llvm_android_mainline && current_cpu != "arm" &&
+-        default_toolchain != "//build/toolchain/cros:target") {
+-      cflags += [ "-Wa,--crel,--allow-experimental-crel" ]
+-    }
+-  }
+ 
    # C11/C++11 compiler flags setup.
    # ---------------------------
-   if (is_linux || is_chromeos || is_android || (is_nacl && is_clang) ||
-@@ -1997,7 +1948,7 @@ config("default_warnings") {
+@@ -2014,7 +1958,7 @@ config("default_warnings") {
  
    # TODO(crbug.com/355446806): Clean up and enable.
    if (is_apple) {
@@ -96,7 +103,7 @@ index 3b809a3c0..5c20f6d16 100644
  
    # Rust warnings
 diff --git a/build/toolchain/apple/toolchain.gni b/build/toolchain/apple/toolchain.gni
-index ab7378fe2..9b2a869d9 100644
+index 9d8583fba..3820bfb8a 100644
 --- a/build/toolchain/apple/toolchain.gni
 +++ b/build/toolchain/apple/toolchain.gni
 @@ -153,7 +153,8 @@ template("single_apple_toolchain") {
