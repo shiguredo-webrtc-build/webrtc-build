@@ -102,8 +102,9 @@ webrtc-build/
 - macOS の場合は `macos_x86_64`, `macos_arm64`, `ios` ターゲットのみビルド可能。
 - Ubuntu の x86_64 環境の場合、上記以外のターゲットのみビルド可能。
   - `android`, `raspberry-pi-os_armv*`, `ubuntu-*_armv8` あたりの ARM 環境は Ubuntu のバージョンに関係なくビルド可能
-  - `ubuntu-18.04_x86_64` の場合は Ubuntu 18.04 が必要
   - `ubuntu-20.04_x86_64` の場合は Ubuntu 20.04 が必要
+  - `ubuntu-22.04_x86_64` の場合は Ubuntu 22.04 が必要
+  - `ubuntu-24.04_x86_64` の場合は Ubuntu 24.04 が必要
 - Ubuntu の x86_64 でない環境ではビルド不可能。
 - Ubuntu 以外の Linux 系 OS ではビルド不可能。
 

@@ -74,8 +74,8 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
-      - name: Select Xcode 14.3.1
-        run: sudo xcode-select --switch /Applications/Xcode_14.3.1.app/Contents/Developer
+      - name: Select Xcode 15.4
+        run: sudo xcode-select --switch /Applications/Xcode_15.4.app/Contents/Developer
       - run: brew install ninja
       - name: Setup Git User
         run: |
@@ -107,12 +107,12 @@ jobs:
             runs-on: ubuntu-20.04
           - name: raspberry-pi-os_armv8
             runs-on: ubuntu-20.04
-          - name: ubuntu-18.04_armv8
-            runs-on: ubuntu-20.04
           - name: ubuntu-20.04_armv8
             runs-on: ubuntu-20.04
           - name: ubuntu-22.04_armv8
-            runs-on: ubuntu-20.04
+            runs-on: ubuntu-22.04
+          - name: ubuntu-24.04_armv8
+            runs-on: ubuntu-24.04
           - name: ubuntu-20.04_x86_64
             runs-on: ubuntu-20.04
           - name: ubuntu-22.04_x86_64
@@ -120,7 +120,7 @@ jobs:
           - name: ubuntu-24.04_x86_64
             runs-on: ubuntu-24.04
           - name: android
-            runs-on: ubuntu-20.04
+            runs-on: ubuntu-22.04
     runs-on: ${{ matrix.platform.runs-on }}
     steps:
       - uses: actions/checkout@v4
@@ -210,13 +210,13 @@ jobs:
           platform: raspberry-pi-os_armv8
       - uses: ./.github/actions/download
         with:
-          platform: ubuntu-18.04_armv8
-      - uses: ./.github/actions/download
-        with:
           platform: ubuntu-20.04_armv8
       - uses: ./.github/actions/download
         with:
           platform: ubuntu-22.04_armv8
+      - uses: ./.github/actions/download
+        with:
+          platform: ubuntu-24.04_armv8
       - uses: ./.github/actions/download
         with:
           platform: ubuntu-20.04_x86_64

@@ -120,6 +120,9 @@ $ find $(xcode-select --print-path) | grep arm_neon
 また、ファイルの追加に伴い、リリース・バイナリの NOTICE ファイルに LLVM のライセンスを追加する必要が生じたため、 run.py も併せて修正した。
 このパッチが不要になった場合、その処理は削除する必要がある。
 
+M131 において libaom においても同様の問題が発生したので、両方 third_party 以下のため同じファイルを libaom にも配置する。
+libaom は include の angled と quotes を厳密に見るようなので、それにも対応する。
+
 ## revert_asm_changes.patch
 
 dav1d/libdav1d/src/arm/asm.S に入った変更を取り消すパッチ。
@@ -221,17 +224,6 @@ bool success = [session configureWebRTCSession:nil];
    }
 ```
 
-## ios_simulcast.patch
-
-iOS でのサイマルキャストのサポートを追加するパッチ。次の機能を追加する。
-
-- サイマルキャストのエンコーダー (`RTCVideoEncoderFactorySimulcast`, `RTCVideoEncoderSimulcast`)
-  - この実装は C++ API の `SimulcastEncoderAdapter` の簡単なラッパーであり、新しいファイルを追加するので既存の仕様に破壊的変更を行わない
-- scalability mode のサポート (`RTCVideoCodecInfo`, `RTCRtpEncodingParameters`)
-  - C++ API でサポートされているプロパティを ObjC ラッパーに追加する
-
-同等の機能が本家に実装されるか、 PR を出して取り込まれたら削除する。
-
 ## ios_proxy.patch
 
 iOS での Proxy のサポートを追加するパッチ。
@@ -329,3 +321,35 @@ rtc_use_perfetto=false した時にコンパイルエラーになる問題を修
 
 M126 で perfetto を使うようになったけど、これは rtc_use_perfetto=false で無効にできるため試してみたところ、必要な部分が ifdef で囲まれていなかったためコンパイルエラーになった。
 このパッチはその問題を修正するもの。
+
+## ios_fix_optional.patch
+
+Abseil ライブラリではなく C++ 標準ライブラリを利用するようにするパッチ。
+
+## fix_moved_function_call.patch
+
+SesseionDescription のコールバック実行中に PeerConnection が破棄された時にクラッシュする問題を修正するパッチ。
+
+https://github.com/shiguredo/sora-cpp-sdk/blob/e1257a3e358e62512c0c77db5ba82f90e2e26353/src/session_description.cpp#L84-L94
+
+ここの中で sleep して、その間に SoraSignaling を破棄すると発生する。
+
+多分パッチを送った方がいいやつ。
+
+# windows_add_optional.patch
+
+Windows で std::optional が参照エラーになるのを改善するパッチ。
+
+## ios_simulcast.patch
+
+iOS でのサイマルキャストのサポートを追加するパッチ。この実装は C++ の `SimulcastEncoderAdapter` の簡単なラッパーであり、既存の仕様に破壊的変更も行わない。
+以下の API を追加する。
+
+- `RTCVideoEncoderFactorySimulcast`
+- `RTCVideoEncoderSimulcast`
+
+同等の機能が本家に実装されたら削除する。
+
+[libwebrtcの変更](https://webrtc-review.googlesource.com/c/src/+/358866)を取り込んだため、従来の ios_simulcast.patch とは異なる。
+
+特に scalabilityMode は libwebrtc 側で NSString 記述となったため RTCScalabilityMode ENUM を削除した。変数名は同じだが NSNumber から NSString に型が変更になっているので注意すること。
