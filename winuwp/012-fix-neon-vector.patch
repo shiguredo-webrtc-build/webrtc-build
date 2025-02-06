@@ -1,0 +1,28 @@
+Updating depot_tools...
+diff --git a/third_party/boringssl/src/crypto/hrss/hrss.c b/third_party/boringssl/src/crypto/hrss/hrss.c
+index 572e9817c..8611d3f31 100644
+--- a/third_party/boringssl/src/crypto/hrss/hrss.c
++++ b/third_party/boringssl/src/crypto/hrss/hrss.c
+@@ -197,9 +197,9 @@ typedef uint16x8_t vec_t;
+ 
+ static int vec_capable(void) { return CRYPTO_is_NEON_capable(); }
+ 
+-static inline vec_t vec_add(vec_t a, vec_t b) { return a + b; }
++static inline vec_t vec_add(vec_t a, vec_t b) { return vaddq_u16(a, b); }
+ 
+-static inline vec_t vec_sub(vec_t a, vec_t b) { return a - b; }
++static inline vec_t vec_sub(vec_t a, vec_t b) { return vsubq_u16(a, b); }
+ 
+ static inline vec_t vec_mul(vec_t a, uint16_t b) { return vmulq_n_u16(a, b); }
+ 
+@@ -227,7 +227,9 @@ static inline vec_t vec_merge_3_5(vec_t left, vec_t right) {
+ }
+ 
+ static inline uint16_t vec_get_word(vec_t v, unsigned i) {
+-  return v[i];
++  uint16_t temp[8];
++  vst1q_u16(temp, v);
++  return temp[i];
+ }
+ 
+ #if !defined(OPENSSL_AARCH64)

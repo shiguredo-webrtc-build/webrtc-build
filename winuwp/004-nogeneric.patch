@@ -1,8 +1,9 @@
+Updating depot_tools...
 diff --git a/call/rtp_payload_params.cc b/call/rtp_payload_params.cc
-index 33e9c7666e..dcd0da8650 100644
+index acc9e3ca18..dd47ff57f3 100644
 --- a/call/rtp_payload_params.cc
 +++ b/call/rtp_payload_params.cc
-@@ -316,7 +316,7 @@ void RtpPayloadParams::SetGeneric(const CodecSpecificInfo* codec_specific_info,
+@@ -330,7 +330,7 @@ void RtpPayloadParams::SetGeneric(const CodecSpecificInfo* codec_specific_info,
        chains_calculator_.Reset(
            codec_specific_info->generic_frame_info->part_of_chain);
      }
@@ -11,7 +12,7 @@ index 33e9c7666e..dcd0da8650 100644
          *codec_specific_info->generic_frame_info, frame_id);
      return;
    }
-@@ -420,7 +420,7 @@ void RtpPayloadParams::GenericToGeneric(int64_t frame_id,
+@@ -438,7 +438,7 @@ void RtpPayloadParams::GenericToGeneric(int64_t frame_id,
                                          bool is_keyframe,
                                          RTPVideoHeader* rtp_video_header) {
    RTPVideoHeader::GenericDescriptorInfo& generic =
@@ -20,7 +21,7 @@ index 33e9c7666e..dcd0da8650 100644
  
    generic.frame_id = frame_id;
    generic.decode_target_indications.push_back(DecodeTargetIndication::kSwitch);
-@@ -453,7 +453,7 @@ void RtpPayloadParams::H264ToGeneric(const CodecSpecificInfoH264& h264_info,
+@@ -471,7 +471,7 @@ void RtpPayloadParams::H264ToGeneric(const CodecSpecificInfoH264& h264_info,
    }
  
    RTPVideoHeader::GenericDescriptorInfo& generic =
@@ -29,7 +30,7 @@ index 33e9c7666e..dcd0da8650 100644
  
    generic.frame_id = frame_id;
    generic.temporal_index = temporal_index;
-@@ -509,7 +509,7 @@ void RtpPayloadParams::Vp8ToGeneric(const CodecSpecificInfoVP8& vp8_info,
+@@ -535,7 +535,7 @@ void RtpPayloadParams::Vp8ToGeneric(const CodecSpecificInfoVP8& vp8_info,
    }
  
    RTPVideoHeader::GenericDescriptorInfo& generic =
@@ -38,7 +39,7 @@ index 33e9c7666e..dcd0da8650 100644
  
    generic.frame_id = frame_id;
    generic.spatial_index = spatial_index;
-@@ -578,7 +578,7 @@ void RtpPayloadParams::Vp9ToGeneric(const CodecSpecificInfoVP9& vp9_info,
+@@ -604,7 +604,7 @@ void RtpPayloadParams::Vp9ToGeneric(const CodecSpecificInfoVP9& /* vp9_info */,
    }
  
    RTPVideoHeader::GenericDescriptorInfo& result =
@@ -47,7 +48,7 @@ index 33e9c7666e..dcd0da8650 100644
  
    result.frame_id = frame_id;
    result.spatial_index = spatial_index;
-@@ -643,7 +643,7 @@ void RtpPayloadParams::Vp9ToGeneric(const CodecSpecificInfoVP9& vp9_info,
+@@ -669,7 +669,7 @@ void RtpPayloadParams::Vp9ToGeneric(const CodecSpecificInfoVP9& /* vp9_info */,
      // non-layerd streams.
      if (spatial_index > 0 || temporal_index > 0) {
        // Prefer to generate no generic layering than an inconsistent one.
@@ -75,10 +76,25 @@ index f4525f0db1..eadbae52eb 100644
    if (descriptor.spatial_index < 0 || descriptor.temporal_index < 0 ||
        descriptor.spatial_index >=
 diff --git a/modules/rtp_rtcp/source/rtp_sender_video.cc b/modules/rtp_rtcp/source/rtp_sender_video.cc
-index ebca7aaa75..ce5e224a9f 100644
+index 8a21d0523f..06b99a6b9c 100644
 --- a/modules/rtp_rtcp/source/rtp_sender_video.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender_video.cc
-@@ -121,9 +121,9 @@ absl::optional<VideoPlayoutDelay> LoadVideoPlayoutDelayOverride(
+@@ -103,10 +103,10 @@ bool MinimizeDescriptor(RTPVideoHeader* video_header) {
+ 
+ bool IsBaseLayer(const RTPVideoHeader& video_header) {
+   // For AV1 & H.265 we fetch temporal index from the generic descriptor.
+-  if (video_header.generic) {
+-    const auto& generic = video_header.generic.value();
+-    return (generic.temporal_index == 0 ||
+-            generic.temporal_index == kNoTemporalIdx);
++  if (video_header.generic_) {
++    const auto& generic_ = video_header.generic_.value();
++    return (generic_.temporal_index == 0 ||
++            generic_.temporal_index == kNoTemporalIdx);
+   }
+   switch (video_header.codec) {
+     case kVideoCodecVP8: {
+@@ -152,9 +152,9 @@ std::optional<VideoPlayoutDelay> LoadVideoPlayoutDelayOverride(
  bool PacketWillLikelyBeRequestedForRestransmissionIfLost(
      const RTPVideoHeader& video_header) {
    return IsBaseLayer(video_header) &&
@@ -90,7 +106,7 @@ index ebca7aaa75..ce5e224a9f 100644
                       DecodeTargetIndication::kDiscardable)
                 : false);
  }
-@@ -358,26 +358,26 @@ void RTPSenderVideo::AddRtpHeaderExtensions(const RTPVideoHeader& video_header,
+@@ -391,26 +391,26 @@ void RTPSenderVideo::AddRtpHeaderExtensions(const RTPVideoHeader& video_header,
          *video_header.absolute_capture_time);
    }
  
@@ -125,7 +141,7 @@ index ebca7aaa75..ce5e224a9f 100644
        RTC_DCHECK_EQ(
            descriptor.frame_dependencies.decode_target_indications.size(),
            video_structure_->num_decode_targets);
-@@ -392,7 +392,7 @@ void RTPSenderVideo::AddRtpHeaderExtensions(const RTPVideoHeader& video_header,
+@@ -425,7 +425,7 @@ void RTPSenderVideo::AddRtpHeaderExtensions(const RTPVideoHeader& video_header,
        // layers when inter layer dependency is not used, i.e. S structures.
        // Distinguish these two cases by checking if there are any dependencies.
        if (video_header.frame_type == VideoFrameType::kVideoFrameKey &&
@@ -134,7 +150,7 @@ index ebca7aaa75..ce5e224a9f 100644
          // To avoid extra structure copy, temporary share ownership of the
          // video_structure with the dependency descriptor.
          descriptor.attached_structure =
-@@ -415,17 +415,17 @@ void RTPSenderVideo::AddRtpHeaderExtensions(const RTPVideoHeader& video_header,
+@@ -448,17 +448,17 @@ void RTPSenderVideo::AddRtpHeaderExtensions(const RTPVideoHeader& video_header,
  
        if (first_packet) {
          generic_descriptor.SetFrameId(
@@ -157,7 +173,7 @@ index ebca7aaa75..ce5e224a9f 100644
  
          if (video_header.frame_type == VideoFrameType::kVideoFrameKey) {
            generic_descriptor.SetResolution(video_header.width,
-@@ -504,12 +504,12 @@ bool RTPSenderVideo::SendVideo(int payload_type,
+@@ -557,12 +557,12 @@ bool RTPSenderVideo::SendVideo(int payload_type,
      }
    }
  
@@ -174,7 +190,7 @@ index ebca7aaa75..ce5e224a9f 100644
  
    // No FEC protection for upper temporal layers, if used.
 diff --git a/modules/rtp_rtcp/source/rtp_video_header.cc b/modules/rtp_rtcp/source/rtp_video_header.cc
-index b07a7beec4..16b1c94a74 100644
+index 558b58289a..4feb91da72 100644
 --- a/modules/rtp_rtcp/source/rtp_video_header.cc
 +++ b/modules/rtp_rtcp/source/rtp_video_header.cc
 @@ -36,12 +36,12 @@ VideoFrameMetadata RTPVideoHeader::GetAsMetadata() const {
@@ -196,12 +212,12 @@ index b07a7beec4..16b1c94a74 100644
    }
    metadata.SetIsLastFrameInPicture(is_last_frame_in_picture);
    metadata.SetSimulcastIdx(simulcastIdx);
-@@ -73,15 +73,15 @@ void RTPVideoHeader::SetFromMetadata(const VideoFrameMetadata& metadata) {
+@@ -75,15 +75,15 @@ void RTPVideoHeader::SetFromMetadata(const VideoFrameMetadata& metadata) {
    rotation = metadata.GetRotation();
    content_type = metadata.GetContentType();
    if (!metadata.GetFrameId().has_value()) {
--    generic = absl::nullopt;
-+    generic_ = absl::nullopt;
+-    generic = std::nullopt;
++    generic_ = std::nullopt;
    } else {
 -    generic.emplace();
 -    generic->frame_id = metadata.GetFrameId().value();
@@ -220,23 +236,23 @@ index b07a7beec4..16b1c94a74 100644
          metadata.GetDecodeTargetIndications().end());
    }
 diff --git a/modules/rtp_rtcp/source/rtp_video_header.h b/modules/rtp_rtcp/source/rtp_video_header.h
-index d185c20c83..57e5627466 100644
+index 8bf17fcb35..e0fb156348 100644
 --- a/modules/rtp_rtcp/source/rtp_video_header.h
 +++ b/modules/rtp_rtcp/source/rtp_video_header.h
-@@ -69,7 +69,7 @@ struct RTPVideoHeader {
+@@ -70,7 +70,7 @@ struct RTPVideoHeader {
    VideoFrameMetadata GetAsMetadata() const;
    void SetFromMetadata(const VideoFrameMetadata& metadata);
  
--  absl::optional<GenericDescriptorInfo> generic;
-+  absl::optional<GenericDescriptorInfo> generic_;
+-  std::optional<GenericDescriptorInfo> generic;
++  std::optional<GenericDescriptorInfo> generic_;
  
    VideoFrameType frame_type = VideoFrameType::kEmptyFrame;
    uint16_t width = 0;
 diff --git a/modules/video_coding/packet_buffer.cc b/modules/video_coding/packet_buffer.cc
-index 52ef5c2d85..0dc71c7029 100644
+index 9d7b6e550c..2f3c42acfd 100644
 --- a/modules/video_coding/packet_buffer.cc
 +++ b/modules/video_coding/packet_buffer.cc
-@@ -256,7 +256,7 @@ std::vector<std::unique_ptr<PacketBuffer::Packet>> PacketBuffer::FindFrames(
+@@ -268,7 +268,7 @@ std::vector<std::unique_ptr<PacketBuffer::Packet>> PacketBuffer::FindFrames(
        int64_t frame_timestamp = buffer_[start_index]->timestamp;
  
        // Identify H.264 keyframes by means of SPS, PPS, and IDR.
@@ -245,8 +261,17 @@ index 52ef5c2d85..0dc71c7029 100644
        bool is_h264_descriptor =
            (buffer_[start_index]->codec() == kVideoCodecH264) && !is_generic;
        bool has_h264_sps = false;
+@@ -282,7 +282,7 @@ std::vector<std::unique_ptr<PacketBuffer::Packet>> PacketBuffer::FindFrames(
+         // GFD is only attached to first packet of frame, so update check on
+         // every packet.
+         if (buffer_[start_index] != nullptr) {
+-          is_generic = buffer_[start_index]->video_header.generic.has_value();
++          is_generic = buffer_[start_index]->video_header.generic_.has_value();
+           if (is_generic) {
+             is_h264_descriptor = false;
+           }
 diff --git a/modules/video_coding/rtp_frame_reference_finder.cc b/modules/video_coding/rtp_frame_reference_finder.cc
-index a44b76bf15..695e161ba6 100644
+index b73fcfe9d5..4f818263f5 100644
 --- a/modules/video_coding/rtp_frame_reference_finder.cc
 +++ b/modules/video_coding/rtp_frame_reference_finder.cc
 @@ -48,9 +48,9 @@ RtpFrameReferenceFinder::ReturnVector RtpFrameReferenceFinderImpl::ManageFrame(
@@ -262,10 +287,10 @@ index a44b76bf15..695e161ba6 100644
  
    switch (frame->codec_type()) {
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index e875a5e109..fffcf92bcb 100644
+index c0b2001b13..25088f1562 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
-@@ -433,7 +433,7 @@ RtpVideoStreamReceiver2::ParseGenericDependenciesExtension(
+@@ -430,7 +430,7 @@ RtpVideoStreamReceiver2::ParseGenericDependenciesExtension(
      video_header->is_last_packet_in_frame =
          dependency_descriptor.last_packet_in_frame;
  
@@ -274,7 +299,7 @@ index e875a5e109..fffcf92bcb 100644
      generic_descriptor_info.frame_id = frame_id;
      generic_descriptor_info.spatial_index =
          dependency_descriptor.frame_dependencies.spatial_id;
-@@ -490,7 +490,7 @@ RtpVideoStreamReceiver2::ParseGenericDependenciesExtension(
+@@ -487,7 +487,7 @@ RtpVideoStreamReceiver2::ParseGenericDependenciesExtension(
              ? VideoFrameType::kVideoFrameKey
              : VideoFrameType::kVideoFrameDelta;
  
@@ -283,7 +308,18 @@ index e875a5e109..fffcf92bcb 100644
      int64_t frame_id =
          frame_id_unwrapper_.Unwrap(generic_frame_descriptor.FrameId());
      generic_descriptor_info.frame_id = frame_id;
-@@ -620,12 +620,12 @@ bool RtpVideoStreamReceiver2::OnReceivedPayloadData(
+@@ -620,8 +620,8 @@ bool RtpVideoStreamReceiver2::OnReceivedPayloadData(
+     }
+ 
+     std::optional<int> spatial_id;
+-    if (video_header.generic.has_value()) {
+-      spatial_id = video_header.generic->spatial_index;
++    if (video_header.generic_.has_value()) {
++      spatial_id = video_header.generic_->spatial_index;
+       if (spatial_id >= kMaxSpatialLayers) {
+         RTC_LOG(LS_WARNING) << "Invalid spatial id: " << *spatial_id
+                             << ". Ignoring corruption detection mesaage.";
+@@ -676,12 +676,12 @@ bool RtpVideoStreamReceiver2::OnReceivedPayloadData(
                               "frame descriptor, but it is missing.";
      } else {
        if (video_header.is_first_packet_in_frame) {
@@ -299,10 +335,10 @@ index e875a5e109..fffcf92bcb 100644
          loss_notification_controller_->OnReceivedPacket(
              rtp_packet.SequenceNumber(), &frame);
        } else {
-@@ -838,7 +838,7 @@ void RtpVideoStreamReceiver2::OnAssembledFrame(
+@@ -895,7 +895,7 @@ void RtpVideoStreamReceiver2::OnAssembledFrame(
    RTC_DCHECK(frame);
  
-   const absl::optional<RTPVideoHeader::GenericDescriptorInfo>& descriptor =
+   const std::optional<RTPVideoHeader::GenericDescriptorInfo>& descriptor =
 -      frame->GetRtpVideoHeader().generic;
 +      frame->GetRtpVideoHeader().generic_;
  

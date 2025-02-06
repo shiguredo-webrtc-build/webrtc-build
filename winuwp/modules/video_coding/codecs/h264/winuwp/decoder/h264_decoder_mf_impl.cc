@@ -33,8 +33,8 @@ namespace webrtc {
 
 H264DecoderMFImpl::H264DecoderMFImpl()
     : buffer_pool_(false, 300), /* max_number_of_buffers*/
-      width_(absl::nullopt),
-      height_(absl::nullopt),
+      width_(std::nullopt),
+      height_(std::nullopt),
       decode_complete_callback_(nullptr) {
   HRESULT hr = S_OK;
   ON_SUCCEEDED(MFStartup(MF_VERSION, MFSTARTUP_NOSOCKET));
@@ -76,9 +76,9 @@ HRESULT ConfigureOutputMediaType(ComPtr<IMFTransform> decoder,
 }
 
 HRESULT CreateInputMediaType(IMFMediaType** pp_input_media,
-                             absl::optional<UINT32> img_width,
-                             absl::optional<UINT32> img_height,
-                             absl::optional<UINT32> frame_rate) {
+                             std::optional<UINT32> img_width,
+                             std::optional<UINT32> img_height,
+                             std::optional<UINT32> frame_rate) {
   HRESULT hr = MFCreateMediaType(pp_input_media);
 
   IMFMediaType* input_media = *pp_input_media;
@@ -142,7 +142,7 @@ bool H264DecoderMFImpl::Configure(const Settings& settings) {
 
   ComPtr<IMFMediaType> input_media;
   ON_SUCCEEDED(CreateInputMediaType(
-      input_media.GetAddressOf(), width_, height_, absl::nullopt));
+      input_media.GetAddressOf(), width_, height_, std::nullopt));
 
   if (FAILED(hr)) {
     RTC_LOG(LS_ERROR) << "Init failure: could not create input media type.";
@@ -355,8 +355,8 @@ HRESULT H264DecoderMFImpl::FlushFrames(uint32_t rtp_timestamp,
 
     // Emit image to downstream
     if (decode_complete_callback_ != nullptr) {
-      decode_complete_callback_->Decoded(decoded_frame, absl::nullopt,
-                                         absl::nullopt);
+      decode_complete_callback_->Decoded(decoded_frame, std::nullopt,
+                                         std::nullopt);
     }
   }
 

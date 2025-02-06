@@ -53,8 +53,8 @@ class H264DecoderMFImpl : public H264Decoder {
   bool inited_ = false;
   bool require_keyframe_ = true;
   uint32_t first_frame_rtp_ = 0;
-  absl::optional<uint32_t> width_;
-  absl::optional<uint32_t> height_;
+  std::optional<uint32_t> width_;
+  std::optional<uint32_t> height_;
   webrtc::Mutex crit_;
   DecodedImageCallback* decode_complete_callback_;
 };

@@ -1,0 +1,232 @@
+Updating depot_tools...
+diff --git a/base/BUILD.gn b/base/BUILD.gn
+index 4c0e4645f..32a30327d 100644
+--- a/base/BUILD.gn
++++ b/base/BUILD.gn
+@@ -89,11 +89,6 @@ assert(!enable_mutex_priority_inheritance || is_castos || is_cast_android,
+ assert(!is_nacl || is_nacl_saigo,
+        "base must not be built in most nacl toolchains")
+ 
+-# This is here instead of in //build because //build is DEPS'd in by a few
+-# subprojects that still support MSVC.
+-assert(!is_win || is_clang,
+-       "only clang-cl is supported on Windows, see https://crbug.com/988071")
+-
+ if (is_android || is_robolectric) {
+   import("//build/config/android/rules.gni")
+   import("//third_party/jni_zero/jni_zero.gni")
+@@ -1721,10 +1716,10 @@ component("base") {
+     # BUILDFLAG(USE_PARTITION_ALLOC). A linker will remove all
+     # partition_alloc code if use_partition_alloc = false because no code uses
+     # partition_alloc.
+-    public_deps += [
+-      "allocator/partition_allocator:partition_alloc",
+-      "allocator/partition_allocator:raw_ptr",
+-    ]
++    # public_deps += [
++    #   "allocator/partition_allocator:partition_alloc",
++    #   "allocator/partition_allocator:raw_ptr",
++    # ]
+   }
+ 
+   # Windows.
+@@ -2812,7 +2807,7 @@ test("base_perftests") {
+       "allocator/partition_allocator/src/partition_alloc/partition_alloc_perftest.cc",
+       "allocator/partition_allocator/src/partition_alloc/partition_lock_perftest.cc",
+     ]
+-    deps += [ "allocator/partition_allocator/src/partition_alloc:test_support" ]
++    # deps += [ "allocator/partition_allocator/src/partition_alloc:test_support" ]
+   }
+ 
+   data_deps = [
+@@ -3592,7 +3587,7 @@ test("base_unittests") {
+     "//third_party/modp_b64",
+ 
+     # TODO(crbug.com/40158212): Move partition_alloc tests into its repository.
+-    "allocator/partition_allocator/src/partition_alloc:test_support",
++    # "allocator/partition_allocator/src/partition_alloc:test_support",
+   ]
+ 
+   # TODO(crbug.com/40158212): Move partition_alloc tests into its repository.
+@@ -3621,9 +3616,9 @@ test("base_unittests") {
+ 
+   # Since cpu_unittest depends on __ARM_FEATURE_MEMORY_TAGGING, needs to
+   # enable clang's MTE feature.
+-  configs += [
+-    "//base/allocator/partition_allocator/src/partition_alloc:memory_tagging",
+-  ]
++  #configs += [
++  #  "//base/allocator/partition_allocator/src/partition_alloc:memory_tagging",
++  #]
+ 
+   if (build_rust_base_conversions) {
+     deps += [ "//build/rust:cxx_cppdeps" ]
+diff --git a/base/allocator/partition_allocator/src/partition_alloc/BUILD.gn b/base/allocator/partition_allocator/src/partition_alloc/BUILD.gn
+index ec0b490a8..22d0f0b0e 100644
+--- a/base/allocator/partition_allocator/src/partition_alloc/BUILD.gn
++++ b/base/allocator/partition_allocator/src/partition_alloc/BUILD.gn
+@@ -40,8 +40,8 @@ dchecks_are_on = is_debug || dcheck_always_on
+ # Building PartitionAlloc for Windows component build.
+ # Currently use build_with_chromium not to affect any third_party code,
+ # but if any third_party code wants to use, remove build_with_chromium.
+-use_partition_alloc_as_malloc_on_win_component_build =
+-    build_with_chromium && is_win && is_component_build
++#use_partition_alloc_as_malloc_on_win_component_build =
++#    build_with_chromium && is_win && is_component_build
+ 
+ # TODO(crbug.com/40276913): Split PartitionAlloc into a public and
+ # private parts. The public config would include add the "./include" dir and
+@@ -1048,72 +1048,72 @@ if (build_with_chromium) {
+   }
+ }
+ 
+-source_set("test_support") {
+-  testonly = true
+-
+-  sources = [
+-    "extended_api.cc",
+-    "extended_api.h",
+-    "partition_alloc_base/threading/platform_thread_for_testing.h",
+-    "partition_alloc_for_testing.h",
+-    "pointers/raw_ptr_counting_impl_for_test.h",
+-  ]
+-  if (is_posix) {
+-    sources += [
+-      "partition_alloc_base/threading/platform_thread_posix_for_testing.cc",
+-    ]
+-  }
+-  if (is_fuchsia) {
+-    sources += [
+-      "partition_alloc_base/threading/platform_thread_fuchsia_for_testing.cc",
+-      "partition_alloc_base/threading/platform_thread_posix_for_testing.cc",
+-    ]
+-  }
+-  if (is_win) {
+-    sources +=
+-        [ "partition_alloc_base/threading/platform_thread_win_for_testing.cc" ]
+-  }
+-  if (is_apple) {
+-    sources += [
+-      "partition_alloc_base/threading/platform_thread_apple_for_testing.mm",
+-    ]
+-  }
+-  if (is_linux || is_chromeos) {
+-    sources += [
+-      "partition_alloc_base/threading/platform_thread_linux_for_testing.cc",
+-    ]
+-  }
+-  if (is_android) {
+-    sources += [
+-      "partition_alloc_base/threading/platform_thread_android_for_testing.cc",
+-    ]
+-  }
+-  public_deps = [
+-    ":arm_bti_testfunctions",
+-    ":buildflags",
+-    ":partition_alloc",
+-    ":raw_ptr",
+-  ]
+-  public_configs = []
+-
+-  if (is_fuchsia) {
+-    public_deps += [
+-      "//third_party/fuchsia-sdk/sdk/fidl/fuchsia.logger:fuchsia.logger_hlcpp",
+-      "//third_party/fuchsia-sdk/sdk/pkg/fit",
+-      "//third_party/fuchsia-sdk/sdk/pkg/sync",
+-      "//third_party/fuchsia-sdk/sdk/pkg/sys_cpp",
+-      "//third_party/fuchsia-sdk/sdk/pkg/zx",
+-    ]
+-
+-    # Needed for users of spinning_mutex.h, which for performance reasons,
+-    # contains inlined calls to `libsync` inside the header file.
+-    # It appends an entry to the "libs" section of the dependent target.
+-    public_configs += [ ":fuchsia_sync_lib" ]
+-  }
+-
+-  configs -= partition_alloc_remove_configs
+-  configs += partition_alloc_add_configs
+-}
++#source_set("test_support") {
++#  testonly = true
++#
++#  sources = [
++#    "extended_api.cc",
++#    "extended_api.h",
++#    "partition_alloc_base/threading/platform_thread_for_testing.h",
++#    "partition_alloc_for_testing.h",
++#    "pointers/raw_ptr_counting_impl_for_test.h",
++#  ]
++#  if (is_posix) {
++#    sources += [
++#      "partition_alloc_base/threading/platform_thread_posix_for_testing.cc",
++#    ]
++#  }
++#  if (is_fuchsia) {
++#    sources += [
++#      "partition_alloc_base/threading/platform_thread_fuchsia_for_testing.cc",
++#      "partition_alloc_base/threading/platform_thread_posix_for_testing.cc",
++#    ]
++#  }
++#  if (is_win) {
++#    sources +=
++#        [ "partition_alloc_base/threading/platform_thread_win_for_testing.cc" ]
++#  }
++#  if (is_apple) {
++#    sources += [
++#      "partition_alloc_base/threading/platform_thread_apple_for_testing.mm",
++#    ]
++#  }
++#  if (is_linux || is_chromeos) {
++#    sources += [
++#      "partition_alloc_base/threading/platform_thread_linux_for_testing.cc",
++#    ]
++#  }
++#  if (is_android) {
++#    sources += [
++#      "partition_alloc_base/threading/platform_thread_android_for_testing.cc",
++#    ]
++#  }
++#  public_deps = [
++#    ":arm_bti_testfunctions",
++#    ":buildflags",
++#    ":partition_alloc",
++#    ":raw_ptr",
++#  ]
++#  public_configs = []
++#
++#  if (is_fuchsia) {
++#    public_deps += [
++#      "//third_party/fuchsia-sdk/sdk/fidl/fuchsia.logger:fuchsia.logger_hlcpp",
++#      "//third_party/fuchsia-sdk/sdk/pkg/fit",
++#      "//third_party/fuchsia-sdk/sdk/pkg/sync",
++#      "//third_party/fuchsia-sdk/sdk/pkg/sys_cpp",
++#      "//third_party/fuchsia-sdk/sdk/pkg/zx",
++#    ]
++#
++#    # Needed for users of spinning_mutex.h, which for performance reasons,
++#    # contains inlined calls to `libsync` inside the header file.
++#    # It appends an entry to the "libs" section of the dependent target.
++#    public_configs += [ ":fuchsia_sync_lib" ]
++#  }
++#
++#  configs -= partition_alloc_remove_configs
++#  configs += partition_alloc_add_configs
++#}
+ 
+ source_set("arm_bti_testfunctions") {
+   testonly = true
+diff --git a/base/compiler_specific.h b/base/compiler_specific.h
+index 35821d4c7..c867c5a75 100644
+--- a/base/compiler_specific.h
++++ b/base/compiler_specific.h
+@@ -7,10 +7,6 @@
+ 
+ #include "build/build_config.h"
+ 
+-#if defined(COMPILER_MSVC) && !defined(__clang__)
+-#error "Only clang-cl is supported on Windows, see https://crbug.com/988071"
+-#endif
+-
+ // A wrapper around `__has_attribute()`, which is similar to the C++20-standard
+ // `__has_cpp_attribute()`, but tests for support for `__attribute__(())`s.
+ // Compilers that do not support this (e.g. MSVC) are also assumed not to

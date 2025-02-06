@@ -484,8 +484,8 @@ index 5869ecd7..ef1cb868 100644
 -  const uint8_t* src_uv;
 +  const uint8_t* src_uv_cropped;
    const int abs_src_height = (src_height < 0) ? -src_height : src_height;
-   // TODO(nisse): Why allow crop_height < 0?
    const int abs_crop_height = (crop_height < 0) ? -crop_height : crop_height;
+   int r = 0;
 @@ -171,19 +174,17 @@ int ConvertToI420(const uint8_t* sample,
        break;
      // Biplanar formats

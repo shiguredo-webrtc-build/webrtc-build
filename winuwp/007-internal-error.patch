@@ -8,10 +8,10 @@
 # 選択するか、サポート情報ヘルプ ファイルを参照してください
 #
 diff --git a/api/test/metrics/metrics_logger.cc b/api/test/metrics/metrics_logger.cc
-index 1e24400367..8935844811 100644
+index ac9274251e..0dc4bc052a 100644
 --- a/api/test/metrics/metrics_logger.cc
 +++ b/api/test/metrics/metrics_logger.cc
-@@ -43,17 +43,17 @@ void DefaultMetricsLogger::LogSingleValueMetric(
+@@ -45,17 +45,17 @@ void DefaultMetricsLogger::LogSingleValueMetric(
      ImprovementDirection improvement_direction,
      std::map<std::string, std::string> metadata) {
    MutexLock lock(&mutex_);
@@ -25,7 +25,7 @@ index 1e24400367..8935844811 100644
 -          Metric::TimeSeries{.samples = std::vector{Metric::TimeSeries::Sample{
 -                                 .timestamp = Now(), .value = value}}},
 -      .stats = Metric::Stats{
--          .mean = value, .stddev = absl::nullopt, .min = value, .max = value}});
+-          .mean = value, .stddev = std::nullopt, .min = value, .max = value}});
 +  //metrics_.push_back(Metric{
 +  //    .name = std::string(name),
 +  //    .unit = unit,
@@ -36,11 +36,11 @@ index 1e24400367..8935844811 100644
 +  //        Metric::TimeSeries{.samples = std::vector{Metric::TimeSeries::Sample{
 +  //                               .timestamp = Now(), .value = value}}},
 +  //    .stats = Metric::Stats{
-+  //        .mean = value, .stddev = absl::nullopt, .min = value, .max = value}});
++  //        .mean = value, .stddev = std::nullopt, .min = value, .max = value}});
  }
  
  void DefaultMetricsLogger::LogMetric(
-@@ -73,13 +73,13 @@ void DefaultMetricsLogger::LogMetric(
+@@ -75,13 +75,13 @@ void DefaultMetricsLogger::LogMetric(
                                     .sample_metadata = sample.metadata});
    }
  
@@ -61,7 +61,7 @@ index 1e24400367..8935844811 100644
  }
  
  void DefaultMetricsLogger::LogMetric(
-@@ -90,13 +90,13 @@ void DefaultMetricsLogger::LogMetric(
+@@ -92,13 +92,13 @@ void DefaultMetricsLogger::LogMetric(
      ImprovementDirection improvement_direction,
      std::map<std::string, std::string> metadata) {
    MutexLock lock(&mutex_);

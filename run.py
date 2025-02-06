@@ -226,6 +226,8 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "fix_perfetto.patch",
+        "fix_moved_function_call.patch",
+        "windows_add_optional.patch",
     ],
     "macos_arm64": [
         "add_deps.patch",
@@ -380,9 +382,10 @@ WINUWP_ADDITIONAL_PATCHES = [
     "005-h264.patch",
     "006-logging.patch",
     "007-internal-error.patch",
-    "008-streamer.patch",
     "009-remove-dotprod.patch",
     "010-remove-perfetto.patch",
+    "011-remove-partition-alloc.patch",
+    "012-fix-neon-vector.patch",
 ]
 WINUWP_ADDITIONAL_DIRS = [
     ["modules", "audio_device", "winuwp"],
@@ -403,6 +406,7 @@ def apply_patch(patch, dir, depth):
                     "--ignore-space-change",
                     "--ignore-whitespace",
                     "--whitespace=nowarn",
+                    "--reject",
                     patch,
                 ]
             )
@@ -429,7 +433,7 @@ def apply_patches(target, patch_dir, src_dir, patch_until, commit_patch):
     # patch_until が指定されている場合、そのパッチファイルまで適用とコミットして、
     # patch_until のパッチに関しては適用だけ行う
     if patch_until is not None:
-        if patch_until not in PATCHES[target]:
+        if patch_until not in PATCHES[target] + WINUWP_ADDITIONAL_PATCHES:
             raise Exception(f"{patch_until} file is not in PATCHES")
 
     with cd(src_dir):
@@ -472,10 +476,6 @@ def apply_patches(target, patch_dir, src_dir, patch_until, commit_patch):
                 dstdir = os.path.join(src_dir, *dir)
                 rm_rf(dstdir)
                 shutil.copytree(srcdir, dstdir)
-            # 追加パッチの適用
-            for patch in WINUWP_ADDITIONAL_PATCHES:
-                apply_patch(os.path.join(winuwp_dir, patch), src_dir, 1)
-
             cmd(["gclient", "recurse", "git", "add", "--", ":!*.orig", ":!*.rej"])
             cmd(
                 [
@@ -485,9 +485,28 @@ def apply_patches(target, patch_dir, src_dir, patch_until, commit_patch):
                     "commit",
                     "--allow-empty",
                     "-am",
-                    "[shiguredo-patch] Apply winuwp patches",
+                    "[shiguredo-patch] Apply winuwp patches (additional files)",
                 ]
             )
+            # 追加パッチの適用
+            for patch in WINUWP_ADDITIONAL_PATCHES:
+                apply_patch(os.path.join(winuwp_dir, patch), src_dir, 1)
+                if patch == patch_until and not commit_patch:
+                    break
+                cmd(["gclient", "recurse", "git", "add", "--", ":!*.orig", ":!*.rej"])
+                cmd(
+                    [
+                        "gclient",
+                        "recurse",
+                        "git",
+                        "commit",
+                        "--allow-empty",
+                        "-am",
+                        f"[shiguredo-patch] Apply winuwp patches ({patch})",
+                    ]
+                )
+                if patch == patch_until and commit_patch:
+                    break
 
 
 # 時雨堂パッチが当たっていない最新のコミットを取得する
@@ -1043,6 +1062,7 @@ def build_webrtc(
                 "treat_warnings_as_errors=false",
                 "rtc_enable_win_wgc=false",
                 "rtc_include_dav1d_in_internal_decoder_factory=false",
+                "libyuv_use_neon=false",
             ]
         elif target in ("macos_arm64",):
             gn_args += [

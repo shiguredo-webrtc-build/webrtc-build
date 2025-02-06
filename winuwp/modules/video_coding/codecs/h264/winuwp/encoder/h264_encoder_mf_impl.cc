@@ -354,7 +354,7 @@ ComPtr<IMFSample> H264EncoderMFImpl::FromVideoFrame(const VideoFrame& frame) {
 
     if (firstFrame_) {
       firstFrame_ = false;
-      startTime_ = frame.timestamp();
+      startTime_ = frame.rtp_timestamp();
     }
 
     auto timestampHns = GetFrameTimestampHns(frame);
@@ -370,7 +370,7 @@ ComPtr<IMFSample> H264EncoderMFImpl::FromVideoFrame(const VideoFrame& frame) {
 
       // Cache the frame attributes to get them back after the encoding.
       CachedFrameAttributes frameAttributes;
-      frameAttributes.timestamp = frame.timestamp();
+      frameAttributes.timestamp = frame.rtp_timestamp();
       frameAttributes.ntpTime = frame.ntp_time_ms();
       frameAttributes.captureRenderTime = frame.render_time_ms();
       frameAttributes.frameWidth = frame.width();
@@ -439,7 +439,7 @@ ComPtr<IMFSample> H264EncoderMFImpl::FromVideoFrameNV12(const VideoFrame& frame)
 
     if (firstFrame_) {
       firstFrame_ = false;
-      startTime_ = frame.timestamp();
+      startTime_ = frame.rtp_timestamp();
     }
 
     auto timestampHns = GetFrameTimestampHns(frame);
@@ -455,7 +455,7 @@ ComPtr<IMFSample> H264EncoderMFImpl::FromVideoFrameNV12(const VideoFrame& frame)
 
       // Cache the frame attributes to get them back after the encoding.
       CachedFrameAttributes frameAttributes;
-      frameAttributes.timestamp = frame.timestamp();
+      frameAttributes.timestamp = frame.rtp_timestamp();
       frameAttributes.ntpTime = frame.ntp_time_ms();
       frameAttributes.captureRenderTime = frame.render_time_ms();
       frameAttributes.frameWidth = frame.width();
@@ -485,7 +485,7 @@ LONGLONG H264EncoderMFImpl::GetFrameTimestampHns(
     const VideoFrame& frame) const {
   // H.264 clock rate is 90kHz (https://tools.ietf.org/html/rfc6184#page-11).
   // timestamp_100ns = timestamp_90kHz / {90'000 Hz} * {10'000'000 hns/sec}
-  return (frame.timestamp() - startTime_) * 10'000 / 90;
+  return (frame.rtp_timestamp() - startTime_) * 10'000 / 90;
 }
 
 int H264EncoderMFImpl::Encode(const VideoFrame& frame,

@@ -73,6 +73,8 @@
     "fstream": "cpp",
     "optional": "cpp",
     "sstream": "cpp",
-    "system_error": "cpp"
+    "system_error": "cpp",
+    "arm_neon.h": "c",
+    "*.inc": "c"
   },
 }
