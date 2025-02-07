@@ -29,7 +29,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
-- 2025-01-03 [RELEASE] m132.6834.5.7
+- 2025-02-07 [CHANGE] RTCDefaultVideoEncoder が返すフォーマットの一覧を scalability_mode に対応する
+  - @melpon
+- 2025-02-03 [RELEASE] m132.6834.5.7
   - @zztkm
 - 2025-02-03 [RELEASE] m132.6834.5.6
   - @zztkm
