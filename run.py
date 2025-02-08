@@ -691,11 +691,12 @@ WEBRTC_BUILD_TARGETS = {
 }
 
 
-def get_build_targets(target):
-    ts = [":default"]
-    if target not in ("windows_x86_64", "windows_arm64", "ios", "macos_arm64"):
-        ts += ["buildtools/third_party/libc++"]
+def get_build_targets(target: str, webrtc_build_dir: str):
+    ts = [":default", "buildtools/third_party/libc++"]
     ts += WEBRTC_BUILD_TARGETS.get(target, [])
+    all_targets = cmdcap(["ninja", "-C", webrtc_build_dir, "-t", "targets", "all"]).split("\n")
+    all_targets = [t.split(": ")[0] for t in all_targets]
+    ts = [t for t in ts if t in all_targets]
     return ts
 
 
@@ -837,7 +838,7 @@ def build_webrtc_ios(
             ]
             gn_gen(webrtc_src_dir, work_dir, gn_args, extra_gn_args)
         if not nobuild:
-            cmd(["ninja", "-C", work_dir, *get_build_targets("ios")])
+            cmd(["ninja", "-C", work_dir, *get_build_targets("ios", webrtc_build_dir)])
             ar = "/usr/bin/ar"
             archive_objects(
                 ar, os.path.join(work_dir, "obj"), os.path.join(work_dir, "libwebrtc.a")
@@ -932,7 +933,7 @@ def build_webrtc_android(
             ]
             gn_gen(webrtc_src_dir, work_dir, gn_args, extra_gn_args)
         if not nobuild:
-            cmd(["ninja", "-C", work_dir, *get_build_targets("android")])
+            cmd(["ninja", "-C", work_dir, *get_build_targets("android", webrtc_build_dir)])
             ar = os.path.join(webrtc_src_dir, "third_party/llvm-build/Release+Asserts/bin/llvm-ar")
             archive_objects(
                 ar, os.path.join(work_dir, "obj"), os.path.join(work_dir, "libwebrtc.a")
@@ -1036,7 +1037,7 @@ def build_webrtc(
     if nobuild:
         return
 
-    cmd(["ninja", "-C", webrtc_build_dir, *get_build_targets(target)])
+    cmd(["ninja", "-C", webrtc_build_dir, *get_build_targets(target, webrtc_build_dir)])
     if target in ["windows_x86_64", "windows_arm64"]:
         pass
     elif target in ("macos_arm64",):
@@ -1213,7 +1214,7 @@ def package_webrtc(
     else:
         dirs = [webrtc_build_dir]
     ts = []
-    for t in get_build_targets(target):
+    for t in get_build_targets(target, webrtc_build_dir):
         ts += ["--target", t]
     cmd(
         [
