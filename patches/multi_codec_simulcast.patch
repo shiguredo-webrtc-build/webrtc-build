@@ -478,7 +478,7 @@ index c551a58cf9..11ccf44c1c 100644
  
    return CheckScalabilityModeValues(rtp_parameters, send_codecs, send_codec);
 diff --git a/media/engine/simulcast_encoder_adapter.cc b/media/engine/simulcast_encoder_adapter.cc
-index 9bdb4d508f..76d870c21c 100644
+index 9bdb4d508f..0cf4a626ae 100644
 --- a/media/engine/simulcast_encoder_adapter.cc
 +++ b/media/engine/simulcast_encoder_adapter.cc
 @@ -305,6 +305,10 @@ int SimulcastEncoderAdapter::Release() {
@@ -522,21 +522,15 @@ index 9bdb4d508f..76d870c21c 100644
    // If we only have a single active layer it is better to create an encoder
    // with only one configured layer than creating it with all-but-one disabled
    // layers because that way we control scaling.
-@@ -362,8 +380,11 @@ int SimulcastEncoderAdapter::InitEncode(
+@@ -362,6 +380,7 @@ int SimulcastEncoderAdapter::InitEncode(
    // forces the use of SEA with separate encoders to support per-layer
    // handling of PLIs.
    bool separate_encoders_needed =
--      !encoder_context->encoder().GetEncoderInfo().supports_simulcast ||
--      active_streams_count == 1 || per_layer_pli_;
-+      ((is_mixed_codec ||
-+        (!is_mixed_codec &&
-+         !encoder_context->encoder().GetEncoderInfo().supports_simulcast)) &&
-+       active_streams_count != 1) ||
-+      per_layer_pli_;
++      is_mixed_codec ||
+       !encoder_context->encoder().GetEncoderInfo().supports_simulcast ||
+       active_streams_count == 1 || per_layer_pli_;
    RTC_LOG(LS_INFO) << "[SEA] InitEncode: total_streams_count: "
-                    << total_streams_count_
-                    << ", active_streams_count: " << active_streams_count
-@@ -404,10 +425,23 @@ int SimulcastEncoderAdapter::InitEncode(
+@@ -404,10 +423,23 @@ int SimulcastEncoderAdapter::InitEncode(
        continue;
      }
  
@@ -564,7 +558,7 @@ index 9bdb4d508f..76d870c21c 100644
      if (encoder_context == nullptr) {
        Release();
        return WEBRTC_VIDEO_CODEC_MEMORY;
-@@ -723,7 +757,8 @@ void SimulcastEncoderAdapter::DestroyStoredEncoders() {
+@@ -723,7 +755,8 @@ void SimulcastEncoderAdapter::DestroyStoredEncoders() {
  
  std::unique_ptr<SimulcastEncoderAdapter::EncoderContext>
  SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
@@ -574,7 +568,7 @@ index 9bdb4d508f..76d870c21c 100644
    RTC_DCHECK_RUN_ON(&encoder_queue_);
    bool prefer_temporal_support = fallback_encoder_factory_ != nullptr &&
                                   is_lowest_quality_stream &&
-@@ -745,11 +780,11 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
+@@ -745,11 +778,11 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
      cached_encoder_contexts_.erase(encoder_context_iter);
    } else {
      std::unique_ptr<VideoEncoder> primary_encoder =
@@ -588,7 +582,7 @@ index 9bdb4d508f..76d870c21c 100644
      }
  
      std::unique_ptr<VideoEncoder> encoder;
-@@ -768,14 +803,14 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
+@@ -768,14 +801,14 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
              prefer_temporal_support);
        }
      } else if (fallback_encoder != nullptr) {
@@ -605,7 +599,7 @@ index 9bdb4d508f..76d870c21c 100644
        return nullptr;
      }
  
-@@ -798,6 +833,7 @@ webrtc::VideoCodec SimulcastEncoderAdapter::MakeStreamCodec(
+@@ -798,6 +831,7 @@ webrtc::VideoCodec SimulcastEncoderAdapter::MakeStreamCodec(
    webrtc::VideoCodec codec_params = codec;
    const SimulcastStream& stream_params = codec.simulcastStream[stream_idx];
  
@@ -613,7 +607,7 @@ index 9bdb4d508f..76d870c21c 100644
    codec_params.numberOfSimulcastStreams = 0;
    codec_params.width = stream_params.width;
    codec_params.height = stream_params.height;
-@@ -915,7 +951,7 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
+@@ -915,7 +949,7 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
      // Create one encoder and query it.
  
      std::unique_ptr<SimulcastEncoderAdapter::EncoderContext> encoder_context =
@@ -1175,33 +1169,10 @@ index bd2cf9df16..48d60dd257 100644
   protected:
    // If `set_streams_observer` is not null, it is invoked when SetStreams()
 diff --git a/pc/sdp_offer_answer.cc b/pc/sdp_offer_answer.cc
-index 199d7ecfbe..2fb1f2d0b1 100644
+index 199d7ecfbe..37f6f5596c 100644
 --- a/pc/sdp_offer_answer.cc
 +++ b/pc/sdp_offer_answer.cc
-@@ -639,6 +639,22 @@ std::vector<RtpEncodingParameters> GetSendEncodingsFromRemoteDescription(
-     RtpEncodingParameters parameters;
-     parameters.rid = layer.rid;
-     parameters.active = !layer.is_paused;
-+    // If a payload type has been specified for this rid, set the codec
-+    // corresponding to that payload type.
-+    auto rid_desc = std::find_if(
-+        desc.receive_rids().begin(), desc.receive_rids().end(),
-+        [&layer](const RidDescription& rid) { return rid.rid == layer.rid; });
-+    if (rid_desc != desc.receive_rids().end() &&
-+        !rid_desc->payload_types.empty()) {
-+      int payload_type = rid_desc->payload_types[0];
-+      auto codec = std::find_if(desc.codecs().begin(), desc.codecs().end(),
-+                                [payload_type](const cricket::Codec& codec) {
-+                                  return codec.id == payload_type;
-+                                });
-+      if (codec != desc.codecs().end()) {
-+        parameters.codec = codec->ToCodecParameters();
-+      }
-+    }
-     result.push_back(parameters);
-   }
- 
-@@ -751,7 +767,8 @@ void AddPlanBRtpSenderOptions(
+@@ -751,7 +751,8 @@ void AddPlanBRtpSenderOptions(
  cricket::MediaDescriptionOptions GetMediaDescriptionOptionsForTransceiver(
      RtpTransceiver* transceiver,
      const std::string& mid,
@@ -1211,21 +1182,12 @@ index 199d7ecfbe..2fb1f2d0b1 100644
    // NOTE: a stopping transceiver should be treated as a stopped one in
    // createOffer as specified in
    // https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-createoffer.
-@@ -793,7 +810,25 @@ cricket::MediaDescriptionOptions GetMediaDescriptionOptionsForTransceiver(
+@@ -793,7 +794,16 @@ cricket::MediaDescriptionOptions GetMediaDescriptionOptionsForTransceiver(
      if (encoding.rid.empty()) {
        continue;
      }
 -    send_rids.push_back(RidDescription(encoding.rid, RidDirection::kSend));
 +    auto send_rid = RidDescription(encoding.rid, RidDirection::kSend);
-+    if (is_create_offer && encoding.codec) {
-+      auto send_codecs = transceiver->sender_internal()->GetSendCodecs();
-+      for (const cricket::Codec& codec : send_codecs) {
-+        if (codec.MatchesRtpCodec(*encoding.codec)) {
-+          send_rid.payload_types.push_back(codec.id);
-+          break;
-+        }
-+      }
-+    }
 +    if (!is_create_offer && encoding.codec) {
 +      for (const auto& receive_rid : receive_rids) {
 +        if (receive_rid.rid == encoding.rid) {
@@ -1238,7 +1200,7 @@ index 199d7ecfbe..2fb1f2d0b1 100644
      send_layers.AddLayer(SimulcastLayer(encoding.rid, !encoding.active));
    }
  
-@@ -4499,7 +4534,8 @@ void SdpOfferAnswerHandler::GetOptionsForUnifiedPlanAnswer(
+@@ -4499,7 +4509,8 @@ void SdpOfferAnswerHandler::GetOptionsForUnifiedPlanAnswer(
          session_options->media_description_options.push_back(
              GetMediaDescriptionOptionsForTransceiver(
                  transceiver->internal(), content.name,
