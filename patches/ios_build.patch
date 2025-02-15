@@ -129,6 +129,19 @@ index d8543c4f2..db6c76528 100644
  
          # Override `is_component_build` for the host toolchain.
          # See https://crbug.com/gn/286 for details why this is
+diff --git a/buildtools/third_party/libc++/BUILD.gn b/buildtools/third_party/libc++/BUILD.gn
+index 5c366d2..cf30cdf 100644
+--- a/buildtools/third_party/libc++/BUILD.gn
++++ b/buildtools/third_party/libc++/BUILD.gn
+@@ -209,7 +209,7 @@ target(_libcxx_target_type, "libc++") {
+       # specified in the C++ spec 3.7.4p2, which makes them always have default
+       # visibility.  This option is needed to force hidden visibility since
+       # -fvisibility=hidden doesn't have the desired effect.
+-      cflags = [ "-fvisibility-global-new-delete=force-hidden" ]
++      # cflags = [ "-fvisibility-global-new-delete=force-hidden" ]
+     } else {
+       # This resets the visibility to default only for the various
+       # flavors of operator new and operator delete.  These symbols
 diff --git a/third_party/nasm/BUILD.gn b/third_party/nasm/BUILD.gn
 index 3834c64b..6f74500f 100644
 --- a/third_party/nasm/BUILD.gn
