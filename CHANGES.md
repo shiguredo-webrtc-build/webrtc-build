@@ -38,6 +38,16 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - revive_proxy.patch に不要な rtc_base/BUILD.gn.rej の差分があったため削除する
   - window_add_optional.patch は不要となったので削除する
   - @miosakuma
+  - iOS のビルドオプション "-fvisibility-global-new-delete" を指定しないようにする
+    - unknown argument でビルドエラーとなるため
+  - Android のビルドから rust への依存を削除する
+    - 以下の CL と同内容のパッチを android_remove_rust_dependency.patch として追加する
+      - https://webrtc-review.googlesource.com/c/src/+/376240
+    - 上記対応が入ったらこのパッチは削除する
+  - Android のビルドオプションに `libyuv_include_tests=false` を追加する
+    - 設定しないと Rust を利用してしまうため設定を行った
+    - 本家では Rust を利用しないよう対応済みだが、テストは無効にできた方が望ましいため、このオプションは今後も維持する
+  - @miosakuma, @melpon
 - 2025-01-25 [ADD] Android と iOS の RtpEncodingParameters に scaleResolutionDownTo を定義する
   - @melpon
 - 2025-01-23 [RELEASE] m132.6834.5.2
