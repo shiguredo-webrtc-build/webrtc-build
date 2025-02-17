@@ -16,7 +16,7 @@ index 6913de9bb..68d0e8eac 100644
    # Use this instead of clang_use_chrome_plugins to enable just the raw-ptr-plugin.
    clang_use_raw_ptr_plugin = false
 diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
-index 88109264e..672772b7d 100644
+index 88109264e..31785f1ce 100644
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
 @@ -485,8 +485,8 @@ config("compiler") {
@@ -30,7 +30,7 @@ index 88109264e..672772b7d 100644
      }
  
      # dsymutil is not available in the system, on bots, for rustc to call. Our
-@@ -578,63 +578,6 @@ config("compiler") {
+@@ -578,62 +578,6 @@ config("compiler") {
      ldflags += [ "-Wl,-z,keep-text-section-prefix" ]
    }
  
@@ -90,11 +90,10 @@ index 88109264e..672772b7d 100644
 -      cflags += [ "-Wa,--crel,--allow-experimental-crel" ]
 -    }
 -  }
--
+ 
    # C11/C++11 compiler flags setup.
    # ---------------------------
-   if (is_linux || is_chromeos || is_android || (is_nacl && is_clang) ||
-@@ -2014,7 +1957,7 @@ config("default_warnings") {
+@@ -2014,7 +1958,7 @@ config("default_warnings") {
  
    # TODO(crbug.com/355446806): Clean up and enable.
    if (is_apple) {

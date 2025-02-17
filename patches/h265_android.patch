@@ -14,7 +14,7 @@ index d43fc27fa0..8cf6714de0 100644
      return name.startsWith(QCOM_PREFIX) || name.startsWith(EXYNOS_PREFIX);
    }
  
-+  private boolean isHardwareSupportedInCurrentSdkH265(MediaCodecInfo info) {
++  private boolean isHardwareSupportedInCurrentSdkH265(MediaCodecInfo unusedInfo) {
 +    return true;
 +  }
 +

@@ -199,7 +199,6 @@ PATCHES = {
         "h265.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
-        "windows_add_optional.patch",
     ],
     "windows_arm64": [
         "4k.patch",
@@ -213,7 +212,6 @@ PATCHES = {
         "h265.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
-        "windows_add_optional.patch",
     ],
     "macos_arm64": [
         "add_deps.patch",
@@ -268,6 +266,7 @@ PATCHES = {
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
         "android_add_scale_resolution_down_to.patch",
+        "android_remove_rust_dependency.patch",
     ],
     "raspberry-pi-os_armv6": [
         "nacl_armv6_2.patch",
@@ -375,6 +374,7 @@ def apply_patch(patch, dir, depth):
                     "--ignore-space-change",
                     "--ignore-whitespace",
                     "--whitespace=nowarn",
+                    "--reject",
                     patch,
                 ]
             )
@@ -669,6 +669,7 @@ COMMON_GN_ARGS = [
     "use_rtti=true",
     "rtc_build_tools=false",
     "rtc_use_perfetto=false",
+    "libyuv_include_tests=false",
 ]
 
 WEBRTC_BUILD_TARGETS_MACOS_COMMON = [
