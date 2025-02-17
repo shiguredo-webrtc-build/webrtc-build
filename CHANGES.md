@@ -37,7 +37,6 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - p2p/base/port.h の変更に伴い、 revive_proxy.patch を修正する
   - revive_proxy.patch に不要な rtc_base/BUILD.gn.rej の差分があったため削除する
   - window_add_optional.patch は不要となったので削除する
-  - @miosakuma
   - iOS のビルドオプション "-fvisibility-global-new-delete" を指定しないようにする
     - unknown argument でビルドエラーとなるため
   - Android のビルドから rust への依存を削除する
