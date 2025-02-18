@@ -34,6 +34,7 @@ runs:
     # ios のみ webrtc.${{ inputs.platform }}.tar.gz だけでなく
     # WebRTC.xcframework.zip もダウンロードするために、このステップを追加している
     - name: Env to output for WebRTC.xcframework.zip
+      if: inputs.platform == 'ios'
       shell: bash
       run: |
         PACKAGE_NAME=WebRTC.xcframework.zip
