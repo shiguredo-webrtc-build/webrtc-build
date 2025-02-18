@@ -30,3 +30,11 @@ runs:
       with:
         name: ${{ env.package_name }}
         path: ${{ env.package_name }}
+    # Sora iOS SDK 向けに WebRTC.xcframework.zip をダウンロードする
+    # ios のみ webrtc.${{ inputs.platform }}.tar.gz だけでなく
+    # WebRTC.xcframework.zip もダウンロードするために、このステップを追加している
+    - uses: actions/download-artifact@v4
+      if: inputs.platform == 'ios'
+      with:
+        name: WebRTC.xcframework.zip
+        path: WebRTC.xcframework.zip
