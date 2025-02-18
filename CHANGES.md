@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-02-18 [UPDATE] Sora iOS SDK 用に WebRTC.xcframework.zip をリリースバイナリに追加する
+  - @zztkm
 - 2025-02-03 [UPDATE] m133 ブランチのビルドエラーに対する対応
   - build/config/compiler/BUILD.gn の変更に伴い、 macos_use_xcode_clang.patch を修正する
     - is_linux が実行条件の分岐が追加されていたため、macOS(is_mac) には不要であるため削除した
