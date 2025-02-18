@@ -336,10 +336,6 @@ https://github.com/shiguredo/sora-cpp-sdk/blob/e1257a3e358e62512c0c77db5ba82f90e
 
 多分パッチを送った方がいいやつ。
 
-# windows_add_optional.patch
-
-Windows で std::optional が参照エラーになるのを改善するパッチ。
-
 ## ios_simulcast.patch
 
 iOS でのサイマルキャストのサポートを追加するパッチ。この実装は C++ の `SimulcastEncoderAdapter` の簡単なラッパーであり、既存の仕様に破壊的変更も行わない。
