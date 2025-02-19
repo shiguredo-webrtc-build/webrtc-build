@@ -97,7 +97,7 @@ jobs:
           path: _package/${{ matrix.platform.name }}/webrtc.${{ matrix.platform.name }}.tar.gz
       # Sora iOS SDK 用に WebRTC.xcframework.zip をアップロードする
       # ios のみ webrtc.${{ matrix.platform.name }}.tar.gz だけでなく、WebRTC.xcframework.zip もアップロードする
-      - name: Upload Artifact (for ios)
+      - name: Upload Artifact for ios (WebRTC.xcframework.zip)
         if: matrix.platform.name == 'ios'
         uses: actions/upload-artifact@v4
         with:
