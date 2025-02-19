@@ -233,15 +233,12 @@ jobs:
       - uses: ./.github/actions/download
         with:
           platform: android
-      # Sora iOS SDK 向けに WebRTC.xcframework.zip をダウンロードする
-      # ios のみ webrtc.${{ inputs.platform }}.tar.gz だけでなく
-      # WebRTC.xcframework.zip もダウンロードするために、このステップを追加している
+      # Sora iOS SDK 向けバイナリの WebRTC.xcframework.zip をダウンロードする
       - name: Env to output for WebRTC.xcframework.zip
         if: inputs.platform == 'ios'
         shell: bash
         run: |
           PACKAGE_NAME=WebRTC.xcframework.zip
-          echo "package_name=$PACKAGE_NAME" >> $GITHUB_ENV
           echo "$PACKAGE_NAME/$PACKAGE_NAME" >> package_paths.env
       - uses: actions/download-artifact@v4
         if: inputs.platform == 'ios'
