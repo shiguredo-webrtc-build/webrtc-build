@@ -1315,12 +1315,9 @@ def package_webrtc(
     if target == "ios":
         frameworks_dir = os.path.join(package_dir, "webrtc", "Frameworks")
         with cd(frameworks_dir):
-            with zipfile.ZipFile("WebRTC.xcframework.zip", "w", zipfile.ZIP_DEFLATED) as zipf:
-                for root, _, files in os.walk("WebRTC.xcframework"):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        arcname = os.path.relpath(file_path, start=frameworks_dir)
-                        zipf.write(file_path, arcname)
+            with zipfile.ZipFile("WebRTC.xcframework.zip", "w") as f:
+                for file in enum_all_files("WebRTC.xcframework", "."):
+                    f.write(filename=file, arcname=file)
         # WebRTC.xcframework.zip を package_dir に移動
         xcframework_zip_path = os.path.join(frameworks_dir, "WebRTC.xcframework.zip")
         shutil.move(xcframework_zip_path, os.path.join(package_dir, "WebRTC.xcframework.zip"))
