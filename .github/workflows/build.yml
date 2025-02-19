@@ -235,13 +235,11 @@ jobs:
           platform: android
       # Sora iOS SDK 向けバイナリの WebRTC.xcframework.zip をダウンロードする
       - name: Env to output for WebRTC.xcframework.zip
-        if: inputs.platform == 'ios'
         shell: bash
         run: |
           PACKAGE_NAME=WebRTC.xcframework.zip
           echo "$PACKAGE_NAME/$PACKAGE_NAME" >> package_paths.env
       - uses: actions/download-artifact@v4
-        if: inputs.platform == 'ios'
         with:
           name: WebRTC.xcframework.zip
           path: WebRTC.xcframework.zip
