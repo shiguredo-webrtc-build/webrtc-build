@@ -95,6 +95,14 @@ jobs:
         with:
           name: webrtc.${{ matrix.platform.name }}.tar.gz
           path: _package/${{ matrix.platform.name }}/webrtc.${{ matrix.platform.name }}.tar.gz
+      # Sora iOS SDK 用に WebRTC.xcframework.zip をアップロードする
+      # ios のみ webrtc.${{ matrix.platform.name }}.tar.gz だけでなく、WebRTC.xcframework.zip もアップロードする
+      - name: Upload Artifact for ios (WebRTC.xcframework.zip)
+        if: matrix.platform.name == 'ios'
+        uses: actions/upload-artifact@v4
+        with:
+          name: WebRTC.xcframework.zip
+          path: _package/${{ matrix.platform.name }}/WebRTC.xcframework.zip
   build-linux:
     strategy:
       fail-fast: false
@@ -225,6 +233,16 @@ jobs:
       - uses: ./.github/actions/download
         with:
           platform: android
+      # Sora iOS SDK 向けバイナリの WebRTC.xcframework.zip をダウンロードする
+      - name: Env to output for WebRTC.xcframework.zip
+        shell: bash
+        run: |
+          PACKAGE_NAME=WebRTC.xcframework.zip
+          echo "$PACKAGE_NAME/$PACKAGE_NAME" >> package_paths.env
+      - uses: actions/download-artifact@v4
+        with:
+          name: WebRTC.xcframework.zip
+          path: WebRTC.xcframework.zip
       - name: Env to output
         run: |
           echo "package_paths<<EOF" >> $GITHUB_OUTPUT
