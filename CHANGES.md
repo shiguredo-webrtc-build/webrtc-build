@@ -30,6 +30,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 ## タイムライン
 
 - 2025-02-18 [ADD] Sora iOS SDK 用に WebRTC.xcframework.zip をリリースバイナリに追加する
+  - Sora iOS SDK の CocoaPods 廃止対応に伴い、WebRTC.xcframework.zip の配布場所を sora-ios-sdk-specs リポジトリから WebRTC-Build に変更するための追加
   - run.py の package コマンドにターゲットが ios のときに WebRTC.xcframework.zip を生成する機能を追加
   - GitHub Actions に platform が ios の場合に WebRTC.xcframework.zip をリリースにアップロードする仕組みを追加
   - @zztkm
