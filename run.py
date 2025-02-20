@@ -388,6 +388,7 @@ PATCHES = {
         "fix_perfetto.patch",
         "ios_fix_optional.patch",
         "fix_moved_function_call.patch",
+        "ios_add_scale_resolution_down_to.patch",
         "multi_codec_simulcast.patch",
     ],
     "android": [
@@ -405,6 +406,7 @@ PATCHES = {
         "h265_android.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
+        "android_add_scale_resolution_down_to.patch",
         "multi_codec_simulcast.patch",
     ],
     "raspberry-pi-os_armv6": [

@@ -60,11 +60,43 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-02-07 [RELEASE] m132.6834.5.8
+  - @melpon
+- 2025-02-07 [CHANGE] RTCDefaultVideoEncoderFactory が返すフォーマットの一覧を scalability_mode に対応する
+  - @melpon
+- 2025-02-03 [RELEASE] m132.6834.5.7
+  - @zztkm
+- 2025-02-03 [RELEASE] m132.6834.5.6
+  - @zztkm
+- 2025-01-31 [UPDATE] iOS の scaleResolutionDownTo のプロパティの setter を assign から copy に変更する
+  - @zztkm
+- 2025-01-30 [RELEASE] m132.6834.5.5
+  - @melpon
+- 2025-01-30 [FIX] Windows のビルド依存に api:enable_media_with_defaults を追加し忘れていた
+  - @melpon
+- 2025-01-30 [RELEASE] m132.6834.5.4
+  - @melpon
+- 2025-01-30 [ADD] ビルド依存に api:enable_media_with_defaults を追加
+  - @melpon
+- 2025-01-27 [RELEASE] m132.6834.5.3
+  - @torikizi
+- 2025-01-25 [ADD] Android と iOS の RtpEncodingParameters に scaleResolutionDownTo を定義する
+  - @melpon
+- 2025-01-23 [RELEASE] m132.6834.5.2
+  - @miosakuma
+- 2025-01-23 [FIX] apt_install_x86_64.sh の `apt-get update` のコメントアウトを解除
+  - apt-get install で vim のパッケージが 404 エラーになったため
+  - @miosakuma
+- 2025-01-22 [FIX] kVTVideoEncoderSpecification_RequiredLowLatency を h265_ios.patch から削除する
+  - libwebrtc を組み込んだ iOS アプリを App Store Connect にアップロードが失敗する問題への対処
+  - 非公開シンボルである kVTVideoEncoderSpecification_RequiredLowLatency を参照しているとのエラーメッセージであったため、参照している箇所を削除した
+  - @miosakuma
 - 2025-01-14 [RELEASE] m132.6834.5.1
   - @miosakuma
 - 2024-12-20 [RELEASE] m132.6834.5.0
   - @melpon @torikizi
 - 2024-12-20 [RELEASE] m132.6834.4.0
+  - ios_proxy.patch を libwebrtc 側の処理変更に追従して修正する
   - @melpon
 - 2025-01-10 [RELEASE] m130.6723.2.1
   - @miosakuma
