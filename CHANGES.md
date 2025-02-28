@@ -29,6 +29,11 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-02-28 [UPDATE] m134 ブランチのビルドエラーに対する対応
+  - h265_ios.patch について Abseil ライブラリではなく C++ 標準ライブラリを利用するよう変更
+    - この対応で ios_fix_optional.patch が不要になるため削除した
+  - フォーマット変更によるパッチのずれの修正
+  - @miosakuma
 - 2025-02-03 [UPDATE] m133 ブランチのビルドエラーに対する対応
   - build/config/compiler/BUILD.gn の変更に伴い、 macos_use_xcode_clang.patch を修正する
     - is_linux が実行条件の分岐が追加されていたため、macOS(is_mac) には不要であるため削除した
