@@ -322,10 +322,6 @@ rtc_use_perfetto=false した時にコンパイルエラーになる問題を修
 M126 で perfetto を使うようになったけど、これは rtc_use_perfetto=false で無効にできるため試してみたところ、必要な部分が ifdef で囲まれていなかったためコンパイルエラーになった。
 このパッチはその問題を修正するもの。
 
-## ios_fix_optional.patch
-
-Abseil ライブラリではなく C++ 標準ライブラリを利用するようにするパッチ。
-
 ## fix_moved_function_call.patch
 
 SesseionDescription のコールバック実行中に PeerConnection が破棄された時にクラッシュする問題を修正するパッチ。

@@ -1897,7 +1897,7 @@ index 054d6f9284..301dd7f8c9 100644
 +      bool bitstream_restriction_flag { false };
 +      uint64_t max_num_reorder_frames { 0 };
 +    };
-+    static absl::optional<State> Parse(const std::vector<uint8_t>& unpacked_buffer)
++    static std::optional<State> Parse(const std::vector<uint8_t>& unpacked_buffer)
 +    {
 +      BitstreamReader reader(unpacked_buffer);
 +      auto spsState = ParseSpsUpToVui(reader);
