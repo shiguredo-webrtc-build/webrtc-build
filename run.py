@@ -227,7 +227,6 @@ PATCHES = {
         "arm_neon_sve_bridge.patch",
         "dav1d_config_change.patch",
         "fix_perfetto.patch",
-        "ios_fix_optional.patch",
         "fix_moved_function_call.patch",
     ],
     "ios": [
@@ -246,7 +245,6 @@ PATCHES = {
         "arm_neon_sve_bridge.patch",
         "dav1d_config_change.patch",
         "fix_perfetto.patch",
-        "ios_fix_optional.patch",
         "fix_moved_function_call.patch",
         "ios_add_scale_resolution_down_to.patch",
     ],

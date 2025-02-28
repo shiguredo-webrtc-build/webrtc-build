@@ -1,8 +1,8 @@
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index 1df3a48fd6..d0e39c5e0e 100644
+index 6d851f1485..e557aee7c6 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
-@@ -688,6 +688,16 @@ if (is_ios || is_mac) {
+@@ -700,6 +700,16 @@ if (is_ios || is_mac) {
          ]
        }
  
@@ -19,7 +19,7 @@ index 1df3a48fd6..d0e39c5e0e 100644
        public_configs = [ ":common_config_objc" ]
        deps = [
          ":base_objc",
-@@ -1375,6 +1385,15 @@ if (is_ios || is_mac) {
+@@ -1390,6 +1400,15 @@ if (is_ios || is_mac) {
            "objc/api/video_frame_buffer/RTCNativeMutableI420Buffer.h",
          ]
  
@@ -35,7 +35,7 @@ index 1df3a48fd6..d0e39c5e0e 100644
          if (!build_with_chromium) {
            common_objc_headers += [
              "objc/api/logging/RTCCallbackLogger.h",
-@@ -1745,6 +1764,17 @@ if (is_ios || is_mac) {
+@@ -1760,6 +1779,17 @@ if (is_ios || is_mac) {
          "objc/components/video_codec/RTCVideoEncoderH264.mm",
        ]
  
@@ -156,7 +156,7 @@ index 0000000000..f5509c12f3
 +@end
 \ No newline at end of file
 diff --git a/sdk/objc/components/video_codec/RTCDefaultVideoDecoderFactory.m b/sdk/objc/components/video_codec/RTCDefaultVideoDecoderFactory.m
-index 6e3baa8750..838647fa25 100644
+index f08953ba55..2797477dbb 100644
 --- a/sdk/objc/components/video_codec/RTCDefaultVideoDecoderFactory.m
 +++ b/sdk/objc/components/video_codec/RTCDefaultVideoDecoderFactory.m
 @@ -15,6 +15,8 @@
@@ -168,17 +168,17 @@ index 6e3baa8750..838647fa25 100644
  #import "base/RTCVideoCodecInfo.h"
  
  #if defined(RTC_DAV1D_IN_INTERNAL_DECODER_FACTORY)
-@@ -42,6 +44,9 @@ @implementation RTC_OBJC_TYPE (RTCDefaultVideoDecoderFactory)
-       [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecH264Name
-                                                   parameters:constrainedBaselineParams];
+@@ -44,6 +46,9 @@ @implementation RTC_OBJC_TYPE (RTCDefaultVideoDecoderFactory)
+           initWithName:kRTCVideoCodecH264Name
+             parameters:constrainedBaselineParams];
  
 +  RTC_OBJC_TYPE(RTCVideoCodecInfo) *h265Info =
 +      [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecH265Name];
 +
-   RTC_OBJC_TYPE(RTCVideoCodecInfo) *vp8Info =
-       [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecVp8Name];
+   RTC_OBJC_TYPE(RTCVideoCodecInfo) *vp8Info = [[RTC_OBJC_TYPE(RTCVideoCodecInfo)
+       alloc] initWithName:kRTCVideoCodecVp8Name];
  
-@@ -49,6 +54,7 @@ @implementation RTC_OBJC_TYPE (RTCDefaultVideoDecoderFactory)
+@@ -51,6 +56,7 @@ @implementation RTC_OBJC_TYPE (RTCDefaultVideoDecoderFactory)
      constrainedHighInfo,
      constrainedBaselineInfo,
      vp8Info,
@@ -186,7 +186,7 @@ index 6e3baa8750..838647fa25 100644
    ] mutableCopy];
  
    if ([RTC_OBJC_TYPE(RTCVideoDecoderVP9) isSupported]) {
-@@ -68,6 +74,8 @@ @implementation RTC_OBJC_TYPE (RTCDefaultVideoDecoderFactory)
+@@ -72,6 +78,8 @@ @implementation RTC_OBJC_TYPE (RTCDefaultVideoDecoderFactory)
      return [[RTC_OBJC_TYPE(RTCVideoDecoderH264) alloc] init];
    } else if ([info.name isEqualToString:kRTCVideoCodecVp8Name]) {
      return [RTC_OBJC_TYPE(RTCVideoDecoderVP8) vp8Decoder];
@@ -196,7 +196,7 @@ index 6e3baa8750..838647fa25 100644
               [RTC_OBJC_TYPE(RTCVideoDecoderVP9) isSupported]) {
      return [RTC_OBJC_TYPE(RTCVideoDecoderVP9) vp9Decoder];
 diff --git a/sdk/objc/components/video_codec/RTCDefaultVideoEncoderFactory.m b/sdk/objc/components/video_codec/RTCDefaultVideoEncoderFactory.m
-index 8de55bde4a..3c4a8aa2d7 100644
+index 53edf81d7a..d68042e759 100644
 --- a/sdk/objc/components/video_codec/RTCDefaultVideoEncoderFactory.m
 +++ b/sdk/objc/components/video_codec/RTCDefaultVideoEncoderFactory.m
 @@ -15,6 +15,8 @@
@@ -208,17 +208,17 @@ index 8de55bde4a..3c4a8aa2d7 100644
  #import "base/RTCVideoCodecInfo.h"
  
  #if defined(RTC_USE_LIBAOM_AV1_ENCODER)
-@@ -44,6 +46,9 @@ @implementation RTC_OBJC_TYPE (RTCDefaultVideoEncoderFactory)
-       [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecH264Name
-                                                   parameters:constrainedBaselineParams];
- 
+@@ -45,6 +47,9 @@ @implementation RTC_OBJC_TYPE (RTCDefaultVideoEncoderFactory)
+       [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc]
+           initWithName:kRTCVideoCodecH264Name
+             parameters:constrainedBaselineParams];
 +  RTC_OBJC_TYPE(RTCVideoCodecInfo) *h265Info =
 +      [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecH265Name];
 +
-   RTC_OBJC_TYPE(RTCVideoCodecInfo) *vp8Info =
-       [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecVp8Name];
  
-@@ -51,6 +56,7 @@ @implementation RTC_OBJC_TYPE (RTCDefaultVideoEncoderFactory)
+   RTC_OBJC_TYPE(RTCVideoCodecInfo) *vp8Info = [[RTC_OBJC_TYPE(RTCVideoCodecInfo)
+       alloc] initWithName:kRTCVideoCodecVp8Name];
+@@ -53,6 +58,7 @@ @implementation RTC_OBJC_TYPE (RTCDefaultVideoEncoderFactory)
      constrainedHighInfo,
      constrainedBaselineInfo,
      vp8Info,
@@ -226,7 +226,7 @@ index 8de55bde4a..3c4a8aa2d7 100644
    ] mutableCopy];
  
    if ([RTC_OBJC_TYPE(RTCVideoEncoderVP9) isSupported]) {
-@@ -73,6 +79,10 @@ @implementation RTC_OBJC_TYPE (RTCDefaultVideoEncoderFactory)
+@@ -77,6 +83,10 @@ @implementation RTC_OBJC_TYPE (RTCDefaultVideoEncoderFactory)
    } else if ([info.name isEqualToString:kRTCVideoCodecVp9Name] &&
               [RTC_OBJC_TYPE(RTCVideoEncoderVP9) isSupported]) {
      return [RTC_OBJC_TYPE(RTCVideoEncoderVP9) vp9Encoder];
@@ -1897,7 +1897,7 @@ index 054d6f9284..301dd7f8c9 100644
 +      bool bitstream_restriction_flag { false };
 +      uint64_t max_num_reorder_frames { 0 };
 +    };
-+    static absl::optional<State> Parse(const std::vector<uint8_t>& unpacked_buffer)
++    static std::optional<State> Parse(const std::vector<uint8_t>& unpacked_buffer)
 +    {
 +      BitstreamReader reader(unpacked_buffer);
 +      auto spsState = ParseSpsUpToVui(reader);
@@ -2313,7 +2313,7 @@ index c2b9e4875e..a88e4d5c26 100644
   private:
    // Returns the the next offset that contains NALU data.
 diff --git a/sdk/objc/native/src/objc_video_encoder_factory.mm b/sdk/objc/native/src/objc_video_encoder_factory.mm
-index 919848a161..40050361fe 100644
+index 5d46915b22..459a3f9508 100644
 --- a/sdk/objc/native/src/objc_video_encoder_factory.mm
 +++ b/sdk/objc/native/src/objc_video_encoder_factory.mm
 @@ -16,6 +16,7 @@
@@ -2324,13 +2324,13 @@ index 919848a161..40050361fe 100644
  #import "sdk/objc/api/peerconnection/RTCEncodedImage+Private.h"
  #import "sdk/objc/api/peerconnection/RTCVideoCodecInfo+Private.h"
  #import "sdk/objc/api/peerconnection/RTCVideoEncoderSettings+Private.h"
-@@ -60,6 +61,9 @@ int32_t RegisterEncodeCompleteCallback(EncodedImageCallback *callback) override
-         if ([info isKindOfClass:[RTC_OBJC_TYPE(RTCCodecSpecificInfoH264) class]]) {
-           codecSpecificInfo =
-               [(RTC_OBJC_TYPE(RTCCodecSpecificInfoH264) *)info nativeCodecSpecificInfo];
+@@ -67,6 +68,9 @@ int32_t RegisterEncodeCompleteCallback(
+                                     class]]) {
+           codecSpecificInfo = [(RTC_OBJC_TYPE(
+               RTCCodecSpecificInfoH264) *)info nativeCodecSpecificInfo];
 +        } else if ([info isKindOfClass:[RTC_OBJC_TYPE(RTCCodecSpecificInfoH265) class]]) {
 +          // if ([info isKindOfClass:[RTCCodecSpecificInfoH265 class]]) {
 +          codecSpecificInfo = [(RTCCodecSpecificInfoH265 *)info nativeCodecSpecificInfo];
          }
  
-         EncodedImageCallback::Result res = callback->OnEncodedImage(encodedImage, &codecSpecificInfo);
+         EncodedImageCallback::Result res =
