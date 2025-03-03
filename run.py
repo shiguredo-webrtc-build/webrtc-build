@@ -264,7 +264,6 @@ PATCHES = {
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
         "android_add_scale_resolution_down_to.patch",
-        "android_remove_rust_dependency.patch",
     ],
     "raspberry-pi-os_armv6": [
         "nacl_armv6_2.patch",

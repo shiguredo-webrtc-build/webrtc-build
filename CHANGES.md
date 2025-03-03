@@ -33,6 +33,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - h265_ios.patch について Abseil ライブラリではなく C++ 標準ライブラリを利用するよう変更
     - この対応で ios_fix_optional.patch が不要になるため削除した
   - フォーマット変更によるパッチのずれの修正
+  - android_remove_rust_dependency.patch を削除する
+    - libwebrtc で対応済みとなったため、パッチを削除する
   - @miosakuma
 - 2025-02-03 [UPDATE] m133 ブランチのビルドエラーに対する対応
   - build/config/compiler/BUILD.gn の変更に伴い、 macos_use_xcode_clang.patch を修正する
