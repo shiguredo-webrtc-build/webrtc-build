@@ -42,7 +42,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
     - is_linux が実行条件の分岐が追加されていたため、macOS(is_mac) には不要であるため削除した
   - build/config/compiler/BUILD.gn の変更に伴い、 ios_build.patch を修正する
     - is_linux が実行条件の分岐が追加されていたため、iOS(is_ios) には不要であるため削除した
-  - p2p/base/port.h の変更に伴い、 revive_proxy.patch を修正す　る
+  - p2p/base/port.h の変更に伴い、 revive_proxy.patch を修正する
   - revive_proxy.patch に不要な rtc_base/BUILD.gn.rej の差分があったため削除する
   - window_add_optional.patch は不要となったので削除する
   - iOS のビルドオプション "-fvisibility-global-new-delete" を指定しないようにする
