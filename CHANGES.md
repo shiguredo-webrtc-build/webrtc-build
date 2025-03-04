@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-03-04 [RELEASE] m134.6998.1.0
+  - @miosakuma
 - 2025-02-28 [UPDATE] m134 ブランチのビルドエラーに対する対応
   - ios_fix_optional.patch の内容を h265_ios.patch に統一して、ios_fix_optional.patch を削除する
     - パッチの内容をまとめて簡素化を行った
