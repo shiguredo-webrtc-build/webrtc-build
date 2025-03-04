@@ -227,7 +227,6 @@ PATCHES = {
         "arm_neon_sve_bridge.patch",
         "dav1d_config_change.patch",
         "fix_perfetto.patch",
-        "ios_fix_optional.patch",
         "fix_moved_function_call.patch",
     ],
     "ios": [
@@ -246,7 +245,6 @@ PATCHES = {
         "arm_neon_sve_bridge.patch",
         "dav1d_config_change.patch",
         "fix_perfetto.patch",
-        "ios_fix_optional.patch",
         "fix_moved_function_call.patch",
         "ios_add_scale_resolution_down_to.patch",
     ],
@@ -266,7 +264,6 @@ PATCHES = {
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
         "android_add_scale_resolution_down_to.patch",
-        "android_remove_rust_dependency.patch",
     ],
     "raspberry-pi-os_armv6": [
         "nacl_armv6_2.patch",

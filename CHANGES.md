@@ -29,6 +29,16 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-03-04 [RELEASE] m134.6998.1.0
+  - @miosakuma
+- 2025-02-28 [UPDATE] m134 ブランチのビルドエラーに対する対応
+  - ios_fix_optional.patch の内容を h265_ios.patch に統一して、ios_fix_optional.patch を削除する
+    - パッチの内容をまとめて簡素化を行った
+  - フォーマット変更によるパッチのずれの修正
+  - android_remove_rust_dependency.patch を削除する
+    - 以下の libwebrtc の CL が反映されたため、パッチを削除する
+    - https://webrtc-review.googlesource.com/c/src/+/376240
+  - @miosakuma
 - 2025-02-03 [UPDATE] m133 ブランチのビルドエラーに対する対応
   - build/config/compiler/BUILD.gn の変更に伴い、 macos_use_xcode_clang.patch を修正する
     - is_linux が実行条件の分岐が追加されていたため、macOS(is_mac) には不要であるため削除した
