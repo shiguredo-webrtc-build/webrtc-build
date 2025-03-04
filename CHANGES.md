@@ -30,18 +30,19 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 ## タイムライン
 
 - 2025-02-28 [UPDATE] m134 ブランチのビルドエラーに対する対応
-  - h265_ios.patch について Abseil ライブラリではなく C++ 標準ライブラリを利用するよう変更
-    - この対応で ios_fix_optional.patch が不要になるため削除した
+  - ios_fix_optional.patch の内容を h265_ios.patch に統一して、ios_fix_optional.patch を削除する
+    - パッチの内容をまとめて簡素化を行った
   - フォーマット変更によるパッチのずれの修正
   - android_remove_rust_dependency.patch を削除する
-    - libwebrtc で対応済みとなったため、パッチを削除する
+    - 以下の libwebrtc の CL が反映されたため、パッチを削除する
+    - https://webrtc-review.googlesource.com/c/src/+/376240
   - @miosakuma
 - 2025-02-03 [UPDATE] m133 ブランチのビルドエラーに対する対応
   - build/config/compiler/BUILD.gn の変更に伴い、 macos_use_xcode_clang.patch を修正する
     - is_linux が実行条件の分岐が追加されていたため、macOS(is_mac) には不要であるため削除した
   - build/config/compiler/BUILD.gn の変更に伴い、 ios_build.patch を修正する
     - is_linux が実行条件の分岐が追加されていたため、iOS(is_ios) には不要であるため削除した
-  - p2p/base/port.h の変更に伴い、 revive_proxy.patch を修正する
+  - p2p/base/port.h の変更に伴い、 revive_proxy.patch を修正す　る
   - revive_proxy.patch に不要な rtc_base/BUILD.gn.rej の差分があったため削除する
   - window_add_optional.patch は不要となったので削除する
   - iOS のビルドオプション "-fvisibility-global-new-delete" を指定しないようにする
