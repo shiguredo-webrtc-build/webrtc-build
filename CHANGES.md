@@ -29,7 +29,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
-- 2025-01-23 [RELEASE] m133.6943.4.1
+- 2025-02-23 [RELEASE] m133.6943.4.1
   - WebRTC.xcframework.zip をリリースに追加するためのリリースであり、動作の変更はなし
   - @miosakuma
 - 2025-02-18 [ADD] Sora iOS SDK 用に WebRTC.xcframework.zip をリリースバイナリに追加する
