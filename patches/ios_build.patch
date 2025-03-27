@@ -16,7 +16,7 @@ index 6913de9bb..68d0e8eac 100644
    # Use this instead of clang_use_chrome_plugins to enable just the raw-ptr-plugin.
    clang_use_raw_ptr_plugin = false
 diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
-index 88109264e..31785f1ce 100644
+index ae6cbc24e..ac23e96aa 100644
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
 @@ -485,8 +485,8 @@ config("compiler") {
@@ -93,7 +93,7 @@ index 88109264e..31785f1ce 100644
  
    # C11/C++11 compiler flags setup.
    # ---------------------------
-@@ -2014,7 +1958,7 @@ config("default_warnings") {
+@@ -2017,7 +1961,7 @@ config("default_warnings") {
  
    # TODO(crbug.com/355446806): Clean up and enable.
    if (is_apple) {
@@ -103,7 +103,7 @@ index 88109264e..31785f1ce 100644
  
    # Rust warnings
 diff --git a/build/toolchain/apple/toolchain.gni b/build/toolchain/apple/toolchain.gni
-index 9d8583fba..3820bfb8a 100644
+index e0ba16693..285d97826 100644
 --- a/build/toolchain/apple/toolchain.gni
 +++ b/build/toolchain/apple/toolchain.gni
 @@ -153,7 +153,8 @@ template("single_apple_toolchain") {
@@ -130,15 +130,15 @@ index d8543c4f2..db6c76528 100644
          # Override `is_component_build` for the host toolchain.
          # See https://crbug.com/gn/286 for details why this is
 diff --git a/buildtools/third_party/libc++/BUILD.gn b/buildtools/third_party/libc++/BUILD.gn
-index 5c366d2..cf30cdf 100644
+index a547196..d113a89 100644
 --- a/buildtools/third_party/libc++/BUILD.gn
 +++ b/buildtools/third_party/libc++/BUILD.gn
-@@ -209,7 +209,7 @@ target(_libcxx_target_type, "libc++") {
+@@ -352,7 +352,7 @@ target(_libcxx_target_type, "libc++") {
        # specified in the C++ spec 3.7.4p2, which makes them always have default
        # visibility.  This option is needed to force hidden visibility since
        # -fvisibility=hidden doesn't have the desired effect.
--      cflags = [ "-fvisibility-global-new-delete=force-hidden" ]
-+      # cflags = [ "-fvisibility-global-new-delete=force-hidden" ]
+-      cflags += [ "-fvisibility-global-new-delete=force-hidden" ]
++      # cflags += [ "-fvisibility-global-new-delete=force-hidden" ]
      } else {
        # This resets the visibility to default only for the various
        # flavors of operator new and operator delete.  These symbols

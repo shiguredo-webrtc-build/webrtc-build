@@ -29,6 +29,12 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-03-25 [UPDATE] m135 ブランチのビルドエラーに対する対応
+  - ios_build.patch
+    - コメントアウトしていた行に修正がありパッチエラーとなっていたため再度コメントアウトした
+  - windows_fix_optional.patch を削除する
+    - absl::optional が削除され、std::optional を使うようになった
+    - https://chromium.googlesource.com/external/github.com/abseil/abseil-cpp/+/22b1f421fa678434722202f2a883a565b7de5343%5E%21/
 - 2025-03-04 [RELEASE] m134.6998.1.0
   - @miosakuma
 - 2025-02-28 [UPDATE] m134 ブランチのビルドエラーに対する対応

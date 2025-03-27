@@ -281,10 +281,6 @@ Windows の高負荷環境で録音デバイスの初期化に失敗する問題
 この issue が解決すれば不要になる
 https://bugs.chromium.org/p/webrtc/issues/detail?id=14954
 
-## windows_fix_optional.patch
-
-Abseil ライブラリではなく C++ 標準ライブラリを利用するようにするパッチ。
-
 ## windows_silence_warnings.patch
 
 C++ 17 と C++ 20 の非推奨に関するワーニングを抑制するパッチ。
