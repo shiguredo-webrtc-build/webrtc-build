@@ -45,6 +45,15 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
     - 以下の libwebrtc の CL が反映されたため、パッチを削除する
     - https://webrtc-review.googlesource.com/c/src/+/376240
   - @miosakuma
+- 2025-02-21 [RELEASE] m133.6943.4.1
+  - WebRTC.xcframework.zip をリリースに追加するためのリリースであり、動作の変更はなし
+  - @miosakuma
+- 2025-02-18 [ADD] Sora iOS SDK 用に WebRTC.xcframework.zip をリリースバイナリに追加する
+  - Sora iOS SDK の CocoaPods 廃止対応に伴い、WebRTC.xcframework.zip の配布場所を sora-ios-sdk-specs リポジトリから WebRTC-Build に変更するための追加
+  - run.py の package コマンドにターゲットが ios のときに WebRTC.xcframework.zip を生成する機能を追加
+  - GitHub Actions に platform が ios の場合に WebRTC.xcframework.zip をリリースにアップロードする仕組みを追加
+  - @zztkm
+- 2025-02-18 [RELEASE] m133.6943.4.0
 - 2025-02-03 [UPDATE] m133 ブランチのビルドエラーに対する対応
   - build/config/compiler/BUILD.gn の変更に伴い、 macos_use_xcode_clang.patch を修正する
     - is_linux が実行条件の分岐が追加されていたため、macOS(is_mac) には不要であるため削除した
