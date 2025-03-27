@@ -1041,8 +1041,14 @@ def build_webrtc(
     else:
         ar = os.path.join(webrtc_src_dir, "third_party/llvm-build/Release+Asserts/bin/llvm-ar")
 
-    # ar で libwebrtc.a を生成する
-    if target not in ["windows_x86_64", "windows_arm64"]:
+    if target in ["windows_x86_64", "windows_arm64"]:
+        # Windows は ar する代わりにファイルをコピーする
+        shutil.copyfile(
+            os.path.join(webrtc_build_dir, "obj", "webrtc.lib"),
+            os.path.join(webrtc_build_dir, "webrtc.lib"),
+        )
+    else:
+        # ar で libwebrtc.a を生成する
         archive_objects(
             ar, os.path.join(webrtc_build_dir, "obj"), os.path.join(webrtc_build_dir, "libwebrtc.a")
         )
@@ -1254,7 +1260,7 @@ def package_webrtc(
     # ライブラリ
     if target in ["windows_x86_64", "windows_arm64"]:
         files = [
-            (["obj", "webrtc.lib"], ["lib", "webrtc.lib"]),
+            (["webrtc.lib"], ["lib", "webrtc.lib"]),
         ]
     elif target in ("macos_arm64",):
         files = [
@@ -1307,6 +1313,18 @@ def package_webrtc(
             with tarfile.open(f"webrtc.{target}.tar.gz", "w:gz") as f:
                 for file in enum_all_files("webrtc", "."):
                     f.add(name=file, arcname=file)
+
+    # target が ios のときに WebRTC.xcframework を zip 化
+    if target == "ios":
+        frameworks_dir = os.path.join(package_dir, "webrtc", "Frameworks")
+        with cd(frameworks_dir):
+            with zipfile.ZipFile("WebRTC.xcframework.zip", "w") as f:
+                for file in enum_all_files("WebRTC.xcframework", "."):
+                    f.write(filename=file, arcname=file)
+        # WebRTC.xcframework.zip を package_dir に移動
+        src_xcframework_zip_path = os.path.join(frameworks_dir, "WebRTC.xcframework.zip")
+        dst_xcframework_zip_path = os.path.join(package_dir, "WebRTC.xcframework.zip")
+        shutil.move(src_xcframework_zip_path, dst_xcframework_zip_path)
 
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
