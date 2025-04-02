@@ -29,6 +29,10 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-04-02 [ADD] libyuv_use_sme=false を追加
+  - @melpon
+- 2025-04-02 [ADD] remove_crel.patch を追加
+  - @melpon
 - 2025-03-04 [RELEASE] m134.6998.1.0
   - @miosakuma
 - 2025-02-28 [UPDATE] m134 ブランチのビルドエラーに対する対応
