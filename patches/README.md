@@ -345,3 +345,10 @@ iOS でのサイマルキャストのサポートを追加するパッチ。こ�
 [libwebrtcの変更](https://webrtc-review.googlesource.com/c/src/+/358866)を取り込んだため、従来の ios_simulcast.patch とは異なる。
 
 特に scalabilityMode は libwebrtc 側で NSString 記述となったため RTCScalabilityMode ENUM を削除した。変数名は同じだが NSNumber から NSString に型が変更になっているので注意すること。
+
+## remove_crel.patch
+
+[CREL](https://maskray.me/blog/2024-03-09-a-compact-relocation-format-for-elf) (compact relocation) を有効にするオプションを削除するパッチ。
+CREL は LLVM のリンカ(lld)特有の機能なので、これを有効にすると GNU のリンカ(ld)でリンクできなくなってしまうので削除する。
+
+手間の問題でパッチを当ててるけど、既存の webrtc-build を使ったアプリケーションを lld に置き換えた方が筋が良いかもしれない。
