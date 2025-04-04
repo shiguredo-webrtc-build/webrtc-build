@@ -59,12 +59,6 @@ Please read <https://github.com/shiguredo/oss/blob/master/README.en.md> before u
 
 このブランチは libwebrtc への CL のバックポートを含んでいます。
 
-### hololens2 ビルドについて
-
-- 対応ブランチは support/hololens2 です
-- 最新の libwebrtc 追従は有償で承っております
-- バグ修正は有償で承っております
-
 ## 廃止
 
 - macOS x86_64 廃止
@@ -73,6 +67,8 @@ Please read <https://github.com/shiguredo/oss/blob/master/README.en.md> before u
   - 2022 年 6 月を持って廃止しました
 - Jetson 向け ARM 版 Ubuntu 18.04 廃止
   - 2023 年 4 月を持って廃止しました
+- hololens2 ビルド
+  - 2025 年 3 月を持って廃止しました
 
 ## H.264 (AVC) と H.265 (HEVC) のライセンスについて
 
