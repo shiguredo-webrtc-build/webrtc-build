@@ -29,6 +29,15 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-04-07 [CHANGE] リリース対象から ubuntu-20.04_x86_64 を削除する
+  - @miosakuma
+- 2025-04-07 [UPDATE] Github Actions のビルド実行環境を Ubuntu 20.04 から Ubuntu 22.04 にあげる
+  - 対象のビルドターゲットは以下の通り
+    - ubuntu-20.04_armv8
+    - raspberry-pi-os_armv6
+    - raspberry-pi-os_armv7
+    - raspberry-pi-os_armv8
+  - @miosakuma
 - 2025-04-03 [RELEASE] m135.7049.2.1
   - @miosakuma
 - 2025-04-02 [RELEASE] m134.6998.1.1

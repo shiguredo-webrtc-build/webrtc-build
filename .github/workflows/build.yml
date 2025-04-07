@@ -109,19 +109,17 @@ jobs:
       matrix:
         platform:
           - name: raspberry-pi-os_armv6
-            runs-on: ubuntu-20.04
+            runs-on: ubuntu-22.04
           - name: raspberry-pi-os_armv7
-            runs-on: ubuntu-20.04
+            runs-on: ubuntu-22.04
           - name: raspberry-pi-os_armv8
-            runs-on: ubuntu-20.04
+            runs-on: ubuntu-22.04
           - name: ubuntu-20.04_armv8
-            runs-on: ubuntu-20.04
+            runs-on: ubuntu-22.04
           - name: ubuntu-22.04_armv8
             runs-on: ubuntu-22.04
           - name: ubuntu-24.04_armv8
             runs-on: ubuntu-24.04
-          - name: ubuntu-20.04_x86_64
-            runs-on: ubuntu-20.04
           - name: ubuntu-22.04_x86_64
             runs-on: ubuntu-22.04
           - name: ubuntu-24.04_x86_64
@@ -188,7 +186,7 @@ jobs:
       - build-windows
       - build-macos
       - build-linux
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/download
@@ -221,9 +219,6 @@ jobs:
       - uses: ./.github/actions/download
         with:
           platform: ubuntu-24.04_armv8
-      - uses: ./.github/actions/download
-        with:
-          platform: ubuntu-20.04_x86_64
       - uses: ./.github/actions/download
         with:
           platform: ubuntu-22.04_x86_64
