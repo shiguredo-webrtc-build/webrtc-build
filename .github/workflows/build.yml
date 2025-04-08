@@ -109,13 +109,13 @@ jobs:
       matrix:
         platform:
           - name: raspberry-pi-os_armv6
-            runs-on: ubuntu-22.04
+            runs-on: ubuntu-24.04
           - name: raspberry-pi-os_armv7
-            runs-on: ubuntu-22.04
+            runs-on: ubuntu-24.04
           - name: raspberry-pi-os_armv8
-            runs-on: ubuntu-22.04
+            runs-on: ubuntu-24.04
           - name: ubuntu-20.04_armv8
-            runs-on: ubuntu-22.04
+            runs-on: ubuntu-24.04
           - name: ubuntu-22.04_armv8
             runs-on: ubuntu-22.04
           - name: ubuntu-24.04_armv8
