@@ -68,6 +68,8 @@ Please read <https://github.com/shiguredo/oss/blob/master/README.en.md> before u
   - 2023 年 4 月を持って廃止しました
 - hololens2 ビルド
   - 2025 年 3 月を持って廃止しました
+- Ubuntu 20.04 x86_64 廃止
+  - 2025 年 4 月を持って廃止しました
 
 ## H.264 (AVC) と H.265 (HEVC) のライセンスについて
 
