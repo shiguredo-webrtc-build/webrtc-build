@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-04-08 [RELEASE] m135.7049.3.0
+  - @torikizi
 - 2025-04-07 [CHANGE] リリース対象から ubuntu-20.04_x86_64 を削除する
   - @miosakuma
 - 2025-04-07 [UPDATE] Github Actions のビルド実行環境を Ubuntu 20.04 から Ubuntu 24.04 にあげる
