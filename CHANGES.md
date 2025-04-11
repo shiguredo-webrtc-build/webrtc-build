@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-04-11 [RELEASE] m133.6943.4.2
+  - @torikizi
 - 2025-02-21 [RELEASE] m133.6943.4.1
   - WebRTC.xcframework.zip をリリースに追加するためのリリースであり、動作の変更はなし
   - @miosakuma
