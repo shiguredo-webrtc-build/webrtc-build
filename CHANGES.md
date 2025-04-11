@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-04-11 [RELEASE] m133.6943.4.2
+  - @torikizi
 - 2025-04-02 [RELEASE] m134.6998.1.1
   - @melpon
 - 2025-04-02 [ADD] libyuv_use_sme=false を追加
@@ -54,6 +56,11 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - GitHub Actions に platform が ios の場合に WebRTC.xcframework.zip をリリースにアップロードする仕組みを追加
   - @zztkm
 - 2025-02-18 [RELEASE] m133.6943.4.0
+  - @miosakuma
+- 2025-02-07 [RELEASE] m132.6834.5.8
+  - @melpon
+- 2025-02-07 [CHANGE] RTCDefaultVideoEncoderFactory が返すフォーマットの一覧を scalability_mode に対応する
+  - @melpon
 - 2025-02-03 [UPDATE] m133 ブランチのビルドエラーに対する対応
   - build/config/compiler/BUILD.gn の変更に伴い、 macos_use_xcode_clang.patch を修正する
     - is_linux が実行条件の分岐が追加されていたため、macOS(is_mac) には不要であるため削除した
@@ -72,10 +79,22 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
     - 設定しないと Rust を利用してしまうため設定を行った
     - 本家では Rust を利用しないよう対応済みだが、テストは無効にできた方が望ましいため、このオプションは今後も維持する
   - @miosakuma, @melpon
+- 2025-02-03 [RELEASE] m132.6834.5.7
+  - @zztkm
+- 2025-02-03 [RELEASE] m132.6834.5.6
+  - @zztkm
+- 2025-01-31 [UPDATE] iOS の scaleResolutionDownTo のプロパティの setter を assign から copy に変更する
+  - @zztkm
+- 2025-01-30 [RELEASE] m132.6834.5.5
+  - @melpon
 - 2025-01-30 [FIX] Windows のビルド依存に api:enable_media_with_defaults を追加し忘れていた
+  - @melpon
+- 2025-01-30 [RELEASE] m132.6834.5.4
   - @melpon
 - 2025-01-30 [ADD] ビルド依存に api:enable_media_with_defaults を追加
   - @melpon
+- 2025-01-27 [RELEASE] m132.6834.5.3
+  - @torikizi
 - 2025-01-25 [ADD] Android と iOS の RtpEncodingParameters に scaleResolutionDownTo を定義する
   - @melpon
 - 2025-01-23 [RELEASE] m132.6834.5.2

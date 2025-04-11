@@ -212,6 +212,63 @@ index 0000000000..96305cd784
 +
 +@end
 +
+diff --git a/sdk/objc/components/video_codec/RTCDefaultVideoEncoderFactory.m b/sdk/objc/components/video_codec/RTCDefaultVideoEncoderFactory.m
+index 8de55bde4a..b6ce925633 100644
+--- a/sdk/objc/components/video_codec/RTCDefaultVideoEncoderFactory.m
++++ b/sdk/objc/components/video_codec/RTCDefaultVideoEncoderFactory.m
+@@ -12,6 +12,7 @@
+ 
+ #import "RTCH264ProfileLevelId.h"
+ #import "RTCVideoEncoderH264.h"
++#import "RTCVideoEncoderFactorySimulcast.h"
+ #import "api/video_codec/RTCVideoCodecConstants.h"
+ #import "api/video_codec/RTCVideoEncoderVP8.h"
+ #import "api/video_codec/RTCVideoEncoderVP9.h"
+@@ -26,43 +27,7 @@ @implementation RTC_OBJC_TYPE (RTCDefaultVideoEncoderFactory)
+ @synthesize preferredCodec;
+ 
+ + (NSArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *)supportedCodecs {
+-  NSDictionary<NSString *, NSString *> *constrainedHighParams = @{
+-    @"profile-level-id" : kRTCMaxSupportedH264ProfileLevelConstrainedHigh,
+-    @"level-asymmetry-allowed" : @"1",
+-    @"packetization-mode" : @"1",
+-  };
+-  RTC_OBJC_TYPE(RTCVideoCodecInfo) *constrainedHighInfo =
+-      [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecH264Name
+-                                                  parameters:constrainedHighParams];
+-
+-  NSDictionary<NSString *, NSString *> *constrainedBaselineParams = @{
+-    @"profile-level-id" : kRTCMaxSupportedH264ProfileLevelConstrainedBaseline,
+-    @"level-asymmetry-allowed" : @"1",
+-    @"packetization-mode" : @"1",
+-  };
+-  RTC_OBJC_TYPE(RTCVideoCodecInfo) *constrainedBaselineInfo =
+-      [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecH264Name
+-                                                  parameters:constrainedBaselineParams];
+-
+-  RTC_OBJC_TYPE(RTCVideoCodecInfo) *vp8Info =
+-      [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecVp8Name];
+-
+-  NSMutableArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *result = [@[
+-    constrainedHighInfo,
+-    constrainedBaselineInfo,
+-    vp8Info,
+-  ] mutableCopy];
+-
+-  if ([RTC_OBJC_TYPE(RTCVideoEncoderVP9) isSupported]) {
+-    [result
+-        addObject:[[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecVp9Name]];
+-  }
+-
+-#if defined(RTC_USE_LIBAOM_AV1_ENCODER)
+-  [result addObject:[[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecAv1Name]];
+-#endif
+-
+-  return result;
++  return [RTCVideoEncoderFactorySimulcast supportedCodecsForDefaultEncoderFactory];
+ }
+ 
+ - (id<RTC_OBJC_TYPE(RTCVideoEncoder)>)createEncoder:(RTC_OBJC_TYPE(RTCVideoCodecInfo) *)info {
 diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.h b/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.h
 new file mode 100644
 index 0000000000..4070af22e4
@@ -231,6 +288,8 @@ index 0000000000..4070af22e4
 +- (instancetype)initWithPrimary:(id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)primary
 +                       fallback:(id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)fallback;
 +
+++ (NSArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *)supportedCodecsForDefaultEncoderFactory;
++
 +@end
 +
 +NS_ASSUME_NONNULL_END
@@ -242,6 +301,7 @@ index 0000000000..e0eab04e58
 @@ -0,0 +1,63 @@
 +#import <Foundation/Foundation.h>
 +
++#import "RTCH264ProfileLevelId.h"
 +#import "RTCMacros.h"
 +#import "RTCVideoCodecInfo.h"
 +#import "RTCVideoEncoderFactorySimulcast.h"
@@ -253,6 +313,9 @@ index 0000000000..e0eab04e58
 +#include "api/video_codecs/sdp_video_format.h"
 +#include "api/video_codecs/video_codec.h"
 +#include "modules/video_coding/codecs/av1/av1_svc_config.h"
++#include "modules/video_coding/codecs/h264/include/h264.h"
++#include "modules/video_coding/codecs/vp8/include/vp8.h"
++#include "modules/video_coding/codecs/vp8/vp8_scalability.h"
 +#include "modules/video_coding/codecs/vp9/include/vp9.h"
 +#include "media/base/media_constants.h"
 +
@@ -285,7 +348,7 @@ index 0000000000..e0eab04e58
 +- (NSArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *)supportedCodecs {
 +    NSArray *supportedCodecs = [[_primary supportedCodecs] arrayByAddingObjectsFromArray: [_fallback supportedCodecs]];
 +
-+    NSMutableArray<RTCVideoCodecInfo *> *addingCodecs = [[NSMutableArray alloc] init];
++    NSMutableArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *addingCodecs = [[NSMutableArray alloc] init];
 +
 +    for (const webrtc::SdpVideoFormat& format : webrtc::SupportedVP9Codecs(true)) {
 +        RTCVideoCodecInfo *codec = [[RTCVideoCodecInfo alloc] initWithNativeSdpVideoFormat: format];
@@ -293,7 +356,7 @@ index 0000000000..e0eab04e58
 +    }
 +
 +    auto av1Format = webrtc::SdpVideoFormat(
-+         cricket::kAv1CodecName, webrtc::SdpVideoFormat::Parameters(),
++         cricket::kAv1CodecName, webrtc::CodecParameterMap(),
 +         webrtc::LibaomAv1EncoderSupportedScalabilityModes());
 +    RTCVideoCodecInfo *av1Codec = [[RTCVideoCodecInfo alloc] initWithNativeSdpVideoFormat: av1Format];
 +    [addingCodecs addObject: av1Codec];
@@ -301,5 +364,54 @@ index 0000000000..e0eab04e58
 +    return [supportedCodecs arrayByAddingObjectsFromArray: addingCodecs];
 +}
 +
+++ (NSArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *)supportedCodecsForDefaultEncoderFactory {
++    NSMutableArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *codecs = [[NSMutableArray alloc] init];
++
++    // H264
++    {
++        {
++            auto profile_level_id = webrtc::ParseH264ProfileLevelId([kRTCMaxSupportedH264ProfileLevelConstrainedHigh UTF8String]);
++            if (profile_level_id) {
++                auto format = webrtc::CreateH264Format(profile_level_id->profile, profile_level_id->level, "1", true);
++                RTCVideoCodecInfo *codec = [[RTCVideoCodecInfo alloc] initWithNativeSdpVideoFormat: format];
++                [codecs addObject: codec];
++            }
++        }
++        {
++            auto profile_level_id = webrtc::ParseH264ProfileLevelId([kRTCMaxSupportedH264ProfileLevelConstrainedBaseline UTF8String]);
++            if (profile_level_id) {
++                auto format = webrtc::CreateH264Format(profile_level_id->profile, profile_level_id->level, "1", true);
++                RTCVideoCodecInfo *codec = [[RTCVideoCodecInfo alloc] initWithNativeSdpVideoFormat: format];
++                [codecs addObject: codec];
++            }
++        }
++    }
++
++    // VP8
++    {
++        absl::InlinedVector<webrtc::ScalabilityMode, webrtc::kScalabilityModeCount> scalability_modes;
++        for (const auto scalability_mode : webrtc::kVP8SupportedScalabilityModes) {
++            scalability_modes.push_back(scalability_mode);
++        }
++        webrtc::SdpVideoFormat format(webrtc::SdpVideoFormat::VP8(), scalability_modes);
++        RTCVideoCodecInfo *codec = [[RTCVideoCodecInfo alloc] initWithNativeSdpVideoFormat: format];
++        [codecs addObject: codec];
++    }
++    // VP9
++    for (const webrtc::SdpVideoFormat& format : webrtc::SupportedVP9Codecs(true)) {
++        RTCVideoCodecInfo *codec = [[RTCVideoCodecInfo alloc] initWithNativeSdpVideoFormat: format];
++        [codecs addObject: codec];
++    }
++    // AV1
++    {
++        webrtc::SdpVideoFormat format(
++            cricket::kAv1CodecName, webrtc::CodecParameterMap(),
++            webrtc::LibaomAv1EncoderSupportedScalabilityModes());
++        RTCVideoCodecInfo *codec = [[RTCVideoCodecInfo alloc] initWithNativeSdpVideoFormat: format];
++        [codecs addObject: codec];
++    }
++
++    return [codecs copy];
++}
 +
 +@end
