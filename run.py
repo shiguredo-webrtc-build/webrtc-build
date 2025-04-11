@@ -1044,8 +1044,14 @@ def build_webrtc(
     else:
         ar = os.path.join(webrtc_src_dir, "third_party/llvm-build/Release+Asserts/bin/llvm-ar")
 
-    # ar で libwebrtc.a を生成する
-    if target not in ["windows_x86_64", "windows_arm64"]:
+    if target in ["windows_x86_64", "windows_arm64"]:
+        # Windows は ar する代わりにファイルをコピーする
+        shutil.copyfile(
+            os.path.join(webrtc_build_dir, "obj", "webrtc.lib"),
+            os.path.join(webrtc_build_dir, "webrtc.lib"),
+        )
+    else:
+        # ar で libwebrtc.a を生成する
         archive_objects(
             ar, os.path.join(webrtc_build_dir, "obj"), os.path.join(webrtc_build_dir, "libwebrtc.a")
         )
@@ -1257,7 +1263,7 @@ def package_webrtc(
     # ライブラリ
     if target in ["windows_x86_64", "windows_arm64"]:
         files = [
-            (["obj", "webrtc.lib"], ["lib", "webrtc.lib"]),
+            (["webrtc.lib"], ["lib", "webrtc.lib"]),
         ]
     elif target in ("macos_arm64",):
         files = [
