@@ -69,7 +69,7 @@ index b172d34db6..4f8f98cb98 100644
  
    std::unique_ptr<webrtc::AsyncDnsResolverInterface> CreateAsyncDnsResolver()
 diff --git a/p2p/base/port.h b/p2p/base/port.h
-index f4c87c6bba..3b07c8d321 100644
+index 5b1a7bda61..fcdea7568f 100644
 --- a/p2p/base/port.h
 +++ b/p2p/base/port.h
 @@ -60,6 +60,8 @@
@@ -83,7 +83,7 @@ index f4c87c6bba..3b07c8d321 100644
  // RFC 6544, TCP candidate encoding rules.
 @@ -365,6 +367,17 @@ class RTC_EXPORT Port : public PortInterface, public sigslot::has_slots<> {
  
-   void GetStunStats(std::optional<StunStats>* stats) override {}
+   void GetStunStats(std::optional<StunStats>* /* stats */) override {}
  
 +  void set_proxy(absl::string_view user_agent, const rtc::revive::ProxyInfo& proxy) {
 +    revived_user_agent_ = user_agent;
@@ -100,7 +100,7 @@ index f4c87c6bba..3b07c8d321 100644
    void UpdateNetworkCost() override;
  
 diff --git a/p2p/base/port_allocator.h b/p2p/base/port_allocator.h
-index 880d3ae15b..61e0fbea55 100644
+index 0d0e4d3e2e..2fedb3d0d0 100644
 --- a/p2p/base/port_allocator.h
 +++ b/p2p/base/port_allocator.h
 @@ -34,6 +34,8 @@
@@ -112,7 +112,7 @@ index 880d3ae15b..61e0fbea55 100644
  namespace webrtc {
  class TurnCustomizer;
  }  // namespace webrtc
-@@ -461,6 +463,26 @@ class RTC_EXPORT PortAllocator : public sigslot::has_slots<> {
+@@ -462,6 +464,26 @@ class RTC_EXPORT PortAllocator : public sigslot::has_slots<> {
      flags_ = flags;
    }
  
@@ -163,10 +163,10 @@ index 0d89a9e8c8..89322f3f9b 100644
    PortInterface();
    virtual void UpdateNetworkCost() = 0;
 diff --git a/p2p/base/tcp_port.cc b/p2p/base/tcp_port.cc
-index 305db0e73c..ac62217b48 100644
+index cfd3c18b47..eb651e4ba0 100644
 --- a/p2p/base/tcp_port.cc
 +++ b/p2p/base/tcp_port.cc
-@@ -586,7 +586,9 @@ void TCPConnection::CreateOutgoingTcpSocket() {
+@@ -587,7 +587,9 @@ void TCPConnection::CreateOutgoingTcpSocket() {
    tcp_opts.opts = opts;
    socket_.reset(port()->socket_factory()->CreateClientTcpSocket(
        rtc::SocketAddress(port()->Network()->GetBestIP(), 0),
@@ -178,10 +178,10 @@ index 305db0e73c..ac62217b48 100644
      RTC_LOG(LS_VERBOSE) << ToString() << ": Connecting from "
                          << socket_->GetLocalAddress().ToSensitiveString()
 diff --git a/p2p/base/turn_port.cc b/p2p/base/turn_port.cc
-index f52e1f2916..df46ccd35e 100644
+index b4da910ab3..ac66bf9640 100644
 --- a/p2p/base/turn_port.cc
 +++ b/p2p/base/turn_port.cc
-@@ -478,6 +478,7 @@ bool TurnPort::CreateTurnClientSocket() {
+@@ -476,6 +476,7 @@ bool TurnPort::CreateTurnClientSocket() {
      tcp_options.tls_cert_verifier = tls_cert_verifier_;
      socket_ = socket_factory()->CreateClientTcpSocket(
          rtc::SocketAddress(Network()->GetBestIP(), 0), server_address_.address,
@@ -212,10 +212,10 @@ index 3e8ddf4b69..32e64a56bf 100644
        (flags() & PORTALLOCATOR_ENABLE_STUN_RETRANSMIT_ATTRIBUTE) != 0);
  
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index e1282d7293..931efd7d9d 100644
+index 0cd28c73e9..93f067179c 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
-@@ -1243,6 +1243,8 @@ rtc_library("socket_adapters") {
+@@ -1216,6 +1216,8 @@ rtc_library("socket_adapters") {
    sources = [
      "socket_adapters.cc",
      "socket_adapters.h",
@@ -224,7 +224,7 @@ index e1282d7293..931efd7d9d 100644
    ]
    deps = [
      ":async_socket",
-@@ -1255,6 +1257,7 @@ rtc_library("socket_adapters") {
+@@ -1228,6 +1230,7 @@ rtc_library("socket_adapters") {
      "../api:array_view",
      "//third_party/abseil-cpp/absl/strings",
      "//third_party/abseil-cpp/absl/strings:string_view",
@@ -232,7 +232,7 @@ index e1282d7293..931efd7d9d 100644
    ]
  }
  
-@@ -1362,6 +1365,20 @@ rtc_library("dscp") {
+@@ -1358,6 +1361,20 @@ rtc_library("dscp") {
    sources = [ "dscp.h" ]
  }
  
@@ -253,7 +253,7 @@ index e1282d7293..931efd7d9d 100644
  rtc_library("file_rotating_stream") {
    sources = [
      "file_rotating_stream.cc",
-@@ -1629,6 +1646,13 @@ rtc_library("ssl_adapter") {
+@@ -1625,6 +1642,13 @@ rtc_library("ssl_adapter") {
    }
  }
  
@@ -267,22 +267,6 @@ index e1282d7293..931efd7d9d 100644
  rtc_source_set("gtest_prod") {
    sources = [ "gtest_prod_util.h" ]
  }
-diff --git a/rtc_base/BUILD.gn.rej b/rtc_base/BUILD.gn.rej
-new file mode 100644
-index 0000000000..83909f23af
---- /dev/null
-+++ b/rtc_base/BUILD.gn.rej
-@@ -0,0 +1,10 @@
-+--- rtc_base/BUILD.gn
-++++ rtc_base/BUILD.gn
-+@@ -1291,6 +1293,7 @@ rtc_library("socket_adapters") {
-+     ":stringutils",
-+     ":zero_memory",
-+     "../api:array_view",
-++    ":proxy_info",
-+   ]
-+   absl_deps = [ "//third_party/abseil-cpp/absl/strings" ]
-+ }
 diff --git a/rtc_base/crypt_string_revive.cc b/rtc_base/crypt_string_revive.cc
 new file mode 100644
 index 0000000000..b1a1ab5b76

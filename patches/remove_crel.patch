@@ -1,0 +1,19 @@
+diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
+index 88109264e..64b43d56b 100644
+--- a/build/config/compiler/BUILD.gn
++++ b/build/config/compiler/BUILD.gn
+@@ -629,10 +629,10 @@ config("compiler") {
+     # Enable ELF CREL (see crbug.com/357878242) for all platforms that use ELF
+     # (excluding toolchains that use an older version of LLVM).
+     # TODO(crbug.com/376278218): This causes segfault on Linux ARM builds.
+-    if (is_linux && !llvm_android_mainline && current_cpu != "arm" &&
+-        default_toolchain != "//build/toolchain/cros:target") {
+-      cflags += [ "-Wa,--crel,--allow-experimental-crel" ]
+-    }
++    # if (is_linux && !llvm_android_mainline && current_cpu != "arm" &&
++    #     default_toolchain != "//build/toolchain/cros:target") {
++    #   cflags += [ "-Wa,--crel,--allow-experimental-crel" ]
++    # }
+   }
+ 
+   # C11/C++11 compiler flags setup.

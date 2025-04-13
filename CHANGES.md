@@ -60,10 +60,58 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-04-12 [RELEASE] m134.6998.1.2
+  - @torikizi
+- 2025-04-11 [RELEASE] m133.6943.4.2
+  - @torikizi
+- 2025-04-02 [RELEASE] m134.6998.1.1
+  - @melpon
+- 2025-04-02 [ADD] libyuv_use_sme=false を追加
+  - @melpon
+- 2025-04-02 [ADD] remove_crel.patch を追加
+  - @melpon
+- 2025-03-04 [RELEASE] m134.6998.1.0
+  - @miosakuma
+- 2025-02-28 [UPDATE] m134 ブランチのビルドエラーに対する対応
+  - ios_fix_optional.patch の内容を h265_ios.patch に統一して、ios_fix_optional.patch を削除する
+    - パッチの内容をまとめて簡素化を行った
+  - フォーマット変更によるパッチのずれの修正
+  - android_remove_rust_dependency.patch を削除する
+    - 以下の libwebrtc の CL が反映されたため、パッチを削除する
+    - https://webrtc-review.googlesource.com/c/src/+/376240
+  - @miosakuma
+- 2025-02-21 [RELEASE] m133.6943.4.1
+  - WebRTC.xcframework.zip をリリースに追加するためのリリースであり、動作の変更はなし
+  - @miosakuma
+- 2025-02-18 [ADD] Sora iOS SDK 用に WebRTC.xcframework.zip をリリースバイナリに追加する
+  - Sora iOS SDK の CocoaPods 廃止対応に伴い、WebRTC.xcframework.zip の配布場所を sora-ios-sdk-specs リポジトリから WebRTC-Build に変更するための追加
+  - run.py の package コマンドにターゲットが ios のときに WebRTC.xcframework.zip を生成する機能を追加
+  - GitHub Actions に platform が ios の場合に WebRTC.xcframework.zip をリリースにアップロードする仕組みを追加
+  - @zztkm
+- 2025-02-18 [RELEASE] m133.6943.4.0
+  - @miosakuma
 - 2025-02-07 [RELEASE] m132.6834.5.8
   - @melpon
 - 2025-02-07 [CHANGE] RTCDefaultVideoEncoderFactory が返すフォーマットの一覧を scalability_mode に対応する
   - @melpon
+- 2025-02-03 [UPDATE] m133 ブランチのビルドエラーに対する対応
+  - build/config/compiler/BUILD.gn の変更に伴い、 macos_use_xcode_clang.patch を修正する
+    - is_linux が実行条件の分岐が追加されていたため、macOS(is_mac) には不要であるため削除した
+  - build/config/compiler/BUILD.gn の変更に伴い、 ios_build.patch を修正する
+    - is_linux が実行条件の分岐が追加されていたため、iOS(is_ios) には不要であるため削除した
+  - p2p/base/port.h の変更に伴い、 revive_proxy.patch を修正する
+  - revive_proxy.patch に不要な rtc_base/BUILD.gn.rej の差分があったため削除する
+  - window_add_optional.patch は不要となったので削除する
+  - iOS のビルドオプション "-fvisibility-global-new-delete" を指定しないようにする
+    - unknown argument でビルドエラーとなるため
+  - Android のビルドから rust への依存を削除する
+    - 以下の CL と同内容のパッチを android_remove_rust_dependency.patch として追加する
+      - https://webrtc-review.googlesource.com/c/src/+/376240
+    - 上記対応が入ったらこのパッチは削除する
+  - Android のビルドオプションに `libyuv_include_tests=false` を追加する
+    - 設定しないと Rust を利用してしまうため設定を行った
+    - 本家では Rust を利用しないよう対応済みだが、テストは無効にできた方が望ましいため、このオプションは今後も維持する
+  - @miosakuma, @melpon
 - 2025-02-03 [RELEASE] m132.6834.5.7
   - @zztkm
 - 2025-02-03 [RELEASE] m132.6834.5.6
