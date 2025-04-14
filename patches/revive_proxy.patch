@@ -1,16 +1,18 @@
 diff --git a/api/packet_socket_factory.h b/api/packet_socket_factory.h
-index e5470a6347..9e7f410d2a 100644
+index e5470a6347..ce577eb0c9 100644
 --- a/api/packet_socket_factory.h
 +++ b/api/packet_socket_factory.h
-@@ -20,6 +20,7 @@
+@@ -20,6 +20,9 @@
  #include "rtc_base/async_packet_socket.h"
  #include "rtc_base/socket_address.h"
  #include "rtc_base/system/rtc_export.h"
++
 +#include "rtc_base/proxy_info_revive.h"
++
  namespace rtc {
  class SSLCertificateVerifier;
  class AsyncResolverInterface;
-@@ -69,6 +70,8 @@ class RTC_EXPORT PacketSocketFactory {
+@@ -69,6 +72,8 @@ class RTC_EXPORT PacketSocketFactory {
    virtual AsyncPacketSocket* CreateClientTcpSocket(
        const SocketAddress& local_address,
        const SocketAddress& remote_address,
@@ -20,18 +22,19 @@ index e5470a6347..9e7f410d2a 100644
  
    virtual std::unique_ptr<AsyncDnsResolverInterface>
 diff --git a/p2p/base/basic_packet_socket_factory.cc b/p2p/base/basic_packet_socket_factory.cc
-index 71a6026550..3df628f67a 100644
+index 71a6026550..2dbb2bed15 100644
 --- a/p2p/base/basic_packet_socket_factory.cc
 +++ b/p2p/base/basic_packet_socket_factory.cc
-@@ -31,6 +31,7 @@
- #include "rtc_base/socket_address.h"
+@@ -32,6 +32,8 @@
  #include "rtc_base/socket_factory.h"
  #include "rtc_base/ssl_adapter.h"
-+#include "rtc_base/socket_adapters_revive.h"
  
++#include "rtc_base/socket_adapters_revive.h"
++
  namespace webrtc {
  
-@@ -92,6 +93,8 @@ AsyncListenSocket* BasicPacketSocketFactory::CreateServerTcpSocket(
+ BasicPacketSocketFactory::BasicPacketSocketFactory(
+@@ -92,6 +94,8 @@ AsyncListenSocket* BasicPacketSocketFactory::CreateServerTcpSocket(
  AsyncPacketSocket* BasicPacketSocketFactory::CreateClientTcpSocket(
      const SocketAddress& local_address,
      const SocketAddress& remote_address,
@@ -40,7 +43,7 @@ index 71a6026550..3df628f67a 100644
      const PacketSocketTcpOptions& tcp_options) {
    Socket* socket =
        socket_factory_->CreateSocket(local_address.family(), SOCK_STREAM);
-@@ -123,6 +126,12 @@ AsyncPacketSocket* BasicPacketSocketFactory::CreateClientTcpSocket(
+@@ -123,6 +127,12 @@ AsyncPacketSocket* BasicPacketSocketFactory::CreateClientTcpSocket(
                        << socket->GetError();
    }
  
@@ -176,17 +179,20 @@ index 2e0d78173a..7d15abe9c9 100644
      RTC_LOG(LS_VERBOSE) << ToString() << ": Connecting from "
                          << socket_->GetLocalAddress().ToSensitiveString()
 diff --git a/p2p/base/turn_port.cc b/p2p/base/turn_port.cc
-index 8a932233e0..644637ca7a 100644
+index 8a932233e0..39f4fc04f3 100644
 --- a/p2p/base/turn_port.cc
 +++ b/p2p/base/turn_port.cc
-@@ -500,6 +500,7 @@ bool TurnPort::CreateTurnClientSocket() {
+@@ -500,7 +500,9 @@ bool TurnPort::CreateTurnClientSocket() {
      tcp_options.tls_cert_verifier = tls_cert_verifier_;
      socket_ = socket_factory()->CreateClientTcpSocket(
          webrtc::SocketAddress(Network()->GetBestIP(), 0),
+-        server_address_.address, tcp_options);
++        server_address_.address,
 +        get_proxy(), get_user_agent(),
-         server_address_.address, tcp_options);
++        tcp_options);
    }
  
+   if (!socket_) {
 diff --git a/p2p/client/basic_port_allocator.cc b/p2p/client/basic_port_allocator.cc
 index 3e8ddf4b69..32e64a56bf 100644
 --- a/p2p/client/basic_port_allocator.cc
