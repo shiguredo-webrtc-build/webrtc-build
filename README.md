@@ -44,7 +44,6 @@ Please read <https://github.com/shiguredo/oss/blob/master/README.en.md> before u
 - ubuntu-22.04_armv8
   - Jetson AGX Orin
   - Jetson Orin Nano
-- ubuntu-20.04_x86_64
 - ubuntu-22.04_x86_64
 - ubuntu-24.04_armv8
 - ubuntu-24.04_x86_64
@@ -69,6 +68,8 @@ Please read <https://github.com/shiguredo/oss/blob/master/README.en.md> before u
   - 2023 年 4 月を持って廃止しました
 - hololens2 ビルド
   - 2025 年 3 月を持って廃止しました
+- Ubuntu 20.04 x86_64 廃止
+  - 2025 年 4 月を持って廃止しました
 
 ## H.264 (AVC) と H.265 (HEVC) のライセンスについて
 

@@ -1,5 +1,5 @@
 diff --git a/sdk/objc/api/peerconnection/RTCRtpEncodingParameters.h b/sdk/objc/api/peerconnection/RTCRtpEncodingParameters.h
-index 936149ff18..ca538eef17 100644
+index 936149ff18..a2578b8298 100644
 --- a/sdk/objc/api/peerconnection/RTCRtpEncodingParameters.h
 +++ b/sdk/objc/api/peerconnection/RTCRtpEncodingParameters.h
 @@ -22,6 +22,12 @@ typedef NS_ENUM(NSInteger, RTCPriority) {
@@ -8,8 +8,8 @@ index 936149ff18..ca538eef17 100644
  
 +RTC_OBJC_EXPORT
 +@interface RTC_OBJC_TYPE (RTCResolutionRestriction) : NSObject
-+@property(nonatomic, assign) NSNumber* maxWidth;
-+@property(nonatomic, assign) NSNumber* maxHeight;
++@property(nonatomic, copy) NSNumber* maxWidth;
++@property(nonatomic, copy) NSNumber* maxHeight;
 +@end
 +
  RTC_OBJC_EXPORT
@@ -42,7 +42,7 @@ index 6c60792c7d..39bdab356a 100644
  @implementation RTC_OBJC_TYPE (RTCRtpEncodingParameters)
  
  @synthesize rid = _rid;
-@@ -21,6 +28,7 @@ @implementation RTC_OBJC_TYPE (RTCRtpEncodingParameters)
+@@ -21,6 +28,7 @@
  @synthesize maxFramerate = _maxFramerate;
  @synthesize numTemporalLayers = _numTemporalLayers;
  @synthesize scaleResolutionDownBy = _scaleResolutionDownBy;
@@ -50,7 +50,7 @@ index 6c60792c7d..39bdab356a 100644
  @synthesize ssrc = _ssrc;
  @synthesize bitratePriority = _bitratePriority;
  @synthesize networkPriority = _networkPriority;
-@@ -58,6 +66,11 @@ - (instancetype)initWithNativeParameters:
+@@ -58,6 +66,11 @@
        _scaleResolutionDownBy =
            [NSNumber numberWithDouble:*nativeParameters.scale_resolution_down_by];
      }
@@ -62,7 +62,7 @@ index 6c60792c7d..39bdab356a 100644
      if (nativeParameters.ssrc) {
        _ssrc = [NSNumber numberWithUnsignedLong:*nativeParameters.ssrc];
      }
-@@ -93,6 +106,11 @@ - (instancetype)initWithNativeParameters:
+@@ -93,6 +106,11 @@
    if (_scaleResolutionDownBy != nil) {
      parameters.scale_resolution_down_by = std::optional<double>(_scaleResolutionDownBy.doubleValue);
    }
