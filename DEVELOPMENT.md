@@ -10,7 +10,7 @@
 python3 run.py build <target>
 ```
 
-`<target>` の部分には、`windows` や `ubuntu-20.04_x86_64` 等のターゲット名が入る。
+`<target>` の部分には、`windows` や `ubuntu-22.04_x86_64` 等のターゲット名が入る。
 
 詳細は `python3 run.py --help` や `python3 run.py build --help` 等を参照すること。
 
@@ -62,14 +62,14 @@ iOS の `WebRTC.xcframework`、Android の `webrtc.aar` は、他の場合と変
 ```
 webrtc-build/
 |-- _source/
-|   |-- ubuntu-20.04_x86_64/
+|   |-- ubuntu-22.04_x86_64/
 |   |   |-- depot_tools/...
 |   |   `-- webrtc/...
 |   `-- android/
 |       |-- depot_tools/...
 |       `-- webrtc/...
 `-- _build/
-    |-- ubuntu-20.04_x86_64/
+    |-- ubuntu-22.04_x86_64/
     |   |-- debug/
     |   |   `-- webrtc/...
     |   `-- release/
@@ -102,7 +102,6 @@ webrtc-build/
 - macOS の場合は `macos_x86_64`, `macos_arm64`, `ios` ターゲットのみビルド可能。
 - Ubuntu の x86_64 環境の場合、上記以外のターゲットのみビルド可能。
   - `android`, `raspberry-pi-os_armv*`, `ubuntu-*_armv8` あたりの ARM 環境は Ubuntu のバージョンに関係なくビルド可能
-  - `ubuntu-20.04_x86_64` の場合は Ubuntu 20.04 が必要
   - `ubuntu-22.04_x86_64` の場合は Ubuntu 22.04 が必要
   - `ubuntu-24.04_x86_64` の場合は Ubuntu 24.04 が必要
 - Ubuntu の x86_64 でない環境ではビルド不可能。
