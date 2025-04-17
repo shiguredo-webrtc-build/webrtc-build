@@ -228,6 +228,7 @@ PATCHES = {
         "dav1d_config_change.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
+        "remove_rust.patch",
         # 既に macos_use_xcode_clang.patch で同じ内容を適用済み
         # "remove_crel.patch",
     ],
@@ -249,6 +250,7 @@ PATCHES = {
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
         "ios_add_scale_resolution_down_to.patch",
+        "remove_rust.patch",
         # 既に ios_build.patch で同じ内容を適用済み
         # "remove_crel.patch",
     ],
