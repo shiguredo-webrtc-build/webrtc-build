@@ -16,7 +16,7 @@ index e5470a6347..ce577eb0c9 100644
    virtual AsyncPacketSocket* CreateClientTcpSocket(
        const SocketAddress& local_address,
        const SocketAddress& remote_address,
-+      const revive::ProxyInfo& proxy_info,
++      const rtc::revive::ProxyInfo& proxy_info,
 +      const std::string& user_agent,
        const PacketSocketTcpOptions& tcp_options) = 0;
  
@@ -38,7 +38,7 @@ index 71a6026550..2dbb2bed15 100644
  AsyncPacketSocket* BasicPacketSocketFactory::CreateClientTcpSocket(
      const SocketAddress& local_address,
      const SocketAddress& remote_address,
-+    const revive::ProxyInfo& proxy_info,
++    const rtc::revive::ProxyInfo& proxy_info,
 +    const std::string& user_agent,
      const PacketSocketTcpOptions& tcp_options) {
    Socket* socket =
@@ -64,7 +64,7 @@ index b172d34db6..4f8f98cb98 100644
    AsyncPacketSocket* CreateClientTcpSocket(
        const SocketAddress& local_address,
        const SocketAddress& remote_address,
-+      const revive::ProxyInfo& proxy_info,
++      const rtc::revive::ProxyInfo& proxy_info,
 +      const std::string& user_agent,
        const PacketSocketTcpOptions& tcp_options) override;
  
