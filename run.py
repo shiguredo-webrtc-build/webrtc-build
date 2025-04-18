@@ -334,12 +334,8 @@ PATCHES = {
         "h265.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
-<<<<<<< HEAD
-        "windows_add_optional.patch",
-        "multi_codec_simulcast.patch",
-=======
         "remove_crel.patch",
->>>>>>> origin/feature/m134.6998
+        "multi_codec_simulcast.patch",
     ],
     "windows_arm64": [
         "4k.patch",
@@ -353,12 +349,8 @@ PATCHES = {
         "h265.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
-<<<<<<< HEAD
-        "windows_add_optional.patch",
-        "multi_codec_simulcast.patch",
-=======
         "remove_crel.patch",
->>>>>>> origin/feature/m134.6998
+        "multi_codec_simulcast.patch",
     ],
     "macos_arm64": [
         "add_deps.patch",
