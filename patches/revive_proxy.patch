@@ -1,5 +1,5 @@
 diff --git a/api/packet_socket_factory.h b/api/packet_socket_factory.h
-index e5470a6347..ce577eb0c9 100644
+index e5470a6347..85fcf739f9 100644
 --- a/api/packet_socket_factory.h
 +++ b/api/packet_socket_factory.h
 @@ -20,6 +20,9 @@
@@ -22,7 +22,7 @@ index e5470a6347..ce577eb0c9 100644
  
    virtual std::unique_ptr<AsyncDnsResolverInterface>
 diff --git a/p2p/base/basic_packet_socket_factory.cc b/p2p/base/basic_packet_socket_factory.cc
-index 71a6026550..2dbb2bed15 100644
+index 71a6026550..b26a90a210 100644
 --- a/p2p/base/basic_packet_socket_factory.cc
 +++ b/p2p/base/basic_packet_socket_factory.cc
 @@ -32,6 +32,8 @@
@@ -47,9 +47,9 @@ index 71a6026550..2dbb2bed15 100644
                        << socket->GetError();
    }
  
-+  if (proxy_info.type == revive::PROXY_HTTPS) {
++  if (proxy_info.type == rtc::revive::PROXY_HTTPS) {
 +    socket =
-+        new revive::AsyncHttpsProxySocket(socket, user_agent, proxy_info.address,
++        new rtc::revive::AsyncHttpsProxySocket(socket, user_agent, proxy_info.address,
 +                                          proxy_info.username, proxy_info.password);
 +  }
 +
@@ -57,10 +57,10 @@ index 71a6026550..2dbb2bed15 100644
    int tlsOpts = tcp_options.opts & (PacketSocketFactory::OPT_TLS |
                                      PacketSocketFactory::OPT_TLS_FAKE |
 diff --git a/p2p/base/basic_packet_socket_factory.h b/p2p/base/basic_packet_socket_factory.h
-index b172d34db6..4f8f98cb98 100644
+index fbaf9f1ed4..0f6ea470cd 100644
 --- a/p2p/base/basic_packet_socket_factory.h
 +++ b/p2p/base/basic_packet_socket_factory.h
-@@ -43,6 +43,8 @@ class RTC_EXPORT BasicPacketSocketFactory : public PacketSocketFactory {
+@@ -40,6 +40,8 @@ class RTC_EXPORT BasicPacketSocketFactory : public PacketSocketFactory {
    AsyncPacketSocket* CreateClientTcpSocket(
        const SocketAddress& local_address,
        const SocketAddress& remote_address,
@@ -68,12 +68,12 @@ index b172d34db6..4f8f98cb98 100644
 +      const std::string& user_agent,
        const PacketSocketTcpOptions& tcp_options) override;
  
-   std::unique_ptr<webrtc::AsyncDnsResolverInterface> CreateAsyncDnsResolver()
+   std::unique_ptr<AsyncDnsResolverInterface> CreateAsyncDnsResolver() override;
 diff --git a/p2p/base/port.h b/p2p/base/port.h
-index 5b1a7bda61..fcdea7568f 100644
+index b0296656ac..b3507f17ef 100644
 --- a/p2p/base/port.h
 +++ b/p2p/base/port.h
-@@ -60,6 +60,8 @@
+@@ -49,6 +49,8 @@
  #include "rtc_base/thread_annotations.h"
  #include "rtc_base/weak_ptr.h"
  
@@ -82,7 +82,7 @@ index 5b1a7bda61..fcdea7568f 100644
  namespace cricket {
  
  // RFC 6544, TCP candidate encoding rules.
-@@ -365,6 +367,17 @@ class RTC_EXPORT Port : public PortInterface, public sigslot::has_slots<> {
+@@ -357,6 +359,17 @@ class RTC_EXPORT Port : public webrtc::PortInterface,
  
    void GetStunStats(std::optional<StunStats>* /* stats */) override {}
  
@@ -101,19 +101,19 @@ index 5b1a7bda61..fcdea7568f 100644
    void UpdateNetworkCost() override;
  
 diff --git a/p2p/base/port_allocator.h b/p2p/base/port_allocator.h
-index 0d0e4d3e2e..2fedb3d0d0 100644
+index b193e0ed09..414d1e2266 100644
 --- a/p2p/base/port_allocator.h
 +++ b/p2p/base/port_allocator.h
-@@ -34,6 +34,8 @@
+@@ -32,6 +32,8 @@
+ #include "rtc_base/system/rtc_export.h"
  #include "rtc_base/third_party/sigslot/sigslot.h"
- #include "rtc_base/thread.h"
  
 +#include "rtc_base/proxy_info_revive.h"
 +
  namespace webrtc {
+ 
  class TurnCustomizer;
- }  // namespace webrtc
-@@ -462,6 +464,26 @@ class RTC_EXPORT PortAllocator : public sigslot::has_slots<> {
+@@ -459,6 +461,26 @@ class RTC_EXPORT PortAllocator : public sigslot::has_slots<> {
      flags_ = flags;
    }
  
@@ -141,19 +141,19 @@ index 0d0e4d3e2e..2fedb3d0d0 100644
    int min_port() const {
      CheckRunOnValidThreadIfInitialized();
 diff --git a/p2p/base/port_interface.h b/p2p/base/port_interface.h
-index 0d89a9e8c8..89322f3f9b 100644
+index 55788f2750..06d23aeebb 100644
 --- a/p2p/base/port_interface.h
 +++ b/p2p/base/port_interface.h
-@@ -27,6 +27,8 @@
- #include "rtc_base/callback_list.h"
+@@ -31,6 +31,8 @@
  #include "rtc_base/socket_address.h"
+ #include "rtc_base/third_party/sigslot/sigslot.h"
  
 +#include "rtc_base/proxy_info_revive.h"
 +
  namespace rtc {
  class Network;
  struct PacketOptions;
-@@ -166,6 +168,9 @@ class PortInterface {
+@@ -173,6 +175,9 @@ class PortInterface {
    // Called when the Connection discovers a local peer reflexive candidate.
    virtual void AddPrflxCandidate(const Candidate& local) = 0;
  
@@ -194,32 +194,32 @@ index 8a932233e0..39f4fc04f3 100644
  
    if (!socket_) {
 diff --git a/p2p/client/basic_port_allocator.cc b/p2p/client/basic_port_allocator.cc
-index 3e8ddf4b69..32e64a56bf 100644
+index 5f2fc4f72a..8d06b2984b 100644
 --- a/p2p/client/basic_port_allocator.cc
 +++ b/p2p/client/basic_port_allocator.cc
-@@ -39,6 +39,8 @@
+@@ -55,6 +55,8 @@
+ #include "rtc_base/thread.h"
  #include "rtc_base/trace_event.h"
- #include "system_wrappers/include/metrics.h"
  
 +#include "rtc_base/proxy_info_revive.h"
 +
  namespace cricket {
  namespace {
- using ::rtc::CreateRandomId;
-@@ -937,6 +939,8 @@ void BasicPortAllocatorSession::AddAllocatedPort(Port* port,
+ using ::webrtc::CreateRandomId;
+@@ -949,6 +951,8 @@ void BasicPortAllocatorSession::AddAllocatedPort(Port* port,
    port->set_content_name(content_name());
    port->set_component(component());
    port->set_generation(generation());
 +  if (allocator_->proxy().type != rtc::revive::PROXY_NONE)
 +    port->set_proxy(allocator_->user_agent(), allocator_->proxy());
    port->set_send_retransmit_count_attribute(
-       (flags() & PORTALLOCATOR_ENABLE_STUN_RETRANSMIT_ATTRIBUTE) != 0);
+       (flags() & webrtc::PORTALLOCATOR_ENABLE_STUN_RETRANSMIT_ATTRIBUTE) != 0);
  
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 0cd28c73e9..93f067179c 100644
+index 344962feb8..5f96b4fc70 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
-@@ -1216,6 +1216,8 @@ rtc_library("socket_adapters") {
+@@ -1226,6 +1226,8 @@ rtc_library("socket_adapters") {
    sources = [
      "socket_adapters.cc",
      "socket_adapters.h",
@@ -228,7 +228,7 @@ index 0cd28c73e9..93f067179c 100644
    ]
    deps = [
      ":async_socket",
-@@ -1228,6 +1230,7 @@ rtc_library("socket_adapters") {
+@@ -1238,6 +1240,7 @@ rtc_library("socket_adapters") {
      "../api:array_view",
      "//third_party/abseil-cpp/absl/strings",
      "//third_party/abseil-cpp/absl/strings:string_view",
@@ -236,7 +236,7 @@ index 0cd28c73e9..93f067179c 100644
    ]
  }
  
-@@ -1358,6 +1361,20 @@ rtc_library("dscp") {
+@@ -1368,6 +1371,20 @@ rtc_library("dscp") {
    sources = [ "dscp.h" ]
  }
  
@@ -257,7 +257,7 @@ index 0cd28c73e9..93f067179c 100644
  rtc_library("file_rotating_stream") {
    sources = [
      "file_rotating_stream.cc",
-@@ -1625,6 +1642,13 @@ rtc_library("ssl_adapter") {
+@@ -1635,6 +1652,13 @@ rtc_library("ssl_adapter") {
    }
  }
  
@@ -401,7 +401,7 @@ index 0000000000..e1087570b7
 +#endif  // RTC_BASE_CRYPT_STRING_REVIVE_H_
 diff --git a/rtc_base/http_common_revive.cc b/rtc_base/http_common_revive.cc
 new file mode 100644
-index 0000000000..59ac7583bb
+index 0000000000..251ad25b6f
 --- /dev/null
 +++ b/rtc_base/http_common_revive.cc
 @@ -0,0 +1,554 @@
@@ -658,7 +658,7 @@ index 0000000000..59ac7583bb
 +}  // anonymous namespace
 +
 +HttpAuthResult HttpAuthenticate(absl::string_view challenge,
-+                                const SocketAddress& server,
++                                const webrtc::SocketAddress& server,
 +                                absl::string_view method,
 +                                absl::string_view uri,
 +                                absl::string_view username,
@@ -961,10 +961,10 @@ index 0000000000..59ac7583bb
 +}  // namespace rtc::revive
 diff --git a/rtc_base/http_common_revive.h b/rtc_base/http_common_revive.h
 new file mode 100644
-index 0000000000..67d9006c2f
+index 0000000000..d38614b3d0
 --- /dev/null
 +++ b/rtc_base/http_common_revive.h
-@@ -0,0 +1,57 @@
+@@ -0,0 +1,62 @@
 +/*
 + *  Copyright 2004 The WebRTC Project Authors. All rights reserved.
 + *
@@ -985,6 +985,11 @@ index 0000000000..67d9006c2f
 +namespace rtc {
 +
 +class CryptString;
++
++}
++
++namespace webrtc {
++
 +class SocketAddress;
 +
 +}
@@ -1008,7 +1013,7 @@ index 0000000000..67d9006c2f
 +// call.  When the authentication attempt is finished, delete the context.
 +// TODO(bugs.webrtc.org/8905): Change "response" to "ZeroOnFreeBuffer".
 +HttpAuthResult HttpAuthenticate(absl::string_view challenge,
-+                                const SocketAddress& server,
++                                const webrtc::SocketAddress& server,
 +                                absl::string_view method,
 +                                absl::string_view uri,
 +                                absl::string_view username,
