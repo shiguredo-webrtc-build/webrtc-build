@@ -73,8 +73,8 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
-      # - name: Select Xcode 15.4
-      #   run: sudo xcode-select --switch /Applications/Xcode_15.4.app/Contents/Developer
+      - name: Select Xcode 16.1
+        run: sudo xcode-select --switch /Applications/Xcode_16.1.app/Contents/Developer
       - run: brew install ninja
       - name: Setup Git User
         run: |
