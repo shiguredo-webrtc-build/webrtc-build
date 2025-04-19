@@ -1,25 +1,29 @@
 diff --git a/build/config/clang/clang.gni b/build/config/clang/clang.gni
-index 6913de9bb..68d0e8eac 100644
+index 2ad331d38..9f16006b4 100644
 --- a/build/config/clang/clang.gni
 +++ b/build/config/clang/clang.gni
-@@ -11,9 +11,9 @@ declare_args() {
+@@ -13,12 +13,12 @@ declare_args() {
    # Indicates if the build should use the Chrome-specific plugins for enforcing
    # coding guidelines, etc. Only used when compiling with Chrome's Clang, not
    # Chrome OS's.
 -  clang_use_chrome_plugins =
 -      is_clang && !is_nacl && current_os != "zos" &&
--      default_toolchain != "//build/toolchain/cros:target"
+-      default_toolchain != "//build/toolchain/cros:target" &&
 +  clang_use_chrome_plugins = false
 +      # is_clang && !is_nacl && current_os != "zos" &&
-+      # default_toolchain != "//build/toolchain/cros:target"
++      # default_toolchain != "//build/toolchain/cros:target" &&
+       # TODO(https://crbug.com/351909443): Remove this after fixing performance
+       # of Clang modules build.
+-      !use_libcxx_modules
++      # !use_libcxx_modules
  
    # Use this instead of clang_use_chrome_plugins to enable just the raw-ptr-plugin.
    clang_use_raw_ptr_plugin = false
 diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
-index ae6cbc24e..ac23e96aa 100644
+index e7a60d56b..47fabf08a 100644
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
-@@ -485,8 +485,8 @@ config("compiler") {
+@@ -474,8 +474,8 @@ config("compiler") {
      # faster.
      # On arm64, this is already the default behavior.
      if (current_cpu == "x64") {
@@ -30,7 +34,7 @@ index ae6cbc24e..ac23e96aa 100644
      }
  
      # dsymutil is not available in the system, on bots, for rustc to call. Our
-@@ -578,62 +578,6 @@ config("compiler") {
+@@ -567,62 +567,6 @@ config("compiler") {
      ldflags += [ "-Wl,-z,keep-text-section-prefix" ]
    }
  
@@ -84,16 +88,16 @@ index ae6cbc24e..ac23e96aa 100644
 -
 -    # Enable ELF CREL (see crbug.com/357878242) for all platforms that use ELF
 -    # (excluding toolchains that use an older version of LLVM).
--    # TODO(crbug.com/376278218): This causes segfault on Linux ARM builds.
--    if (is_linux && !llvm_android_mainline && current_cpu != "arm" &&
+-    if (is_linux && !llvm_android_mainline &&
 -        default_toolchain != "//build/toolchain/cros:target") {
 -      cflags += [ "-Wa,--crel,--allow-experimental-crel" ]
 -    }
 -  }
- 
+-
    # C11/C++11 compiler flags setup.
    # ---------------------------
-@@ -2017,7 +1961,7 @@ config("default_warnings") {
+   if (is_linux || is_chromeos || is_android || (is_nacl && is_clang) ||
+@@ -2045,7 +1989,7 @@ config("default_warnings") {
  
    # TODO(crbug.com/355446806): Clean up and enable.
    if (is_apple) {

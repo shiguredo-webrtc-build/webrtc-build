@@ -671,6 +671,9 @@ COMMON_GN_ARGS = [
     "rtc_use_perfetto=false",
     "libyuv_include_tests=false",
     "libyuv_use_sme=false",
+    "enable_rust=false",
+    "enable_rust_cxx=false",
+    "enable_chromium_prelude=false",
 ]
 
 WEBRTC_BUILD_TARGETS_MACOS_COMMON = [
