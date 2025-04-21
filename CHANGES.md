@@ -33,7 +33,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - libwebrtc に Rust ビルドを有効にする GN オプションが追加されたため、無効にする
   - run.py の `COMMON_GN_ARGS` に rust のビルドを無効にするオプションを追加する
   - @melpon
-- 2025-04-19 [UPDATE] ビルドの Xcode バージョンを 16.1 にアップデートする
+- 2025-04-19 [UPDATE] ビルド環境の Xcode バージョンを 16.1 にアップデートする
   - @melpon
 - 2025-04-14 [RELEASE] m135.7049.3.1
   - @torikizi
