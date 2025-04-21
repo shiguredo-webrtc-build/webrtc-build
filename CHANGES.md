@@ -29,6 +29,12 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-04-19 [CHANGE] libwebrtc で名前空間が rtc:: から  webrtc:: に変更されパッチを修正
+  - revive_proxy.patch を修正
+    - 名前空間の変更で rtc:: がスコープの外となったため `rtc::` を追加する
+  - @melpon
+- 2025-04-19 [UPDATE] rtp_video_stream_receiver2.cc へのパッチ内容が libwebrtc と一致するようになったため削除する
+  - @melpon
 - 2025-04-19 [CHANGE] libwebrtc の Rust ビルドを無効化
   - libwebrtc に Rust ビルドを有効にする GN オプションが追加されたため、無効にする
   - run.py の `COMMON_GN_ARGS` に rust のビルドを無効にするオプションを追加する
