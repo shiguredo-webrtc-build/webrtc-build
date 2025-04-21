@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-04-14 [RELEASE] m136.7103.0.0
+  - @torikizi
 - 2025-04-19 [CHANGE] libwebrtc で名前空間が rtc:: から  webrtc:: に変更されパッチを修正
   - revive_proxy.patch を修正
     - 名前空間の変更で rtc:: がスコープの外となったため `rtc::` を追加する
