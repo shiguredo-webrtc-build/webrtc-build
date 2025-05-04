@@ -1,16 +1,3 @@
-diff --git a/build_overrides/build.gni b/build_overrides/build.gni
-index 33a535525e..3a6c13a013 100644
---- a/build_overrides/build.gni
-+++ b/build_overrides/build.gni
-@@ -16,7 +16,7 @@ enable_safe_libcxx = true
- # only needed to support both WebRTC standalone and Chromium builds.
- build_with_chromium = false
- 
--use_cxx17 = !is_android
-+use_cxx17 = false
- 
- # Use our own suppressions files.
- asan_suppressions_file = "//build/sanitizers/asan_suppressions.cc"
 diff --git a/common_video/h264/sps_parser.cc b/common_video/h264/sps_parser.cc
 index 936080e2a7..d3d43478c1 100644
 --- a/common_video/h264/sps_parser.cc
