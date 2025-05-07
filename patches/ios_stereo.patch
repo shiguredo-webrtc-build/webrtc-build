@@ -1,0 +1,13 @@
+diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
+index 0b34f66c8c..f91eebb675 100644
+--- a/sdk/objc/native/src/audio/audio_device_ios.mm
++++ b/sdk/objc/native/src/audio/audio_device_ios.mm
+@@ -1184,7 +1184,7 @@ int32_t AudioDeviceIOS::StereoRecording(bool& enabled) const {
+ }
+ 
+ int32_t AudioDeviceIOS::StereoPlayoutIsAvailable(bool& available) {
+-  available = false;
++  available = true;
+   return 0;
+ }
+ 

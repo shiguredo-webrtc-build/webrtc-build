@@ -30,7 +30,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 ## タイムライン
 
 - 2025-05-xx [UPDATE] iOS のステレオオーディオに対応するために iOS 向けのパッチを変更する
-  - @zztkm
+  - ios_stereo.patch を追加
+  - @zztkm @torikizi
 - 2025-04-14 [RELEASE] m136.7103.0.0
   - @torikizi
 - 2025-04-19 [CHANGE] libwebrtc で名前空間が rtc:: から  webrtc:: に変更されパッチを修正
