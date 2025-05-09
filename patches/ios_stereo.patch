@@ -1,8 +1,45 @@
+diff --git a/sdk/objc/native/src/audio/audio_device_ios.h b/sdk/objc/native/src/audio/audio_device_ios.h
+index bbb4025694..99c6258549 100644
+--- a/sdk/objc/native/src/audio/audio_device_ios.h
++++ b/sdk/objc/native/src/audio/audio_device_ios.h
+@@ -256,6 +256,9 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
+   AudioParameters playout_parameters_;
+   AudioParameters record_parameters_;
+ 
++  int playout_channels_ = 1;   // デフォルトはモノラル再生
++  int recording_channels_ = 1; // デフォルトはモノラル録音
++
+   // The AudioUnit used to play and record audio.
+   std::unique_ptr<VoiceProcessingAudioUnit> audio_unit_;
+ 
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index 0b34f66c8c..f91eebb675 100644
+index 0b34f66c8c..e5dd10af33 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
-@@ -1184,7 +1184,7 @@ int32_t AudioDeviceIOS::StereoRecording(bool& enabled) const {
+@@ -1169,32 +1169,40 @@ int32_t AudioDeviceIOS::MicrophoneMute(bool& enabled) const {
+ }
+ 
+ int32_t AudioDeviceIOS::StereoRecordingIsAvailable(bool& available) {
+-  available = false;
++  available = true;
+   return 0;
+ }
+ 
+ int32_t AudioDeviceIOS::SetStereoRecording(bool enable) {
+-  RTC_LOG_F(LS_WARNING) << "Not implemented";
+-  return -1;
++  if (recording_) {
++    RTC_LOG_F(LS_WARNING) << "Not implemented";
++    return -1;
++  }
++  recording_channels_ = enable ? 2 : 1;
++  return 0;
+ }
+ 
+ int32_t AudioDeviceIOS::StereoRecording(bool& enabled) const {
+-  enabled = false;
++  enabled = (recording_channels_ == 2);
+   return 0;
  }
  
  int32_t AudioDeviceIOS::StereoPlayoutIsAvailable(bool& available) {
@@ -11,3 +48,118 @@ index 0b34f66c8c..f91eebb675 100644
    return 0;
  }
  
+ int32_t AudioDeviceIOS::SetStereoPlayout(bool enable) {
+-  RTC_LOG_F(LS_WARNING) << "Not implemented";
+-  return -1;
++  if (playing_) {
++    RTC_LOG(LS_ERROR) << "Cannot change stereo playout while playing";
++    return -1;
++  }
++  playout_channels_ = enable ? 2 : 1;
++  return 0;
+ }
+ 
+ int32_t AudioDeviceIOS::StereoPlayout(bool& enabled) const {
+-  enabled = false;
++  enabled = (playout_channels_ == 2);
+   return 0;
+ }
+ 
+diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.mm b/sdk/objc/native/src/audio/audio_device_module_ios.mm
+index 3b338f2399..79ea058ad7 100644
+--- a/sdk/objc/native/src/audio/audio_device_module_ios.mm
++++ b/sdk/objc/native/src/audio/audio_device_module_ios.mm
+@@ -340,21 +340,27 @@ int32_t AudioDeviceModuleIOS::StereoRecordingIsAvailable(
+ int32_t AudioDeviceModuleIOS::SetStereoRecording(bool enable) {
+   RTC_DLOG(LS_INFO) << __FUNCTION__ << "(" << enable << ")";
+   CHECKinitialized_();
+-  if (enable) {
+-    RTC_LOG(LS_WARNING) << "recording in stereo is not supported";
++
++  if (audio_device_->SetStereoRecording(enable) != 0) {
++    ReportError(kStereoRecordingFailed);
++    return -1;
+   }
+-  ReportError(kStereoRecordingFailed);
+-  return -1;
++
++  int8_t n_channels = enable ? 2 : 1;
++  audio_device_buffer_->SetRecordingChannels(n_channels);
++  return 0;
+ }
+ 
+ int32_t AudioDeviceModuleIOS::StereoRecording(bool* enabled) const {
+   RTC_DLOG(LS_INFO) << __FUNCTION__;
+   CHECKinitialized_();
++
+   bool stereo = false;
+-  if (audio_device_->StereoRecording(stereo) == -1) {
++  if (audio_device_->StereoRecording(stereo) != 0) {
+     ReportError(kStereoRecordingFailed);
+     return -1;
+   }
++
+   *enabled = stereo;
+   RTC_DLOG(LS_INFO) << "output: " << stereo;
+   return 0;
+@@ -363,46 +369,49 @@ int32_t AudioDeviceModuleIOS::StereoRecording(bool* enabled) const {
+ int32_t AudioDeviceModuleIOS::StereoPlayoutIsAvailable(bool* available) const {
+   RTC_DLOG(LS_INFO) << __FUNCTION__;
+   CHECKinitialized_();
+-  bool isAvailable = false;
+-  if (audio_device_->StereoPlayoutIsAvailable(isAvailable) == -1) {
++
++  bool is_available = false;
++  if (audio_device_->StereoPlayoutIsAvailable(is_available) != 0) {
+     ReportError(kStereoPlayoutFailed);
+     return -1;
+   }
+-  *available = isAvailable;
+-  RTC_DLOG(LS_INFO) << "output: " << isAvailable;
++  *available = is_available;
++  RTC_DLOG(LS_INFO) << "output: " << is_available;
+   return 0;
+ }
+ 
+ int32_t AudioDeviceModuleIOS::SetStereoPlayout(bool enable) {
+   RTC_DLOG(LS_INFO) << __FUNCTION__ << "(" << enable << ")";
+   CHECKinitialized_();
++
+   if (audio_device_->PlayoutIsInitialized()) {
+     RTC_LOG(LS_ERROR)
+         << "unable to set stereo mode while playing side is initialized";
+     ReportError(kStereoPlayoutFailed);
+     return -1;
+   }
+-  if (audio_device_->SetStereoPlayout(enable)) {
++
++  if (audio_device_->SetStereoPlayout(enable) != 0) {
+     RTC_LOG(LS_WARNING) << "stereo playout is not supported";
+     ReportError(kStereoPlayoutFailed);
+     return -1;
+   }
+-  int8_t nChannels(1);
+-  if (enable) {
+-    nChannels = 2;
+-  }
+-  audio_device_buffer_.get()->SetPlayoutChannels(nChannels);
++
++  int8_t n_channels = enable ? 2 : 1;
++  audio_device_buffer_->SetPlayoutChannels(n_channels);
+   return 0;
+ }
+ 
+ int32_t AudioDeviceModuleIOS::StereoPlayout(bool* enabled) const {
+   RTC_DLOG(LS_INFO) << __FUNCTION__;
+   CHECKinitialized_();
++
+   bool stereo = false;
+-  if (audio_device_->StereoPlayout(stereo) == -1) {
++  if (audio_device_->StereoPlayout(stereo) != 0) {
+     ReportError(kStereoPlayoutFailed);
+     return -1;
+   }
++
+   *enabled = stereo;
+   RTC_DLOG(LS_INFO) << "output: " << stereo;
+   return 0;
