@@ -199,6 +199,7 @@ PATCHES = {
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
         "remove_crel.patch",
+        "update_expected_clang_version.patch",
     ],
     "windows_arm64": [
         "4k.patch",
@@ -212,6 +213,7 @@ PATCHES = {
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
         "remove_crel.patch",
+        "update_expected_clang_version.patch",
     ],
     "macos_arm64": [
         "add_deps.patch",
@@ -228,6 +230,7 @@ PATCHES = {
         "dav1d_config_change.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
+        "update_expected_clang_version.patch",
         # 既に macos_use_xcode_clang.patch で同じ内容を適用済み
         # "remove_crel.patch",
     ],
@@ -249,6 +252,7 @@ PATCHES = {
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
         "ios_add_scale_resolution_down_to.patch",
+        "update_expected_clang_version.patch",
         # 既に ios_build.patch で同じ内容を適用済み
         # "remove_crel.patch",
     ],
@@ -269,6 +273,7 @@ PATCHES = {
         "fix_moved_function_call.patch",
         "android_add_scale_resolution_down_to.patch",
         "remove_crel.patch",
+        "update_expected_clang_version.patch",
     ],
     "raspberry-pi-os_armv6": [
         "nacl_armv6_2.patch",
@@ -281,6 +286,7 @@ PATCHES = {
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
         "remove_crel.patch",
+        "update_expected_clang_version.patch",
     ],
     "raspberry-pi-os_armv7": [
         "add_deps.patch",
@@ -292,6 +298,7 @@ PATCHES = {
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
         "remove_crel.patch",
+        "update_expected_clang_version.patch",
     ],
     "raspberry-pi-os_armv8": [
         "add_deps.patch",
@@ -303,6 +310,7 @@ PATCHES = {
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
         "remove_crel.patch",
+        "update_expected_clang_version.patch",
     ],
     "ubuntu-20.04_armv8": [
         "add_deps.patch",
@@ -314,6 +322,7 @@ PATCHES = {
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
         "remove_crel.patch",
+        "update_expected_clang_version.patch",
     ],
     "ubuntu-22.04_armv8": [
         "add_deps.patch",
@@ -325,6 +334,7 @@ PATCHES = {
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
         "remove_crel.patch",
+        "update_expected_clang_version.patch",
     ],
     "ubuntu-24.04_armv8": [
         "add_deps.patch",
@@ -336,6 +346,7 @@ PATCHES = {
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
         "remove_crel.patch",
+        "update_expected_clang_version.patch",
     ],
     "ubuntu-22.04_x86_64": [
         "add_deps.patch",
@@ -347,6 +358,7 @@ PATCHES = {
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
         "remove_crel.patch",
+        "update_expected_clang_version.patch",
     ],
     "ubuntu-24.04_x86_64": [
         "add_deps.patch",
@@ -358,6 +370,7 @@ PATCHES = {
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
         "remove_crel.patch",
+        "update_expected_clang_version.patch",
     ],
 }
 
