@@ -1,8 +1,8 @@
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnection+Private.h b/sdk/objc/api/peerconnection/RTCPeerConnection+Private.h
-index e033af21ff..f258ced974 100644
+index c9a955ec63..45ab5eae79 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnection+Private.h
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnection+Private.h
-@@ -106,6 +106,19 @@ class PeerConnectionDelegateAdapter : public PeerConnectionObserver {
+@@ -107,6 +107,19 @@ class PeerConnectionDelegateAdapter : public PeerConnectionObserver {
                 delegate:(nullable id<RTC_OBJC_TYPE(RTCPeerConnectionDelegate)>)
                              delegate;
  
@@ -41,7 +41,7 @@ index fb5c414815..a1fd77a74d 100644
      RTC_OBJC_TYPE(RTCSessionDescription) *_Nullable sdp,
      NSError *_Nullable error);
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnection.mm b/sdk/objc/api/peerconnection/RTCPeerConnection.mm
-index af9a38a97f..ea36eff4bb 100644
+index cc92c6b51f..c62e1923aa 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnection.mm
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnection.mm
 @@ -474,6 +474,37 @@ JsepIceCandidate remote_candidate_wrapper(
@@ -108,7 +108,7 @@ index af9a38a97f..ea36eff4bb 100644
 +    std::unique_ptr<webrtc::PeerConnectionInterface::RTCConfiguration> config(
 +        [configuration createNativeConfiguration]);
 +    auto context = factory.connectionContext;
-+    dependencies->allocator.reset(new cricket::BasicPortAllocator(
++    dependencies->allocator.reset(new webrtc::BasicPortAllocator(
 +        context->default_network_manager(), context->default_socket_factory(),
 +        config->turn_customizer));
 +    dependencies->allocator->SetPortRange(
@@ -137,7 +137,7 @@ index af9a38a97f..ea36eff4bb 100644
      initWithDependencies:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
             configuration:(RTC_OBJC_TYPE(RTCConfiguration) *)configuration
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory+Private.h b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory+Private.h
-index 7913862402..efad4b561f 100644
+index 510ee32614..3ef2a0e64d 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory+Private.h
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory+Private.h
 @@ -13,6 +13,7 @@
@@ -148,9 +148,9 @@ index 7913862402..efad4b561f 100644
  
  NS_ASSUME_NONNULL_BEGIN
  
-@@ -31,6 +32,7 @@ NS_ASSUME_NONNULL_BEGIN
- @property(nonatomic, readonly) rtc::Thread* workerThread;
- @property(nonatomic, readonly) rtc::Thread* networkThread;
+@@ -32,6 +33,7 @@ NS_ASSUME_NONNULL_BEGIN
+ @property(nonatomic, readonly) webrtc::Thread* workerThread;
+ @property(nonatomic, readonly) webrtc::Thread* networkThread;
  
 +    @property(nonatomic, readonly) rtc::scoped_refptr<webrtc::ConnectionContext> connectionContext;
  @end
@@ -190,7 +190,7 @@ index abfa679a1c..8287bcf3d0 100644
  - (void)setOptions:
      (nonnull RTC_OBJC_TYPE(RTCPeerConnectionFactoryOptions) *)options;
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
-index 710ff3b480..b29b8841ea 100644
+index 79afe271da..7e3f2e23f8 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
 @@ -53,6 +53,68 @@
@@ -260,15 +260,15 @@ index 710ff3b480..b29b8841ea 100644
 +} // namespace webrtc
 +
  @implementation RTC_OBJC_TYPE (RTCPeerConnectionFactory) {
-   std::unique_ptr<rtc::Thread> _networkThread;
-   std::unique_ptr<rtc::Thread> _workerThread;
+   std::unique_ptr<webrtc::Thread> _networkThread;
+   std::unique_ptr<webrtc::Thread> _workerThread;
 @@ -61,6 +123,7 @@ @implementation RTC_OBJC_TYPE (RTCPeerConnectionFactory) {
  }
  
  @synthesize nativeFactory = _nativeFactory;
 +@synthesize connectionContext = _connectionContext;
  
- - (rtc::scoped_refptr<webrtc::AudioDeviceModule>)audioDeviceModule {
+ - (webrtc::scoped_refptr<webrtc::AudioDeviceModule>)audioDeviceModule {
  #if defined(WEBRTC_IOS)
 @@ -160,7 +223,7 @@ - (instancetype)initWithNativeDependencies:
      }
