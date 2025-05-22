@@ -238,6 +238,7 @@ PATCHES = {
         "add_license_dav1d.patch",
         "macos_screen_capture.patch",
         "ios_manual_audio_input.patch",
+        "ios_stereo.patch",
         "ios_simulcast.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "ios_build.patch",
