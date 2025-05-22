@@ -21,7 +21,7 @@ index 602eeaa9ed..2619826bb3 100644
  
    virtual std::unique_ptr<AsyncDnsResolverInterface>
 diff --git a/p2p/base/basic_packet_socket_factory.cc b/p2p/base/basic_packet_socket_factory.cc
-index 71a6026550..b26a90a210 100644
+index 4604570ceb..5e10662148 100644
 --- a/p2p/base/basic_packet_socket_factory.cc
 +++ b/p2p/base/basic_packet_socket_factory.cc
 @@ -32,6 +32,8 @@
@@ -56,7 +56,7 @@ index 71a6026550..b26a90a210 100644
    int tlsOpts = tcp_options.opts & (PacketSocketFactory::OPT_TLS |
                                      PacketSocketFactory::OPT_TLS_FAKE |
 diff --git a/p2p/base/basic_packet_socket_factory.h b/p2p/base/basic_packet_socket_factory.h
-index fbaf9f1ed4..0f6ea470cd 100644
+index 276e30956d..418de10765 100644
 --- a/p2p/base/basic_packet_socket_factory.h
 +++ b/p2p/base/basic_packet_socket_factory.h
 @@ -40,6 +40,8 @@ class RTC_EXPORT BasicPacketSocketFactory : public PacketSocketFactory {
@@ -100,7 +100,7 @@ index 522fc9329e..940faa9257 100644
    void UpdateNetworkCost() override;
  
 diff --git a/p2p/base/port_allocator.h b/p2p/base/port_allocator.h
-index b193e0ed09..414d1e2266 100644
+index 3b957720ef..7f5f3b8509 100644
 --- a/p2p/base/port_allocator.h
 +++ b/p2p/base/port_allocator.h
 @@ -32,6 +32,8 @@
@@ -112,7 +112,7 @@ index b193e0ed09..414d1e2266 100644
  namespace webrtc {
  
  class TurnCustomizer;
-@@ -459,6 +461,26 @@ class RTC_EXPORT PortAllocator : public sigslot::has_slots<> {
+@@ -457,6 +459,26 @@ class RTC_EXPORT PortAllocator : public sigslot::has_slots<> {
      flags_ = flags;
    }
  
@@ -215,10 +215,10 @@ index ed9db392c4..2874b3940d 100644
        (flags() & webrtc::PORTALLOCATOR_ENABLE_STUN_RETRANSMIT_ATTRIBUTE) != 0);
  
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 344962feb8..5f96b4fc70 100644
+index 88164115c4..e4e4bcf2e1 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
-@@ -1226,6 +1226,8 @@ rtc_library("socket_adapters") {
+@@ -1220,6 +1220,8 @@ rtc_library("socket_adapters") {
    sources = [
      "socket_adapters.cc",
      "socket_adapters.h",
@@ -227,7 +227,7 @@ index 344962feb8..5f96b4fc70 100644
    ]
    deps = [
      ":async_socket",
-@@ -1238,6 +1240,7 @@ rtc_library("socket_adapters") {
+@@ -1234,6 +1236,7 @@ rtc_library("socket_adapters") {
      "../api:array_view",
      "//third_party/abseil-cpp/absl/strings",
      "//third_party/abseil-cpp/absl/strings:string_view",
@@ -235,7 +235,7 @@ index 344962feb8..5f96b4fc70 100644
    ]
  }
  
-@@ -1368,6 +1371,20 @@ rtc_library("dscp") {
+@@ -1364,6 +1367,20 @@ rtc_library("dscp") {
    sources = [ "dscp.h" ]
  }
  
@@ -256,7 +256,7 @@ index 344962feb8..5f96b4fc70 100644
  rtc_library("file_rotating_stream") {
    sources = [
      "file_rotating_stream.cc",
-@@ -1635,6 +1652,13 @@ rtc_library("ssl_adapter") {
+@@ -1631,6 +1648,13 @@ rtc_library("ssl_adapter") {
    }
  }
  
@@ -400,10 +400,10 @@ index 0000000000..e1087570b7
 +#endif  // RTC_BASE_CRYPT_STRING_REVIVE_H_
 diff --git a/rtc_base/http_common_revive.cc b/rtc_base/http_common_revive.cc
 new file mode 100644
-index 0000000000..251ad25b6f
+index 0000000000..33104064a6
 --- /dev/null
 +++ b/rtc_base/http_common_revive.cc
-@@ -0,0 +1,554 @@
+@@ -0,0 +1,562 @@
 +/*
 + *  Copyright 2004 The WebRTC Project Authors. All rights reserved.
 + *
@@ -441,7 +441,7 @@ index 0000000000..251ad25b6f
 +#include "rtc_base/socket_address.h"
 +#include "rtc_base/string_utils.h"
 +#include "rtc_base/strings/string_builder.h"
-+#include "rtc_base/third_party/base64/base64.h"  // for Base64
++#include "rtc_base/base64.h"  // for Base64
 +#include "rtc_base/zero_memory.h"                // for ExplicitZeroMemory
 +
 +namespace rtc::revive {
@@ -694,7 +694,7 @@ index 0000000000..251ad25b6f
 +    response = auth_method;
 +    response.append(" ");
 +    // TODO: create a sensitive-source version of Base64::encode
-+    response.append(Base64::Encode(sensitive));
++    response.append(webrtc::Base64Encode(sensitive));
 +    ExplicitZeroMemory(sensitive, len);
 +    delete[] sensitive;
 +    return HAR_RESPONSE;
@@ -826,26 +826,34 @@ index 0000000000..251ad25b6f
 +      steps = neg->steps;
 +
 +      std::string challenge, decoded_challenge;
-+      if (HttpHasNthAttribute(args, 1, &challenge, nullptr) &&
-+          Base64::Decode(challenge, Base64::DO_STRICT, &decoded_challenge,
-+                         nullptr)) {
-+        SecBuffer in_sec;
-+        in_sec.pvBuffer = const_cast<char*>(decoded_challenge.data());
-+        in_sec.cbBuffer = static_cast<unsigned long>(decoded_challenge.size());
-+        in_sec.BufferType = SECBUFFER_TOKEN;
++      if (HttpHasNthAttribute(args, 1, &challenge, nullptr)) {
++        auto decoded = webrtc::Base64Decode(challenge, webrtc::Base64DecodeOptions::kStrict);
++        if (decoded.has_value()) {
++          SecBuffer in_sec;
++          in_sec.pvBuffer = const_cast<char*>(decoded_challenge.data());
++          in_sec.cbBuffer = static_cast<unsigned long>(decoded_challenge.size());
++          in_sec.BufferType = SECBUFFER_TOKEN;
 +
-+        SecBufferDesc in_buf_desc;
-+        in_buf_desc.ulVersion = 0;
-+        in_buf_desc.cBuffers = 1;
-+        in_buf_desc.pBuffers = &in_sec;
++          SecBufferDesc in_buf_desc;
++          in_buf_desc.ulVersion = 0;
++          in_buf_desc.cBuffers = 1;
++          in_buf_desc.pBuffers = &in_sec;
 +
-+        ret = InitializeSecurityContextA(
-+            &neg->cred, &neg->ctx, spn, flags, 0, SECURITY_NATIVE_DREP,
-+            &in_buf_desc, 0, &neg->ctx, &out_buf_desc, &ret_flags, &lifetime);
-+        if (FAILED(ret)) {
-+          RTC_LOG(LS_ERROR) << "InitializeSecurityContext returned: "
-+                            << GetErrorName(ret, SECURITY_ERRORS);
-+          return HAR_ERROR;
++          ret = InitializeSecurityContextA(
++              &neg->cred, &neg->ctx, spn, flags, 0, SECURITY_NATIVE_DREP,
++              &in_buf_desc, 0, &neg->ctx, &out_buf_desc, &ret_flags, &lifetime);
++          if (FAILED(ret)) {
++            RTC_LOG(LS_ERROR) << "InitializeSecurityContext returned: "
++                              << GetErrorName(ret, SECURITY_ERRORS);
++            return HAR_ERROR;
++          }
++        } else if (neg->specified_credentials) {
++          // Try again with default credentials
++          specify_credentials = false;
++          delete context;
++          context = neg = 0;
++        } else {
++          return HAR_CREDENTIALS;
 +        }
 +      } else if (neg->specified_credentials) {
 +        // Try again with default credentials
@@ -946,7 +954,7 @@ index 0000000000..251ad25b6f
 +    std::string decoded(out_buf, out_buf + out_sec.cbBuffer);
 +    response = auth_method;
 +    response.append(" ");
-+    response.append(Base64::Encode(decoded));
++    response.append(webrtc::Base64Encode(decoded));
 +    return HAR_RESPONSE;
 +  }
 +#endif
@@ -958,6 +966,7 @@ index 0000000000..251ad25b6f
 +//////////////////////////////////////////////////////////////////////
 +
 +}  // namespace rtc::revive
+\ No newline at end of file
 diff --git a/rtc_base/http_common_revive.h b/rtc_base/http_common_revive.h
 new file mode 100644
 index 0000000000..d38614b3d0
