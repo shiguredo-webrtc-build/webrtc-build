@@ -252,13 +252,14 @@ index 11c431bec9..ca9c2c90cf 100644
  };
  
 diff --git a/sdk/android/src/jni/pc/peer_connection_factory.cc b/sdk/android/src/jni/pc/peer_connection_factory.cc
-index 7404a950f8..e1662b8544 100644
+index 7404a950f8..e5ffd6c29b 100644
 --- a/sdk/android/src/jni/pc/peer_connection_factory.cc
 +++ b/sdk/android/src/jni/pc/peer_connection_factory.cc
-@@ -18,11 +18,16 @@
+@@ -18,11 +18,17 @@
  #include "api/audio/audio_processing.h"
  #include "api/audio/builtin_audio_processing_builder.h"
  #include "api/enable_media.h"
++#include "api/environment/environment.h"
 +#include "api/environment/environment_factory.h"
  #include "api/rtc_event_log/rtc_event_log_factory.h"
  #include "api/task_queue/default_task_queue_factory.h"
@@ -272,7 +273,7 @@ index 7404a950f8..e1662b8544 100644
  #include "rtc_base/event_tracer.h"
  #include "rtc_base/physical_socket_server.h"
  #include "rtc_base/thread.h"
-@@ -118,10 +123,11 @@ ScopedJavaLocalRef<jobject> NativeToScopedJavaPeerConnectionFactory(
+@@ -118,10 +124,11 @@ ScopedJavaLocalRef<jobject> NativeToScopedJavaPeerConnectionFactory(
      std::unique_ptr<SocketFactory> socket_factory,
      std::unique_ptr<Thread> network_thread,
      std::unique_ptr<Thread> worker_thread,
@@ -286,7 +287,7 @@ index 7404a950f8..e1662b8544 100644
  
    jni_zero::ScopedJavaLocalRef<jobject> j_pcf =
        Java_PeerConnectionFactory_Constructor(
-@@ -158,10 +164,11 @@ jobject NativeToJavaPeerConnectionFactory(
+@@ -158,10 +165,11 @@ jobject NativeToJavaPeerConnectionFactory(
      std::unique_ptr<SocketFactory> socket_factory,
      std::unique_ptr<Thread> network_thread,
      std::unique_ptr<Thread> worker_thread,
@@ -300,7 +301,7 @@ index 7404a950f8..e1662b8544 100644
        .Release();
  }
  
-@@ -223,6 +230,35 @@ static void JNI_PeerConnectionFactory_ShutdownInternalTracer(JNIEnv* jni) {
+@@ -223,6 +231,35 @@ static void JNI_PeerConnectionFactory_ShutdownInternalTracer(JNIEnv* jni) {
    tracing::ShutdownInternalTracer();
  }
  
@@ -336,7 +337,7 @@ index 7404a950f8..e1662b8544 100644
  // Following parameters are optional:
  // `audio_device_module`, `jencoder_factory`, `jdecoder_factory`,
  // `audio_processor`, `fec_controller_factory`,
-@@ -303,9 +339,24 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
+@@ -303,9 +340,24 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
        absl::WrapUnique(CreateVideoDecoderFactory(jni, jdecoder_factory));
    EnableMedia(dependencies);
  
@@ -364,7 +365,7 @@ index 7404a950f8..e1662b8544 100644
    RTC_CHECK(factory) << "Failed to create the peer connection factory; "
                          "WebRTC/libjingle init likely failed on this device";
    // TODO(honghaiz): Maybe put the options as the argument of
-@@ -315,7 +366,7 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
+@@ -315,7 +367,7 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
  
    return NativeToScopedJavaPeerConnectionFactory(
        jni, factory, std::move(socket_server), std::move(network_thread),
@@ -373,7 +374,7 @@ index 7404a950f8..e1662b8544 100644
  }
  
  static jni_zero::ScopedJavaLocalRef<jobject>
-@@ -435,13 +486,41 @@ static void JNI_PeerConnectionFactory_StopAecDump(JNIEnv* jni,
+@@ -435,13 +487,41 @@ static void JNI_PeerConnectionFactory_StopAecDump(JNIEnv* jni,
    PeerConnectionFactoryFromJava(native_factory)->StopAecDump();
  }
  
@@ -416,12 +417,15 @@ index 7404a950f8..e1662b8544 100644
    std::unique_ptr<PeerConnectionObserver> observer(
        reinterpret_cast<PeerConnectionObserver*>(observer_p));
  
-@@ -478,8 +557,49 @@ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
+@@ -478,8 +558,52 @@ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
              jni, j_sslCertificateVerifier);
    }
  
 +  auto jfactory = reinterpret_cast<OwnedFactoryAndThreads*>(factory);
-+  peer_connection_dependencies.allocator.reset(new cricket::BasicPortAllocator(
++  webrtc::EnvironmentFactory env_factory(jfactory->connection_context()->env());
++  const webrtc::Environment env = env_factory.Create();
++  peer_connection_dependencies.allocator.reset(new webrtc::BasicPortAllocator(
++      env,
 +      jfactory->connection_context()->default_network_manager(),
 +      jfactory->connection_context()->default_socket_factory(),
 +      rtc_config.turn_customizer));
