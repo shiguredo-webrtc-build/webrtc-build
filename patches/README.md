@@ -348,3 +348,10 @@ iOS でのサイマルキャストのサポートを追加するパッチ。こ�
 CREL は LLVM のリンカ(lld)特有の機能なので、これを有効にすると GNU のリンカ(ld)でリンクできなくなってしまうので削除する。
 
 手間の問題でパッチを当ててるけど、既存の webrtc-build を使ったアプリケーションを lld に置き換えた方が筋が良いかもしれない。
+
+## update_expected_clang_version.patch
+
+[update.py に定義されている clang のバージョン](https://source.chromium.org/chromium/chromium/src/+/main:tools/clang/scripts/update.py;l=42-43) と [DEPS に定義されているバージョン](https://source.chromium.org/chromium/chromium/src/+/main:third_party/webrtc/DEPS;l=180) が異なるとチェックエラーが発生するため、強制的に update.py の clang のバージョンを書き換えたパッチ。
+
+通常バージョンは同じバージョンであり、値が一致したら、このパッチは削除する。
+値が一致しない場合は DEPS の値と一致するようにこのパッチを修正する。
