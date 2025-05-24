@@ -791,10 +791,10 @@ index b3e25c6c5b..8bbc4c257b 100644
          rtp_parameters_.encodings[i].scale_resolution_down_to;
    }
 diff --git a/modules/video_coding/utility/simulcast_rate_allocator.cc b/modules/video_coding/utility/simulcast_rate_allocator.cc
-index 1157d1a76f..899d2520d8 100644
+index 1157d1a76f..3c096831f0 100644
 --- a/modules/video_coding/utility/simulcast_rate_allocator.cc
 +++ b/modules/video_coding/utility/simulcast_rate_allocator.cc
-@@ -175,8 +175,28 @@ void SimulcastRateAllocator::DistributeAllocationToSimulcastLayers(
+@@ -175,8 +175,30 @@ void SimulcastRateAllocator::DistributeAllocationToSimulcastLayers(
        min_bitrate = std::min(hysteresis_factor * min_bitrate, target_bitrate);
      }
      if (left_in_stable_allocation < min_bitrate) {
@@ -804,8 +804,10 @@ index 1157d1a76f..899d2520d8 100644
 +        if (codec_.numberOfSimulcastStreams >= 2) {
 +          for (size_t i = 0; i < codec_.numberOfSimulcastStreams - 1; i++) {
 +            for (size_t j = i + 1; j < codec_.numberOfSimulcastStreams; j++) {
-+              if (!codec_.simulcastStream[i].format.IsSameCodec(
-+                      codec_.simulcastStream[j].format)) {
++              if (codec_.simulcastStream[i].format &&
++                  codec_.simulcastStream[j].format &&
++                  !codec_.simulcastStream[i].format->IsSameCodec(
++                      *codec_.simulcastStream[j].format)) {
 +                return true;
 +              }
 +            }
@@ -825,13 +827,14 @@ index 1157d1a76f..899d2520d8 100644
      }
  
      // We are allocating to this layer so it is the current active allocation.
-@@ -335,11 +355,13 @@ const VideoCodec& webrtc::SimulcastRateAllocator::GetCodec() const {
+@@ -335,11 +357,14 @@ const VideoCodec& webrtc::SimulcastRateAllocator::GetCodec() const {
  }
  
  int SimulcastRateAllocator::NumTemporalStreams(size_t simulcast_id) const {
-+  bool is_vp8 = codec_.simulcastStream[simulcast_id].format &&
-+                codec_.simulcastStream[simulcast_id].format->IsSameCodec(
-+                    webrtc::SdpVideoFormat::VP8());
++  bool is_vp8 = codec_.simulcastStream[simulcast_id].format
++                    ? codec_.simulcastStream[simulcast_id].format->IsSameCodec(
++                          webrtc::SdpVideoFormat::VP8())
++                    : codec_.codecType == kVideoCodecVP8;
    return std::max<uint8_t>(
 -      1,
 -      codec_.codecType == kVideoCodecVP8 && codec_.numberOfSimulcastStreams == 0
