@@ -252,7 +252,7 @@ index 11c431bec9..ca9c2c90cf 100644
  };
  
 diff --git a/sdk/android/src/jni/pc/peer_connection_factory.cc b/sdk/android/src/jni/pc/peer_connection_factory.cc
-index 7404a950f8..e5ffd6c29b 100644
+index 7404a950f8..d8fbc115c9 100644
 --- a/sdk/android/src/jni/pc/peer_connection_factory.cc
 +++ b/sdk/android/src/jni/pc/peer_connection_factory.cc
 @@ -18,11 +18,17 @@
@@ -417,15 +417,13 @@ index 7404a950f8..e5ffd6c29b 100644
    std::unique_ptr<PeerConnectionObserver> observer(
        reinterpret_cast<PeerConnectionObserver*>(observer_p));
  
-@@ -478,8 +558,52 @@ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
+@@ -478,8 +558,50 @@ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
              jni, j_sslCertificateVerifier);
    }
  
 +  auto jfactory = reinterpret_cast<OwnedFactoryAndThreads*>(factory);
-+  webrtc::EnvironmentFactory env_factory(jfactory->connection_context()->env());
-+  const webrtc::Environment env = env_factory.Create();
 +  peer_connection_dependencies.allocator.reset(new webrtc::BasicPortAllocator(
-+      env,
++      jfactory->connection_context()->env(),
 +      jfactory->connection_context()->default_network_manager(),
 +      jfactory->connection_context()->default_socket_factory(),
 +      rtc_config.turn_customizer));
