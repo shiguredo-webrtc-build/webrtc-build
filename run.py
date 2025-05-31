@@ -785,6 +785,7 @@ def build_webrtc_ios(
         "rtc_libvpx_build_vp9=true",
         "enable_dsyms=true",
         "use_custom_libcxx=false",
+        "use_custom_libcxx_for_host=false",
         "use_lld=false",
         "rtc_enable_objc_symbol_export=true",
         "treat_warnings_as_errors=false",
@@ -994,6 +995,7 @@ def build_webrtc(
                 'target_os="win"',
                 f'target_cpu="{"x64" if target == "windows_x86_64" else "arm64"}"',
                 "use_custom_libcxx=false",
+                "use_custom_libcxx_for_host=false",
             ]
         elif target in ("macos_arm64",):
             gn_args += [
@@ -1006,6 +1008,7 @@ def build_webrtc(
                 "rtc_enable_symbol_export=true",
                 "rtc_enable_objc_symbol_export=false",
                 "use_custom_libcxx=false",
+                "use_custom_libcxx_for_host=false",
                 "treat_warnings_as_errors=false",
                 "clang_use_chrome_plugins=false",
                 "use_lld=false",
