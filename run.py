@@ -946,6 +946,7 @@ def build_webrtc_android(
                 *gn_args_base,
                 'target_os="android"',
                 f'target_cpu="{ANDROID_TARGET_CPU[arch]}"',
+                'android_static_analysis="off"',
             ]
             gn_gen(webrtc_src_dir, work_dir, gn_args, extra_gn_args)
         if not nobuild:
