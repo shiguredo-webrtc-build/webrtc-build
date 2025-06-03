@@ -378,7 +378,7 @@ index 7404a950f8..d8fbc115c9 100644
    PeerConnectionFactoryFromJava(native_factory)->StopAecDump();
  }
  
-+class RawCryptString : public rtc::revive::CryptStringImpl {
++class RawCryptString : public webrtc::revive::CryptStringImpl {
 + public:
 +  RawCryptString(const std::string& str) : str_(str) {}
 +  size_t GetLength() const override { return str_.size(); }
@@ -391,7 +391,7 @@ index 7404a950f8..d8fbc115c9 100644
 +    }
 +  }
 +  std::string UrlEncode() const override { return ""; }
-+  rtc::revive::CryptStringImpl* Copy() const override { return new RawCryptString(str_); }
++  webrtc::revive::CryptStringImpl* Copy() const override { return new RawCryptString(str_); }
 +  void CopyRawTo(std::vector<unsigned char>* dest) const override {
 +    dest->assign(str_.begin(), str_.end());
 +  }
@@ -432,33 +432,33 @@ index 7404a950f8..d8fbc115c9 100644
 +      rtc_config.port_allocator_config.max_port);
 +  peer_connection_dependencies.allocator->set_flags(rtc_config.port_allocator_config.flags);
 +
-+  rtc::revive::ProxyType proxyType = rtc::revive::PROXY_NONE;
++  webrtc::revive::ProxyType proxyType = webrtc::revive::PROXY_NONE;
 +  {
 +    std::string enum_name = GetJavaEnumName(jni, j_proxyType);
 +    if (enum_name == "NONE") {
-+      proxyType = rtc::revive::PROXY_NONE;
++      proxyType = webrtc::revive::PROXY_NONE;
 +    } else if (enum_name == "HTTPS") {
-+      proxyType = rtc::revive::PROXY_HTTPS;
++      proxyType = webrtc::revive::PROXY_HTTPS;
 +    } else if (enum_name == "SOCKS5") {
-+      proxyType = rtc::revive::PROXY_SOCKS5;
++      proxyType = webrtc::revive::PROXY_SOCKS5;
 +    } else if (enum_name == "UNKNOWN") {
-+      proxyType = rtc::revive::PROXY_UNKNOWN;
++      proxyType = webrtc::revive::PROXY_UNKNOWN;
 +    }
 +  }
-+  if (proxyType != rtc::revive::PROXY_NONE) {
++  if (proxyType != webrtc::revive::PROXY_NONE) {
 +    auto hostname = JavaToNativeString(jni, j_proxyHostname);
 +    auto agent = JavaToNativeString(jni, j_proxyAgent);
 +    auto username = JavaToNativeString(jni, j_proxyUsername);
 +    auto password = JavaToNativeString(jni, j_proxyPassword);
 +
-+    rtc::revive::ProxyInfo pi;
++    webrtc::revive::ProxyInfo pi;
 +    pi.type = proxyType;
 +    pi.address = rtc::SocketAddress(hostname, proxyPort);
 +    if (!username.empty()) {
 +      pi.username = username;
 +    }
 +    if (!password.empty()) {
-+      pi.password = rtc::revive::CryptString(RawCryptString(password));
++      pi.password = webrtc::revive::CryptString(RawCryptString(password));
 +    }
 +    peer_connection_dependencies.allocator->set_proxy(agent, pi);
 +  }

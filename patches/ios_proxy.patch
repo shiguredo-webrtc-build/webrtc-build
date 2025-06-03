@@ -63,7 +63,7 @@ index cc92c6b51f..360ce6931f 100644
 +
 +namespace webrtc {
 +
-+class RawCryptString : public rtc::revive::CryptStringImpl {
++class RawCryptString : public webrtc::revive::CryptStringImpl {
 + public:
 +  RawCryptString(const std::string& str) : str_(str) {}
 +  size_t GetLength() const override { return str_.size(); }
@@ -76,7 +76,7 @@ index cc92c6b51f..360ce6931f 100644
 +    }
 +  }
 +  std::string UrlEncode() const override { return ""; }
-+  rtc::revive::CryptStringImpl* Copy() const override { return new RawCryptString(str_); }
++  webrtc::revive::CryptStringImpl* Copy() const override { return new RawCryptString(str_); }
 +  void CopyRawTo(std::vector<unsigned char>* dest) const override {
 +    dest->assign(str_.begin(), str_.end());
 +  }
@@ -128,14 +128,14 @@ index cc92c6b51f..360ce6931f 100644
 +        config->port_allocator_config.max_port);
 +    dependencies->allocator->set_flags(config->port_allocator_config.flags);
 +
-+    rtc::revive::ProxyInfo pi;
++    webrtc::revive::ProxyInfo pi;
 +    pi.type =
-+        proxyType == RTCProxyTypeNone ? rtc::revive::PROXY_NONE :
-+        proxyType == RTCProxyTypeHttps ? rtc::revive::PROXY_HTTPS :
-+        proxyType == RTCProxyTypeSocks5 ? rtc::revive::PROXY_SOCKS5 : rtc::revive::PROXY_UNKNOWN;
++        proxyType == RTCProxyTypeNone ? webrtc::revive::PROXY_NONE :
++        proxyType == RTCProxyTypeHttps ? webrtc::revive::PROXY_HTTPS :
++        proxyType == RTCProxyTypeSocks5 ? webrtc::revive::PROXY_SOCKS5 : webrtc::revive::PROXY_UNKNOWN;
 +    pi.address = rtc::SocketAddress([proxyHostname UTF8String], proxyPort);
 +    pi.username = [proxyUsername UTF8String];
-+    pi.password = rtc::revive::CryptString(webrtc::RawCryptString([proxyPassword UTF8String]));
++    pi.password = webrtc::revive::CryptString(webrtc::RawCryptString([proxyPassword UTF8String]));
 +    dependencies->allocator->set_proxy([proxyAgent UTF8String], pi);
 +  }
 +  return [self initWithDependencies:factory

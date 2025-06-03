@@ -15,7 +15,7 @@ index 602eeaa9ed..2619826bb3 100644
    virtual AsyncPacketSocket* CreateClientTcpSocket(
        const SocketAddress& local_address,
        const SocketAddress& remote_address,
-+      const rtc::revive::ProxyInfo& proxy_info,
++      const webrtc::revive::ProxyInfo& proxy_info,
 +      const std::string& user_agent,
        const PacketSocketTcpOptions& tcp_options) = 0;
  
@@ -37,7 +37,7 @@ index 4604570ceb..5e10662148 100644
  AsyncPacketSocket* BasicPacketSocketFactory::CreateClientTcpSocket(
      const SocketAddress& local_address,
      const SocketAddress& remote_address,
-+    const rtc::revive::ProxyInfo& proxy_info,
++    const webrtc::revive::ProxyInfo& proxy_info,
 +    const std::string& user_agent,
      const PacketSocketTcpOptions& tcp_options) {
    Socket* socket =
@@ -46,9 +46,9 @@ index 4604570ceb..5e10662148 100644
                        << socket->GetError();
    }
  
-+  if (proxy_info.type == rtc::revive::PROXY_HTTPS) {
++  if (proxy_info.type == webrtc::revive::PROXY_HTTPS) {
 +    socket =
-+        new rtc::revive::AsyncHttpsProxySocket(socket, user_agent, proxy_info.address,
++        new webrtc::revive::AsyncHttpsProxySocket(socket, user_agent, proxy_info.address,
 +                                          proxy_info.username, proxy_info.password);
 +  }
 +
@@ -63,7 +63,7 @@ index 276e30956d..418de10765 100644
    AsyncPacketSocket* CreateClientTcpSocket(
        const SocketAddress& local_address,
        const SocketAddress& remote_address,
-+      const rtc::revive::ProxyInfo& proxy_info,
++      const webrtc::revive::ProxyInfo& proxy_info,
 +      const std::string& user_agent,
        const PacketSocketTcpOptions& tcp_options) override;
  
@@ -85,15 +85,15 @@ index 522fc9329e..940faa9257 100644
  
    void GetStunStats(std::optional<StunStats>* /* stats */) override {}
  
-+  void set_proxy(absl::string_view user_agent, const rtc::revive::ProxyInfo& proxy) {
++  void set_proxy(absl::string_view user_agent, const webrtc::revive::ProxyInfo& proxy) {
 +    revived_user_agent_ = user_agent;
 +    revived_proxy_ = proxy;
 +  }
 +  std::string get_user_agent() const override { return revived_user_agent_; }
-+  rtc::revive::ProxyInfo get_proxy() const override { return revived_proxy_; }
++  webrtc::revive::ProxyInfo get_proxy() const override { return revived_proxy_; }
 + private:
 +  std::string revived_user_agent_;
-+  rtc::revive::ProxyInfo revived_proxy_;
++  webrtc::revive::ProxyInfo revived_proxy_;
 + public:
 +
   protected:
@@ -121,19 +121,19 @@ index 3b957720ef..7f5f3b8509 100644
 +    return agent_;
 +  }
 +
-+  const rtc::revive::ProxyInfo& proxy() const {
++  const webrtc::revive::ProxyInfo& proxy() const {
 +    CheckRunOnValidThreadIfInitialized();
 +    return proxy_;
 +  }
 +
-+  void set_proxy(absl::string_view agent, const rtc::revive::ProxyInfo& proxy) {
++  void set_proxy(absl::string_view agent, const webrtc::revive::ProxyInfo& proxy) {
 +    CheckRunOnValidThreadIfInitialized();
 +    agent_ = std::string(agent);
 +    proxy_ = proxy;
 +  }
 + private:
 +  std::string agent_;
-+  rtc::revive::ProxyInfo proxy_;
++  webrtc::revive::ProxyInfo proxy_;
 + public:
 +
    // Gets/Sets the port range to use when choosing client ports.
@@ -157,7 +157,7 @@ index 93a3a252ee..b08d1b09be 100644
    virtual void AddPrflxCandidate(const Candidate& local) = 0;
  
 +  virtual std::string get_user_agent() const { return ""; }
-+  virtual rtc::revive::ProxyInfo get_proxy() const { return rtc::revive::ProxyInfo(); }
++  virtual webrtc::revive::ProxyInfo get_proxy() const { return webrtc::revive::ProxyInfo(); }
 +
   protected:
    PortInterface();
@@ -209,7 +209,7 @@ index ed9db392c4..2874b3940d 100644
    port->set_content_name(content_name());
    port->set_component(component());
    port->set_generation(generation());
-+  if (allocator_->proxy().type != rtc::revive::PROXY_NONE)
++  if (allocator_->proxy().type != webrtc::revive::PROXY_NONE)
 +    port->set_proxy(allocator_->user_agent(), allocator_->proxy());
    port->set_send_retransmit_count_attribute(
        (flags() & webrtc::PORTALLOCATOR_ENABLE_STUN_RETRANSMIT_ATTRIBUTE) != 0);
@@ -288,7 +288,7 @@ index 0000000000..b1a1ab5b76
 +
 +#include "rtc_base/crypt_string_revive.h"
 +
-+namespace rtc::revive {
++namespace webrtc::revive {
 +
 +size_t EmptyCryptStringImpl::GetLength() const {
 +  return 0;
@@ -321,7 +321,7 @@ index 0000000000..b1a1ab5b76
 +
 +CryptString::~CryptString() = default;
 +
-+}  // namespace rtc::revive
++}  // namespace webrtc::revive
 diff --git a/rtc_base/crypt_string_revive.h b/rtc_base/crypt_string_revive.h
 new file mode 100644
 index 0000000000..e1087570b7
@@ -347,7 +347,7 @@ index 0000000000..e1087570b7
 +#include <string>
 +#include <vector>
 +
-+namespace rtc::revive {
++namespace webrtc::revive {
 +
 +class CryptStringImpl {
 + public:
@@ -395,7 +395,7 @@ index 0000000000..e1087570b7
 +  std::unique_ptr<const CryptStringImpl> impl_;
 +};
 +
-+}  // namespace rtc::revive
++}  // namespace webrtc::revive
 +
 +#endif  // RTC_BASE_CRYPT_STRING_REVIVE_H_
 diff --git a/rtc_base/http_common_revive.cc b/rtc_base/http_common_revive.cc
@@ -444,7 +444,7 @@ index 0000000000..33104064a6
 +#include "rtc_base/base64.h"  // for Base64
 +#include "rtc_base/zero_memory.h"                // for ExplicitZeroMemory
 +
-+namespace rtc::revive {
++namespace webrtc::revive {
 +namespace {
 +#if defined(WEBRTC_WIN) && !defined(WINUWP)
 +///////////////////////////////////////////////////////////////////////////////
@@ -965,7 +965,7 @@ index 0000000000..33104064a6
 +
 +//////////////////////////////////////////////////////////////////////
 +
-+}  // namespace rtc::revive
++}  // namespace webrtc::revive
 \ No newline at end of file
 diff --git a/rtc_base/http_common_revive.h b/rtc_base/http_common_revive.h
 new file mode 100644
@@ -1002,7 +1002,7 @@ index 0000000000..d38614b3d0
 +
 +}
 +
-+namespace rtc::revive {
++namespace webrtc::revive {
 +
 +//////////////////////////////////////////////////////////////////////
 +// Http Authentication
@@ -1032,7 +1032,7 @@ index 0000000000..d38614b3d0
 +
 +//////////////////////////////////////////////////////////////////////
 +
-+}  // namespace rtc::revive
++}  // namespace webrtc::revive
 +
 +#endif  // RTC_BASE_HTTP_COMMON_REVIVE_H_
 diff --git a/rtc_base/proxy_info_revive.cc b/rtc_base/proxy_info_revive.cc
@@ -1043,7 +1043,7 @@ index 0000000000..9719ec4e2b
 @@ -0,0 +1,13 @@
 +#include "rtc_base/proxy_info_revive.h"
 +
-+namespace rtc::revive {
++namespace webrtc::revive {
 +
 +const char* ProxyToString(ProxyType proxy) {
 +  const char* const PROXY_NAMES[] = {"none", "https", "socks5", "unknown"};
@@ -1078,7 +1078,7 @@ index 0000000000..821ae8ffe1
 +#include "rtc_base/crypt_string_revive.h"
 +#include "rtc_base/socket_address.h"
 +
-+namespace rtc::revive {
++namespace webrtc::revive {
 +
 +enum ProxyType { PROXY_NONE, PROXY_HTTPS, PROXY_SOCKS5, PROXY_UNKNOWN };
 +const char* ProxyToString(ProxyType proxy);
@@ -1096,7 +1096,7 @@ index 0000000000..821ae8ffe1
 +  ~ProxyInfo();
 +};
 +
-+}  // namespace rtc::revive
++}  // namespace webrtc::revive
 +
 +#endif
 diff --git a/rtc_base/socket_adapters_revive.cc b/rtc_base/socket_adapters_revive.cc
@@ -1119,7 +1119,7 @@ index 0000000000..5d8418b1f8
 +#include "rtc_base/strings/string_builder.h"
 +#include "rtc_base/zero_memory.h"
 +
-+namespace rtc::revive {
++namespace webrtc::revive {
 +
 +AsyncHttpsProxySocket::AsyncHttpsProxySocket(Socket* socket,
 +                                             absl::string_view user_agent,
@@ -1372,7 +1372,7 @@ index 0000000000..5d8418b1f8
 +  SignalCloseEvent(this, error);
 +}
 +
-+}  // namespace rtc::revive
++}  // namespace webrtc::revive
 diff --git a/rtc_base/socket_adapters_revive.h b/rtc_base/socket_adapters_revive.h
 new file mode 100644
 index 0000000000..33fe88b845
@@ -1399,7 +1399,7 @@ index 0000000000..33fe88b845
 +#include "rtc_base/socket_adapters.h"
 +#include "rtc_base/socket_address.h"
 +
-+namespace rtc::revive {
++namespace webrtc::revive {
 +
 +struct HttpAuthContext;
 +
@@ -1461,6 +1461,6 @@ index 0000000000..33fe88b845
 +  std::string unknown_mechanisms_;
 +};
 +
-+}  // namespace rtc::revive
++}  // namespace webrtc::revive
 +
 +#endif
