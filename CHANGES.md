@@ -39,6 +39,12 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - `BaseiPortAllocator` の変更に対する追従
     - namespace を `cricket` から `webrtc` に変更
     - BaseiPortAllocator のコンストラクタに Environment が追加されたので設定する処理を追加
+  - libwebrtc の `rtc::` から `webrtc::` への名前空間変更に追従する
+    - 以下のパッチの `rtc::revive` を `webrtc::revive` に変更を行った
+      - revive_proxy.patch
+      - ios_proxy.patch
+      - android_proxy.patch
+  - @miosakuma @melpon @torikizi
 - 2025-04-14 [RELEASE] m136.7103.0.0
   - @torikizi
 - 2025-04-19 [CHANGE] libwebrtc で名前空間が rtc:: から  webrtc:: に変更されパッチを修正
