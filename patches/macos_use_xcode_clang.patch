@@ -1,8 +1,8 @@
 diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
-index e7a60d56b..47fabf08a 100644
+index fca6c9295..fd1a15a48 100644
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
-@@ -474,8 +474,8 @@ config("compiler") {
+@@ -475,8 +475,8 @@ config("compiler") {
      # faster.
      # On arm64, this is already the default behavior.
      if (current_cpu == "x64") {
@@ -13,7 +13,7 @@ index e7a60d56b..47fabf08a 100644
      }
  
      # dsymutil is not available in the system, on bots, for rustc to call. Our
-@@ -567,62 +567,6 @@ config("compiler") {
+@@ -569,69 +569,6 @@ config("compiler") {
      ldflags += [ "-Wl,-z,keep-text-section-prefix" ]
    }
  
@@ -67,16 +67,23 @@ index e7a60d56b..47fabf08a 100644
 -
 -    # Enable ELF CREL (see crbug.com/357878242) for all platforms that use ELF
 -    # (excluding toolchains that use an older version of LLVM).
--    if (is_linux && !llvm_android_mainline &&
+-    if (is_linux && use_lld && !llvm_android_mainline &&
 -        default_toolchain != "//build/toolchain/cros:target") {
 -      cflags += [ "-Wa,--crel,--allow-experimental-crel" ]
+-    }
+-
+-    # TODO(crbug.com/413427035): Remove once
+-    # https://github.com/llvm/llvm-project/pull/136867/ is landed.
+-    if (!is_win && !llvm_android_mainline &&
+-        default_toolchain != "//build/toolchain/cros:target") {
+-      cflags += [ "-fextend-variable-liveness=none" ]
 -    }
 -  }
 -
    # C11/C++11 compiler flags setup.
    # ---------------------------
    if (is_linux || is_chromeos || is_android || (is_nacl && is_clang) ||
-@@ -2045,7 +1989,7 @@ config("default_warnings") {
+@@ -2061,7 +1998,7 @@ config("default_warnings") {
  
    # TODO(crbug.com/355446806): Clean up and enable.
    if (is_apple) {
