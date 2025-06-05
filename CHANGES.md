@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-06-05 [RELEASE] m137.7151.3.0
+  - @miosakuma
 - 2025-05-26 [UPDATE] m137 ブランチのビルドエラーに対する対応
   - libwebrtc の修正に追従して iOS / macOS / Android の `use_cxx17` オプションを削除
   - update_expected_clang_version.patch を追加する
