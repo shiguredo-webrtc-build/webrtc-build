@@ -29,6 +29,13 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-06-12 [UPDATE] m138 ブランチのビルドエラーに対する対応
+  - `remove_crel.patch` の単純なパッチ適用失敗を修正
+  - `h265.patch` の単純なパッチ適用失敗を修正
+  - `android_proxy.patch` の単純なパッチ適用失敗を修正
+  - `update_expected_clang_version.patch` は不要になったので削除
+  - iOS, Android のビルドスクリプトで siso がうまく動かなかったので `revert_siso.patch` で元に戻す
+  - @melpon
 - 2025-06-05 [RELEASE] m137.7151.3.0
   - @miosakuma
 - 2025-05-26 [UPDATE] m137 ブランチのビルドエラーに対する対応

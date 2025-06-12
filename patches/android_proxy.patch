@@ -1,8 +1,8 @@
 diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
-index 38b296864e..463226304f 100644
+index 044dac1e7c..0cea04f54f 100644
 --- a/sdk/android/BUILD.gn
 +++ b/sdk/android/BUILD.gn
-@@ -303,6 +303,7 @@ if (is_android) {
+@@ -313,6 +313,7 @@ if (is_android) {
        "api/org/webrtc/PeerConnection.java",
        "api/org/webrtc/PeerConnectionDependencies.java",
        "api/org/webrtc/PeerConnectionFactory.java",
@@ -109,10 +109,10 @@ index ac6c94bb11..e823f0e370 100644
    }
  }
 diff --git a/sdk/android/api/org/webrtc/PeerConnectionFactory.java b/sdk/android/api/org/webrtc/PeerConnectionFactory.java
-index 2b2ea155c1..1a6e0564d6 100644
+index 7523dcadfb..1ba9df96c0 100644
 --- a/sdk/android/api/org/webrtc/PeerConnectionFactory.java
 +++ b/sdk/android/api/org/webrtc/PeerConnectionFactory.java
-@@ -372,14 +372,17 @@ public class PeerConnectionFactory {
+@@ -371,14 +371,17 @@ public class PeerConnectionFactory {
    @Nullable
    PeerConnection createPeerConnectionInternal(PeerConnection.RTCConfiguration rtcConfig,
        MediaConstraints constraints, PeerConnection.Observer observer,
@@ -132,7 +132,7 @@ index 2b2ea155c1..1a6e0564d6 100644
      if (nativePeerConnection == 0) {
        return null;
      }
-@@ -395,7 +398,13 @@ public class PeerConnectionFactory {
+@@ -394,7 +397,13 @@ public class PeerConnectionFactory {
    public PeerConnection createPeerConnection(PeerConnection.RTCConfiguration rtcConfig,
        MediaConstraints constraints, PeerConnection.Observer observer) {
      return createPeerConnectionInternal(
@@ -147,7 +147,7 @@ index 2b2ea155c1..1a6e0564d6 100644
    }
  
    /**
-@@ -429,7 +438,13 @@ public class PeerConnectionFactory {
+@@ -428,7 +437,13 @@ public class PeerConnectionFactory {
    public PeerConnection createPeerConnection(
        PeerConnection.RTCConfiguration rtcConfig, PeerConnectionDependencies dependencies) {
      return createPeerConnectionInternal(rtcConfig, null /* constraints */,
@@ -162,7 +162,7 @@ index 2b2ea155c1..1a6e0564d6 100644
    }
  
    public MediaStream createLocalMediaStream(String label) {
-@@ -612,7 +627,9 @@ public class PeerConnectionFactory {
+@@ -610,7 +625,9 @@ public class PeerConnectionFactory {
  
    private static native long nativeCreatePeerConnection(long factory,
        PeerConnection.RTCConfiguration rtcConfig, MediaConstraints constraints, long nativeObserver,
@@ -252,28 +252,29 @@ index 11c431bec9..ca9c2c90cf 100644
  };
  
 diff --git a/sdk/android/src/jni/pc/peer_connection_factory.cc b/sdk/android/src/jni/pc/peer_connection_factory.cc
-index 7404a950f8..d8fbc115c9 100644
+index d34f8c0d4d..b0684ec45d 100644
 --- a/sdk/android/src/jni/pc/peer_connection_factory.cc
 +++ b/sdk/android/src/jni/pc/peer_connection_factory.cc
-@@ -18,11 +18,17 @@
- #include "api/audio/audio_processing.h"
- #include "api/audio/builtin_audio_processing_builder.h"
+@@ -30,6 +30,7 @@
+ #include "api/audio_options.h"
  #include "api/enable_media.h"
-+#include "api/environment/environment.h"
+ #include "api/environment/environment.h"
 +#include "api/environment/environment_factory.h"
- #include "api/rtc_event_log/rtc_event_log_factory.h"
- #include "api/task_queue/default_task_queue_factory.h"
- #include "api/video_codecs/video_decoder_factory.h"
- #include "api/video_codecs/video_encoder_factory.h"
+ #include "api/fec_controller.h"
+ #include "api/media_stream_interface.h"
+ #include "api/neteq/neteq_factory.h"
+@@ -39,6 +40,10 @@
+ #include "api/scoped_refptr.h"
+ #include "api/transport/network_control.h"
  #include "modules/utility/include/jvm_android.h"
 +#include "p2p/client/basic_port_allocator.h"
 +#include "pc/connection_context.h"
 +#include "pc/peer_connection_factory.h"
 +#include "pc/peer_connection_factory_proxy.h"
+ #include "rtc_base/checks.h"
  #include "rtc_base/event_tracer.h"
- #include "rtc_base/physical_socket_server.h"
- #include "rtc_base/thread.h"
-@@ -118,10 +124,11 @@ ScopedJavaLocalRef<jobject> NativeToScopedJavaPeerConnectionFactory(
+ #include "rtc_base/logging.h"
+@@ -144,10 +149,11 @@ ScopedJavaLocalRef<jobject> NativeToScopedJavaPeerConnectionFactory(
      std::unique_ptr<SocketFactory> socket_factory,
      std::unique_ptr<Thread> network_thread,
      std::unique_ptr<Thread> worker_thread,
@@ -287,7 +288,7 @@ index 7404a950f8..d8fbc115c9 100644
  
    jni_zero::ScopedJavaLocalRef<jobject> j_pcf =
        Java_PeerConnectionFactory_Constructor(
-@@ -158,10 +165,11 @@ jobject NativeToJavaPeerConnectionFactory(
+@@ -184,10 +190,11 @@ jobject NativeToJavaPeerConnectionFactory(
      std::unique_ptr<SocketFactory> socket_factory,
      std::unique_ptr<Thread> network_thread,
      std::unique_ptr<Thread> worker_thread,
@@ -301,18 +302,19 @@ index 7404a950f8..d8fbc115c9 100644
        .Release();
  }
  
-@@ -223,6 +231,35 @@ static void JNI_PeerConnectionFactory_ShutdownInternalTracer(JNIEnv* jni) {
+@@ -241,6 +248,36 @@ static void JNI_PeerConnectionFactory_ShutdownInternalTracer(JNIEnv* jni) {
    tracing::ShutdownInternalTracer();
  }
  
-+// webrtc::PeerConnectionFactory から ConnectionContext を取り出す方法が無いので、
-+// 継承して無理やり使えるようにする
++// webrtc::PeerConnectionFactory から ConnectionContext
++// を取り出す方法が無いので、 継承して無理やり使えるようにする
 +class CustomPeerConnectionFactory : public webrtc::PeerConnectionFactory {
 + public:
 +  CustomPeerConnectionFactory(
 +      webrtc::PeerConnectionFactoryDependencies dependencies)
 +      : CustomPeerConnectionFactory(
-+            webrtc::ConnectionContext::Create(CreateEnvironment(), &dependencies),
++            webrtc::ConnectionContext::Create(CreateEnvironment(),
++                                              &dependencies),
 +            &dependencies) {}
 +  CustomPeerConnectionFactory(
 +      rtc::scoped_refptr<webrtc::ConnectionContext> context,
@@ -337,35 +339,34 @@ index 7404a950f8..d8fbc115c9 100644
  // Following parameters are optional:
  // `audio_device_module`, `jencoder_factory`, `jdecoder_factory`,
  // `audio_processor`, `fec_controller_factory`,
-@@ -303,9 +340,24 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
+@@ -321,9 +358,23 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
        absl::WrapUnique(CreateVideoDecoderFactory(jni, jdecoder_factory));
    EnableMedia(dependencies);
  
 -  scoped_refptr<PeerConnectionFactoryInterface> factory =
 -      CreateModularPeerConnectionFactory(std::move(dependencies));
 -
-+  //scoped_refptr<PeerConnectionFactoryInterface> factory =
-+  //    CreateModularPeerConnectionFactory(std::move(dependencies));
++  // scoped_refptr<PeerConnectionFactoryInterface> factory =
++  //     CreateModularPeerConnectionFactory(std::move(dependencies));
 +  using result_type =
 +      std::pair<rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>,
 +                rtc::scoped_refptr<webrtc::ConnectionContext>>;
 +  auto p = dependencies.signaling_thread->BlockingCall([&dependencies]() {
-+        auto factory =
-+            CustomPeerConnectionFactory::Create(std::move(dependencies));
-+        if (factory == nullptr) {
-+          return result_type(nullptr, nullptr);
-+        }
-+        auto context = factory->GetContext();
-+        auto proxy = webrtc::PeerConnectionFactoryProxy::Create(
-+            factory->signaling_thread(), factory->worker_thread(), factory);
-+        return result_type(proxy, context);
-+      });
++    auto factory = CustomPeerConnectionFactory::Create(std::move(dependencies));
++    if (factory == nullptr) {
++      return result_type(nullptr, nullptr);
++    }
++    auto context = factory->GetContext();
++    auto proxy = webrtc::PeerConnectionFactoryProxy::Create(
++        factory->signaling_thread(), factory->worker_thread(), factory);
++    return result_type(proxy, context);
++  });
 +  auto factory = p.first;
 +  auto context = p.second;
    RTC_CHECK(factory) << "Failed to create the peer connection factory; "
                          "WebRTC/libjingle init likely failed on this device";
    // TODO(honghaiz): Maybe put the options as the argument of
-@@ -315,7 +367,7 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
+@@ -333,7 +384,7 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
  
    return NativeToScopedJavaPeerConnectionFactory(
        jni, factory, std::move(socket_server), std::move(network_thread),
@@ -374,7 +375,7 @@ index 7404a950f8..d8fbc115c9 100644
  }
  
  static jni_zero::ScopedJavaLocalRef<jobject>
-@@ -435,13 +487,41 @@ static void JNI_PeerConnectionFactory_StopAecDump(JNIEnv* jni,
+@@ -456,13 +507,43 @@ static void JNI_PeerConnectionFactory_StopAecDump(JNIEnv* jni,
    PeerConnectionFactoryFromJava(native_factory)->StopAecDump();
  }
  
@@ -391,7 +392,9 @@ index 7404a950f8..d8fbc115c9 100644
 +    }
 +  }
 +  std::string UrlEncode() const override { return ""; }
-+  webrtc::revive::CryptStringImpl* Copy() const override { return new RawCryptString(str_); }
++  webrtc::revive::CryptStringImpl* Copy() const override {
++    return new RawCryptString(str_);
++  }
 +  void CopyRawTo(std::vector<unsigned char>* dest) const override {
 +    dest->assign(str_.begin(), str_.end());
 +  }
@@ -417,10 +420,13 @@ index 7404a950f8..d8fbc115c9 100644
    std::unique_ptr<PeerConnectionObserver> observer(
        reinterpret_cast<PeerConnectionObserver*>(observer_p));
  
-@@ -478,8 +558,50 @@ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
+@@ -499,9 +580,51 @@ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
              jni, j_sslCertificateVerifier);
    }
  
+-  auto result =
+-      PeerConnectionFactoryFromJava(factory)->CreatePeerConnectionOrError(
+-          rtc_config, std::move(peer_connection_dependencies));
 +  auto jfactory = reinterpret_cast<OwnedFactoryAndThreads*>(factory);
 +  peer_connection_dependencies.allocator.reset(new webrtc::BasicPortAllocator(
 +      jfactory->connection_context()->env(),
@@ -430,7 +436,8 @@ index 7404a950f8..d8fbc115c9 100644
 +  peer_connection_dependencies.allocator->SetPortRange(
 +      rtc_config.port_allocator_config.min_port,
 +      rtc_config.port_allocator_config.max_port);
-+  peer_connection_dependencies.allocator->set_flags(rtc_config.port_allocator_config.flags);
++  peer_connection_dependencies.allocator->set_flags(
++      rtc_config.port_allocator_config.flags);
 +
 +  webrtc::revive::ProxyType proxyType = webrtc::revive::PROXY_NONE;
 +  {
@@ -463,9 +470,8 @@ index 7404a950f8..d8fbc115c9 100644
 +    peer_connection_dependencies.allocator->set_proxy(agent, pi);
 +  }
 +
-   auto result =
--      PeerConnectionFactoryFromJava(factory)->CreatePeerConnectionOrError(
-+      jfactory->factory()->CreatePeerConnectionOrError(
-           rtc_config, std::move(peer_connection_dependencies));
++  auto result = jfactory->factory()->CreatePeerConnectionOrError(
++      rtc_config, std::move(peer_connection_dependencies));
    if (!result.ok())
      return 0;
+ 
