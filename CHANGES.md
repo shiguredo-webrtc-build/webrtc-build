@@ -34,6 +34,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - `h265.patch` の単純なパッチ適用失敗を修正
   - `android_proxy.patch` の単純なパッチ適用失敗を修正
   - `update_expected_clang_version.patch` は不要になったので削除
+  - Windows で `revive_proxy.patch` がエラーになっていたのを修正
+    - 変数の shadowing でエラーになっていたので名前を被らないようにした
   - iOS, Android のビルドスクリプトで siso がうまく動かなかったので `revert_siso.patch` で元に戻す
   - @melpon
 - 2025-06-05 [RELEASE] m137.7151.3.0
