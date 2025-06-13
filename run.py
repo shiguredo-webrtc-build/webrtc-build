@@ -816,7 +816,7 @@ def build_webrtc_ios(
     for device_arch in IOS_ARCHS:
         [device, arch] = device_arch.split(":")
         if overlap_build_dir:
-            work_dir = os.path.join(webrtc_build_dir, "framework", device, f"{arch}_libs")
+            work_dir = os.path.join(webrtc_build_dir, "framework", f"{device}_{arch}_libs")
         else:
             work_dir = os.path.join(webrtc_build_dir, device, arch)
         if gen_force:
@@ -1222,7 +1222,7 @@ def package_webrtc(
         dirs = []
         for device_arch in IOS_FRAMEWORK_ARCHS:
             [device, arch] = device_arch.split(":")
-            dirs.append(os.path.join(webrtc_build_dir, "framework", device, f"{arch}_libs"))
+            dirs.append(os.path.join(webrtc_build_dir, "framework", f"{device}_{arch}_libs"))
         if not overlap_ios_build_dir:
             for device_arch in IOS_ARCHS:
                 [device, arch] = device_arch.split(":")
