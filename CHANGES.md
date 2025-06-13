@@ -60,16 +60,53 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-04-14 [RELEASE] m136.7103.0.0
+  - @torikizi
+- 2025-04-19 [CHANGE] libwebrtc で名前空間が rtc:: から  webrtc:: に変更されパッチを修正
+  - revive_proxy.patch を修正
+    - 名前空間の変更で rtc:: がスコープの外となったため `rtc::` を追加する
+  - @melpon
+- 2025-04-19 [UPDATE] rtp_video_stream_receiver2.cc へのパッチ内容が libwebrtc と一致するようになったため削除する
+  - @melpon
+- 2025-04-19 [CHANGE] libwebrtc の Rust ビルドを無効化
+  - libwebrtc に Rust ビルドを有効にする GN オプションが追加されたため、無効にする
+  - run.py の `COMMON_GN_ARGS` に rust のビルドを無効にするオプションを追加する
+  - @melpon
+- 2025-04-19 [UPDATE] ビルド環境の Xcode バージョンを 16.1 にアップデートする
+  - @melpon
+- 2025-04-14 [RELEASE] m135.7049.3.1
+  - @torikizi
 - 2025-04-12 [RELEASE] m134.6998.1.2
   - @torikizi
 - 2025-04-11 [RELEASE] m133.6943.4.2
   - @torikizi
+- 2025-04-08 [RELEASE] m135.7049.3.0
+  - @torikizi
+- 2025-04-07 [CHANGE] リリース対象から ubuntu-20.04_x86_64 を削除する
+  - @miosakuma
+- 2025-04-07 [UPDATE] Github Actions のビルド実行環境を Ubuntu 20.04 から Ubuntu 24.04 にあげる
+  - 対象のビルドターゲットは以下の通り
+    - ubuntu-20.04_armv8
+    - raspberry-pi-os_armv6
+    - raspberry-pi-os_armv7
+    - raspberry-pi-os_armv8
+  - @miosakuma
+- 2025-04-03 [RELEASE] m135.7049.2.1
+  - @miosakuma
 - 2025-04-02 [RELEASE] m134.6998.1.1
   - @melpon
 - 2025-04-02 [ADD] libyuv_use_sme=false を追加
   - @melpon
 - 2025-04-02 [ADD] remove_crel.patch を追加
   - @melpon
+- 2025-03-28 [RELEASE] m135.7049.2.0
+  - @miosakuma
+- 2025-03-25 [UPDATE] m135 ブランチのビルドエラーに対する対応
+  - ios_build.patch
+    - コメントアウトしていた行に修正がありパッチエラーとなっていたため再度コメントアウトした
+  - windows_fix_optional.patch を削除する
+    - absl::optional が削除され、std::optional を使うようになった
+    - https://chromium.googlesource.com/external/github.com/abseil/abseil-cpp/+/22b1f421fa678434722202f2a883a565b7de5343%5E%21/
 - 2025-03-04 [RELEASE] m134.6998.1.0
   - @miosakuma
 - 2025-02-28 [UPDATE] m134 ブランチのビルドエラーに対する対応

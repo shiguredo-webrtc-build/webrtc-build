@@ -1,8 +1,8 @@
 diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
-index 88109264e..672772b7d 100644
+index e7a60d56b..47fabf08a 100644
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
-@@ -485,8 +485,8 @@ config("compiler") {
+@@ -474,8 +474,8 @@ config("compiler") {
      # faster.
      # On arm64, this is already the default behavior.
      if (current_cpu == "x64") {
@@ -13,7 +13,7 @@ index 88109264e..672772b7d 100644
      }
  
      # dsymutil is not available in the system, on bots, for rustc to call. Our
-@@ -578,63 +578,6 @@ config("compiler") {
+@@ -567,62 +567,6 @@ config("compiler") {
      ldflags += [ "-Wl,-z,keep-text-section-prefix" ]
    }
  
@@ -67,8 +67,7 @@ index 88109264e..672772b7d 100644
 -
 -    # Enable ELF CREL (see crbug.com/357878242) for all platforms that use ELF
 -    # (excluding toolchains that use an older version of LLVM).
--    # TODO(crbug.com/376278218): This causes segfault on Linux ARM builds.
--    if (is_linux && !llvm_android_mainline && current_cpu != "arm" &&
+-    if (is_linux && !llvm_android_mainline &&
 -        default_toolchain != "//build/toolchain/cros:target") {
 -      cflags += [ "-Wa,--crel,--allow-experimental-crel" ]
 -    }
@@ -77,7 +76,7 @@ index 88109264e..672772b7d 100644
    # C11/C++11 compiler flags setup.
    # ---------------------------
    if (is_linux || is_chromeos || is_android || (is_nacl && is_clang) ||
-@@ -2014,7 +1957,7 @@ config("default_warnings") {
+@@ -2045,7 +1989,7 @@ config("default_warnings") {
  
    # TODO(crbug.com/355446806): Clean up and enable.
    if (is_apple) {

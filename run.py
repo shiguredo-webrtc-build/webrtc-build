@@ -328,7 +328,6 @@ PATCHES = {
         "add_license_dav1d.patch",
         "windows_add_deps.patch",
         "windows_silence_warnings.patch",
-        "windows_fix_optional.patch",
         "windows_fix_audio_device.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
@@ -343,7 +342,6 @@ PATCHES = {
         "add_license_dav1d.patch",
         "windows_add_deps.patch",
         "windows_silence_warnings.patch",
-        "windows_fix_optional.patch",
         "windows_fix_audio_device.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
@@ -483,6 +481,7 @@ PATCHES = {
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
         "remove_crel.patch",
+        "multi_codec_simulcast.patch",
     ],
     "ubuntu-20.04_x86_64": [
         "add_deps.patch",
@@ -832,6 +831,9 @@ COMMON_GN_ARGS = [
     "rtc_use_perfetto=false",
     "libyuv_include_tests=false",
     "libyuv_use_sme=false",
+    "enable_rust=false",
+    "enable_rust_cxx=false",
+    "enable_chromium_prelude=false",
 ]
 
 WEBRTC_BUILD_TARGETS_MACOS_COMMON = [
@@ -1185,7 +1187,7 @@ def build_webrtc(
                     "arm_use_neon=false",
                     "enable_libaom=false",
                 ]
-        elif target in ("ubuntu-20.04_x86_64", "ubuntu-22.04_x86_64", "ubuntu-24.04_x86_64"):
+        elif target in ("ubuntu-22.04_x86_64", "ubuntu-24.04_x86_64"):
             gn_args += [
                 'target_os="linux"',
                 "rtc_use_pipewire=false",
@@ -1497,7 +1499,6 @@ TARGETS = [
     "windows_x86_64",
     "windows_arm64",
     "macos_arm64",
-    "ubuntu-20.04_x86_64",
     "ubuntu-22.04_x86_64",
     "ubuntu-24.04_x86_64",
     "ubuntu-20.04_armv8",
@@ -1548,8 +1549,6 @@ def check_target(target):
         # x86_64 用ビルドはバージョンが合っている必要がある
         osver = release["VERSION_ID"]
         logging.info(f"OS Version: {osver}")
-        if target == "ubuntu-20.04_x86_64" and osver == "20.04":
-            return True
         if target == "ubuntu-22.04_x86_64" and osver == "22.04":
             return True
         if target == "ubuntu-24.04_x86_64" and osver == "24.04":
