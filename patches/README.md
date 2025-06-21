@@ -40,6 +40,15 @@ Android にて映像フレームの処理時にクラッシュするいくつか
 
 同等の機能が本家に実装されるか、 PR を出して取り込まれたら削除する。
 
+## android_add_scale_resolution_down_to.patch
+
+Android の WebRTC SDK に `scaleResolutionDownTo` 機能を追加するパッチ。既存の `scaleResolutionDownBy`（比率による解像度スケーリング）に加えて、特定の最大幅・高さに解像度を制限する `ResolutionRestriction` クラスを追加し、より柔軟な解像度制御を可能にする。
+
+以下の API を追加する。
+
+- `ResolutionRestriction`
+- `RtpEncodingParameters.scaleResolutionDownTo`
+
 ## android_simulcast.patch
 
 Android でのサイマルキャストのサポートを追加するパッチ。この実装は C++ の `SimulcastEncoderAdapter` の簡単なラッパーであり、既存の仕様に破壊的変更も行わない。
@@ -122,6 +131,10 @@ $ find $(xcode-select --print-path) | grep arm_neon
 
 M131 において libaom においても同様の問題が発生したので、両方 third_party 以下のため同じファイルを libaom にも配置する。
 libaom は include の angled と quotes を厳密に見るようなので、それにも対応する。
+
+## dav1d_config_change.patch
+
+dav1d（AV1デコーダ）の Apple ARM64 向けビルド設定を変更するパッチ。`HAVE_AS_ARCHEXT_DOTPROD_DIRECTIVE` と `HAVE_AS_ARCHEXT_I8MM_DIRECTIVE` を無効化（1から0に変更）することで、特定のARM拡張命令（dot product命令とInt8行列乗算命令）の使用を無効にする。これは互換性の問題を回避するための変更。
 
 ## revert_asm_changes.patch
 
@@ -328,6 +341,15 @@ https://github.com/shiguredo/sora-cpp-sdk/blob/e1257a3e358e62512c0c77db5ba82f90e
 
 多分パッチを送った方がいいやつ。
 
+## ios_add_scale_resolution_down_to.patch
+
+iOS の WebRTC SDK に `scaleResolutionDownTo` 機能を追加するパッチ。Android パッチと同様の機能で、`RTCResolutionRestriction` クラスを追加して最大幅・高さで解像度を制限できるようにする。
+
+以下の API を追加する。
+
+- `RTCResolutionRestriction`
+- `RTCRtpEncodingParameters.scaleResolutionDownTo`
+
 ## ios_simulcast.patch
 
 iOS でのサイマルキャストのサポートを追加するパッチ。この実装は C++ の `SimulcastEncoderAdapter` の簡単なラッパーであり、既存の仕様に破壊的変更も行わない。
@@ -356,3 +378,15 @@ CREL は LLVM のリンカ(lld)特有の機能なので、これを有効にす�
 このコミットを revert したパッチ。
 
 siso を実行すると即座に `Error: can not detect exec_root: build/config/siso not found` というエラーが出てどうしようも無かったので revert する。
+
+## revive_proxy.patch
+
+WebRTC に HTTPS プロキシサポートを復活（revive）させる大規模な変更を含むパッチ。以前削除されたプロキシ機能を再実装し、以下の機能を提供する。
+
+- HTTPS プロキシ経由の接続をサポート（`AsyncHttpsProxySocket` クラス）
+- プロキシ認証機能（Basic認証、Digest認証、NTLM/Negotiate認証）
+- TCP ポートと TURN ポートでのプロキシ使用
+- プロキシ情報の管理（`ProxyInfo` 構造体）
+- セキュアな文字列処理（`CryptString` クラス）
+
+企業環境などプロキシが必要な環境で WebRTC を使用できるようにするための重要な機能追加。
