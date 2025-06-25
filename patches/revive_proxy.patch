@@ -1,5 +1,5 @@
 diff --git a/api/packet_socket_factory.h b/api/packet_socket_factory.h
-index 602eeaa9ed..2619826bb3 100644
+index 602eeaa9ed..f44f20e436 100644
 --- a/api/packet_socket_factory.h
 +++ b/api/packet_socket_factory.h
 @@ -22,6 +22,8 @@
@@ -21,7 +21,7 @@ index 602eeaa9ed..2619826bb3 100644
  
    virtual std::unique_ptr<AsyncDnsResolverInterface>
 diff --git a/p2p/base/basic_packet_socket_factory.cc b/p2p/base/basic_packet_socket_factory.cc
-index 4604570ceb..5e10662148 100644
+index 785f80b330..144d8bacd7 100644
 --- a/p2p/base/basic_packet_socket_factory.cc
 +++ b/p2p/base/basic_packet_socket_factory.cc
 @@ -32,6 +32,8 @@
@@ -56,7 +56,7 @@ index 4604570ceb..5e10662148 100644
    int tlsOpts = tcp_options.opts & (PacketSocketFactory::OPT_TLS |
                                      PacketSocketFactory::OPT_TLS_FAKE |
 diff --git a/p2p/base/basic_packet_socket_factory.h b/p2p/base/basic_packet_socket_factory.h
-index 276e30956d..418de10765 100644
+index 276e30956d..057b0c13a9 100644
 --- a/p2p/base/basic_packet_socket_factory.h
 +++ b/p2p/base/basic_packet_socket_factory.h
 @@ -40,6 +40,8 @@ class RTC_EXPORT BasicPacketSocketFactory : public PacketSocketFactory {
@@ -69,7 +69,7 @@ index 276e30956d..418de10765 100644
  
    std::unique_ptr<AsyncDnsResolverInterface> CreateAsyncDnsResolver() override;
 diff --git a/p2p/base/port.h b/p2p/base/port.h
-index 522fc9329e..940faa9257 100644
+index 522fc9329e..00fd4e7569 100644
 --- a/p2p/base/port.h
 +++ b/p2p/base/port.h
 @@ -48,6 +48,8 @@
@@ -100,7 +100,7 @@ index 522fc9329e..940faa9257 100644
    void UpdateNetworkCost() override;
  
 diff --git a/p2p/base/port_allocator.h b/p2p/base/port_allocator.h
-index 3b957720ef..7f5f3b8509 100644
+index 3b957720ef..25bf9b5d06 100644
 --- a/p2p/base/port_allocator.h
 +++ b/p2p/base/port_allocator.h
 @@ -32,6 +32,8 @@
@@ -140,7 +140,7 @@ index 3b957720ef..7f5f3b8509 100644
    int min_port() const {
      CheckRunOnValidThreadIfInitialized();
 diff --git a/p2p/base/port_interface.h b/p2p/base/port_interface.h
-index 93a3a252ee..b08d1b09be 100644
+index 93a3a252ee..47c57781da 100644
 --- a/p2p/base/port_interface.h
 +++ b/p2p/base/port_interface.h
 @@ -32,6 +32,8 @@
@@ -163,10 +163,10 @@ index 93a3a252ee..b08d1b09be 100644
    PortInterface();
    virtual void UpdateNetworkCost() = 0;
 diff --git a/p2p/base/tcp_port.cc b/p2p/base/tcp_port.cc
-index 7b3b9fddbf..edc2392650 100644
+index 625ff766fd..acd8a2b196 100644
 --- a/p2p/base/tcp_port.cc
 +++ b/p2p/base/tcp_port.cc
-@@ -604,7 +604,9 @@ void TCPConnection::CreateOutgoingTcpSocket() {
+@@ -600,7 +600,9 @@ void TCPConnection::CreateOutgoingTcpSocket() {
    tcp_opts.opts = opts;
    socket_.reset(port()->socket_factory()->CreateClientTcpSocket(
        SocketAddress(port()->Network()->GetBestIP(), 0),
@@ -178,7 +178,7 @@ index 7b3b9fddbf..edc2392650 100644
      RTC_LOG(LS_VERBOSE) << ToString() << ": Connecting from "
                          << socket_->GetLocalAddress().ToSensitiveString()
 diff --git a/p2p/base/turn_port.cc b/p2p/base/turn_port.cc
-index e0ef1c8384..67d77b2e8f 100644
+index 9395fe5ee9..ca201a0c49 100644
 --- a/p2p/base/turn_port.cc
 +++ b/p2p/base/turn_port.cc
 @@ -432,7 +432,9 @@ bool TurnPort::CreateTurnClientSocket() {
@@ -193,7 +193,7 @@ index e0ef1c8384..67d77b2e8f 100644
    }
  
 diff --git a/p2p/client/basic_port_allocator.cc b/p2p/client/basic_port_allocator.cc
-index ed9db392c4..2874b3940d 100644
+index fa12319c6c..bf22af3098 100644
 --- a/p2p/client/basic_port_allocator.cc
 +++ b/p2p/client/basic_port_allocator.cc
 @@ -55,6 +55,8 @@
@@ -204,21 +204,21 @@ index ed9db392c4..2874b3940d 100644
 +
  namespace webrtc {
  namespace {
- using ::webrtc::CreateRandomId;
-@@ -928,6 +930,8 @@ void BasicPortAllocatorSession::AddAllocatedPort(Port* port,
+ 
+@@ -923,6 +925,8 @@ void BasicPortAllocatorSession::AddAllocatedPort(Port* port,
    port->set_content_name(content_name());
    port->set_component(component());
    port->set_generation(generation());
 +  if (allocator_->proxy().type != webrtc::revive::PROXY_NONE)
 +    port->set_proxy(allocator_->user_agent(), allocator_->proxy());
    port->set_send_retransmit_count_attribute(
-       (flags() & webrtc::PORTALLOCATOR_ENABLE_STUN_RETRANSMIT_ATTRIBUTE) != 0);
+       (flags() & PORTALLOCATOR_ENABLE_STUN_RETRANSMIT_ATTRIBUTE) != 0);
  
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 88164115c4..e4e4bcf2e1 100644
+index 1211f0c856..b5f6ff9673 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
-@@ -1220,6 +1220,8 @@ rtc_library("socket_adapters") {
+@@ -1232,6 +1232,8 @@ rtc_library("socket_adapters") {
    sources = [
      "socket_adapters.cc",
      "socket_adapters.h",
@@ -227,7 +227,7 @@ index 88164115c4..e4e4bcf2e1 100644
    ]
    deps = [
      ":async_socket",
-@@ -1234,6 +1236,7 @@ rtc_library("socket_adapters") {
+@@ -1246,6 +1248,7 @@ rtc_library("socket_adapters") {
      "../api:array_view",
      "//third_party/abseil-cpp/absl/strings",
      "//third_party/abseil-cpp/absl/strings:string_view",
@@ -235,7 +235,7 @@ index 88164115c4..e4e4bcf2e1 100644
    ]
  }
  
-@@ -1364,6 +1367,20 @@ rtc_library("dscp") {
+@@ -1375,6 +1378,20 @@ rtc_library("dscp") {
    sources = [ "dscp.h" ]
  }
  
@@ -256,7 +256,7 @@ index 88164115c4..e4e4bcf2e1 100644
  rtc_library("file_rotating_stream") {
    sources = [
      "file_rotating_stream.cc",
-@@ -1631,6 +1648,13 @@ rtc_library("ssl_adapter") {
+@@ -1642,6 +1659,13 @@ rtc_library("ssl_adapter") {
    }
  }
  
@@ -272,7 +272,7 @@ index 88164115c4..e4e4bcf2e1 100644
  }
 diff --git a/rtc_base/crypt_string_revive.cc b/rtc_base/crypt_string_revive.cc
 new file mode 100644
-index 0000000000..b1a1ab5b76
+index 0000000000..3a0e76b036
 --- /dev/null
 +++ b/rtc_base/crypt_string_revive.cc
 @@ -0,0 +1,46 @@
@@ -324,7 +324,7 @@ index 0000000000..b1a1ab5b76
 +}  // namespace webrtc::revive
 diff --git a/rtc_base/crypt_string_revive.h b/rtc_base/crypt_string_revive.h
 new file mode 100644
-index 0000000000..e1087570b7
+index 0000000000..3635bd0512
 --- /dev/null
 +++ b/rtc_base/crypt_string_revive.h
 @@ -0,0 +1,70 @@
@@ -400,7 +400,7 @@ index 0000000000..e1087570b7
 +#endif  // RTC_BASE_CRYPT_STRING_REVIVE_H_
 diff --git a/rtc_base/http_common_revive.cc b/rtc_base/http_common_revive.cc
 new file mode 100644
-index 0000000000..33104064a6
+index 0000000000..071e116d19
 --- /dev/null
 +++ b/rtc_base/http_common_revive.cc
 @@ -0,0 +1,562 @@
@@ -825,9 +825,9 @@ index 0000000000..33104064a6
 +      }
 +      steps = neg->steps;
 +
-+      std::string challenge, decoded_challenge;
-+      if (HttpHasNthAttribute(args, 1, &challenge, nullptr)) {
-+        auto decoded = webrtc::Base64Decode(challenge, webrtc::Base64DecodeOptions::kStrict);
++      std::string _challenge, decoded_challenge;
++      if (HttpHasNthAttribute(args, 1, &_challenge, nullptr)) {
++        auto decoded = webrtc::Base64Decode(_challenge, webrtc::Base64DecodeOptions::kStrict);
 +        if (decoded.has_value()) {
 +          SecBuffer in_sec;
 +          in_sec.pvBuffer = const_cast<char*>(decoded_challenge.data());
@@ -969,7 +969,7 @@ index 0000000000..33104064a6
 \ No newline at end of file
 diff --git a/rtc_base/http_common_revive.h b/rtc_base/http_common_revive.h
 new file mode 100644
-index 0000000000..d38614b3d0
+index 0000000000..491fee4971
 --- /dev/null
 +++ b/rtc_base/http_common_revive.h
 @@ -0,0 +1,62 @@
@@ -1037,7 +1037,7 @@ index 0000000000..d38614b3d0
 +#endif  // RTC_BASE_HTTP_COMMON_REVIVE_H_
 diff --git a/rtc_base/proxy_info_revive.cc b/rtc_base/proxy_info_revive.cc
 new file mode 100644
-index 0000000000..9719ec4e2b
+index 0000000000..713c33195d
 --- /dev/null
 +++ b/rtc_base/proxy_info_revive.cc
 @@ -0,0 +1,13 @@
@@ -1056,7 +1056,7 @@ index 0000000000..9719ec4e2b
 +}
 diff --git a/rtc_base/proxy_info_revive.h b/rtc_base/proxy_info_revive.h
 new file mode 100644
-index 0000000000..821ae8ffe1
+index 0000000000..5217436b2a
 --- /dev/null
 +++ b/rtc_base/proxy_info_revive.h
 @@ -0,0 +1,39 @@
@@ -1101,7 +1101,7 @@ index 0000000000..821ae8ffe1
 +#endif
 diff --git a/rtc_base/socket_adapters_revive.cc b/rtc_base/socket_adapters_revive.cc
 new file mode 100644
-index 0000000000..5d8418b1f8
+index 0000000000..0263110ef4
 --- /dev/null
 +++ b/rtc_base/socket_adapters_revive.cc
 @@ -0,0 +1,268 @@
@@ -1375,7 +1375,7 @@ index 0000000000..5d8418b1f8
 +}  // namespace webrtc::revive
 diff --git a/rtc_base/socket_adapters_revive.h b/rtc_base/socket_adapters_revive.h
 new file mode 100644
-index 0000000000..33fe88b845
+index 0000000000..42c943221a
 --- /dev/null
 +++ b/rtc_base/socket_adapters_revive.h
 @@ -0,0 +1,85 @@

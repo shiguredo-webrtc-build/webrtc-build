@@ -29,6 +29,20 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-06-05 [RELEASE] m138.7204.0.0
+  - @torikizi
+- 2025-06-12 [UPDATE] m138 ブランチのビルドエラーに対する対応
+  - `remove_crel.patch` の単純なパッチ適用失敗を修正
+  - `h265.patch` の単純なパッチ適用失敗を修正
+  - `android_proxy.patch` の単純なパッチ適用失敗を修正
+  - `update_expected_clang_version.patch` は不要になったので削除
+  - Windows で `revive_proxy.patch` がエラーになっていたのを修正
+    - 変数の shadowing でエラーになっていたので名前を被らないようにした
+  - iOS, macOS の `patches/ios_build.patch` と `patches/macos_use_xcode_clang.patch` の単純なパッチ適用失敗を修正
+  - iOS, Android のビルドスクリプトで siso がうまく動かなかったので `revert_siso.patch` で元に戻す
+  - Xcode 16.2 だとコンパイルエラーが出てたので、ローカルでビルドの通った Xcode 16.1 に落とす
+  - `build_ios_libs.sh` での iOS のビルドディレクトリが変わってたのでそれに追従
+  - @melpon
 - 2025-06-05 [RELEASE] m137.7151.3.0
   - @miosakuma
 - 2025-05-26 [UPDATE] m137 ブランチのビルドエラーに対する対応

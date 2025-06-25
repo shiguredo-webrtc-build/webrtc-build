@@ -1,8 +1,8 @@
 diff --git a/common_video/h264/sps_parser.cc b/common_video/h264/sps_parser.cc
-index 936080e2a7..d3d43478c1 100644
+index cf99700a71..e789ec2ee4 100644
 --- a/common_video/h264/sps_parser.cc
 +++ b/common_video/h264/sps_parser.cc
-@@ -164,9 +164,11 @@ std::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(
+@@ -167,9 +167,11 @@ std::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(
    // to signify resolutions that aren't multiples of 16.
    //
    // pic_width_in_mbs_minus1: ue(v)
@@ -16,10 +16,10 @@ index 936080e2a7..d3d43478c1 100644
    sps.frame_mbs_only_flag = reader.ReadBit();
    if (!sps.frame_mbs_only_flag) {
 diff --git a/common_video/h264/sps_parser.h b/common_video/h264/sps_parser.h
-index a69bd19690..1c1ca19f3c 100644
+index b24194c6e9..e5017ed515 100644
 --- a/common_video/h264/sps_parser.h
 +++ b/common_video/h264/sps_parser.h
-@@ -27,6 +27,8 @@ class RTC_EXPORT SpsParser {
+@@ -30,6 +30,8 @@ class RTC_EXPORT SpsParser {
      SpsState(const SpsState&);
      ~SpsState();
  
@@ -29,23 +29,18 @@ index a69bd19690..1c1ca19f3c 100644
      uint32_t height = 0;
      uint32_t delta_pic_order_always_zero_flag = 0;
 diff --git a/common_video/h265/h265_vps_parser.cc b/common_video/h265/h265_vps_parser.cc
-index 16b967dad4..c880c8ddb9 100644
+index 8ebe5f96a1..0fc57985dd 100644
 --- a/common_video/h265/h265_vps_parser.cc
 +++ b/common_video/h265/h265_vps_parser.cc
-@@ -11,10 +11,12 @@
- #include "common_video/h265/h265_vps_parser.h"
+@@ -15,6 +15,7 @@
  
+ #include "api/array_view.h"
  #include "common_video/h265/h265_common.h"
 +#include "common_video/h265/h265_sps_parser.h"
- #include "rtc_base/bit_buffer.h"
  #include "rtc_base/bitstream_reader.h"
- #include "rtc_base/logging.h"
  
-+
  namespace webrtc {
- 
- H265VpsParser::VpsState::VpsState() = default;
-@@ -45,6 +47,51 @@ std::optional<H265VpsParser::VpsState> H265VpsParser::ParseInternal(
+@@ -47,6 +48,51 @@ std::optional<H265VpsParser::VpsState> H265VpsParser::ParseInternal(
      return std::nullopt;
    }
  
@@ -98,10 +93,10 @@ index 16b967dad4..c880c8ddb9 100644
  }
  
 diff --git a/common_video/h265/h265_vps_parser.h b/common_video/h265/h265_vps_parser.h
-index c793996bc1..6b7ac9dbd7 100644
+index e890e4e64f..423ff28b2b 100644
 --- a/common_video/h265/h265_vps_parser.h
 +++ b/common_video/h265/h265_vps_parser.h
-@@ -20,12 +20,16 @@ namespace webrtc {
+@@ -23,12 +23,16 @@ namespace webrtc {
  // A class for parsing out video parameter set (VPS) data from an H265 NALU.
  class RTC_EXPORT H265VpsParser {
   public:
@@ -119,10 +114,10 @@ index c793996bc1..6b7ac9dbd7 100644
  
    // Unpack RBSP and parse VPS state from the supplied buffer.
 diff --git a/webrtc.gni b/webrtc.gni
-index 993b19c1f5..992c75c0e2 100644
+index 103983dec4..530eea6ff7 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
-@@ -194,7 +194,7 @@ declare_args() {
+@@ -196,7 +196,7 @@ declare_args() {
    if (build_with_chromium) {
      rtc_use_h265 = enable_hevc_parser_and_hw_decoder
    } else {
