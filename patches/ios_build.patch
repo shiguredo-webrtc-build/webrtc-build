@@ -1,5 +1,5 @@
 diff --git a/build/config/clang/clang.gni b/build/config/clang/clang.gni
-index 2ad331d38..9f16006b4 100644
+index 01493db51..21ead78c1 100644
 --- a/build/config/clang/clang.gni
 +++ b/build/config/clang/clang.gni
 @@ -13,12 +13,12 @@ declare_args() {
@@ -20,10 +20,10 @@ index 2ad331d38..9f16006b4 100644
    # Use this instead of clang_use_chrome_plugins to enable just the raw-ptr-plugin.
    clang_use_raw_ptr_plugin = false
 diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
-index fca6c9295..fd1a15a48 100644
+index 59942a3cf..764959bcb 100644
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
-@@ -475,8 +475,8 @@ config("compiler") {
+@@ -487,8 +487,8 @@ config("compiler") {
      # faster.
      # On arm64, this is already the default behavior.
      if (current_cpu == "x64") {
@@ -34,7 +34,7 @@ index fca6c9295..fd1a15a48 100644
      }
  
      # dsymutil is not available in the system, on bots, for rustc to call. Our
-@@ -569,69 +569,6 @@ config("compiler") {
+@@ -581,63 +581,6 @@ config("compiler") {
      ldflags += [ "-Wl,-z,keep-text-section-prefix" ]
    }
  
@@ -88,23 +88,17 @@ index fca6c9295..fd1a15a48 100644
 -
 -    # Enable ELF CREL (see crbug.com/357878242) for all platforms that use ELF
 -    # (excluding toolchains that use an older version of LLVM).
--    if (is_linux && use_lld && !llvm_android_mainline &&
+-    # TODO(crbug.com/376278218): This causes segfault on Linux ARM builds.
+-    if (is_linux && use_lld && !llvm_android_mainline && current_cpu != "arm" &&
 -        default_toolchain != "//build/toolchain/cros:target") {
 -      cflags += [ "-Wa,--crel,--allow-experimental-crel" ]
--    }
--
--    # TODO(crbug.com/413427035): Remove once
--    # https://github.com/llvm/llvm-project/pull/136867/ is landed.
--    if (!is_win && !llvm_android_mainline &&
--        default_toolchain != "//build/toolchain/cros:target") {
--      cflags += [ "-fextend-variable-liveness=none" ]
 -    }
 -  }
 -
    # C11/C++11 compiler flags setup.
    # ---------------------------
    if (is_linux || is_chromeos || is_android || (is_nacl && is_clang) ||
-@@ -2061,7 +1998,7 @@ config("default_warnings") {
+@@ -2196,7 +2139,7 @@ config("default_warnings") {
  
    # TODO(crbug.com/355446806): Clean up and enable.
    if (is_apple) {
@@ -114,7 +108,7 @@ index fca6c9295..fd1a15a48 100644
  
    # Rust warnings
 diff --git a/build/toolchain/apple/toolchain.gni b/build/toolchain/apple/toolchain.gni
-index e0ba16693..285d97826 100644
+index b1e484c72..d8400f3c6 100644
 --- a/build/toolchain/apple/toolchain.gni
 +++ b/build/toolchain/apple/toolchain.gni
 @@ -153,7 +153,8 @@ template("single_apple_toolchain") {
@@ -141,10 +135,10 @@ index d8543c4f2..db6c76528 100644
          # Override `is_component_build` for the host toolchain.
          # See https://crbug.com/gn/286 for details why this is
 diff --git a/buildtools/third_party/libc++/BUILD.gn b/buildtools/third_party/libc++/BUILD.gn
-index a547196..d113a89 100644
+index 78e270c..a4d8992 100644
 --- a/buildtools/third_party/libc++/BUILD.gn
 +++ b/buildtools/third_party/libc++/BUILD.gn
-@@ -352,7 +352,7 @@ target(_libcxx_target_type, "libc++") {
+@@ -591,7 +591,7 @@ target(libcxx_target_type, "libc++") {
        # specified in the C++ spec 3.7.4p2, which makes them always have default
        # visibility.  This option is needed to force hidden visibility since
        # -fvisibility=hidden doesn't have the desired effect.
