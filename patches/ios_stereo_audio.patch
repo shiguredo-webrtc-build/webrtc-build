@@ -1,0 +1,601 @@
+diff --git a/sdk/objc/components/audio/RTCAudioSession+Configuration.mm b/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
+index 7267a79334..809df576ee 100644
+--- a/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
++++ b/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
+@@ -111,10 +111,47 @@
+ 
+   if (self.isActive &&
+       // TODO(tkchin): Figure out which category/mode numChannels is valid for.
+-      [self.mode isEqualToString:AVAudioSessionModeVoiceChat]) {
++      [self.mode isEqualToString:AVAudioSessionModeDefault]) {
+     // Try to set the preferred number of hardware audio channels. These calls
+     // must be done after setting the audio session’s category and mode and
+     // activating the session.
++    if (self.inputDataSources != nil) {
++      for (AVAudioSessionDataSourceDescription *dataSource in self.inputDataSources) {
++        RTCLog(@"Found data source: %@", dataSource.dataSourceName);
++        
++        // stereo に対応している data source を探す
++        if ([dataSource.supportedPolarPatterns containsObject:AVAudioSessionPolarPatternStereo]) {
++          NSError *polarPatternError = nil;
++          
++          // stereo 指定
++          if (![dataSource setPreferredPolarPattern:AVAudioSessionPolarPatternStereo error:&polarPatternError]) {
++            RTCLogError(@"Failed to set stereo polar pattern: %@", polarPatternError.localizedDescription);
++          } else {
++            RTCLog(@"Set stereo polar pattern for data source: %@", AVAudioSessionPolarPatternStereo);
++            
++            // 入力 data source を切り替え
++            NSError *dataSourceError = nil;
++            if (![self setInputDataSource:dataSource error:&dataSourceError]) {
++              RTCLogError(@"Failed to set preferred data source: %@", dataSourceError.localizedDescription);
++            } else {
++              RTCLog(@"Set preferred input data source: %@", dataSource.dataSourceName);
++            }
++
++            // ステレオの配置を指定
++            NSError *orientationError = nil;
++            if (![self setPreferredInputOrientation:AVAudioStereoOrientationLandscapeRight error:&orientationError]) {
++              RTCLogError(@"Failed to set preferred orientation: %@", orientationError.localizedDescription);
++            } else {
++              RTCLog(@"Set preferred orientation: %ld", AVAudioStereoOrientationLandscapeRight);
++            }
++          }
++          break; // 最初に見つけた stereo data source で抜ける
++        }
++      }
++    } else {
++      RTCLog(@"No input data sources available.");
++    }
++
+     NSInteger inputNumberOfChannels = configuration.inputNumberOfChannels;
+     if (self.inputNumberOfChannels != inputNumberOfChannels) {
+       NSError *inputChannelsError = nil;
+diff --git a/sdk/objc/components/audio/RTCAudioSession.h b/sdk/objc/components/audio/RTCAudioSession.h
+index 47a60074dc..45eda6987c 100644
+--- a/sdk/objc/components/audio/RTCAudioSession.h
++++ b/sdk/objc/components/audio/RTCAudioSession.h
+@@ -265,6 +265,8 @@ RTC_OBJC_EXPORT
+                      error:(NSError **)outError;
+ - (BOOL)setOutputDataSource:(AVAudioSessionDataSourceDescription *)dataSource
+                       error:(NSError **)outError;
++- (BOOL)setPreferredInputOrientation:(AVAudioStereoOrientation)orientation
++                     error:(NSError **)outError;
+ 
+ - (void)initializeInput:(nullable void (^)(NSError *_Nullable error))completionHandler;
+ 
+diff --git a/sdk/objc/components/audio/RTCAudioSession.mm b/sdk/objc/components/audio/RTCAudioSession.mm
+index 7678b9c4b5..07201a2290 100644
+--- a/sdk/objc/components/audio/RTCAudioSession.mm
++++ b/sdk/objc/components/audio/RTCAudioSession.mm
+@@ -531,6 +531,14 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
+   return [self.session setOutputDataSource:dataSource error:outError];
+ }
+ 
++- (BOOL)setPreferredInputOrientation:(AVAudioStereoOrientation)orientation
++                     error:(NSError **)outError {
++  if (![self checkLock:outError]) {
++    return NO;
++  }
++  return [self.session setPreferredInputOrientation:orientation error:outError];
++}
++
+ #pragma mark - Notifications
+ 
+ - (void)handleInterruptionNotification:(NSNotification *)notification {
+diff --git a/sdk/objc/components/audio/RTCAudioSessionConfiguration.m b/sdk/objc/components/audio/RTCAudioSessionConfiguration.m
+index 143a7864f8..ba27aadc46 100644
+--- a/sdk/objc/components/audio/RTCAudioSessionConfiguration.m
++++ b/sdk/objc/components/audio/RTCAudioSessionConfiguration.m
+@@ -63,7 +63,10 @@ static RTC_OBJC_TYPE(RTCAudioSessionConfiguration) *gWebRTCConfiguration = nil;
+     _categoryOptions = AVAudioSessionCategoryOptionAllowBluetooth;
+ 
+     // Specify mode for two-way voice communication (e.g. VoIP).
+-    _mode = AVAudioSessionModeVoiceChat;
++    // _mode = AVAudioSessionModeVoiceChat;
++	// TODO(zztkm): _mode を AVAudioSessionModeVoiceChat から AVAudioSessionModeDefault に切り替えた場合の影響を確認する
++    _mode = AVAudioSessionModeDefault;
++
+ 
+     // Use best sample rate and buffer duration if the CPU has more than one
+     // core.
+diff --git a/sdk/objc/native/src/audio/audio_device_ios.h b/sdk/objc/native/src/audio/audio_device_ios.h
+index 7dcffb07d5..19b6ddcb47 100644
+--- a/sdk/objc/native/src/audio/audio_device_ios.h
++++ b/sdk/objc/native/src/audio/audio_device_ios.h
+@@ -12,6 +12,7 @@
+ #define SDK_OBJC_NATIVE_SRC_AUDIO_AUDIO_DEVICE_IOS_H_
+ 
+ #include <atomic>
++#include <cstdint>
+ #include <memory>
+ 
+ #include "api/environment/environment.h"
+@@ -34,6 +35,11 @@ class FineAudioBuffer;
+ 
+ namespace ios_adm {
+ 
++// webrtc/modules/audio_device/mac/audio_device_mac.h に倣うが両方 1 でないと
++// VoiceProcessingAudioUnit が動かなくなる
++const uint32_t N_REC_CHANNELS = 1;   // default is mono recording
++const uint32_t N_PLAY_CHANNELS = 1;  // default is mono playout
++
+ // A callback handler for audio device rendering errors.
+ // Note: Called on a realtime thread.
+ // Note: Only applies to input rendering errors, not output.
+@@ -249,6 +255,9 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
+   // and therefore outlives this object.
+   AudioDeviceBuffer* audio_device_buffer_;
+ 
++  uint8_t play_channels_;
++  uint8_t rec_channels_;
++
+   // Contains audio parameters (sample rate, #channels, buffer size etc.) for
+   // the playout and recording sides. These structure is set in two steps:
+   // first, native sample rate and #channels are defined in Init(). Next, the
+diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
+index 5d7a1ea628..9a56a3e9b8 100644
+--- a/sdk/objc/native/src/audio/audio_device_ios.mm
++++ b/sdk/objc/native/src/audio/audio_device_ios.mm
+@@ -33,6 +33,7 @@
+ #import "components/audio/RTCAudioSession.h"
+ #import "components/audio/RTCAudioSessionConfiguration.h"
+ #import "components/audio/RTCNativeAudioSessionDelegateAdapter.h"
++#import "remote_io_audio_unit.h"
+ 
+ namespace webrtc {
+ namespace ios_adm {
+@@ -106,6 +107,8 @@ AudioDeviceIOS::AudioDeviceIOS(
+       render_error_handler_(render_error_handler),
+       disregard_next_render_error_(false),
+       audio_device_buffer_(nullptr),
++	  play_channels_(N_PLAY_CHANNELS),
++	  rec_channels_(N_REC_CHANNELS),
+       audio_unit_(nullptr),
+       recording_(0),
+       playing_(0),
+@@ -412,7 +415,7 @@ OSStatus AudioDeviceIOS::OnDeliverRecordedData(
+   // in combination with potential reallocations.
+   // On real iOS devices, the size will only be set once (at first callback).
+   record_audio_buffer_.Clear();
+-  record_audio_buffer_.SetSize(num_frames);
++  record_audio_buffer_.SetSize(num_frames * rec_channels_);
+ 
+   // Get audio timestamp for the audio.
+   // The timestamp will not have NTP time epoch, but that will be addressed by
+@@ -428,7 +431,7 @@ OSStatus AudioDeviceIOS::OnDeliverRecordedData(
+   AudioBufferList audio_buffer_list;
+   audio_buffer_list.mNumberBuffers = 1;
+   AudioBuffer* audio_buffer = &audio_buffer_list.mBuffers[0];
+-  audio_buffer->mNumberChannels = record_parameters_.channels();
++  audio_buffer->mNumberChannels = rec_channels_;
+   audio_buffer->mDataByteSize =
+       record_audio_buffer_.size() * VoiceProcessingAudioUnit::kBytesPerSample;
+   audio_buffer->mData = reinterpret_cast<int8_t*>(record_audio_buffer_.data());
+@@ -466,15 +469,16 @@ OSStatus AudioDeviceIOS::OnGetPlayoutData(AudioUnitRenderActionFlags* flags,
+                                           AudioBufferList* io_data) {
+   RTC_DCHECK_RUN_ON(&io_thread_checker_);
+   // Verify 16-bit, noninterleaved mono PCM signal format.
+-  RTC_DCHECK_EQ(1, io_data->mNumberBuffers);
++  // RTC_DCHECK_EQ(1, io_data->mNumberBuffers);
+   AudioBuffer* audio_buffer = &io_data->mBuffers[0];
+   RTC_DCHECK_EQ(1, audio_buffer->mNumberChannels);
++  RTC_DCHECK_EQ(audio_buffer->mNumberChannels, play_channels_);
+ 
+   // Produce silence and give audio unit a hint about it if playout is not
+   // activated.
+   if (!playing_.load(std::memory_order_acquire)) {
+     const size_t size_in_bytes = audio_buffer->mDataByteSize;
+-    RTC_CHECK_EQ(size_in_bytes / VoiceProcessingAudioUnit::kBytesPerSample,
++    RTC_CHECK_EQ(size_in_bytes / VoiceProcessingAudioUnit::kBytesPerSample / play_channels_,
+                  num_frames);
+     *flags |= kAudioUnitRenderAction_OutputIsSilence;
+     memset(static_cast<int8_t*>(audio_buffer->mData), 0, size_in_bytes);
+@@ -534,7 +538,7 @@ OSStatus AudioDeviceIOS::OnGetPlayoutData(AudioUnitRenderActionFlags* flags,
+   // `io_data` destination.
+   fine_audio_buffer_->GetPlayoutData(
+       webrtc::ArrayView<int16_t>(static_cast<int16_t*>(audio_buffer->mData),
+-                                 num_frames),
++                                 num_frames * play_channels_),
+       playout_delay_ms);
+ 
+   last_hw_output_latency_update_sample_count_ += num_frames;
+@@ -746,8 +750,6 @@ void AudioDeviceIOS::UpdateAudioDeviceBuffer() {
+   RTC_DCHECK(audio_device_buffer_) << "AttachAudioBuffer must be called first";
+   RTC_DCHECK_GT(playout_parameters_.sample_rate(), 0);
+   RTC_DCHECK_GT(record_parameters_.sample_rate(), 0);
+-  RTC_DCHECK_EQ(playout_parameters_.channels(), 1);
+-  RTC_DCHECK_EQ(record_parameters_.channels(), 1);
+   // Inform the audio device buffer (ADB) about the new audio format.
+   audio_device_buffer_->SetPlayoutSampleRate(playout_parameters_.sample_rate());
+   audio_device_buffer_->SetPlayoutChannels(playout_parameters_.channels());
+@@ -822,8 +824,13 @@ bool AudioDeviceIOS::CreateAudioUnit() {
+     return false;
+   }
+   BOOL detect_mute_speech_ = (muted_speech_event_handler_ != 0);
+-  audio_unit_.reset(new VoiceProcessingAudioUnit(
+-      bypass_voice_processing_, detect_mute_speech_, this));
++  if (record_parameters_.channels() == 2 ||
++      playout_parameters_.channels() == 2) {
++    audio_unit_.reset(new RemoteIOAudioUnit(this));
++  } else {
++    audio_unit_.reset(new VoiceProcessingAudioUnit(
++        bypass_voice_processing_, detect_mute_speech_, this));
++  }
+   if (!audio_unit_->Init()) {
+     audio_unit_.reset();
+     return false;
+@@ -1180,32 +1187,54 @@ int32_t AudioDeviceIOS::MicrophoneMute(bool& enabled) const {
+ }
+ 
+ int32_t AudioDeviceIOS::StereoRecordingIsAvailable(bool& available) {
+-  available = false;
++  // 本当は audio_unit_ によって使い分けるべきだが、
++  // この段階では audio_unit_ が初期化されていないので、
++  // record_parameters_ を使う。
++  available = record_parameters_.channels() == 2;
+   return 0;
+ }
+ 
+ int32_t AudioDeviceIOS::SetStereoRecording(bool enable) {
+-  RTC_LOG_F(LS_WARNING) << "Not implemented";
+-  return -1;
++  if (enable)
++	rec_channels_ = 2;
++  else
++    rec_channels_ = 1;
++
++  return 0;
+ }
+ 
+ int32_t AudioDeviceIOS::StereoRecording(bool& enabled) const {
+-  enabled = false;
++  if (rec_channels_ == 2)
++    enabled = true;
++  else
++    enabled = false;
++
+   return 0;
+ }
+ 
+ int32_t AudioDeviceIOS::StereoPlayoutIsAvailable(bool& available) {
+-  available = false;
++  // 本当は audio_unit_ によって使い分けるべきだが、
++  // この段階では audio_unit_ が初期化されていないので、
++  // record_parameters_ を使う。
++  available = record_parameters_.channels() == 2;
+   return 0;
+ }
+ 
+ int32_t AudioDeviceIOS::SetStereoPlayout(bool enable) {
+-  RTC_LOG_F(LS_WARNING) << "Not implemented";
+-  return -1;
++  if (enable)
++	rec_channels_ = 2;
++  else
++    rec_channels_ = 1;
++
++  return 0;
+ }
+ 
+ int32_t AudioDeviceIOS::StereoPlayout(bool& enabled) const {
+-  enabled = false;
++  if (rec_channels_ == 2)
++    enabled = true;
++  else
++    enabled = false;
++
+   return 0;
+ }
+ 
+diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.mm b/sdk/objc/native/src/audio/audio_device_module_ios.mm
+index 7420d05ebd..85f394d9f2 100644
+--- a/sdk/objc/native/src/audio/audio_device_module_ios.mm
++++ b/sdk/objc/native/src/audio/audio_device_module_ios.mm
+@@ -346,11 +346,23 @@ int32_t AudioDeviceModuleIOS::StereoRecordingIsAvailable(
+ int32_t AudioDeviceModuleIOS::SetStereoRecording(bool enable) {
+   RTC_DLOG(LS_INFO) << __FUNCTION__ << "(" << enable << ")";
+   CHECKinitialized_();
+-  if (enable) {
+-    RTC_LOG(LS_WARNING) << "recording in stereo is not supported";
++  if (audio_device_->RecordingIsInitialized()) {
++    RTC_LOG(LS_ERROR)
++        << "unable to set stereo mode while recording side is initialized";
++    ReportError(kStereoPlayoutFailed);
++    return -1;
+   }
+-  ReportError(kStereoRecordingFailed);
+-  return -1;
++  if (audio_device_->SetStereoRecording(enable)) {
++    RTC_LOG(LS_WARNING) << "stereo recording is not supported";
++    ReportError(kStereoPlayoutFailed);
++    return -1;
++  }
++  int8_t nChannels(1);
++  if (enable) {
++	nChannels = 2;
++  }
++  audio_device_buffer_.get()->SetRecordingChannels(nChannels);
++  return 0;
+ }
+ 
+ int32_t AudioDeviceModuleIOS::StereoRecording(bool* enabled) const {
+diff --git a/sdk/objc/native/src/audio/remote_io_audio_unit.h b/sdk/objc/native/src/audio/remote_io_audio_unit.h
+new file mode 100644
+index 0000000000..633b00585e
+--- /dev/null
++++ b/sdk/objc/native/src/audio/remote_io_audio_unit.h
+@@ -0,0 +1,37 @@
++/*
++ *  Copyright 2016 The WebRTC Project Authors. All rights reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#ifndef SDK_OBJC_NATIVE_SRC_AUDIO_REMOTE_IO_AUDIO_UNIT_H_
++#define SDK_OBJC_NATIVE_SRC_AUDIO_REMOTE_IO_AUDIO_UNIT_H_
++
++#include "voice_processing_audio_unit.h"
++
++namespace webrtc {
++namespace ios_adm {
++// Convenience class to abstract away the management of a Remote I/O Audio
++class RemoteIOAudioUnit : public VoiceProcessingAudioUnit {
++ public:
++  RemoteIOAudioUnit(VoiceProcessingAudioUnitObserver* observer);
++  ~RemoteIOAudioUnit();
++
++  bool Init() override;
++
++  // Initializes the underlying audio unit with the given sample rate.
++  bool Initialize(Float64 sample_rate) override;
++
++  // Returns the predetermined format with a specific sample rate. See
++  // implementation file for details on format.
++  AudioStreamBasicDescription GetFormat(Float64 sample_rate, UInt32 channels) const;
++};
++}  // namespace ios_adm
++}  // namespace webrtc
++
++#endif  // SDK_OBJC_NATIVE_SRC_AUDIO_REMOTE_IO_AUDIO_UNIT_H_
++
+diff --git a/sdk/objc/native/src/audio/remote_io_audio_unit.mm b/sdk/objc/native/src/audio/remote_io_audio_unit.mm
+new file mode 100644
+index 0000000000..2b181c33bf
+--- /dev/null
++++ b/sdk/objc/native/src/audio/remote_io_audio_unit.mm
+@@ -0,0 +1,211 @@
++/*
++ *  Copyright 2016 The WebRTC Project Authors. All rights reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#import "remote_io_audio_unit.h"
++
++#include "rtc_base/checks.h"
++#include "system_wrappers/include/metrics.h"
++
++#import "base/RTCLogging.h"
++#import "sdk/objc/components/audio/RTCAudioSession+Private.h"
++#import "sdk/objc/components/audio/RTCAudioSessionConfiguration.h"
++
++namespace webrtc {
++namespace ios_adm {
++
++// Calls to AudioUnitInitialize() can fail if called back-to-back on different
++// ADM instances. A fall-back solution is to allow multiple sequential calls
++// with as small delay between each. This factor sets the max number of allowed
++// initialization attempts.
++static const int kMaxNumberOfAudioUnitInitializeAttempts = 5;
++// A VP I/O unit's bus 1 connects to input hardware (microphone).
++static const AudioUnitElement kInputBus = 1;
++// A VP I/O unit's bus 0 connects to output hardware (speaker).
++static const AudioUnitElement kOutputBus = 0;
++
++RemoteIOAudioUnit::RemoteIOAudioUnit(
++    VoiceProcessingAudioUnitObserver* observer)
++    : VoiceProcessingAudioUnit(true, false, observer) {
++  RTC_DCHECK(observer);
++}
++
++bool RemoteIOAudioUnit::Init() {
++  RTC_DCHECK_EQ(state_, kInitRequired);
++
++  // Create an audio component description to identify the Voice Processing
++  // I/O audio unit.
++  AudioComponentDescription vpio_unit_description;
++  vpio_unit_description.componentType = kAudioUnitType_Output;
++  vpio_unit_description.componentSubType = kAudioUnitSubType_RemoteIO;
++  vpio_unit_description.componentManufacturer = kAudioUnitManufacturer_Apple;
++  vpio_unit_description.componentFlags = 0;
++  vpio_unit_description.componentFlagsMask = 0;
++
++  // Obtain an audio unit instance given the description.
++  AudioComponent found_vpio_unit_ref =
++      AudioComponentFindNext(nullptr, &vpio_unit_description);
++
++  // Create a Voice Processing IO audio unit.
++  OSStatus result = noErr;
++  result = AudioComponentInstanceNew(found_vpio_unit_ref, &vpio_unit_);
++  if (result != noErr) {
++    vpio_unit_ = nullptr;
++    RTCLogError(@"AudioComponentInstanceNew failed. Error=%ld.", (long)result);
++    return false;
++  }
++
++  // Enable output on the output scope of the output element.
++  UInt32 enable_output = 1;
++  result = AudioUnitSetProperty(vpio_unit_,
++                                kAudioOutputUnitProperty_EnableIO,
++                                kAudioUnitScope_Output,
++                                kOutputBus,
++                                &enable_output,
++                                sizeof(enable_output));
++  if (result != noErr) {
++    DisposeAudioUnit();
++    RTCLogError(@"Failed to enable output on output scope of output element. "
++                 "Error=%ld.",
++                (long)result);
++    return false;
++  }
++
++  // Specify the callback function that provides audio samples to the audio
++  // unit.
++  AURenderCallbackStruct render_callback;
++  render_callback.inputProc = OnGetPlayoutData;
++  render_callback.inputProcRefCon = this;
++  result = AudioUnitSetProperty(vpio_unit_,
++                                kAudioUnitProperty_SetRenderCallback,
++                                kAudioUnitScope_Input,
++                                kOutputBus,
++                                &render_callback,
++                                sizeof(render_callback));
++  if (result != noErr) {
++    DisposeAudioUnit();
++    RTCLogError(@"Failed to specify the render callback on the output bus. "
++                 "Error=%ld.",
++                (long)result);
++    return false;
++  }
++
++  // Disable AU buffer allocation for the recorder, we allocate our own.
++  // TODO(henrika): not sure that it actually saves resource to make this call.
++  UInt32 flag = 0;
++  result = AudioUnitSetProperty(vpio_unit_,
++                                kAudioUnitProperty_ShouldAllocateBuffer,
++                                kAudioUnitScope_Output,
++                                kInputBus,
++                                &flag,
++                                sizeof(flag));
++  if (result != noErr) {
++    DisposeAudioUnit();
++    RTCLogError(@"Failed to disable buffer allocation on the input bus. "
++                 "Error=%ld.",
++                (long)result);
++    return false;
++  }
++
++  state_ = kUninitialized;
++  return true;
++}
++
++bool RemoteIOAudioUnit::Initialize(Float64 sample_rate) {
++  RTC_DCHECK_GE(state_, kUninitialized);
++  RTCLog(@"Initializing audio unit with sample rate: %f", sample_rate);
++
++  RTCAudioSession *session = [RTCAudioSession sharedInstance];
++  [session startVoiceProcessingAudioUnit: this];
++
++  OSStatus result = noErr;
++  AudioStreamBasicDescription format = GetFormat(sample_rate, 2);
++  UInt32 size = sizeof(format);
++
++  // Set the format on the output scope of the input element/bus.
++  result = AudioUnitSetProperty(vpio_unit_,
++                                kAudioUnitProperty_StreamFormat,
++                                kAudioUnitScope_Output,
++                                kInputBus,
++                                &format,
++                                size);
++  if (result != noErr) {
++    RTCLogError(@"Failed to set format on output scope of input bus. "
++                 "Error=%ld.",
++                (long)result);
++    return false;
++  }
++
++  format = GetFormat(sample_rate, 2);
++  // Set the format on the input scope of the output element/bus.
++  result = AudioUnitSetProperty(vpio_unit_,
++                                kAudioUnitProperty_StreamFormat,
++                                kAudioUnitScope_Input,
++                                kOutputBus,
++                                &format,
++                                size);
++  if (result != noErr) {
++    RTCLogError(@"Failed to set format on input scope of output bus. "
++                 "Error=%ld.",
++                (long)result);
++    return false;
++  }
++
++  // Initialize the Voice Processing I/O unit instance.
++  // Calls to AudioUnitInitialize() can fail if called back-to-back on
++  // different ADM instances. The error message in this case is -66635 which is
++  // undocumented. Tests have shown that calling AudioUnitInitialize a second
++  // time, after a short sleep, avoids this issue.
++  // See webrtc:5166 for details.
++  int failed_initalize_attempts = 0;
++  result = AudioUnitInitialize(vpio_unit_);
++  while (result != noErr) {
++    RTCLogError(@"Failed to initialize the Voice Processing I/O unit. "
++                 "Error=%ld.",
++                (long)result);
++    ++failed_initalize_attempts;
++    if (failed_initalize_attempts == kMaxNumberOfAudioUnitInitializeAttempts) {
++      // Max number of initialization attempts exceeded, hence abort.
++      RTCLogError(@"Too many initialization attempts.");
++      return false;
++    }
++    RTCLog(@"Pause 100ms and try audio unit initialization again...");
++    [NSThread sleepForTimeInterval:0.1f];
++    result = AudioUnitInitialize(vpio_unit_);
++  }
++  if (result == noErr) {
++    RTCLog(@"Voice Processing I/O unit is now initialized.");
++  }
++  state_ = kInitialized;
++  return true;
++}
++
++AudioStreamBasicDescription RemoteIOAudioUnit::GetFormat(
++    Float64 sample_rate, UInt32 channels) const {
++  // Set the application formats for input and output:
++  // - use same format in both directions
++  // - avoid resampling in the I/O unit by using the hardware sample rate
++  // - linear PCM => noncompressed audio data format with one frame per packet
++  // - no need to specify interleaving since only mono is supported
++  AudioStreamBasicDescription format;
++  format.mSampleRate = sample_rate;
++  format.mFormatID = kAudioFormatLinearPCM;
++  format.mFormatFlags =
++      kLinearPCMFormatFlagIsSignedInteger | kLinearPCMFormatFlagIsPacked;
++  format.mFramesPerPacket = 1;  // uncompressed.
++  format.mChannelsPerFrame = channels;
++  format.mBytesPerPacket = kBytesPerSample * format.mChannelsPerFrame;
++  format.mBytesPerFrame = kBytesPerSample * format.mChannelsPerFrame;
++  format.mBitsPerChannel = 8 * kBytesPerSample;
++  return format;
++}
++
++}  // namespace ios_adm
++}  // namespace webrtc
++
+diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.h b/sdk/objc/native/src/audio/voice_processing_audio_unit.h
+index cad6fe5105..77907079c1 100644
+--- a/sdk/objc/native/src/audio/voice_processing_audio_unit.h
++++ b/sdk/objc/native/src/audio/voice_processing_audio_unit.h
+@@ -76,12 +76,12 @@ class VoiceProcessingAudioUnit {
+   // audio. The selected stream format is selected to avoid internal resampling
+   // and to match the 10ms callback rate for WebRTC as well as possible.
+   // Does not intialize the audio unit.
+-  bool Init();
++  virtual bool Init();
+ 
+   VoiceProcessingAudioUnit::State GetState() const;
+ 
+   // Initializes the underlying audio unit with the given sample rate.
+-  bool Initialize(Float64 sample_rate);
++  virtual bool Initialize(Float64 sample_rate);
+ 
+   // Starts the underlying audio unit.
+   OSStatus Start();
