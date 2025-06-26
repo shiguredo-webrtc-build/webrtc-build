@@ -1,3 +1,16 @@
+diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
+index 9f2b408c69..77d018ccf9 100644
+--- a/sdk/BUILD.gn
++++ b/sdk/BUILD.gn
+@@ -300,6 +300,8 @@ if (is_ios || is_mac) {
+           "objc/native/src/audio/audio_device_module_ios.mm",
+           "objc/native/src/audio/helpers.h",
+           "objc/native/src/audio/helpers.mm",
++          "objc/native/src/audio/remote_io_audio_unit.h",
++          "objc/native/src/audio/remote_io_audio_unit.mm",
+           "objc/native/src/audio/voice_processing_audio_unit.h",
+           "objc/native/src/audio/voice_processing_audio_unit.mm",
+         ]
 diff --git a/sdk/objc/components/audio/RTCAudioSession+Configuration.mm b/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
 index 7267a79334..809df576ee 100644
 --- a/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
