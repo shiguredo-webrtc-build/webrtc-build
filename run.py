@@ -252,6 +252,7 @@ PATCHES = {
         # 既に ios_build.patch で同じ内容を適用済み
         # "remove_crel.patch",
         "revert_siso.patch",
+        "ios_stereo_audio.patch",
     ],
     "android": [
         "add_deps.patch",
