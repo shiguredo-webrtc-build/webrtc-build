@@ -39,6 +39,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - `remove_crel.patch` の単純なパッチ適用失敗を修正
   - `h265.patch` の単純なパッチ適用失敗を修正
   - `android_proxy.patch` の単純なパッチ適用失敗を修正
+  - `ssl_verify_callback_with_native_handle.patch` の単純なパッチ適用失敗を修正
   - `update_expected_clang_version.patch` は不要になったので削除
   - Windows で `revive_proxy.patch` がエラーになっていたのを修正
     - 変数の shadowing でエラーになっていたので名前を被らないようにした
