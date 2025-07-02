@@ -677,6 +677,7 @@ COMMON_GN_ARGS = [
     "enable_rust_cxx=false",
     "enable_chromium_prelude=false",
     "rtc_rusty_base64=false",
+    "use_debug_fission=false",
 ]
 
 WEBRTC_BUILD_TARGETS_MACOS_COMMON = [
