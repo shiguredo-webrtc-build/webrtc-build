@@ -29,7 +29,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
-- 2025-07-01 [UPDATE] android_include_environmet_java.patch を追加する
+- 2025-07-01 [UPDATE] android_include_environment_java.patch を追加する
   - m138 で追加された `src/sdk/android/api/Environment.java` を libwebrtc.aar に追加するパッチ
   - PeerConnectionFactory.java でのクラス参照エラーに対する対応
   - @miosakuma
