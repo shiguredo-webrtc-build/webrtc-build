@@ -29,6 +29,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-07-02 [RELEASE] m137.7151.3.1
 - 2025-07-02 [FIX] iOS でオーディオ処理が行われなくなる不具合を修正
   - https://source.chromium.org/chromium/_/webrtc/src/+/11f487e72f22d92104c2b8770793285d5fe5dfa9 により、InitPlayOrRecord 内で audio_is_initialized_ を true に設定する仕様へ変更
   - 既存の ios_manual_audio_input.patch は InitPlayOrRecord で早期リターンしていたため audio_is_initialized_ が設定されず、iOS で再生／録音が機能しなかった
