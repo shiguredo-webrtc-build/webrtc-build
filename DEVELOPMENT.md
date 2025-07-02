@@ -203,8 +203,9 @@ python3 run.py fetch <target>
 2. libwebrtc のソースを編集して正しい状態にする
   - 元のパッチファイルの差分を見て、どうするべきかを考えて修正する
   - 場合によっては旧バージョンのソースファイルも確認する必要があるかもしれないが、ローカルにダウンロードするのは大変なので https://source.chromium.org/chromium あたりから探すのが良い
-3. `python3 run.py diff <target>` コマンドで差分を確認した後、問題なければ `python3 run.py diff <target> > <patch>` でパッチを上書きする
-4. `python3 run.py revert <target>` でパッチが正しく適用されているか確認する
+3. `python3 run.py diff <target>` コマンドで差分を確認する
+4. 問題なければリダイレクト（>）を使って `python3 run.py diff <target> > <patch>` コマンドでパッチを上書きする
+5. `python3 run.py revert <target>` でパッチが正しく適用されているか確認する
 
 ## libwebrtc に新しいバージョンがあるか確認する
 
