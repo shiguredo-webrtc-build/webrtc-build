@@ -29,11 +29,19 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
-- 2025-07-01 [UPDATE] android_include_environment_java.patch を追加する
+- 2025-07-04 [UPDATE] android_include_environment_java.patch を追加する
   - m138 で追加された `src/sdk/android/api/Environment.java` を libwebrtc.aar に追加するパッチ
   - PeerConnectionFactory.java でのクラス参照エラーに対する対応
   - @miosakuma
-- 2025-06-05 [RELEASE] m138.7204.0.0
+- 2025-07-03 [RELEASE] m138.7204.0.1
+  - @torikizi
+- 2025-07-02 [RELEASE] m137.7151.3.1
+- 2025-07-02 [FIX] iOS でオーディオ処理が行われなくなる不具合を修正
+  - https://source.chromium.org/chromium/_/webrtc/src/+/11f487e72f22d92104c2b8770793285d5fe5dfa9 により、InitPlayOrRecord 内で audio_is_initialized_ を true に設定する仕様へ変更
+  - 既存の ios_manual_audio_input.patch は InitPlayOrRecord で早期リターンしていたため audio_is_initialized_ が設定されず、iOS で再生／録音が機能しなかった
+  - 早期リターン箇所にも audio_is_initialized_ = true を追加し、初期化漏れを解消
+  - @zztkm
+- 2025-06-16 [RELEASE] m138.7204.0.0
   - @torikizi
 - 2025-06-12 [UPDATE] m138 ブランチのビルドエラーに対する対応
   - `remove_crel.patch` の単純なパッチ適用失敗を修正
