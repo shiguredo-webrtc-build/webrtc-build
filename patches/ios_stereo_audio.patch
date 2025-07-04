@@ -12,32 +12,67 @@ index 9f2b408c69..77d018ccf9 100644
            "objc/native/src/audio/voice_processing_audio_unit.mm",
          ]
 diff --git a/sdk/objc/components/audio/RTCAudioSession+Configuration.mm b/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
-index 7267a79334..809df576ee 100644
+index 7267a79334..821fc24db2 100644
 --- a/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
 +++ b/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
-@@ -111,10 +111,47 @@
- 
-   if (self.isActive &&
-       // TODO(tkchin): Figure out which category/mode numChannels is valid for.
--      [self.mode isEqualToString:AVAudioSessionModeVoiceChat]) {
-+      [self.mode isEqualToString:AVAudioSessionModeDefault]) {
+@@ -115,6 +115,83 @@
      // Try to set the preferred number of hardware audio channels. These calls
      // must be done after setting the audio session’s category and mode and
      // activating the session.
++
++    NSInteger inputNumberOfChannels = configuration.inputNumberOfChannels;
++    if (self.inputNumberOfChannels != inputNumberOfChannels) {
++      NSError *inputChannelsError = nil;
++      if (![self setPreferredInputNumberOfChannels:inputNumberOfChannels
++                                             error:&inputChannelsError]) {
++        RTCLogError(@"Failed to set preferred input number of channels: %@",
++                    inputChannelsError.localizedDescription);
++        if (!self.ignoresPreferredAttributeConfigurationErrors) {
++          error = inputChannelsError;
++        }
++      } else {
++        RTCLog(@"Set input number of channels to: %ld",
++               (long)inputNumberOfChannels);
++      }
++    }
++    NSInteger outputNumberOfChannels = configuration.outputNumberOfChannels;
++    if (self.outputNumberOfChannels != outputNumberOfChannels) {
++      NSError *outputChannelsError = nil;
++      if (![self setPreferredOutputNumberOfChannels:outputNumberOfChannels
++                                              error:&outputChannelsError]) {
++        RTCLogError(@"Failed to set preferred output number of channels: %@",
++                    outputChannelsError.localizedDescription);
++        if (!self.ignoresPreferredAttributeConfigurationErrors) {
++          error = outputChannelsError;
++        }
++      } else {
++        RTCLog(@"Set output number of channels to: %ld",
++               (long)outputNumberOfChannels);
++      }
++    }
++  }
++
++  // AVAudioSessionModeDefault が指定された場合は stereo data source を探す
++  if (self.isActive &&
++      // TODO(tkchin): Figure out which category/mode numChannels is valid for.
++      [self.mode isEqualToString:AVAudioSessionModeDefault]) {
++    // Try to set the preferred number of hardware audio channels. These calls
++    // must be done after setting the audio session’s category and mode and
++    // activating the session.
 +    if (self.inputDataSources != nil) {
 +      for (AVAudioSessionDataSourceDescription *dataSource in self.inputDataSources) {
 +        RTCLog(@"Found data source: %@", dataSource.dataSourceName);
-+        
++
 +        // stereo に対応している data source を探す
 +        if ([dataSource.supportedPolarPatterns containsObject:AVAudioSessionPolarPatternStereo]) {
 +          NSError *polarPatternError = nil;
-+          
++
 +          // stereo 指定
 +          if (![dataSource setPreferredPolarPattern:AVAudioSessionPolarPatternStereo error:&polarPatternError]) {
 +            RTCLogError(@"Failed to set stereo polar pattern: %@", polarPatternError.localizedDescription);
 +          } else {
 +            RTCLog(@"Set stereo polar pattern for data source: %@", AVAudioSessionPolarPatternStereo);
-+            
++
 +            // 入力 data source を切り替え
 +            NSError *dataSourceError = nil;
 +            if (![self setInputDataSource:dataSource error:&dataSourceError]) {
@@ -97,21 +132,17 @@ index 7678b9c4b5..07201a2290 100644
  
  - (void)handleInterruptionNotification:(NSNotification *)notification {
 diff --git a/sdk/objc/components/audio/RTCAudioSessionConfiguration.m b/sdk/objc/components/audio/RTCAudioSessionConfiguration.m
-index 143a7864f8..ba27aadc46 100644
+index 143a7864f8..0bc11599a4 100644
 --- a/sdk/objc/components/audio/RTCAudioSessionConfiguration.m
 +++ b/sdk/objc/components/audio/RTCAudioSessionConfiguration.m
-@@ -63,7 +63,10 @@ static RTC_OBJC_TYPE(RTCAudioSessionConfiguration) *gWebRTCConfiguration = nil;
-     _categoryOptions = AVAudioSessionCategoryOptionAllowBluetooth;
- 
+@@ -65,6 +65,7 @@ static RTC_OBJC_TYPE(RTCAudioSessionConfiguration) *gWebRTCConfiguration = nil;
      // Specify mode for two-way voice communication (e.g. VoIP).
--    _mode = AVAudioSessionModeVoiceChat;
-+    // _mode = AVAudioSessionModeVoiceChat;
-+	// TODO(zztkm): _mode を AVAudioSessionModeVoiceChat から AVAudioSessionModeDefault に切り替えた場合の影響を確認する
-+    _mode = AVAudioSessionModeDefault;
-+
+     _mode = AVAudioSessionModeVoiceChat;
  
++
      // Use best sample rate and buffer duration if the CPU has more than one
      // core.
+     _sampleRate = kRTCAudioSessionHighPerformanceSampleRate;
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.h b/sdk/objc/native/src/audio/audio_device_ios.h
 index 7dcffb07d5..19b6ddcb47 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.h
@@ -147,7 +178,7 @@ index 7dcffb07d5..19b6ddcb47 100644
    // the playout and recording sides. These structure is set in two steps:
    // first, native sample rate and #channels are defined in Init(). Next, the
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index 5d7a1ea628..9a56a3e9b8 100644
+index ba3324c153..d801a6238d 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
 @@ -33,6 +33,7 @@
@@ -238,7 +269,7 @@ index 5d7a1ea628..9a56a3e9b8 100644
    if (!audio_unit_->Init()) {
      audio_unit_.reset();
      return false;
-@@ -1180,32 +1187,54 @@ int32_t AudioDeviceIOS::MicrophoneMute(bool& enabled) const {
+@@ -1181,32 +1188,54 @@ int32_t AudioDeviceIOS::MicrophoneMute(bool& enabled) const {
  }
  
  int32_t AudioDeviceIOS::StereoRecordingIsAvailable(bool& available) {
