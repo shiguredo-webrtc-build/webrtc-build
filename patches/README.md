@@ -87,6 +87,14 @@ PeerConnectionDependencies dependencies = PeerConnectionDependencies
 PeerConnection pc = factory.createPeerConnection(rtcConfig, dependencies);
 ```
 
+## android_include_environment_java.patch
+
+libwebrtc.aar に 、`src/sdk/android/api/Environment.java` を追加するパッチ
+
+[m138 で上記ファイルが追加された](https://source.chromium.org/chromium/_/webrtc/src/+/72b9eb1de04ddb56f5c3e3ae8b0d1a50847fef5e) が libwebrtc.aar に含まれていないことにより PeerConnectionFactory.java で参照エラーが発生したため対応した。
+
+本家でこの問題が修正されたら削除する。
+
 ## arm_neon_sve_bridge.patch
 
 iOS/macOS における libvpx ビルド時に `arm_neon_sve_bridge.h` が見つからずにエラーになる問題に対応するパッチ。
