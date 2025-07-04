@@ -10,7 +10,7 @@ import subprocess
 import tarfile
 import urllib.parse
 import zipfile
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 logging.basicConfig(level=logging.INFO)
 
@@ -1407,7 +1407,7 @@ def check_target(target):
         return False
 
 
-def get_webrtc_branch_info(branch: str):
+def get_webrtc_branch_info(branch: str) -> Tuple[str, str]:
     # 指定されたブランチのコミットハッシュとコミットポジションを取得する
     src_commits = downloadcap(
         f"https://webrtc.googlesource.com/src.git/+log/refs/branch-heads/{branch}"
@@ -1430,7 +1430,7 @@ def get_webrtc_branch_info(branch: str):
         position = r.group(2)
     else:
         # 最初のコミットの場合は refs/heads/main になって、コミットポジションは存在しない
-        position = 0
+        position = "0"
     return commit, position
 
 
