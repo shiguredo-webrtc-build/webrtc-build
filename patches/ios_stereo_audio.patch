@@ -12,50 +12,31 @@ index 9f2b408c69..77d018ccf9 100644
            "objc/native/src/audio/voice_processing_audio_unit.mm",
          ]
 diff --git a/sdk/objc/components/audio/RTCAudioSession+Configuration.mm b/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
-index 7267a79334..821fc24db2 100644
+index 7267a79334..f99dfce818 100644
 --- a/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
 +++ b/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
-@@ -115,6 +115,83 @@
+@@ -109,9 +109,12 @@
+     }
+   }
+ 
++  RTCLog(@"STEREO_LOG: Starting audio channels initialization with mode: %@", self.mode);
++
+   if (self.isActive &&
+       // TODO(tkchin): Figure out which category/mode numChannels is valid for.
+       [self.mode isEqualToString:AVAudioSessionModeVoiceChat]) {
++    RTCLog(@"STEREO_LOG: set normal channel: %@", self.mode);
      // Try to set the preferred number of hardware audio channels. These calls
      // must be done after setting the audio session’s category and mode and
      // activating the session.
-+
-+    NSInteger inputNumberOfChannels = configuration.inputNumberOfChannels;
-+    if (self.inputNumberOfChannels != inputNumberOfChannels) {
-+      NSError *inputChannelsError = nil;
-+      if (![self setPreferredInputNumberOfChannels:inputNumberOfChannels
-+                                             error:&inputChannelsError]) {
-+        RTCLogError(@"Failed to set preferred input number of channels: %@",
-+                    inputChannelsError.localizedDescription);
-+        if (!self.ignoresPreferredAttributeConfigurationErrors) {
-+          error = inputChannelsError;
-+        }
-+      } else {
-+        RTCLog(@"Set input number of channels to: %ld",
-+               (long)inputNumberOfChannels);
-+      }
-+    }
-+    NSInteger outputNumberOfChannels = configuration.outputNumberOfChannels;
-+    if (self.outputNumberOfChannels != outputNumberOfChannels) {
-+      NSError *outputChannelsError = nil;
-+      if (![self setPreferredOutputNumberOfChannels:outputNumberOfChannels
-+                                              error:&outputChannelsError]) {
-+        RTCLogError(@"Failed to set preferred output number of channels: %@",
-+                    outputChannelsError.localizedDescription);
-+        if (!self.ignoresPreferredAttributeConfigurationErrors) {
-+          error = outputChannelsError;
-+        }
-+      } else {
-+        RTCLog(@"Set output number of channels to: %ld",
-+               (long)outputNumberOfChannels);
-+      }
-+    }
-+  }
-+
+@@ -147,6 +150,83 @@
+     }
+   }
+ 
 +  // AVAudioSessionModeDefault が指定された場合は stereo data source を探す
 +  if (self.isActive &&
 +      // TODO(tkchin): Figure out which category/mode numChannels is valid for.
 +      [self.mode isEqualToString:AVAudioSessionModeDefault]) {
++    RTCLog(@"STEREO_LOG: set stereo channel: %@", self.mode);
 +    // Try to set the preferred number of hardware audio channels. These calls
 +    // must be done after setting the audio session’s category and mode and
 +    // activating the session.
@@ -96,9 +77,41 @@ index 7267a79334..821fc24db2 100644
 +      RTCLog(@"No input data sources available.");
 +    }
 +
-     NSInteger inputNumberOfChannels = configuration.inputNumberOfChannels;
-     if (self.inputNumberOfChannels != inputNumberOfChannels) {
-       NSError *inputChannelsError = nil;
++    NSInteger inputNumberOfChannels = configuration.inputNumberOfChannels;
++    if (self.inputNumberOfChannels != inputNumberOfChannels) {
++      NSError *inputChannelsError = nil;
++      if (![self setPreferredInputNumberOfChannels:inputNumberOfChannels
++                                             error:&inputChannelsError]) {
++        RTCLogError(@"Failed to set preferred input number of channels: %@",
++                    inputChannelsError.localizedDescription);
++        if (!self.ignoresPreferredAttributeConfigurationErrors) {
++          error = inputChannelsError;
++        }
++      } else {
++        RTCLog(@"Set input number of channels to: %ld",
++               (long)inputNumberOfChannels);
++      }
++    }
++    NSInteger outputNumberOfChannels = configuration.outputNumberOfChannels;
++    if (self.outputNumberOfChannels != outputNumberOfChannels) {
++      NSError *outputChannelsError = nil;
++      if (![self setPreferredOutputNumberOfChannels:outputNumberOfChannels
++                                              error:&outputChannelsError]) {
++        RTCLogError(@"Failed to set preferred output number of channels: %@",
++                    outputChannelsError.localizedDescription);
++        if (!self.ignoresPreferredAttributeConfigurationErrors) {
++          error = outputChannelsError;
++        }
++      } else {
++        RTCLog(@"Set output number of channels to: %ld",
++               (long)outputNumberOfChannels);
++      }
++    }
++  }
++
+   if (outError) {
+     *outError = error;
+   }
 diff --git a/sdk/objc/components/audio/RTCAudioSession.h b/sdk/objc/components/audio/RTCAudioSession.h
 index 47a60074dc..45eda6987c 100644
 --- a/sdk/objc/components/audio/RTCAudioSession.h
@@ -178,7 +191,7 @@ index 7dcffb07d5..19b6ddcb47 100644
    // the playout and recording sides. These structure is set in two steps:
    // first, native sample rate and #channels are defined in Init(). Next, the
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index ba3324c153..d801a6238d 100644
+index ba3324c153..3791d492eb 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
 @@ -33,6 +33,7 @@
@@ -315,16 +328,16 @@ index ba3324c153..d801a6238d 100644
 -  RTC_LOG_F(LS_WARNING) << "Not implemented";
 -  return -1;
 +  if (enable)
-+	rec_channels_ = 2;
++	play_channels_ = 2;
 +  else
-+    rec_channels_ = 1;
++    play_channels_ = 1;
 +
 +  return 0;
  }
  
  int32_t AudioDeviceIOS::StereoPlayout(bool& enabled) const {
 -  enabled = false;
-+  if (rec_channels_ == 2)
++  if (play_channels_ == 2)
 +    enabled = true;
 +  else
 +    enabled = false;
