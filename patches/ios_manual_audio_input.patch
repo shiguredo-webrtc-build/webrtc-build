@@ -2,7 +2,7 @@ diff --git a/sdk/objc/components/audio/RTCAudioSession+Configuration.mm b/sdk/ob
 index fd9054ff89..7267a79334 100644
 --- a/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
 +++ b/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
-@@ -151,7 +151,8 @@ - (BOOL)setConfiguration:
+@@ -151,7 +151,8 @@
      *outError = error;
    }
  
@@ -74,7 +74,7 @@ diff --git a/sdk/objc/components/audio/RTCAudioSession.mm b/sdk/objc/components/
 index a759c35b2c..7678b9c4b5 100644
 --- a/sdk/objc/components/audio/RTCAudioSession.mm
 +++ b/sdk/objc/components/audio/RTCAudioSession.mm
-@@ -30,6 +30,7 @@
+@@ -30,6 +30,7 @@ NSString *const kRTCAudioSessionErrorDomain =
      @"org.webrtc.RTC_OBJC_TYPE(RTCAudioSession)";
  NSInteger const kRTCAudioSessionErrorLockRequired = -1;
  NSInteger const kRTCAudioSessionErrorConfiguration = -2;
@@ -82,7 +82,7 @@ index a759c35b2c..7678b9c4b5 100644
  NSString *const kRTCAudioSessionOutputVolumeSelector = @"outputVolume";
  
  namespace {
-@@ -57,6 +58,11 @@ @implementation RTC_OBJC_TYPE (RTCAudioSession) {
+@@ -57,6 +58,11 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
    BOOL _isAudioEnabled;
    BOOL _canPlayOrRecord;
    BOOL _isInterrupted;
@@ -94,7 +94,7 @@ index a759c35b2c..7678b9c4b5 100644
  }
  
  @synthesize session = _session;
-@@ -435,6 +441,11 @@ - (BOOL)setCategory:(AVAudioSessionCategory)category
+@@ -435,6 +441,11 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
                               error:outError];
  }
  
@@ -106,7 +106,7 @@ index a759c35b2c..7678b9c4b5 100644
  - (BOOL)setCategory:(AVAudioSessionCategory)category
          withOptions:(AVAudioSessionCategoryOptions)options
                error:(NSError **)outError {
-@@ -1037,4 +1048,126 @@ - (void)notifyFailedToSetActive:(BOOL)active error:(NSError *)error {
+@@ -1037,4 +1048,126 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
    }
  }
  
@@ -237,7 +237,7 @@ diff --git a/sdk/objc/components/audio/RTCAudioSessionConfiguration.m b/sdk/objc
 index 74de6b5ce2..143a7864f8 100644
 --- a/sdk/objc/components/audio/RTCAudioSessionConfiguration.m
 +++ b/sdk/objc/components/audio/RTCAudioSessionConfiguration.m
-@@ -59,7 +59,7 @@ - (instancetype)init {
+@@ -59,7 +59,7 @@ static RTC_OBJC_TYPE(RTCAudioSessionConfiguration) *gWebRTCConfiguration = nil;
      // By default, using this category implies that our app’s audio is
      // nonmixable, hence activating the session will interrupt any other
      // audio sessions which are also nonmixable.
@@ -247,10 +247,10 @@ index 74de6b5ce2..143a7864f8 100644
  
      // Specify mode for two-way voice communication (e.g. VoIP).
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index dd7dcc4201..0b34f66c8c 100644
+index 25c1e02022..eed051542c 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
-@@ -1007,8 +1007,14 @@ static void LogDeviceInfo() {
+@@ -1013,8 +1013,15 @@ bool AudioDeviceIOS::InitPlayOrRecord() {
        audio_unit_.reset();
        return false;
      }
@@ -261,6 +261,7 @@ index dd7dcc4201..0b34f66c8c 100644
 +    [session unlockForConfiguration];
      SetupAudioBuffersForActiveAudioSession();
      audio_unit_->Initialize(playout_parameters_.sample_rate());
++    audio_is_initialized_ = true;
 +    return true;
    }
  
@@ -290,7 +291,7 @@ index 066f3b161c..1bd895687d 100644
  #import "sdk/objc/components/audio/RTCAudioSessionConfiguration.h"
  
  #if !defined(NDEBUG)
-@@ -116,6 +117,7 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
+@@ -116,6 +117,7 @@ bool VoiceProcessingAudioUnit::Init() {
      return false;
    }
  
@@ -298,7 +299,7 @@ index 066f3b161c..1bd895687d 100644
    // Enable input on the input scope of the input element.
    UInt32 enable_input = 1;
    result = AudioUnitSetProperty(vpio_unit_,
-@@ -131,6 +133,7 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
+@@ -131,6 +133,7 @@ bool VoiceProcessingAudioUnit::Init() {
                  (long)result);
      return false;
    }
@@ -306,7 +307,7 @@ index 066f3b161c..1bd895687d 100644
  
    // Enable output on the output scope of the output element.
    UInt32 enable_output = 1;
-@@ -184,6 +187,7 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
+@@ -184,6 +187,7 @@ bool VoiceProcessingAudioUnit::Init() {
      return false;
    }
  
@@ -314,7 +315,7 @@ index 066f3b161c..1bd895687d 100644
    // Specify the callback to be called by the I/O thread to us when input audio
    // is available. The recorded samples can then be obtained by calling the
    // AudioUnitRender() method.
-@@ -203,6 +207,7 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
+@@ -203,6 +207,7 @@ bool VoiceProcessingAudioUnit::Init() {
                  (long)result);
      return false;
    }
@@ -322,7 +323,7 @@ index 066f3b161c..1bd895687d 100644
  
    state_ = kUninitialized;
    return true;
-@@ -216,6 +221,9 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
+@@ -216,6 +221,9 @@ bool VoiceProcessingAudioUnit::Initialize(Float64 sample_rate) {
    RTC_DCHECK_GE(state_, kUninitialized);
    RTCLog(@"Initializing audio unit with sample rate: %f", sample_rate);
  
@@ -332,7 +333,7 @@ index 066f3b161c..1bd895687d 100644
    OSStatus result = noErr;
    AudioStreamBasicDescription format = GetFormat(sample_rate);
    UInt32 size = sizeof(format);
-@@ -399,6 +407,9 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
+@@ -399,6 +407,9 @@ bool VoiceProcessingAudioUnit::Stop() {
    RTC_DCHECK_GE(state_, kUninitialized);
    RTCLog(@"Stopping audio unit.");
  

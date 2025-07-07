@@ -271,6 +271,7 @@ PATCHES = {
         "android_add_scale_resolution_down_to.patch",
         "remove_crel.patch",
         "revert_siso.patch",
+        "android_include_environment_java.patch",
     ],
     "raspberry-pi-os_armv6": [
         "nacl_armv6_2.patch",
