@@ -29,6 +29,11 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-07-11 [RELEASE] m138.7204.0.3
+  - @zztkm
+- 2025-07-11 [UPDATE] iOS の RTCResolutionRestriction に NSCopying プロトコルを実装する
+  - RTCResolutionRestriction クラスが NSCopying プロトコルに準拠するように修正
+  - @zztkm
 - 2025-07-03 [RELEASE] m138.7204.0.2
   - @miosakuma
 - 2025-07-04 [UPDATE] android_include_environment_java.patch を追加する

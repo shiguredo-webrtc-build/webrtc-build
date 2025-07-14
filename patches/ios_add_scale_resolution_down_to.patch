@@ -1,5 +1,5 @@
 diff --git a/sdk/objc/api/peerconnection/RTCRtpEncodingParameters.h b/sdk/objc/api/peerconnection/RTCRtpEncodingParameters.h
-index 936149ff18..a2578b8298 100644
+index 1f75152dcd..538f2121db 100644
 --- a/sdk/objc/api/peerconnection/RTCRtpEncodingParameters.h
 +++ b/sdk/objc/api/peerconnection/RTCRtpEncodingParameters.h
 @@ -22,6 +22,12 @@ typedef NS_ENUM(NSInteger, RTCPriority) {
@@ -7,7 +7,7 @@ index 936149ff18..a2578b8298 100644
  };
  
 +RTC_OBJC_EXPORT
-+@interface RTC_OBJC_TYPE (RTCResolutionRestriction) : NSObject
++@interface RTC_OBJC_TYPE (RTCResolutionRestriction) : NSObject <NSCopying>
 +@property(nonatomic, copy) NSNumber* maxWidth;
 +@property(nonatomic, copy) NSNumber* maxHeight;
 +@end
@@ -25,10 +25,10 @@ index 936149ff18..a2578b8298 100644
  @property(nonatomic, readonly, nullable) NSNumber *ssrc;
  
 diff --git a/sdk/objc/api/peerconnection/RTCRtpEncodingParameters.mm b/sdk/objc/api/peerconnection/RTCRtpEncodingParameters.mm
-index 6c60792c7d..39bdab356a 100644
+index a8349a1988..3f23e619a1 100644
 --- a/sdk/objc/api/peerconnection/RTCRtpEncodingParameters.mm
 +++ b/sdk/objc/api/peerconnection/RTCRtpEncodingParameters.mm
-@@ -12,6 +12,13 @@
+@@ -12,6 +12,20 @@
  
  #import "helpers/NSString+StdString.h"
  
@@ -37,12 +37,19 @@ index 6c60792c7d..39bdab356a 100644
 +@synthesize maxWidth = _maxWidth;
 +@synthesize maxHeight = _maxHeight;
 +
++- (id)copyWithZone:(NSZone *)zone {
++  RTCResolutionRestriction *copy = [[RTCResolutionRestriction alloc] init];
++  copy.maxWidth = self.maxWidth;
++  copy.maxHeight = self.maxHeight;
++  return copy;
++}
++
 +@end
 +
  @implementation RTC_OBJC_TYPE (RTCRtpEncodingParameters)
  
  @synthesize rid = _rid;
-@@ -21,6 +28,7 @@
+@@ -21,6 +35,7 @@
  @synthesize maxFramerate = _maxFramerate;
  @synthesize numTemporalLayers = _numTemporalLayers;
  @synthesize scaleResolutionDownBy = _scaleResolutionDownBy;
@@ -50,9 +57,9 @@ index 6c60792c7d..39bdab356a 100644
  @synthesize ssrc = _ssrc;
  @synthesize bitratePriority = _bitratePriority;
  @synthesize networkPriority = _networkPriority;
-@@ -58,6 +66,11 @@
-       _scaleResolutionDownBy =
-           [NSNumber numberWithDouble:*nativeParameters.scale_resolution_down_by];
+@@ -59,6 +74,11 @@
+       _scaleResolutionDownBy = [NSNumber
+           numberWithDouble:*nativeParameters.scale_resolution_down_by];
      }
 +    if (nativeParameters.scale_resolution_down_to) {
 +      _scaleResolutionDownTo = [[RTCResolutionRestriction alloc] init];
@@ -62,9 +69,9 @@ index 6c60792c7d..39bdab356a 100644
      if (nativeParameters.ssrc) {
        _ssrc = [NSNumber numberWithUnsignedLong:*nativeParameters.ssrc];
      }
-@@ -93,6 +106,11 @@
-   if (_scaleResolutionDownBy != nil) {
-     parameters.scale_resolution_down_by = std::optional<double>(_scaleResolutionDownBy.doubleValue);
+@@ -96,6 +116,11 @@
+     parameters.scale_resolution_down_by =
+         std::optional<double>(_scaleResolutionDownBy.doubleValue);
    }
 +  if (_scaleResolutionDownTo != nil) {
 +    webrtc::Resolution& r = parameters.scale_resolution_down_to.emplace();
