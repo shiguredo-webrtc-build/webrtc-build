@@ -31,6 +31,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 - 2025-07-14 [UPDATE] Raspberry Pi OS (armv8) のビルドを buster から bookworm にアップデートする
   - multistrap の suite を buster から bookworm に修正
+  - libgcc-8-dev, libstdc++-8-dev を libgcc-dev, libstdc++-dev に変更
+  - python-dev を python3-dev に変更
   - @zztkm
 - 2025-07-11 [RELEASE] m138.7204.0.3
   - @zztkm
