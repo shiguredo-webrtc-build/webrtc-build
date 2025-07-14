@@ -29,6 +29,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-07-14 [UPDATE] Raspberry Pi OS (armv8) のビルドを buster から bookworm にアップデートする
+  - multistrap の suite を buster から bookworm に修正
+  - @zztkm
 - 2025-07-11 [RELEASE] m138.7204.0.3
   - @zztkm
 - 2025-07-11 [UPDATE] iOS の RTCResolutionRestriction に NSCopying プロトコルを実装する
