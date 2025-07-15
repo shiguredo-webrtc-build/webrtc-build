@@ -29,6 +29,17 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-07-14 [UPDATE] Raspberry Pi OS (armv8) のビルドを buster から bookworm にアップデートする
+  - multistrap の suite を buster から bookworm に修正
+  - libstdc++-8-dev を libstdc++-11-dev に変更
+  - libstdc++-11-dev には libgcc-11-dev が含まれているため、ライブラリアップデートに合わせて libgcc-8-dev を削除
+  - python-dev を python3-dev に変更
+  - @zztkm
+- 2025-07-11 [RELEASE] m138.7204.0.3
+  - @zztkm
+- 2025-07-11 [UPDATE] iOS の RTCResolutionRestriction に NSCopying プロトコルを実装する
+  - RTCResolutionRestriction クラスが NSCopying プロトコルに準拠するように修正
+  - @zztkm
 - 2025-07-03 [RELEASE] m138.7204.0.2
   - @miosakuma
 - 2025-07-04 [UPDATE] android_include_environment_java.patch を追加する
