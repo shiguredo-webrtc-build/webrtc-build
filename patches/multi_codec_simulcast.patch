@@ -19,10 +19,10 @@ index 4dbee5bd4b..ae12fdb50c 100644
  
  }  // namespace webrtc
 diff --git a/media/base/media_engine.cc b/media/base/media_engine.cc
-index 3735c50994..f30ed9eb7f 100644
+index e9d9c6c72a..d9873fe594 100644
 --- a/media/base/media_engine.cc
 +++ b/media/base/media_engine.cc
-@@ -219,14 +219,14 @@ webrtc::RTCError CheckRtpParametersValues(
+@@ -209,14 +209,14 @@ RTCError CheckRtpParametersValues(const RtpParameters& rtp_parameters,
        }
      }
  
@@ -46,7 +46,7 @@ index 3735c50994..f30ed9eb7f 100644
  
    if (has_scale_resolution_down_to &&
 diff --git a/media/engine/simulcast_encoder_adapter.cc b/media/engine/simulcast_encoder_adapter.cc
-index 6770f1399a..208103a225 100644
+index ebd0e1b473..feabb7ba50 100644
 --- a/media/engine/simulcast_encoder_adapter.cc
 +++ b/media/engine/simulcast_encoder_adapter.cc
 @@ -156,17 +156,35 @@ std::vector<uint32_t> GetStreamStartBitratesKbps(const Environment& env,
@@ -87,7 +87,7 @@ index 6770f1399a..208103a225 100644
  
  void SimulcastEncoderAdapter::EncoderContext::Release() {
    if (encoder_) {
-@@ -342,11 +360,16 @@ int SimulcastEncoderAdapter::InitEncode(
+@@ -344,11 +362,16 @@ int SimulcastEncoderAdapter::InitEncode(
    std::unique_ptr<EncoderContext> encoder_context = FetchOrCreateEncoderContext(
        /*is_lowest_quality_stream=*/(
            is_legacy_singlecast ||
@@ -105,7 +105,7 @@ index 6770f1399a..208103a225 100644
    // Two distinct scenarios:
    // * Singlecast (total_streams_count == 1) or simulcast with simulcast-capable
    //   underlaying encoder implementation if active_streams_count > 1. SEA
-@@ -364,6 +387,7 @@ int SimulcastEncoderAdapter::InitEncode(
+@@ -366,6 +389,7 @@ int SimulcastEncoderAdapter::InitEncode(
    // forces the use of SEA with separate encoders to support per-layer
    // handling of PLIs.
    bool separate_encoders_needed =
@@ -113,7 +113,7 @@ index 6770f1399a..208103a225 100644
        !encoder_context->encoder().GetEncoderInfo().supports_simulcast ||
        active_streams_count == 1 || per_layer_pli_;
    RTC_LOG(LS_INFO) << "[SEA] InitEncode: total_streams_count: "
-@@ -409,9 +433,10 @@ int SimulcastEncoderAdapter::InitEncode(
+@@ -411,9 +435,10 @@ int SimulcastEncoderAdapter::InitEncode(
        continue;
      }
  
@@ -126,7 +126,7 @@ index 6770f1399a..208103a225 100644
      }
      if (encoder_context == nullptr) {
        Release();
-@@ -708,6 +733,10 @@ EncodedImageCallback::Result SimulcastEncoderAdapter::OnEncodedImage(
+@@ -712,6 +737,10 @@ EncodedImageCallback::Result SimulcastEncoderAdapter::OnEncodedImage(
  
    stream_image.SetSimulcastIndex(stream_idx);
  
@@ -137,7 +137,7 @@ index 6770f1399a..208103a225 100644
    return encoded_complete_callback_->OnEncodedImage(stream_image,
                                                      &stream_codec_specific);
  }
-@@ -729,20 +758,27 @@ void SimulcastEncoderAdapter::DestroyStoredEncoders() {
+@@ -733,20 +762,27 @@ void SimulcastEncoderAdapter::DestroyStoredEncoders() {
  
  std::unique_ptr<SimulcastEncoderAdapter::EncoderContext>
  SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
@@ -169,7 +169,7 @@ index 6770f1399a..208103a225 100644
                     });
  
    std::unique_ptr<SimulcastEncoderAdapter::EncoderContext> encoder_context;
-@@ -751,11 +787,11 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
+@@ -755,11 +791,11 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
      cached_encoder_contexts_.erase(encoder_context_iter);
    } else {
      std::unique_ptr<VideoEncoder> primary_encoder =
@@ -183,7 +183,7 @@ index 6770f1399a..208103a225 100644
      }
  
      std::unique_ptr<VideoEncoder> encoder;
-@@ -774,20 +810,20 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
+@@ -778,20 +814,20 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
              prefer_temporal_support);
        }
      } else if (fallback_encoder != nullptr) {
@@ -207,9 +207,9 @@ index 6770f1399a..208103a225 100644
    }
  
    encoder_context->encoder().RegisterEncodeCompleteCallback(
-@@ -803,7 +839,12 @@ webrtc::VideoCodec SimulcastEncoderAdapter::MakeStreamCodec(
+@@ -807,7 +843,12 @@ VideoCodec SimulcastEncoderAdapter::MakeStreamCodec(
      bool is_highest_quality_stream) {
-   webrtc::VideoCodec codec_params = codec;
+   VideoCodec codec_params = codec;
    const SimulcastStream& stream_params = codec.simulcastStream[stream_idx];
 +  webrtc::VideoCodecType codecType =
 +      stream_params.format
@@ -220,29 +220,29 @@ index 6770f1399a..208103a225 100644
    codec_params.numberOfSimulcastStreams = 0;
    codec_params.width = stream_params.width;
    codec_params.height = stream_params.height;
-@@ -841,7 +882,7 @@ webrtc::VideoCodec SimulcastEncoderAdapter::MakeStreamCodec(
+@@ -845,7 +886,7 @@ VideoCodec SimulcastEncoderAdapter::MakeStreamCodec(
        codec_params.qpMax = kLowestResMaxQp;
      }
    }
--  if (codec.codecType == webrtc::kVideoCodecVP8) {
-+  if (codecType == webrtc::kVideoCodecVP8) {
+-  if (codec.codecType == kVideoCodecVP8) {
++  if (codecType == kVideoCodecVP8) {
      codec_params.VP8()->numberOfTemporalLayers =
          stream_params.numberOfTemporalLayers;
      if (!is_highest_quality_stream) {
-@@ -855,10 +896,10 @@ webrtc::VideoCodec SimulcastEncoderAdapter::MakeStreamCodec(
+@@ -859,10 +900,10 @@ VideoCodec SimulcastEncoderAdapter::MakeStreamCodec(
        // Turn off denoising for all streams but the highest resolution.
        codec_params.VP8()->denoisingOn = false;
      }
--  } else if (codec.codecType == webrtc::kVideoCodecH264) {
-+  } else if (codecType == webrtc::kVideoCodecH264) {
+-  } else if (codec.codecType == kVideoCodecH264) {
++  } else if (codecType == kVideoCodecH264) {
      codec_params.H264()->numberOfTemporalLayers =
          stream_params.numberOfTemporalLayers;
--  } else if (codec.codecType == webrtc::kVideoCodecVP9 &&
-+  } else if (codecType == webrtc::kVideoCodecVP9 &&
+-  } else if (codec.codecType == kVideoCodecVP9 &&
++  } else if (codecType == kVideoCodecVP9 &&
               scalability_mode.has_value() && !only_active_stream) {
      // If VP9 simulcast then explicitly set a single spatial layer for each
      // simulcast stream.
-@@ -921,7 +962,8 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
+@@ -925,7 +966,8 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
      // Create one encoder and query it.
  
      std::unique_ptr<SimulcastEncoderAdapter::EncoderContext> encoder_context =
@@ -253,7 +253,7 @@ index 6770f1399a..208103a225 100644
        return encoder_info;
      }
 diff --git a/media/engine/simulcast_encoder_adapter.h b/media/engine/simulcast_encoder_adapter.h
-index 63e1075209..a048e8c1d3 100644
+index 7673683127..b89f5cb5a3 100644
 --- a/media/engine/simulcast_encoder_adapter.h
 +++ b/media/engine/simulcast_encoder_adapter.h
 @@ -81,7 +81,8 @@ class RTC_EXPORT SimulcastEncoderAdapter : public VideoEncoder {
@@ -292,35 +292,28 @@ index 63e1075209..a048e8c1d3 100644
    webrtc::VideoCodec MakeStreamCodec(const webrtc::VideoCodec& codec,
                                       int stream_idx,
 diff --git a/media/engine/webrtc_video_engine.cc b/media/engine/webrtc_video_engine.cc
-index 906ef01ba3..f1b4181df7 100644
+index 3a3d197cc6..89a1f0cdd7 100644
 --- a/media/engine/webrtc_video_engine.cc
 +++ b/media/engine/webrtc_video_engine.cc
-@@ -393,15 +393,15 @@ static bool ValidateStreamParams(const StreamParams& sp) {
+@@ -385,17 +385,6 @@ static bool ValidateStreamParams(const StreamParams& sp) {
+   return true;
  }
  
- // Returns true if the given codec is disallowed from doing simulcast.
+-// Returns true if the given codec is disallowed from doing simulcast.
 -bool IsCodecDisabledForSimulcast(bool legacy_scalability_mode,
--                                 webrtc::VideoCodecType codec_type) {
--  if (legacy_scalability_mode && (codec_type == webrtc::kVideoCodecVP9 ||
--                                  codec_type == webrtc::kVideoCodecAV1)) {
+-                                 VideoCodecType codec_type) {
+-  if (legacy_scalability_mode &&
+-      (codec_type == kVideoCodecVP9 || codec_type == kVideoCodecAV1)) {
 -    return true;
 -  }
 -
 -  return false;
 -}
-+// bool IsCodecDisabledForSimulcast(bool legacy_scalability_mode,
-+//                                 webrtc::VideoCodecType codec_type) {
-+//  if (legacy_scalability_mode && (codec_type == webrtc::kVideoCodecVP9 ||
-+//                                  codec_type == webrtc::kVideoCodecAV1)) {
-+//    return true;
-+//  }
-+//
-+//  return false;
-+//}
- 
- bool IsLayerActive(const webrtc::RtpEncodingParameters& layer) {
+-
+ bool IsLayerActive(const RtpEncodingParameters& layer) {
    return layer.active &&
-@@ -1718,6 +1718,14 @@ void WebRtcVideoSendChannel::FillSendCodecStats(
+          (!layer.max_bitrate_bps || *layer.max_bitrate_bps > 0) &&
+@@ -1684,6 +1673,14 @@ void WebRtcVideoSendChannel::FillSendCodecStats(
    // primary codec that is being used to send here.
    video_media_info->send_codecs.insert(std::make_pair(
        send_codec()->codec.id, send_codec()->codec.ToCodecParameters()));
@@ -334,14 +327,17 @@ index 906ef01ba3..f1b4181df7 100644
 +  }
  }
  
- void WebRtcVideoSendChannel::OnPacketSent(const rtc::SentPacket& sent_packet) {
-@@ -2297,25 +2305,25 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
-   // number of negotiated ssrcs but this may be capped below depending on the
-   // `legacy_scalability_mode` and codec used.
+ void WebRtcVideoSendChannel::OnPacketSent(const SentPacketInfo& sent_packet) {
+@@ -2251,28 +2248,7 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
+         VideoEncoderConfig::ContentType::kRealtimeVideo;
+   }
+ 
+-  // By default, the stream count for the codec configuration should match the
+-  // number of negotiated ssrcs but this may be capped below depending on the
+-  // `legacy_scalability_mode` and codec used.
    encoder_config.number_of_streams = parameters_.config.rtp.ssrcs.size();
 -  bool legacy_scalability_mode = true;
--  for (const webrtc::RtpEncodingParameters& encoding :
--       rtp_parameters_.encodings) {
+-  for (const RtpEncodingParameters& encoding : rtp_parameters_.encodings) {
 -    if (encoding.scalability_mode.has_value() &&
 -        (encoding.scale_resolution_down_by.has_value() ||
 -         encoding.scale_resolution_down_to.has_value())) {
@@ -349,33 +345,19 @@ index 906ef01ba3..f1b4181df7 100644
 -      break;
 -    }
 -  }
-+  // bool legacy_scalability_mode = true;
-+  // for (const webrtc::RtpEncodingParameters& encoding :
-+  //      rtp_parameters_.encodings) {
-+  //   if (encoding.scalability_mode.has_value() &&
-+  //       (encoding.scale_resolution_down_by.has_value() ||
-+  //        encoding.scale_resolution_down_to.has_value())) {
-+  //     legacy_scalability_mode = false;
-+  //     break;
-+  //   }
-+  // }
-   // Maybe limit the number of simulcast layers depending on
-   // `legacy_scalability_mode`, codec types (VP9/AV1). This path only exists
-   // for backwards compatibility and will one day be deleted. If you want SVC,
-   // please specify with the `scalability_mode` API instead amd disabling all
-   // but one encoding.
+-  // Maybe limit the number of simulcast layers depending on
+-  // `legacy_scalability_mode`, codec types (VP9/AV1). This path only exists
+-  // for backwards compatibility and will one day be deleted. If you want SVC,
+-  // please specify with the `scalability_mode` API instead amd disabling all
+-  // but one encoding.
 -  if (IsCodecDisabledForSimulcast(legacy_scalability_mode,
 -                                  encoder_config.codec_type)) {
 -    encoder_config.number_of_streams = 1;
 -  }
-+  // if (IsCodecDisabledForSimulcast(legacy_scalability_mode,
-+  //                                 encoder_config.codec_type)) {
-+  //   encoder_config.number_of_streams = 1;
-+  // }
  
    // parameters_.max_bitrate comes from the max bitrate set at the SDP
    // (m-section) level with the attribute "b=AS." Note that stream max bitrate
-@@ -2383,6 +2391,11 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
+@@ -2340,6 +2316,11 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
        encoder_config.simulcast_layers[i].num_temporal_layers =
            *rtp_parameters_.encodings[i].num_temporal_layers;
      }
@@ -387,7 +369,7 @@ index 906ef01ba3..f1b4181df7 100644
      encoder_config.simulcast_layers[i].scale_resolution_down_to =
          rtp_parameters_.encodings[i].scale_resolution_down_to;
    }
-@@ -2553,6 +2566,14 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::GetPerLayerVideoSenderInfos(
+@@ -2510,6 +2491,14 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::GetPerLayerVideoSenderInfos(
      if (encoding_index_by_ssrc.find(ssrc) != encoding_index_by_ssrc.end()) {
        info.encoding_index = encoding_index_by_ssrc[ssrc];
      }
@@ -403,7 +385,7 @@ index 906ef01ba3..f1b4181df7 100644
          !is_svc ? std::optional<uint32_t>(ssrc) : std::nullopt,
          rtp_parameters_.encodings);
 diff --git a/modules/video_coding/utility/simulcast_rate_allocator.cc b/modules/video_coding/utility/simulcast_rate_allocator.cc
-index 1157d1a76f..3c096831f0 100644
+index 2811d52a0c..044a80ec38 100644
 --- a/modules/video_coding/utility/simulcast_rate_allocator.cc
 +++ b/modules/video_coding/utility/simulcast_rate_allocator.cc
 @@ -175,8 +175,30 @@ void SimulcastRateAllocator::DistributeAllocationToSimulcastLayers(
@@ -439,7 +421,7 @@ index 1157d1a76f..3c096831f0 100644
      }
  
      // We are allocating to this layer so it is the current active allocation.
-@@ -335,11 +357,14 @@ const VideoCodec& webrtc::SimulcastRateAllocator::GetCodec() const {
+@@ -335,11 +357,14 @@ const VideoCodec& SimulcastRateAllocator::GetCodec() const {
  }
  
  int SimulcastRateAllocator::NumTemporalStreams(size_t simulcast_id) const {
@@ -459,10 +441,10 @@ index 1157d1a76f..3c096831f0 100644
  
  void SimulcastRateAllocator::SetLegacyConferenceMode(bool enabled) {
 diff --git a/modules/video_coding/video_codec_initializer.cc b/modules/video_coding/video_codec_initializer.cc
-index fbcf579a21..4ed402b45c 100644
+index 4ad2060f35..f2a24fd82a 100644
 --- a/modules/video_coding/video_codec_initializer.cc
 +++ b/modules/video_coding/video_codec_initializer.cc
-@@ -114,6 +114,7 @@ VideoCodec VideoCodecInitializer::SetupCodec(
+@@ -121,6 +121,7 @@ VideoCodec VideoCodecInitializer::SetupCodec(
      sim_stream->targetBitrate = streams[i].target_bitrate_bps / 1000;
      sim_stream->maxBitrate = streams[i].max_bitrate_bps / 1000;
      sim_stream->qpMax = streams[i].max_qp;
@@ -471,10 +453,10 @@ index fbcf579a21..4ed402b45c 100644
      int num_temporal_layers =
          streams[i].scalability_mode.has_value()
 diff --git a/video/config/encoder_stream_factory.cc b/video/config/encoder_stream_factory.cc
-index 010954430d..afbf97f318 100644
+index 323f7e0df7..3f874c2dd6 100644
 --- a/video/config/encoder_stream_factory.cc
 +++ b/video/config/encoder_stream_factory.cc
-@@ -528,7 +528,24 @@ std::vector<Resolution> EncoderStreamFactory::GetStreamResolutions(
+@@ -538,7 +538,24 @@ std::vector<Resolution> EncoderStreamFactory::GetStreamResolutions(
        resolutions.push_back({.width = width, .height = height});
      }
    } else {
@@ -499,12 +481,12 @@ index 010954430d..afbf97f318 100644
 +                                : FindRequiredActiveLayers(encoder_config);
      size_t max_num_layers =
          !encoder_config.HasScaleResolutionDownTo()
-             ? webrtc::LimitSimulcastLayerCount(
+             ? LimitSimulcastLayerCount(
 diff --git a/video/config/video_encoder_config.cc b/video/config/video_encoder_config.cc
-index ca3b20e436..e712945eb5 100644
+index c354014d17..5804c851f1 100644
 --- a/video/config/video_encoder_config.cc
 +++ b/video/config/video_encoder_config.cc
-@@ -161,4 +161,27 @@ void VideoEncoderConfig::Av1EncoderSpecificSettings::FillVideoCodecAv1(
+@@ -165,4 +165,27 @@ void VideoEncoderConfig::Av1EncoderSpecificSettings::FillVideoCodecAv1(
    *av1_settings = specifics_;
  }
  
@@ -533,10 +515,10 @@ index ca3b20e436..e712945eb5 100644
 +
  }  // namespace webrtc
 diff --git a/video/config/video_encoder_config.h b/video/config/video_encoder_config.h
-index 59ee866f53..bff797130e 100644
+index 7fda03ffa8..7bfaf3086e 100644
 --- a/video/config/video_encoder_config.h
 +++ b/video/config/video_encoder_config.h
-@@ -83,6 +83,9 @@ struct VideoStream {
+@@ -85,6 +85,9 @@ struct VideoStream {
    // e.g. if source only provides lower resolution or
    // if resource adaptation is active.
    std::optional<Resolution> scale_resolution_down_to;
@@ -546,7 +528,7 @@ index 59ee866f53..bff797130e 100644
  };
  
  class VideoEncoderConfig {
-@@ -168,6 +171,10 @@ class VideoEncoderConfig {
+@@ -170,6 +173,10 @@ class VideoEncoderConfig {
  
    bool HasScaleResolutionDownTo() const;
  
@@ -558,10 +540,10 @@ index 59ee866f53..bff797130e 100644
    VideoCodecType codec_type;
    SdpVideoFormat video_format;
 diff --git a/video/video_stream_encoder.cc b/video/video_stream_encoder.cc
-index 7fdd9946d8..4ec3f2f38a 100644
+index 53125ff373..b39c542803 100644
 --- a/video/video_stream_encoder.cc
 +++ b/video/video_stream_encoder.cc
-@@ -994,8 +994,24 @@ void VideoStreamEncoder::ConfigureEncoder(VideoEncoderConfig config,
+@@ -993,8 +993,24 @@ void VideoStreamEncoder::ConfigureEncoder(VideoEncoderConfig config,
        frame_cadence_adapter_->SetZeroHertzModeEnabled(std::nullopt);
      }
  
@@ -587,7 +569,7 @@ index 7fdd9946d8..4ec3f2f38a 100644
           max_data_payload_length_ != max_data_payload_length);
      encoder_config_ = std::move(config);
      max_data_payload_length_ = max_data_payload_length;
-@@ -2232,7 +2248,7 @@ EncodedImageCallback::Result VideoStreamEncoder::OnEncodedImage(
+@@ -2230,7 +2246,7 @@ EncodedImageCallback::Result VideoStreamEncoder::OnEncodedImage(
          // webrtc qp scaler (in the no-svc case or if only a single spatial
          // layer is encoded). It has to be explicitly detected and reported to
          // adaptation metrics.
