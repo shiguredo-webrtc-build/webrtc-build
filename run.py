@@ -11,7 +11,7 @@ import subprocess
 import tarfile
 import urllib.parse
 import zipfile
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 logging.basicConfig(level=logging.INFO)
 
@@ -389,6 +389,7 @@ PATCHES = {
         "ios_add_scale_resolution_down_to.patch",
         # 既に ios_build.patch で同じ内容を適用済み
         # "remove_crel.patch",
+        "revert_siso.patch",
         "multi_codec_simulcast.patch",
     ],
     "android": [
@@ -408,6 +409,8 @@ PATCHES = {
         "fix_moved_function_call.patch",
         "android_add_scale_resolution_down_to.patch",
         "remove_crel.patch",
+        "revert_siso.patch",
+        "android_include_environment_java.patch",
         "multi_codec_simulcast.patch",
     ],
     "raspberry-pi-os_armv6": [
@@ -834,6 +837,8 @@ COMMON_GN_ARGS = [
     "enable_rust=false",
     "enable_rust_cxx=false",
     "enable_chromium_prelude=false",
+    "rtc_rusty_base64=false",
+    "use_debug_fission=false",
 ]
 
 WEBRTC_BUILD_TARGETS_MACOS_COMMON = [
@@ -932,6 +937,7 @@ def build_webrtc_ios(
         "rtc_libvpx_build_vp9=true",
         "enable_dsyms=true",
         "use_custom_libcxx=false",
+        "use_custom_libcxx_for_host=false",
         "use_lld=false",
         "rtc_enable_objc_symbol_export=true",
         "treat_warnings_as_errors=false",
@@ -972,7 +978,7 @@ def build_webrtc_ios(
     for device_arch in IOS_ARCHS:
         [device, arch] = device_arch.split(":")
         if overlap_build_dir:
-            work_dir = os.path.join(webrtc_build_dir, "framework", device, f"{arch}_libs")
+            work_dir = os.path.join(webrtc_build_dir, "framework", f"{device}_{arch}_libs")
         else:
             work_dir = os.path.join(webrtc_build_dir, device, arch)
         if gen_force:
@@ -1093,6 +1099,7 @@ def build_webrtc_android(
                 *gn_args_base,
                 'target_os="android"',
                 f'target_cpu="{ANDROID_TARGET_CPU[arch]}"',
+                'android_static_analysis="off"',
             ]
             gn_gen(webrtc_src_dir, work_dir, gn_args, extra_gn_args)
         if not nobuild:
@@ -1140,6 +1147,7 @@ def build_webrtc(
                 'target_os="win"',
                 f'target_cpu="{"x64" if target == "windows_x86_64" else "arm64"}"',
                 "use_custom_libcxx=false",
+                "use_custom_libcxx_for_host=false",
             ]
         elif target in ("macos_arm64",):
             gn_args += [
@@ -1152,6 +1160,7 @@ def build_webrtc(
                 "rtc_enable_symbol_export=true",
                 "rtc_enable_objc_symbol_export=false",
                 "use_custom_libcxx=false",
+                "use_custom_libcxx_for_host=false",
                 "treat_warnings_as_errors=false",
                 "clang_use_chrome_plugins=false",
                 "use_lld=false",
@@ -1375,7 +1384,7 @@ def package_webrtc(
         dirs = []
         for device_arch in IOS_FRAMEWORK_ARCHS:
             [device, arch] = device_arch.split(":")
-            dirs.append(os.path.join(webrtc_build_dir, "framework", device, f"{arch}_libs"))
+            dirs.append(os.path.join(webrtc_build_dir, "framework", f"{device}_{arch}_libs"))
         if not overlap_ios_build_dir:
             for device_arch in IOS_ARCHS:
                 [device, arch] = device_arch.split(":")
@@ -1559,7 +1568,7 @@ def check_target(target):
         return False
 
 
-def get_webrtc_branch_info(branch: str):
+def get_webrtc_branch_info(branch: str) -> Tuple[str, str]:
     # 指定されたブランチのコミットハッシュとコミットポジションを取得する
     src_commits = downloadcap(
         f"https://webrtc.googlesource.com/src.git/+log/refs/branch-heads/{branch}"
@@ -1582,7 +1591,7 @@ def get_webrtc_branch_info(branch: str):
         position = r.group(2)
     else:
         # 最初のコミットの場合は refs/heads/main になって、コミットポジションは存在しない
-        position = 0
+        position = "0"
     return commit, position
 
 

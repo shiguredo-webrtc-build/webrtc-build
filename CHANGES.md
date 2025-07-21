@@ -60,6 +60,57 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-07-11 [RELEASE] m138.7204.0.3
+  - @zztkm
+- 2025-07-11 [UPDATE] iOS の RTCResolutionRestriction に NSCopying プロトコルを実装する
+  - RTCResolutionRestriction クラスが NSCopying プロトコルに準拠するように修正
+  - @zztkm
+- 2025-07-03 [RELEASE] m138.7204.0.2
+  - @miosakuma
+- 2025-07-04 [UPDATE] android_include_environment_java.patch を追加する
+  - m138 で追加された `src/sdk/android/api/Environment.java` を libwebrtc.aar に追加するパッチ
+  - PeerConnectionFactory.java でのクラス参照エラーに対する対応
+  - @miosakuma
+- 2025-07-03 [RELEASE] m138.7204.0.1
+  - @torikizi
+- 2025-07-02 [RELEASE] m137.7151.3.1
+- 2025-07-02 [FIX] iOS でオーディオ処理が行われなくなる不具合を修正
+  - https://source.chromium.org/chromium/_/webrtc/src/+/11f487e72f22d92104c2b8770793285d5fe5dfa9 により、InitPlayOrRecord 内で audio_is_initialized_ を true に設定する仕様へ変更
+  - 既存の ios_manual_audio_input.patch は InitPlayOrRecord で早期リターンしていたため audio_is_initialized_ が設定されず、iOS で再生／録音が機能しなかった
+  - 早期リターン箇所にも audio_is_initialized_ = true を追加し、初期化漏れを解消
+  - @zztkm
+- 2025-06-16 [RELEASE] m138.7204.0.0
+  - @torikizi
+- 2025-06-12 [UPDATE] m138 ブランチのビルドエラーに対する対応
+  - `remove_crel.patch` の単純なパッチ適用失敗を修正
+  - `h265.patch` の単純なパッチ適用失敗を修正
+  - `android_proxy.patch` の単純なパッチ適用失敗を修正
+  - `update_expected_clang_version.patch` は不要になったので削除
+  - Windows で `revive_proxy.patch` がエラーになっていたのを修正
+    - 変数の shadowing でエラーになっていたので名前を被らないようにした
+  - iOS, macOS の `patches/ios_build.patch` と `patches/macos_use_xcode_clang.patch` の単純なパッチ適用失敗を修正
+  - iOS, Android のビルドスクリプトで siso がうまく動かなかったので `revert_siso.patch` で元に戻す
+  - Xcode 16.2 だとコンパイルエラーが出てたので、ローカルでビルドの通った Xcode 16.1 に落とす
+  - `build_ios_libs.sh` での iOS のビルドディレクトリが変わってたのでそれに追従
+  - @melpon
+- 2025-06-05 [RELEASE] m137.7151.3.0
+  - @miosakuma
+- 2025-05-26 [UPDATE] m137 ブランチのビルドエラーに対する対応
+  - libwebrtc の修正に追従して iOS / macOS / Android の `use_cxx17` オプションを削除
+  - update_expected_clang_version.patch を追加する
+    - update.py に定義されている clang のバージョンと DEPS に定義されているバージョンを一致させるパッチ
+    - 通常この値は一致しており、m137 のビルドを通すための限定パッチ
+  - rtc_base/third_party/base64 から rtc_base/base64 への移行
+    - libwebrtc 側の移行処理にパッチ処理を追従させる
+  - `BaseiPortAllocator` の変更に対する追従
+    - namespace を `cricket` から `webrtc` に変更
+    - BaseiPortAllocator のコンストラクタに Environment が追加されたので設定する処理を追加
+  - libwebrtc の `rtc::` から `webrtc::` への名前空間変更に追従する
+    - 以下のパッチの `rtc::revive` を `webrtc::revive` に変更を行った
+      - revive_proxy.patch
+      - ios_proxy.patch
+      - android_proxy.patch
+  - @miosakuma @melpon @torikizi
 - 2025-04-14 [RELEASE] m136.7103.0.0
   - @torikizi
 - 2025-04-19 [CHANGE] libwebrtc で名前空間が rtc:: から  webrtc:: に変更されパッチを修正

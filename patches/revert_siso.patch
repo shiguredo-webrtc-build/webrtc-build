@@ -1,0 +1,78 @@
+diff --git a/tools_webrtc/android/build_aar.py b/tools_webrtc/android/build_aar.py
+index e394f75883..d3da72694c 100755
+--- a/tools_webrtc/android/build_aar.py
++++ b/tools_webrtc/android/build_aar.py
+@@ -118,10 +118,8 @@ def _RunGN(args):
+ 
+ def _RunNinja(output_directory, args):
+     cmd = [
+-        os.path.join(SRC_DIR, 'third_party', 'siso', 'cipd', 'siso'),
+-        'ninja',
+-        '-C',
+-        output_directory,
++        os.path.join(SRC_DIR, 'third_party', 'ninja', 'ninja'), '-C',
++        output_directory
+     ]
+     cmd.extend(args)
+     logging.debug('Running: %r', cmd)
+@@ -177,14 +175,9 @@ def Build(build_dir, arch, use_remoteexec, extra_gn_args, extra_gn_switches,
+         'is_component_build': False,
+         'rtc_include_tests': False,
+         'target_cpu': _GetTargetCpu(arch),
++        'use_remoteexec': use_remoteexec,
+         'android_static_analysis': "off",
+-        'use_siso': True,
+     }
+-    if use_remoteexec:
+-        gn_args.update({
+-            'use_remoteexec': True,
+-            'use_reclient': False,
+-        })
+     arm_version = _GetArmVersion(arch)
+     if arm_version:
+         gn_args['arm_version'] = arm_version
+@@ -198,7 +191,7 @@ def Build(build_dir, arch, use_remoteexec, extra_gn_args, extra_gn_switches,
+ 
+     ninja_args = TARGETS[:]
+     if use_remoteexec:
+-        ninja_args.extend(['-remote_jobs', '200'])
++        ninja_args.extend(['-j', '200'])
+     ninja_args.extend(extra_ninja_switches)
+     _RunNinja(output_directory, ninja_args)
+ 
+diff --git a/tools_webrtc/ios/build_ios_libs.py b/tools_webrtc/ios/build_ios_libs.py
+index 08ae2f77ec..816cee5861 100755
+--- a/tools_webrtc/ios/build_ios_libs.py
++++ b/tools_webrtc/ios/build_ios_libs.py
+@@ -190,13 +190,8 @@ def BuildWebRTC(output_dir, target_environment, target_arch, flavor,
+                    ('true' if libvpx_build_vp9 else 'false'))
+ 
+     gn_args.append('use_lld=true')
++    gn_args.append('use_remoteexec=' + ('true' if use_remoteexec else 'false'))
+     gn_args.append('rtc_enable_objc_symbol_export=true')
+-    gn_args.append('use_siso=true')
+-    if use_remoteexec:
+-        gn_args.extend([
+-            'use_remoteexec=true',
+-            'use_reclient=false',
+-        ])
+ 
+     args_string = ' '.join(gn_args + extra_gn_args)
+     logging.info('Building WebRTC with args: %s', args_string)
+@@ -212,14 +207,13 @@ def BuildWebRTC(output_dir, target_environment, target_arch, flavor,
+     logging.info('Building target: %s', gn_target_name)
+ 
+     cmd = [
+-        os.path.join(SRC_DIR, 'third_party', 'siso', 'cipd', 'siso'),
+-        'ninja',
++        os.path.join(SRC_DIR, 'third_party', 'ninja', 'ninja'),
+         '-C',
+         output_dir,
+         gn_target_name,
+     ]
+     if use_remoteexec:
+-        cmd.extend(['-remote_jobs', '200'])
++        cmd.extend(['-j', '200'])
+     _RunCommand(cmd)
+ 
+ 

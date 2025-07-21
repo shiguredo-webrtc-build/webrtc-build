@@ -87,6 +87,14 @@ PeerConnectionDependencies dependencies = PeerConnectionDependencies
 PeerConnection pc = factory.createPeerConnection(rtcConfig, dependencies);
 ```
 
+## android_include_environment_java.patch
+
+libwebrtc.aar に 、`src/sdk/android/api/Environment.java` を追加するパッチ
+
+[m138 で上記ファイルが追加された](https://source.chromium.org/chromium/_/webrtc/src/+/72b9eb1de04ddb56f5c3e3ae8b0d1a50847fef5e) が libwebrtc.aar に含まれていないことにより PeerConnectionFactory.java で参照エラーが発生したため対応した。
+
+本家でこの問題が修正されたら削除する。
+
 ## arm_neon_sve_bridge.patch
 
 iOS/macOS における libvpx ビルド時に `arm_neon_sve_bridge.h` が見つからずにエラーになる問題に対応するパッチ。
@@ -348,3 +356,11 @@ iOS でのサイマルキャストのサポートを追加するパッチ。こ�
 CREL は LLVM のリンカ(lld)特有の機能なので、これを有効にすると GNU のリンカ(ld)でリンクできなくなってしまうので削除する。
 
 手間の問題でパッチを当ててるけど、既存の webrtc-build を使ったアプリケーションを lld に置き換えた方が筋が良いかもしれない。
+
+## revert_siso.patch
+
+- 391480: Use Siso in iOS/Android build scripts | https://webrtc-review.googlesource.com/c/src/+/391480
+
+このコミットを revert したパッチ。
+
+siso を実行すると即座に `Error: can not detect exec_root: build/config/siso not found` というエラーが出てどうしようも無かったので revert する。
