@@ -450,17 +450,19 @@ def get_base_commit(n=30):
     raise Exception("base commit not found")
 
 
-def get_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir):
+def get_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir, no_history=False):
     if webrtc_source_dir is None:
         webrtc_source_dir = os.path.join(source_dir, "webrtc")
 
     mkdir_p(webrtc_source_dir)
 
+    no_history_flag = ["--no-history"] if no_history else []
+
     src_dir = os.path.join(webrtc_source_dir, "src")
     if not os.path.exists(src_dir):
         with cd(webrtc_source_dir):
             cmd(["gclient"])
-            cmd(["fetch", "webrtc"])
+            cmd(["fetch", "webrtc", *no_history_flag])
             if target == "android":
                 with open(".gclient", "a") as f:
                     f.write("target_os = [ 'android' ]\n")
@@ -469,10 +471,23 @@ def get_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir):
                     f.write("target_os = [ 'ios' ]\n")
 
         with cd(src_dir):
-            cmd(["git", "fetch"])
+            if no_history:
+                cmd(["git", "fetch", "--depth=1", "origin", version])
+            else:
+                cmd(["git", "fetch"])
             cmd(["git", "checkout", "-f", version])
             cmd(["git", "clean", "-df"])
-            cmd(["gclient", "sync", "-D", "--force", "--reset", "--with_branch_heads"])
+            cmd(
+                [
+                    "gclient",
+                    "sync",
+                    "-D",
+                    "--force",
+                    "--reset",
+                    "--with_branch_heads",
+                    *no_history_flag,
+                ]
+            )
             apply_patches(target, patch_dir, src_dir, None, False)
 
 
@@ -1533,6 +1548,7 @@ def main():
     bp.add_argument("--webrtc-overlap-ios-build-dir", action="store_true")
     bp.add_argument("--webrtc-build-dir")
     bp.add_argument("--webrtc-source-dir")
+    bp.add_argument("--no-history", action="store_true")
     # VERSION で指定されたバージョンのソースを取得する
     fp = sp.add_parser("fetch")
     fp.set_defaults(op="fetch")
@@ -1686,6 +1702,7 @@ def main():
                 version_info.webrtc_commit,
                 args.target,
                 webrtc_source_dir=webrtc_source_dir,
+                no_history=args.no_history,
             )
 
             # ビルド

@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-07-22 [ADD] run.py に --no-history フラグを追加
+  - @melpon
 - 2025-07-14 [UPDATE] Raspberry Pi OS (armv8) のビルドを buster から bookworm にアップデートする
   - multistrap の suite を buster から bookworm に修正
   - libstdc++-8-dev を libstdc++-11-dev に変更
