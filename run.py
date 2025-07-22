@@ -462,7 +462,7 @@ def get_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir, no_his
     if not os.path.exists(src_dir):
         with cd(webrtc_source_dir):
             cmd(["gclient"])
-            cmd(["fetch", "webrtc", *no_history_flag])
+            cmd(["fetch", *no_history_flag, "webrtc"])
             if target == "android":
                 with open(".gclient", "a") as f:
                     f.write("target_os = [ 'android' ]\n")
