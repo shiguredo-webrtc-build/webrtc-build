@@ -30,9 +30,11 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 ## タイムライン
 
 - 2025-xx-xx [UPDATE] m139 ブランチのビルドエラーに対する対応
-  - h265_ios.patch の単純なパッチ適用失敗を修正
-  - ios_proxy.patch の単純なパッチ適用失敗を修正
-  - @torikizi
+  - `h265_ios.patch` の単純なパッチ適用失敗を修正
+  - `ios_proxy.patch` の単純なパッチ適用失敗を修正
+  - `ios_proxy.patch` の AnnexBBufferReader のパラメータ変更に対応
+    - https://source.chromium.org/chromium/_/webrtc/src/+/eddc465338ebef0993ffc71f607a1b6e6d6f070e
+  - @torikizi @miosakuma
 - 2025-06-05 [RELEASE] m138.7204.0.0
   - @torikizi
 - 2025-06-12 [UPDATE] m138 ブランチのビルドエラーに対する対応
