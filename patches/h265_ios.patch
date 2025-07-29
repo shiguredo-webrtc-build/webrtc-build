@@ -1638,16 +1638,10 @@ index 0000000000..fcaccb8bbc
 +}
 \ No newline at end of file
 diff --git a/sdk/objc/components/video_codec/nalu_rewriter.cc b/sdk/objc/components/video_codec/nalu_rewriter.cc
-index 236ef32d08..a7685eb950 100644
+index 236ef32d08..16b5dc1754 100644
 --- a/sdk/objc/components/video_codec/nalu_rewriter.cc
 +++ b/sdk/objc/components/video_codec/nalu_rewriter.cc
-@@ -18,11 +18,13 @@
- #include <cstring>
- #include <vector>
- 
-+#include "api/video_codecs/h264_profile_level_id.h"
- #include "api/array_view.h"
- #include "common_video/h264/h264_common.h"
+@@ -23,6 +23,7 @@
  #include "rtc_base/buffer.h"
  #include "rtc_base/checks.h"
  #include "rtc_base/logging.h"
@@ -1655,7 +1649,7 @@ index 236ef32d08..a7685eb950 100644
  
  namespace webrtc {
  
-@@ -166,8 +168,8 @@ bool H264AnnexBBufferToCMSampleBuffer(ArrayView<const uint8_t> annexb_buffer,
+@@ -166,8 +167,8 @@ bool H264AnnexBBufferToCMSampleBuffer(ArrayView<const uint8_t> annexb_buffer,
    CMBlockBufferRef block_buffer = nullptr;
    CFAllocatorRef block_allocator = CMMemoryPoolGetAllocator(memory_pool);
    OSStatus status = CMBlockBufferCreateWithMemoryBlock(
@@ -1666,7 +1660,7 @@ index 236ef32d08..a7685eb950 100644
        &block_buffer);
    if (status != kCMBlockBufferNoErr) {
      RTC_LOG(LS_ERROR) << "Failed to create block buffer.";
-@@ -201,7 +203,7 @@ bool H264AnnexBBufferToCMSampleBuffer(ArrayView<const uint8_t> annexb_buffer,
+@@ -201,7 +202,7 @@ bool H264AnnexBBufferToCMSampleBuffer(ArrayView<const uint8_t> annexb_buffer,
      CFRelease(contiguous_buffer);
      return false;
    }
@@ -1675,7 +1669,7 @@ index 236ef32d08..a7685eb950 100644
  
    // Write Avcc NALUs into block buffer memory.
    AvccBufferWriter writer(
-@@ -226,6 +228,213 @@ bool H264AnnexBBufferToCMSampleBuffer(ArrayView<const uint8_t> annexb_buffer,
+@@ -226,6 +227,213 @@ bool H264AnnexBBufferToCMSampleBuffer(ArrayView<const uint8_t> annexb_buffer,
    return true;
  }
  
@@ -1889,7 +1883,7 @@ index 236ef32d08..a7685eb950 100644
  CMVideoFormatDescriptionRef CreateVideoFormatDescription(
      ArrayView<const uint8_t> annexb_buffer) {
    const uint8_t* param_set_ptrs[2] = {};
-@@ -262,6 +471,340 @@ CMVideoFormatDescriptionRef CreateVideoFormatDescription(
+@@ -262,6 +470,340 @@ CMVideoFormatDescriptionRef CreateVideoFormatDescription(
    return description;
  }
  
@@ -2230,7 +2224,7 @@ index 236ef32d08..a7685eb950 100644
  AnnexBBufferReader::AnnexBBufferReader(ArrayView<const uint8_t> annexb_buffer)
      : buffer_(annexb_buffer) {
    offsets_ = H264::FindNaluIndices(annexb_buffer);
-@@ -287,6 +830,19 @@ size_t AnnexBBufferReader::BytesRemaining() const {
+@@ -287,6 +829,19 @@ size_t AnnexBBufferReader::BytesRemaining() const {
    return buffer_.size() - offset_->start_offset;
  }
  
@@ -2250,7 +2244,7 @@ index 236ef32d08..a7685eb950 100644
  void AnnexBBufferReader::SeekToStart() {
    offset_ = offsets_.begin();
  }
-@@ -301,6 +857,16 @@ bool AnnexBBufferReader::SeekToNextNaluOfType(NaluType type) {
+@@ -301,6 +856,16 @@ bool AnnexBBufferReader::SeekToNextNaluOfType(NaluType type) {
    return false;
  }
  
@@ -2268,18 +2262,19 @@ index 236ef32d08..a7685eb950 100644
      : buffer_(avcc_buffer) {}
  
 diff --git a/sdk/objc/components/video_codec/nalu_rewriter.h b/sdk/objc/components/video_codec/nalu_rewriter.h
-index 507aa67a69..d47fcf8d1f 100644
+index 507aa67a69..495fcb3d85 100644
 --- a/sdk/objc/components/video_codec/nalu_rewriter.h
 +++ b/sdk/objc/components/video_codec/nalu_rewriter.h
-@@ -20,6 +20,7 @@
+@@ -20,6 +20,8 @@
  
  #include "api/array_view.h"
  #include "common_video/h264/h264_common.h"
 +#include "common_video/h265/h265_common.h"
++#include "modules/video_coding/codecs/h264/include/h264.h"
  #include "rtc_base/buffer.h"
  
  using webrtc::H264::NaluIndex;
-@@ -44,6 +45,30 @@ bool H264AnnexBBufferToCMSampleBuffer(ArrayView<const uint8_t> annexb_buffer,
+@@ -44,6 +46,30 @@ bool H264AnnexBBufferToCMSampleBuffer(ArrayView<const uint8_t> annexb_buffer,
                                        CMSampleBufferRef* out_sample_buffer,
                                        CMMemoryPoolRef memory_pool);
  
@@ -2310,7 +2305,7 @@ index 507aa67a69..d47fcf8d1f 100644
  // Returns a video format description created from the sps/pps information in
  // the Annex B buffer. If there is no such information, nullptr is returned.
  // The caller is responsible for releasing the description.
-@@ -65,6 +90,7 @@ class AnnexBBufferReader final {
+@@ -65,6 +91,7 @@ class AnnexBBufferReader final {
    // Returns the number of unread NALU bytes, including the size of the header.
    // If the buffer has no remaining NALUs this will return zero.
    size_t BytesRemaining() const;
@@ -2318,7 +2313,7 @@ index 507aa67a69..d47fcf8d1f 100644
  
    // Reset the reader to start reading from the first NALU
    void SeekToStart();
-@@ -74,6 +100,7 @@ class AnnexBBufferReader final {
+@@ -74,6 +101,7 @@ class AnnexBBufferReader final {
    // Return true if a NALU of the desired type is found, false if we
    // reached the end instead
    bool SeekToNextNaluOfType(H264::NaluType type);
