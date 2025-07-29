@@ -299,7 +299,7 @@ index 0000000000..6e77bdf40d
 \ No newline at end of file
 diff --git a/sdk/objc/components/video_codec/RTCVideoDecoderH265.mm b/sdk/objc/components/video_codec/RTCVideoDecoderH265.mm
 new file mode 100644
-index 0000000000..67c24eaff3
+index 0000000000..9e7891a83e
 --- /dev/null
 +++ b/sdk/objc/components/video_codec/RTCVideoDecoderH265.mm
 @@ -0,0 +1,510 @@
@@ -318,6 +318,7 @@ index 0000000000..67c24eaff3
 +
 +#import <VideoToolbox/VideoToolbox.h>
 +
++#import "api/array_view.h"
 +#import "RTCVideoFrameReorderQueue.h"
 +#import "base/RTCVideoFrame.h"
 +#import "base/RTCVideoFrameBuffer.h"
@@ -456,17 +457,16 @@ index 0000000000..67c24eaff3
 +uint8_t ComputeH265ReorderSizeFromAnnexB(const uint8_t* annexb_buffer, size_t annexb_buffer_size)
 +{
 +    // FIXME: we should probably get the VPS from the SPS sps_video_parameter_set_id.
-+    webrtc::AnnexBBufferReader bufferReader(annexb_buffer, annexb_buffer_size);
++    webrtc::AnnexBBufferReader bufferReader(webrtc::MakeArrayView(annexb_buffer, annexb_buffer_size));
 +    if (!bufferReader.SeekToNextNaluOfType(webrtc::H265::kVps))
 +        return 0;
 +
 +    static const size_t hevcNalHeaderSize = 2;
-+    const uint8_t* data;
-+    size_t data_len;
-+    if (!bufferReader.ReadNalu(&data, &data_len) || data_len <= hevcNalHeaderSize)
++    webrtc::ArrayView<const uint8_t> nalu_data;
++    if (!bufferReader.ReadNalu(nalu_data) || nalu_data.size() <= hevcNalHeaderSize)
 +        return 0;
 +
-+    return ComputeH265ReorderSizeFromVPS(data + hevcNalHeaderSize, data_len - hevcNalHeaderSize);
++    return ComputeH265ReorderSizeFromVPS(nalu_data.data() + hevcNalHeaderSize, nalu_data.size() - hevcNalHeaderSize);
 +}
 +
 +// This is the callback function that VideoToolbox calls when decode is
@@ -568,7 +568,7 @@ index 0000000000..67c24eaff3
 +  }
 +
 +  if (!_useHEVC) {
-+    rtc::ScopedCFTypeRef<CMVideoFormatDescriptionRef> inputFormat = rtc::ScopedCF(webrtc::CreateH265VideoFormatDescription(MakeArrayView((uint8_t*)data, size)));
++    rtc::ScopedCFTypeRef<CMVideoFormatDescriptionRef> inputFormat = rtc::ScopedCF(webrtc::CreateH265VideoFormatDescription(webrtc::MakeArrayView((uint8_t*)data, size)));
 +    if (inputFormat) {
 +      _reorderQueue.setReorderSize(ComputeH265ReorderSizeFromAnnexB(data, size));
 +
@@ -600,7 +600,7 @@ index 0000000000..67c24eaff3
 +    if (!sampleBuffer)
 +      return WEBRTC_VIDEO_CODEC_ERROR;
 +  } else if (!webrtc::H265AnnexBBufferToCMSampleBuffer(
-+          MakeArrayView((uint8_t*)data, size),
++          webrtc::MakeArrayView((uint8_t*)data, size),
 +          _videoFormat, &sampleBuffer)) {
 +    return WEBRTC_VIDEO_CODEC_ERROR;
 +  }
@@ -872,10 +872,10 @@ index 0000000000..54d86807ec
 \ No newline at end of file
 diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderH265.mm b/sdk/objc/components/video_codec/RTCVideoEncoderH265.mm
 new file mode 100644
-index 0000000000..42284c1ab3
+index 0000000000..154a361112
 --- /dev/null
 +++ b/sdk/objc/components/video_codec/RTCVideoEncoderH265.mm
-@@ -0,0 +1,606 @@
+@@ -0,0 +1,607 @@
 +/*
 + *  Copyright (c) 2018 The WebRTC project authors. All Rights Reserved.
 + *
@@ -904,6 +904,7 @@ index 0000000000..42284c1ab3
 +#import "helpers/UIDevice+RTCDevice.h"
 +#endif
 +
++#include "api/video/video_timing.h"
 +#include "common_video/h265/h265_bitstream_parser.h"
 +#include "common_video/include/bitrate_adjuster.h"
 +#include "libyuv/convert_from.h"
@@ -1637,10 +1638,16 @@ index 0000000000..fcaccb8bbc
 +}
 \ No newline at end of file
 diff --git a/sdk/objc/components/video_codec/nalu_rewriter.cc b/sdk/objc/components/video_codec/nalu_rewriter.cc
-index 236ef32d08..c984e3b434 100644
+index 236ef32d08..a7685eb950 100644
 --- a/sdk/objc/components/video_codec/nalu_rewriter.cc
 +++ b/sdk/objc/components/video_codec/nalu_rewriter.cc
-@@ -23,6 +23,7 @@
+@@ -18,11 +18,13 @@
+ #include <cstring>
+ #include <vector>
+ 
++#include "api/video_codecs/h264_profile_level_id.h"
+ #include "api/array_view.h"
+ #include "common_video/h264/h264_common.h"
  #include "rtc_base/buffer.h"
  #include "rtc_base/checks.h"
  #include "rtc_base/logging.h"
@@ -1648,7 +1655,7 @@ index 236ef32d08..c984e3b434 100644
  
  namespace webrtc {
  
-@@ -166,8 +167,8 @@ bool H264AnnexBBufferToCMSampleBuffer(ArrayView<const uint8_t> annexb_buffer,
+@@ -166,8 +168,8 @@ bool H264AnnexBBufferToCMSampleBuffer(ArrayView<const uint8_t> annexb_buffer,
    CMBlockBufferRef block_buffer = nullptr;
    CFAllocatorRef block_allocator = CMMemoryPoolGetAllocator(memory_pool);
    OSStatus status = CMBlockBufferCreateWithMemoryBlock(
@@ -1659,7 +1666,7 @@ index 236ef32d08..c984e3b434 100644
        &block_buffer);
    if (status != kCMBlockBufferNoErr) {
      RTC_LOG(LS_ERROR) << "Failed to create block buffer.";
-@@ -201,7 +202,7 @@ bool H264AnnexBBufferToCMSampleBuffer(ArrayView<const uint8_t> annexb_buffer,
+@@ -201,7 +203,7 @@ bool H264AnnexBBufferToCMSampleBuffer(ArrayView<const uint8_t> annexb_buffer,
      CFRelease(contiguous_buffer);
      return false;
    }
@@ -1668,7 +1675,7 @@ index 236ef32d08..c984e3b434 100644
  
    // Write Avcc NALUs into block buffer memory.
    AvccBufferWriter writer(
-@@ -226,6 +227,213 @@ bool H264AnnexBBufferToCMSampleBuffer(ArrayView<const uint8_t> annexb_buffer,
+@@ -226,6 +228,213 @@ bool H264AnnexBBufferToCMSampleBuffer(ArrayView<const uint8_t> annexb_buffer,
    return true;
  }
  
@@ -1798,7 +1805,7 @@ index 236ef32d08..c984e3b434 100644
 +  AnnexBBufferReader reader(annexb_buffer);
 +  if (reader.SeekToNextNaluOfType(H265::kVps)) {
 +    // Buffer contains an SPS NALU - skip it and the following PPS
-+    ArrayView<const uint8_t> data;
++    webrtc::ArrayView<const uint8_t> data;
 +    if (!reader.ReadNalu(data)) {
 +      RTC_LOG(LS_ERROR) << "Failed to read VPS";
 +      return false;
@@ -1882,7 +1889,7 @@ index 236ef32d08..c984e3b434 100644
  CMVideoFormatDescriptionRef CreateVideoFormatDescription(
      ArrayView<const uint8_t> annexb_buffer) {
    const uint8_t* param_set_ptrs[2] = {};
-@@ -262,6 +470,340 @@ CMVideoFormatDescriptionRef CreateVideoFormatDescription(
+@@ -262,6 +471,340 @@ CMVideoFormatDescriptionRef CreateVideoFormatDescription(
    return description;
  }
  
@@ -2223,7 +2230,7 @@ index 236ef32d08..c984e3b434 100644
  AnnexBBufferReader::AnnexBBufferReader(ArrayView<const uint8_t> annexb_buffer)
      : buffer_(annexb_buffer) {
    offsets_ = H264::FindNaluIndices(annexb_buffer);
-@@ -287,6 +829,19 @@ size_t AnnexBBufferReader::BytesRemaining() const {
+@@ -287,6 +830,19 @@ size_t AnnexBBufferReader::BytesRemaining() const {
    return buffer_.size() - offset_->start_offset;
  }
  
@@ -2243,7 +2250,7 @@ index 236ef32d08..c984e3b434 100644
  void AnnexBBufferReader::SeekToStart() {
    offset_ = offsets_.begin();
  }
-@@ -301,6 +856,16 @@ bool AnnexBBufferReader::SeekToNextNaluOfType(NaluType type) {
+@@ -301,6 +857,16 @@ bool AnnexBBufferReader::SeekToNextNaluOfType(NaluType type) {
    return false;
  }
  
