@@ -27,7 +27,7 @@ jobs:
         with:
           username: ${{ github.event.comment.user.login }}
 
-  claude-sonnet-response-others:
+  claude-sonnet-response:
     needs: check-permission
     if: needs.check-permission.outputs.has_permission == 'true'
     runs-on: ubuntu-24.04
