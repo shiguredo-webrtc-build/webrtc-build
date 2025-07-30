@@ -1,9 +1,9 @@
 Updating depot_tools...
 diff --git a/rtc_base/boringssl_certificate.cc b/rtc_base/boringssl_certificate.cc
-index 016b4dabba..ccc8dc95bd 100644
+index a4f919fbbe..fe3beeaed9 100644
 --- a/rtc_base/boringssl_certificate.cc
 +++ b/rtc_base/boringssl_certificate.cc
-@@ -259,6 +259,12 @@ BoringSSLCertificate::BoringSSLCertificate(
+@@ -252,6 +252,12 @@ BoringSSLCertificate::BoringSSLCertificate(
    RTC_DCHECK(cert_buffer_ != nullptr);
  }
  
@@ -55,7 +55,7 @@ index 4a74944be9..b93ea7cbce 100644
 @@ -834,7 +833,7 @@ enum ssl_verify_result_t OpenSSLAdapter::SSLVerifyInternal(SSL* ssl,
      return ssl_verify_invalid;
    }
-
+ 
 -  BoringSSLCertificate cert(bssl::UpRef(sk_CRYPTO_BUFFER_value(chain, 0)));
 +  BoringSSLCertificate cert(bssl::UpRef(sk_CRYPTO_BUFFER_value(chain, 0)), ssl);
    if (!ssl_cert_verifier_->Verify(cert)) {
@@ -71,10 +71,10 @@ index 4a74944be9..b93ea7cbce 100644
    const OpenSSLCertificate cert(X509_STORE_CTX_get_current_cert(store));
  #endif
 diff --git a/rtc_base/openssl_stream_adapter.cc b/rtc_base/openssl_stream_adapter.cc
-index b46faff911..868d473860 100644
+index 604a9465c7..dccdc0060c 100644
 --- a/rtc_base/openssl_stream_adapter.cc
 +++ b/rtc_base/openssl_stream_adapter.cc
-@@ -1181,7 +1181,7 @@ enum ssl_verify_result_t OpenSSLStreamAdapter::SSLVerifyCallback(
+@@ -1176,7 +1176,7 @@ enum ssl_verify_result_t OpenSSLStreamAdapter::SSLVerifyCallback(
    // Creates certificate chain.
    std::vector<std::unique_ptr<SSLCertificate>> cert_chain;
    for (CRYPTO_BUFFER* cert : chain) {
