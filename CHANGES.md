@@ -29,7 +29,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
-- 2025-xx-xx [UPDATE] m139 ブランチのビルドエラーに対する対応
+- 2025-07-30 [UPDATE] m139 ブランチのビルドエラーに対する対応
   - `h265_ios.patch` の単純なパッチ適用失敗を修正
   - `ios_proxy.patch` の単純なパッチ適用失敗を修正
   - `h265_ios.patch` の AnnexBBufferReader のパラメータ変更に対応
