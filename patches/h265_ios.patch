@@ -872,10 +872,10 @@ index 0000000000..54d86807ec
 \ No newline at end of file
 diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderH265.mm b/sdk/objc/components/video_codec/RTCVideoEncoderH265.mm
 new file mode 100644
-index 0000000000..154a361112
+index 0000000000..42284c1ab3
 --- /dev/null
 +++ b/sdk/objc/components/video_codec/RTCVideoEncoderH265.mm
-@@ -0,0 +1,607 @@
+@@ -0,0 +1,606 @@
 +/*
 + *  Copyright (c) 2018 The WebRTC project authors. All Rights Reserved.
 + *
@@ -904,7 +904,6 @@ index 0000000000..154a361112
 +#import "helpers/UIDevice+RTCDevice.h"
 +#endif
 +
-+#include "api/video/video_timing.h"
 +#include "common_video/h265/h265_bitstream_parser.h"
 +#include "common_video/include/bitrate_adjuster.h"
 +#include "libyuv/convert_from.h"
