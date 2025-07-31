@@ -41,18 +41,10 @@ index 926dd332ec..01c887c6be 100644
  
  }  //  namespace webrtc
 diff --git a/rtc_base/openssl_adapter.cc b/rtc_base/openssl_adapter.cc
-index 4a74944be9..b93ea7cbce 100644
+index 4a74944be9..dc729a4baf 100644
 --- a/rtc_base/openssl_adapter.cc
 +++ b/rtc_base/openssl_adapter.cc
-@@ -180,7 +180,6 @@ static void LogSslError() {
- 
- namespace webrtc {
- 
--
- bool OpenSSLAdapter::InitializeSSL() {
-   // TODO: https://issues.webrtc.org/issues/339300437 - remove once
-   // BoringSSL no longer requires this after
-@@ -834,7 +833,7 @@ enum ssl_verify_result_t OpenSSLAdapter::SSLVerifyInternal(SSL* ssl,
+@@ -834,7 +834,7 @@ enum ssl_verify_result_t OpenSSLAdapter::SSLVerifyInternal(SSL* ssl,
      return ssl_verify_invalid;
    }
  
@@ -61,7 +53,7 @@ index 4a74944be9..b93ea7cbce 100644
    if (!ssl_cert_verifier_->Verify(cert)) {
      RTC_LOG(LS_WARNING) << "Failed to verify certificate using custom callback";
      return ssl_verify_invalid;
-@@ -906,7 +905,7 @@ int OpenSSLAdapter::SSLVerifyInternal(int previous_status,
+@@ -906,7 +906,7 @@ int OpenSSLAdapter::SSLVerifyInternal(int previous_status,
      RTC_LOG(LS_ERROR) << "Failed to allocate CRYPTO_BUFFER.";
      return previous_status;
    }
