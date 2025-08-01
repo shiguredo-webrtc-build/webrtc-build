@@ -29,6 +29,12 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-07-30 [UPDATE] m139 ブランチのビルドエラーに対する対応
+  - `h265_ios.patch` の単純なパッチ適用失敗を修正
+  - `ios_proxy.patch` の単純なパッチ適用失敗を修正
+  - `h265_ios.patch` の AnnexBBufferReader のパラメータ変更に対応
+    - https://source.chromium.org/chromium/_/webrtc/src/+/eddc465338ebef0993ffc71f607a1b6e6d6f070e
+  - @torikizi @miosakuma
 - 2025-07-14 [UPDATE] Raspberry Pi OS (armv8) のビルドを buster から bookworm にアップデートする
   - multistrap の suite を buster から bookworm に修正
   - libstdc++-8-dev を libstdc++-11-dev に変更
