@@ -252,7 +252,6 @@ PATCHES = {
         # 既に ios_build.patch で同じ内容を適用済み
         # "remove_crel.patch",
         "revert_siso.patch",
-        "disable_rtc_builtin_ssl_root_certificates.patch",
     ],
     "android": [
         "add_deps.patch",
@@ -273,7 +272,6 @@ PATCHES = {
         "remove_crel.patch",
         "revert_siso.patch",
         "android_include_environment_java.patch",
-        "disable_rtc_builtin_ssl_root_certificates.patch",
     ],
     "raspberry-pi-os_armv6": [
         "nacl_armv6_2.patch",
@@ -790,6 +788,7 @@ def build_webrtc_ios(
     if not nobuild_framework:
         gn_args = [
             *gn_args_base,
+            "rtc_builtin_ssl_root_certificates=false",
         ]
         cmd(
             [
@@ -915,7 +914,10 @@ def build_webrtc_android(
     if not nobuild_aar:
         work_dir = os.path.join(webrtc_build_dir, "aar")
         mkdir_p(work_dir)
-        gn_args = [*gn_args_base]
+        gn_args = [
+            *gn_args_base,
+            "rtc_builtin_ssl_root_certificates=false",
+        ]
         with cd(webrtc_src_dir):
             cmd(
                 [

@@ -29,6 +29,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-08-04 [UPDATE] iOS / Android で TURN-TLS 利用時に libwebrtc の組み込み証明書を利用しないように設定する
+  - run.py に iOS / Android 向けビルドを行う際の GN の引数 `rtc_builtin_ssl_root_certificates=false` を追加した
+  - @zztkm
 - 2025-07-14 [UPDATE] Raspberry Pi OS (armv8) のビルドを buster から bookworm にアップデートする
   - multistrap の suite を buster から bookworm に修正
   - libstdc++-8-dev を libstdc++-11-dev に変更

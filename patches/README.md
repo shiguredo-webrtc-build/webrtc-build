@@ -365,9 +365,3 @@ CREL は LLVM のリンカ(lld)特有の機能なので、これを有効にす�
 
 siso を実行すると即座に `Error: can not detect exec_root: build/config/siso not found` というエラーが出てどうしようも無かったので revert する。
 
-## disable_rtc_builtin_ssl_root_certificates
-
-`rtc_builtin_ssl_root_certificates` に false を設定することで、TURN-TLS 検証用に libwebrtc 組み込みの証明書を利用しないようにするためのパッチです。
-
-このパッチを適用してビルドした libwebrtc を利用する場合は、独自の SSLCertificateVerifier を実装して libwebrtc に渡す必要があります。
-
