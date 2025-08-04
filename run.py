@@ -252,6 +252,7 @@ PATCHES = {
         # 既に ios_build.patch で同じ内容を適用済み
         # "remove_crel.patch",
         "revert_siso.patch",
+        "disable_rtc_builtin_ssl_root_certificates.patch",
     ],
     "android": [
         "add_deps.patch",
@@ -272,6 +273,7 @@ PATCHES = {
         "remove_crel.patch",
         "revert_siso.patch",
         "android_include_environment_java.patch",
+        "disable_rtc_builtin_ssl_root_certificates.patch",
     ],
     "raspberry-pi-os_armv6": [
         "nacl_armv6_2.patch",
