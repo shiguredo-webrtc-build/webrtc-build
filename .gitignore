@@ -1,3 +1,6 @@
 /_source
 /_build
 /_package
+
+# python
+.mypy_cache/
