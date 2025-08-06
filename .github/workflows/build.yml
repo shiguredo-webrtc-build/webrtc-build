@@ -70,6 +70,7 @@ jobs:
         platform:
           - name: macos_arm64
           - name: ios
+          - name: ios_sdk
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
@@ -86,10 +87,10 @@ jobs:
           python3 run.py build ${{ matrix.platform.name }} --no-history
           python3 run.py package ${{ matrix.platform.name }}
       - name: Build ${{ matrix.platform.name }} for ios
-        if: matrix.platform.name == 'ios'
+        if: matrix.platform.name == 'ios' || matrix.platform.name == 'ios_sdk'
         run: |
-          python3 run.py build ${{ matrix.platform.name }} --webrtc-overlap-ios-build-dir --no-history
-          python3 run.py package ${{ matrix.platform.name }} --webrtc-overlap-ios-build-dir
+          python3 run.py build ${{ matrix.platform.name }} --no-history
+          python3 run.py package ${{ matrix.platform.name }}
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -98,7 +99,7 @@ jobs:
       # Sora iOS SDK 用に WebRTC.xcframework.zip をアップロードする
       # ios のみ webrtc.${{ matrix.platform.name }}.tar.gz だけでなく、WebRTC.xcframework.zip もアップロードする
       - name: Upload Artifact for ios (WebRTC.xcframework.zip)
-        if: matrix.platform.name == 'ios'
+        if: matrix.platform.name == 'ios_sdk'
         uses: actions/upload-artifact@v4
         with:
           name: WebRTC.xcframework.zip
@@ -125,7 +126,9 @@ jobs:
           - name: ubuntu-24.04_x86_64
             runs-on: ubuntu-24.04
           - name: android
-            runs-on: ubuntu-22.04
+            runs-on: ubuntu-24.04
+          - name: android_sdk
+            runs-on: ubuntu-24.04
     runs-on: ${{ matrix.platform.runs-on }}
     steps:
       - uses: actions/checkout@v4
@@ -164,7 +167,7 @@ jobs:
         if: contains(matrix.platform.name, '_armv')
         run: sudo scripts/apt_install_arm.sh
       - name: Setup ${{ matrix.platform.name }} for android
-        if: matrix.platform.name == 'android'
+        if: matrix.platform.name == 'android' || matrix.platform.name == 'android_sdk'
         run: sudo scripts/apt_install_x86_64.sh && sudo apt-get install -y openjdk-11-jdk
       - name: Setup Git User
         run: |
@@ -203,6 +206,9 @@ jobs:
           platform: ios
       - uses: ./.github/actions/download
         with:
+          platform: ios_sdk
+      - uses: ./.github/actions/download
+        with:
           platform: raspberry-pi-os_armv6
       - uses: ./.github/actions/download
         with:
@@ -228,6 +234,9 @@ jobs:
       - uses: ./.github/actions/download
         with:
           platform: android
+      - uses: ./.github/actions/download
+        with:
+          platform: android_sdk
       # Sora iOS SDK 向けバイナリの WebRTC.xcframework.zip をダウンロードする
       - name: Env to output for WebRTC.xcframework.zip
         shell: bash
