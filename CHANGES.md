@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-08-06 [RELEASE] m138.7204.0.4
+  - @torikizi
 - 2025-07-14 [UPDATE] Raspberry Pi OS (armv8) のビルドを buster から bookworm にアップデートする
   - multistrap の suite を buster から bookworm に修正
   - libstdc++-8-dev を libstdc++-11-dev に変更
