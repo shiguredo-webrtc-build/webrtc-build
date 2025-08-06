@@ -1831,7 +1831,7 @@ def main():
                     gen_force=args.webrtc_gen_force,
                     nobuild=args.webrtc_nobuild,
                 )
-            if args.target == "ios_sdk":
+            elif args.target == "ios_sdk":
                 build_webrtc_ios_sdk(
                     **build_webrtc_args,
                 )
