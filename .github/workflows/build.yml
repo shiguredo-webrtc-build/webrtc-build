@@ -70,6 +70,7 @@ jobs:
         platform:
           - name: macos_arm64
           - name: ios
+          - name: visionos
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
@@ -87,6 +88,11 @@ jobs:
           python3 run.py package ${{ matrix.platform.name }}
       - name: Build ${{ matrix.platform.name }} for ios
         if: matrix.platform.name == 'ios'
+        run: |
+          python3 run.py build ${{ matrix.platform.name }} --webrtc-overlap-ios-build-dir
+          python3 run.py package ${{ matrix.platform.name }} --webrtc-overlap-ios-build-dir
+      - name: Build ${{ matrix.platform.name }} for visionos
+        if: matrix.platform.name == 'visionos'
         run: |
           python3 run.py build ${{ matrix.platform.name }} --webrtc-overlap-ios-build-dir
           python3 run.py package ${{ matrix.platform.name }} --webrtc-overlap-ios-build-dir
@@ -201,6 +207,9 @@ jobs:
       - uses: ./.github/actions/download
         with:
           platform: ios
+      - uses: ./.github/actions/download
+        with:
+          platform: visionos
       - uses: ./.github/actions/download
         with:
           platform: raspberry-pi-os_armv6

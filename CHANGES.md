@@ -29,6 +29,10 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-08-06 [ADD] visionOS 対応を追加
+  - visionOS 実機でのビルドを追加しました
+  - ビルドスクリプトの修正が大きいため、シミュレータは現在非対応となっています
+  - WebRTC.xcframework は現在利用していないため作成していません
 - 2025-07-11 [RELEASE] m138.7204.0.3
   - @zztkm
 - 2025-07-11 [UPDATE] iOS の RTCResolutionRestriction に NSCopying プロトコルを実装する

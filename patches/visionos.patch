@@ -1,0 +1,286 @@
+diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
+index 417efe6423..639fe25305 100644
+--- a/sdk/BUILD.gn
++++ b/sdk/BUILD.gn
+@@ -172,7 +172,7 @@ if (is_ios || is_mac) {
+         "objc/helpers/UIDevice+RTCDevice.mm",
+       ]
+ 
+-      if (target_platform != "tvos") {
++      if (target_platform != "tvos" && target_platform != "visionos") {
+         sources += [
+           "objc/helpers/RTCCameraPreviewView.h",
+           "objc/helpers/RTCCameraPreviewView.m",
+@@ -678,12 +677,14 @@ if (is_ios || is_mac) {
+     rtc_library("videocapture_objc") {
+       visibility = [ "*" ]
+       allow_poison = [ "audio_codecs" ]  # TODO(bugs.webrtc.org/8396): Remove.
+-      sources = [
+-        "objc/components/capturer/RTCCameraVideoCapturer.h",
+-        "objc/components/capturer/RTCCameraVideoCapturer.m",
+-        "objc/components/capturer/RTCFileVideoCapturer.h",
+-        "objc/components/capturer/RTCFileVideoCapturer.m",
+-      ]
++      if (is_ios && target_platform != "visionos") {
++        sources = [
++          "objc/components/capturer/RTCCameraVideoCapturer.h",
++          "objc/components/capturer/RTCCameraVideoCapturer.m",
++          "objc/components/capturer/RTCFileVideoCapturer.h",
++          "objc/components/capturer/RTCFileVideoCapturer.m",
++        ]
++      }
+       frameworks = [
+         "AVFoundation.framework",
+         "CoreVideo.framework",
+diff --git a/sdk/objc/components/capturer/RTCCameraVideoCapturer.m b/sdk/objc/components/capturer/RTCCameraVideoCapturer.m
+index ff55bd7f19..f049b86fc4 100644
+--- a/sdk/objc/components/capturer/RTCCameraVideoCapturer.m
++++ b/sdk/objc/components/capturer/RTCCameraVideoCapturer.m
+@@ -125,6 +125,10 @@ const int64_t kNanosecondsPerSecond = 1000000000;
+ }
+ 
+ + (NSArray<AVCaptureDevice *> *)captureDevices {
++#if TARGET_OS_VISION
++  // visionOS ではカメラキャプチャをサポートしていないので、空の配列を返す
++  return @[];
++#else
+   AVCaptureDeviceDiscoverySession *session = [AVCaptureDeviceDiscoverySession
+       discoverySessionWithDeviceTypes:@[
+         AVCaptureDeviceTypeBuiltInWideAngleCamera
+@@ -132,6 +136,7 @@ const int64_t kNanosecondsPerSecond = 1000000000;
+                             mediaType:AVMediaTypeVideo
+                              position:AVCaptureDevicePositionUnspecified];
+   return session.devices;
++#endif
+ }
+ 
+ + (NSArray<AVCaptureDeviceFormat *> *)supportedFormatsForDevice:
+@@ -540,6 +545,10 @@ const int64_t kNanosecondsPerSecond = 1000000000;
+ }
+ 
+ - (void)reconfigureCaptureSessionInput {
++#if TARGET_OS_VISION
++  // visionOS ではカメラキャプチャをサポートしていないので、return
++  return;
++#else
+   NSAssert(
+       [RTC_OBJC_TYPE(RTCDispatcher)
+           isOnQueueForType:RTCDispatcherTypeCaptureSession],
+@@ -562,6 +571,7 @@ const int64_t kNanosecondsPerSecond = 1000000000;
+     RTCLogError(@"Cannot add camera as an input to the session.");
+   }
+   [_captureSession commitConfiguration];
++#endif
+ }
+ 
+ - (void)updateOrientation {
+diff --git a/sdk/objc/components/video_codec/RTCVideoDecoderH264.mm b/sdk/objc/components/video_codec/RTCVideoDecoderH264.mm
+index 89802d19d4..f59adf5ab8 100644
+--- a/sdk/objc/components/video_codec/RTCVideoDecoderH264.mm
++++ b/sdk/objc/components/video_codec/RTCVideoDecoderH264.mm
+@@ -220,7 +220,9 @@ void decompressionOutputCallback(void *decoderRef,
+   NSDictionary *attributes = @{
+ #if defined(WEBRTC_IOS) && (TARGET_OS_MACCATALYST || TARGET_OS_SIMULATOR)
+     (NSString *)kCVPixelBufferMetalCompatibilityKey : @(YES),
+-#elif defined(WEBRTC_IOS)
++// visionOS では kCVPixelBufferOpenGLESCompatibilityKey が非対応のため除外する
++// 参考: https://developer.apple.com/documentation/corevideo/kcvpixelbufferopenglescompatibilitykey
++#elif defined(WEBRTC_IOS) && !TARGET_OS_VISION
+     (NSString *)kCVPixelBufferOpenGLESCompatibilityKey : @(YES),
+ #elif defined(WEBRTC_MAC) && !defined(WEBRTC_ARCH_ARM64)
+     (NSString *)kCVPixelBufferOpenGLCompatibilityKey : @(YES),
+diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderH264.mm b/sdk/objc/components/video_codec/RTCVideoEncoderH264.mm
+index d1a10dc9b6..76a80807a0 100644
+--- a/sdk/objc/components/video_codec/RTCVideoEncoderH264.mm
++++ b/sdk/objc/components/video_codec/RTCVideoEncoderH264.mm
+@@ -663,7 +663,9 @@ NSUInteger GetMaxSampleRate(
+   NSDictionary *sourceAttributes = @{
+ #if defined(WEBRTC_IOS) && (TARGET_OS_MACCATALYST || TARGET_OS_SIMULATOR)
+     (NSString *)kCVPixelBufferMetalCompatibilityKey : @(YES),
+-#elif defined(WEBRTC_IOS)
++// visionOS では kCVPixelBufferOpenGLESCompatibilityKey が非対応のため除外する
++// 参考: https://developer.apple.com/documentation/corevideo/kcvpixelbufferopenglescompatibilitykey
++#elif defined(WEBRTC_IOS) && !TARGET_OS_VISION
+     (NSString *)kCVPixelBufferOpenGLESCompatibilityKey : @(YES),
+ #elif defined(WEBRTC_MAC) && !defined(WEBRTC_ARCH_ARM64)
+     (NSString *)kCVPixelBufferOpenGLCompatibilityKey : @(YES),
+diff --git a/build/config/ios/ios_sdk.gni b/build/config/ios/ios_sdk.gni
+index 9a0ea63dd..6b2dbb1d3 100644
+--- a/build/config/ios/ios_sdk.gni
++++ b/build/config/ios/ios_sdk.gni
+@@ -86,6 +86,16 @@ if (ios_sdk_path == "") {
+     } else {
+       assert(false, "unsupported target_environment=$target_environment")
+     }
++  } else if (target_platform == "visionos") {
++    if (target_environment == "simulator") {
++      ios_sdk_name = "xrsimulator"
++      ios_sdk_platform = "XRSimulator"
++    } else if (target_environment == "device") {
++      ios_sdk_name = "xros"
++      ios_sdk_platform = "XROS"
++    } else {
++      assert(false, "unsupported target_environment=$target_environment")
++    }
+   } else {
+     assert(false, "unsupported target_platform=$target_platform")
+   }
+diff --git a/build/config/ios/BUILD.gn b/build/config/ios/BUILD.gn
+index 507e2a867..d6f5514e4 100644
+--- a/build/config/ios/BUILD.gn
++++ b/build/config/ios/BUILD.gn
+@@ -48,6 +48,8 @@ config("compiler") {
+     triplet_os = "apple-ios"
+   } else if (target_platform == "tvos") {
+     triplet_os = "apple-tvos"
++  } else if (target_platform == "visionos") {
++    triplet_os = "apple-xros"
+   }
+ 
+   # Set target.
+diff --git a/build/config/apple/mobile_config.gni b/build/config/apple/mobile_config.gni
+index 48e80f216..418013516 100644
+--- a/build/config/apple/mobile_config.gni
++++ b/build/config/apple/mobile_config.gni
+@@ -75,6 +75,7 @@ if (is_ios || is_watchos) {
+     _target_platforms += [
+       "iphoneos",
+       "tvos",
++      "visionos",
+     ]
+   } else if (is_watchos) {
+     _target_platforms += [
+diff --git a/build/config/apple/sdk_info.py b/build/config/apple/sdk_info.py
+index bbadc1247..8f06db59d 100755
+--- a/build/config/apple/sdk_info.py
++++ b/build/config/apple/sdk_info.py
+@@ -141,6 +141,8 @@ def main():
+                           'macosx',
+                           'watchos',
+                           'watchsimulator',
++                          'xros',
++                          'xrsimulator',
+                       ])
+   args = parser.parse_args()
+   if args.developer_dir:
+diff --git a/build/config/rust.gni b/build/config/rust.gni
+index bd18d1311..613f7c25e 100644
+--- a/build/config/rust.gni
++++ b/build/config/rust.gni
+@@ -316,6 +316,16 @@ if (is_linux || is_chromeos) {
+       } else {
+         assert(false, "unsupported target_environment=$target_environment")
+       }
++    } else if (target_platform == "visionos") {
++      if (target_environment == "simulator") {
++        rust_abi_target = "aarch64-apple-xros-simulator"
++        cargo_target_abi = "sim"
++      } else if (target_environment == "device") {
++        rust_abi_target = "aarch64-apple-xros"
++        cargo_target_abi = ""
++      } else {
++        assert(false, "unsupported target_environment=$target_environment")
++      }
+     } else {
+       assert(false, "unsupported target_platform=$target_platform")
+     }
+diff --git a/build/config/clang/BUILD.gn b/build/config/clang/BUILD.gn
+index 8c03235f5..43d36a972 100644
+--- a/build/config/clang/BUILD.gn
++++ b/build/config/clang/BUILD.gn
+@@ -284,6 +284,16 @@ clang_lib("compiler_builtins") {
+       } else {
+         assert(false, "unsupported target_environment=$target_environment")
+       }
++    } else if (target_platform == "visionos") {
++      if (target_environment == "simulator") {
++        ios_sdk_name = "xrsimulator"
++        ios_sdk_platform = "XRSimulator"
++      } else if (target_environment == "device") {
++        ios_sdk_name = "xros"
++        ios_sdk_platform = "XROS"
++      } else {
++        assert(false, "unsupported target_environment=$target_environment")
++      }
+     } else {
+       assert(false, "unsupported target_platform=$target_platform")
+     }
+diff --git a/build/config/ios/rules.gni b/build/config/ios/rules.gni
+index d7fe32f7f..3e39f38de 100644
+--- a/build/config/ios/rules.gni
++++ b/build/config/ios/rules.gni
+@@ -99,6 +99,8 @@ template("ios_info_plist") {
+       _build_info_plist = "//build/config/ios/BuildInfo.plist"
+     } else if (target_platform == "tvos") {
+       _build_info_plist = "//build/config/tvos/BuildInfo.plist"
++    } else if (target_platform == "visionos") {
++      _build_info_plist = "//build/config/visionos/BuildInfo.plist"
+     }
+     plist_templates = [
+       _build_info_plist,
+diff --git a/build/config/visionos/BuildInfo.plist b/build/config/visionos/BuildInfo.plist
+new file mode 100644
+index 000000000..37fe167f4
+--- /dev/null
++++ b/build/config/visionos/BuildInfo.plist
+@@ -0,0 +1,34 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
++<plist version="1.0">
++<dict>
++  <key>BuildMachineOSBuild</key>
++  <string>${BUILD_MACHINE_OS_BUILD}</string>
++  <key>CFBundleSupportedPlatforms</key>
++  <array>
++    <string>${IOS_SUPPORTED_PLATFORM}</string>
++  </array>
++  <key>DTCompiler</key>
++  <string>${GCC_VERSION}</string>
++  <key>DTPlatformName</key>
++  <string>${IOS_PLATFORM_NAME}</string>
++  <key>DTPlatformVersion</key>
++  <string>${IOS_PLATFORM_VERSION}</string>
++  <key>DTPlatformBuild</key>
++  <string>${IOS_PLATFORM_BUILD}</string>
++  <key>DTSDKBuild</key>
++  <string>${IOS_SDK_BUILD}</string>
++  <key>DTSDKName</key>
++  <string>${IOS_SDK_NAME}</string>
++  <key>MinimumOSVersion</key>
++  <string>${IOS_DEPLOYMENT_TARGET}</string>
++  <key>DTXcode</key>
++  <string>${XCODE_VERSION}</string>
++  <key>DTXcodeBuild</key>
++  <string>${XCODE_BUILD}</string>
++  <key>UIDeviceFamily</key>
++  <array>
++    <integer>7</integer>
++  </array>
++</dict>
++</plist>
+diff --git a/build/config/apple/codesign.py b/build/config/apple/codesign.py
+index 62db2573e..4404d8975 100644
+--- a/build/config/apple/codesign.py
++++ b/build/config/apple/codesign.py
+@@ -107,7 +107,7 @@ class Bundle(object):
+ 
+   @staticmethod
+   def Kind(platform, extension):
+-    if platform in ('iphoneos', 'iphonesimulator'):
++    if platform in ('iphoneos', 'iphonesimulator', 'xros', 'xrsimulator'):
+       return 'ios'
+     if platform == 'macosx':
+       if extension == '.framework':
+diff --git a/sdk/objc/components/renderer/metal/RTCMTLRenderer.h b/sdk/objc/components/renderer/metal/RTCMTLRenderer.h
+index 84aa3fe7fc..ac3474ceba 100644
+--- a/sdk/objc/components/renderer/metal/RTCMTLRenderer.h
++++ b/sdk/objc/components/renderer/metal/RTCMTLRenderer.h
+@@ -37,7 +37,7 @@ NS_ASSUME_NONNULL_BEGIN
+  * for performing cleanups.
+  */
+ 
+-#if TARGET_OS_IOS
++#if TARGET_OS_IOS || TARGET_OS_VISION
+ - (BOOL)addRenderingDestination:(__kindof UIView *)view;
+ #else
+ - (BOOL)addRenderingDestination:(__kindof NSView *)view;

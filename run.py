@@ -253,6 +253,29 @@ PATCHES = {
         # "remove_crel.patch",
         "revert_siso.patch",
     ],
+    "visionos": [
+        "add_deps.patch",
+        "4k.patch",
+        "revive_proxy.patch",
+        "add_license_dav1d.patch",
+        "macos_screen_capture.patch",
+        "ios_manual_audio_input.patch",
+        "ios_simulcast.patch",
+        "ssl_verify_callback_with_native_handle.patch",
+        "ios_build.patch",
+        "ios_proxy.patch",
+        "h265.patch",
+        "h265_ios.patch",
+        "arm_neon_sve_bridge.patch",
+        "dav1d_config_change.patch",
+        "fix_perfetto.patch",
+        "fix_moved_function_call.patch",
+        "ios_add_scale_resolution_down_to.patch",
+        # 既に ios_build.patch で同じ内容を適用済み
+        # "remove_crel.patch",
+        "revert_siso.patch",
+        "visionos.patch",
+    ],
     "android": [
         "add_deps.patch",
         "4k.patch",
@@ -467,6 +490,11 @@ def get_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir):
             if target == "ios":
                 with open(".gclient", "a") as f:
                     f.write("target_os = [ 'ios' ]\n")
+            if target == "visionos":
+                # visionOS は target_os は ios を使用し、target_environment で区別する
+                with open(".gclient", "a") as f:
+                    f.write("target_os = [ 'ios' ]\n")
+                    f.write("target_environment = [ 'xrdevice', 'xrsimulator' ]\n")
 
         with cd(src_dir):
             cmd(["git", "fetch"])
@@ -692,6 +720,7 @@ WEBRTC_BUILD_TARGETS_MACOS_COMMON = [
 WEBRTC_BUILD_TARGETS = {
     "macos_arm64": [*WEBRTC_BUILD_TARGETS_MACOS_COMMON, "sdk:mac_framework_objc"],
     "ios": [*WEBRTC_BUILD_TARGETS_MACOS_COMMON, "sdk:framework_objc"],
+    "visionos": [*WEBRTC_BUILD_TARGETS_MACOS_COMMON, "sdk:framework_objc"],
     "android": [
         "sdk/android:libwebrtc",
         "sdk/android:libjingle_peerconnection_so",
@@ -702,7 +731,7 @@ WEBRTC_BUILD_TARGETS = {
 
 def get_build_targets(target):
     ts = [":default"]
-    if target not in ("windows_x86_64", "windows_arm64", "ios", "macos_arm64"):
+    if target not in ("windows_x86_64", "windows_arm64", "ios", "visionos", "macos_arm64"):
         ts += ["buildtools/third_party/libc++"]
     ts += WEBRTC_BUILD_TARGETS.get(target, [])
     return ts
@@ -710,6 +739,11 @@ def get_build_targets(target):
 
 IOS_ARCHS = ["device:arm64"]
 IOS_FRAMEWORK_ARCHS = ["simulator:arm64", "device:arm64"]
+
+# 実機ビルドのみ対応する
+# TODO: simulator:arm64 を追加し simulator ビルドも対応する
+VISIONOS_ARCHS = ["device:arm64"]
+VISIONOS_FRAMEWORK_ARCHS = ["device:arm64"]
 
 
 def to_gn_args(gn_args: List[str], extra_gn_args: str) -> str:
@@ -855,6 +889,123 @@ def build_webrtc_ios(
         libs.append(os.path.join(work_dir, "libwebrtc.a"))
 
     cmd(["lipo", *libs, "-create", "-output", os.path.join(webrtc_build_dir, "libwebrtc.a")])
+
+
+def build_webrtc_visionos(
+    source_dir,
+    build_dir,
+    version_info: VersionInfo,
+    deps_info: DepsInfo,
+    extra_gn_args,
+    webrtc_source_dir=None,
+    webrtc_build_dir=None,
+    debug=False,
+    gen=False,
+    gen_force=False,
+    nobuild=False,
+    nobuild_framework=False,
+    overlap_build_dir=False,
+):
+    if webrtc_source_dir is None:
+        webrtc_source_dir = os.path.join(source_dir, "webrtc")
+    if webrtc_build_dir is None:
+        webrtc_build_dir = os.path.join(build_dir, "webrtc")
+
+    webrtc_src_dir = os.path.join(webrtc_source_dir, "src")
+
+    mkdir_p(webrtc_build_dir)
+
+    mkdir_p(os.path.join(webrtc_build_dir, "framework"))
+    # visionOS 用の GN 設定
+    gn_args_base = [
+        "rtc_libvpx_build_vp9=true",
+        "enable_dsyms=true",
+        "use_custom_libcxx=false",
+        "use_custom_libcxx_for_host=false",
+        "use_lld=false",
+        "rtc_enable_objc_symbol_export=true",
+        "treat_warnings_as_errors=false",
+        'target_os="ios"',  # visionOS は iOS ベースなので iOS を指定
+        *COMMON_GN_ARGS,
+    ]
+
+    # WebRTC.xcframework のビルド
+    # 対応時点では利用している SDK がないのでコメントアウトする
+    if not nobuild_framework:
+        gn_args = [
+            *gn_args_base,
+        ]
+        # 標準の iOS ビルドスクリプトを使用してフレームワークを作成
+        # cmd(
+        #     [
+        #         os.path.join(webrtc_src_dir, "tools_webrtc", "ios", "build_ios_libs.sh"),
+        #         "-o",
+        #         os.path.join(webrtc_build_dir, "framework"),
+        #         "--build_config",
+        #         "debug" if debug else "release",
+        #         "--arch",
+        #         *VISIONOS_FRAMEWORK_ARCHS,
+        #         "--extra-gn-args",
+        #         to_gn_args(gn_args, extra_gn_args),
+        #     ]
+        # )
+
+        # visionOS 専用の xcframework を再作成
+        # create_visionos_xcframework(webrtc_build_dir, debug)
+
+        # ビルド情報を json ファイルに保存
+        # xcframework を作成しない場合は build_info.json も保存しない
+        # info = {}
+        # branch, commit, revision, maint = get_webrtc_version_info(version_info)
+        # info["branch"] = branch
+        # info["commit"] = commit
+        # info["revision"] = revision
+        # info["maint"] = maint
+        # with open(
+        #     os.path.join(webrtc_build_dir, "framework", "WebRTC.xcframework", "build_info.json"),
+        #     "w",
+        # ) as f:
+        #     f.write(json.dumps(info, indent=4))
+
+    libs = []
+    for device_arch in VISIONOS_ARCHS:
+        [device, arch] = device_arch.split(":")
+        if overlap_build_dir:
+            work_dir = os.path.join(webrtc_build_dir, "framework", f"{device}_{arch}_libs")
+        else:
+            work_dir = os.path.join(webrtc_build_dir, device, arch)
+        if gen_force:
+            rm_rf(work_dir)
+
+        # visionOS の deployment target を設定
+        # visionOS は iOS 15 相当の機能を持つため 15.0 を指定
+        # これにより thread-local storage と pthread_threadid_np が利用可能になる
+        visionos_deployment_target = "2.0"
+
+        if not os.path.exists(os.path.join(work_dir, "args.gn")) or gen or overlap_build_dir:
+            gn_args = [
+                f"is_debug={'true' if debug else 'false'}",
+                'target_os="ios"',
+                f'target_cpu="{arch}"',
+                'target_platform="visionos"',
+                f'target_environment="{device}"',
+                "ios_enable_code_signing=false",
+                f'ios_deployment_target="{visionos_deployment_target}"',
+                f"enable_stripping={'false' if debug else 'true'}",
+                *gn_args_base,
+            ]
+            gn_gen(webrtc_src_dir, work_dir, gn_args, extra_gn_args)
+        if not nobuild:
+            cmd(["ninja", "-C", work_dir, *get_build_targets("visionos")])
+            ar = "/usr/bin/ar"
+            archive_objects(
+                ar, os.path.join(work_dir, "obj"), os.path.join(work_dir, "libwebrtc.a")
+            )
+        libs.append(os.path.join(work_dir, "libwebrtc.a"))
+
+    # lipo コマンドも nobuild フラグでスキップ
+    if not nobuild:
+        cmd(["lipo", *libs, "-create", "-output", os.path.join(webrtc_build_dir, "libwebrtc.a")])
 
 
 ANDROID_ARCHS = ["armeabi-v7a", "arm64-v8a"]
@@ -1113,6 +1264,110 @@ def build_webrtc(
         )
 
 
+def create_visionos_xcframework(webrtc_build_dir, debug=False):
+    """visionOS 専用の XCFramework を作成する関数"""
+    framework_dir = os.path.join(webrtc_build_dir, "framework")
+    xcframework_path = os.path.join(framework_dir, "WebRTC.xcframework")
+
+    # 既存の xcframework を削除
+    if os.path.exists(xcframework_path):
+        shutil.rmtree(xcframework_path)
+
+    # visionOS 専用のプラットフォーム識別子で xcframework を作成
+    simulator_framework = os.path.join(framework_dir, "simulator", "WebRTC.framework")
+    device_framework = os.path.join(framework_dir, "device", "WebRTC.framework")
+    simulator_dsym = os.path.join(framework_dir, "simulator", "WebRTC.dSYM")
+    device_dsym = os.path.join(framework_dir, "device", "WebRTC.dSYM")
+
+    # xcodebuild コマンドで visionOS 用 xcframework を作成
+    cmd_args = [
+        "xcodebuild",
+        "-create-xcframework",
+        "-framework",
+        simulator_framework,
+    ]
+
+    # dSYM ファイルが存在する場合はシミュレーター用と一緒に指定
+    if os.path.exists(simulator_dsym):
+        cmd_args.extend(["-debug-symbols", simulator_dsym])
+
+    cmd_args.extend(["-framework", device_framework])
+
+    # dSYM ファイルが存在する場合はデバイス用と一緒に指定
+    if os.path.exists(device_dsym):
+        cmd_args.extend(["-debug-symbols", device_dsym])
+
+    cmd_args.extend(["-output", xcframework_path])
+
+    cmd(cmd_args)
+
+    # Info.plist を手動で visionOS 用に修正
+    info_plist_path = os.path.join(xcframework_path, "Info.plist")
+    if os.path.exists(info_plist_path):
+        try:
+            # plistbuddy を使用してプラットフォームを xros に変更
+            cmd(
+                [
+                    "plutil",
+                    "-replace",
+                    "AvailableLibraries.0.SupportedPlatform",
+                    "-string",
+                    "xros",
+                    info_plist_path,
+                ]
+            )
+            cmd(
+                [
+                    "plutil",
+                    "-replace",
+                    "AvailableLibraries.1.SupportedPlatform",
+                    "-string",
+                    "xros",
+                    info_plist_path,
+                ]
+            )
+
+            # LibraryIdentifier も更新
+            cmd(
+                [
+                    "plutil",
+                    "-replace",
+                    "AvailableLibraries.0.LibraryIdentifier",
+                    "-string",
+                    "xros-arm64-simulator",
+                    info_plist_path,
+                ]
+            )
+            cmd(
+                [
+                    "plutil",
+                    "-replace",
+                    "AvailableLibraries.1.LibraryIdentifier",
+                    "-string",
+                    "xros-arm64",
+                    info_plist_path,
+                ]
+            )
+
+            # ディレクトリ名も visionOS 用に変更
+            ios_simulator_dir = os.path.join(xcframework_path, "ios-arm64-simulator")
+            ios_device_dir = os.path.join(xcframework_path, "ios-arm64")
+            xros_simulator_dir = os.path.join(xcframework_path, "xros-arm64-simulator")
+            xros_device_dir = os.path.join(xcframework_path, "xros-arm64")
+
+            if os.path.exists(ios_simulator_dir):
+                os.rename(ios_simulator_dir, xros_simulator_dir)
+                logging.info(f"Renamed {ios_simulator_dir} to {xros_simulator_dir}")
+
+            if os.path.exists(ios_device_dir):
+                os.rename(ios_device_dir, xros_device_dir)
+                logging.info(f"Renamed {ios_device_dir} to {xros_device_dir}")
+
+        except subprocess.CalledProcessError as e:
+            logging.warning(f"Failed to modify Info.plist for visionOS: {e}")
+            # Info.plist の修正に失敗しても xcframework の作成は成功しているので継続
+
+
 def copy_headers(webrtc_src_dir, webrtc_package_dir, target):
     if target in ["windows_x86_64", "windows_arm64"]:
         # robocopy の戻り値は特殊なので、check=False にしてうまくエラーハンドリングする
@@ -1229,6 +1484,15 @@ def package_webrtc(
             for device_arch in IOS_ARCHS:
                 [device, arch] = device_arch.split(":")
                 dirs.append(os.path.join(webrtc_build_dir, device, arch))
+    elif target == "visionos":
+        dirs = []
+        for device_arch in VISIONOS_FRAMEWORK_ARCHS:
+            [device, arch] = device_arch.split(":")
+            dirs.append(os.path.join(webrtc_build_dir, "framework", f"{device}_{arch}_libs"))
+        if not overlap_ios_build_dir:
+            for device_arch in VISIONOS_ARCHS:
+                [device, arch] = device_arch.split(":")
+                dirs.append(os.path.join(webrtc_build_dir, device, arch))
     else:
         dirs = [webrtc_build_dir]
     ts = []
@@ -1247,7 +1511,7 @@ def package_webrtc(
         os.path.join(webrtc_package_dir, "LICENSE.md"), os.path.join(webrtc_package_dir, "NOTICE")
     )
 
-    if target in ["ios", "macos_arm64"]:
+    if target in ["ios", "visionos", "macos_arm64"]:
         # libwebrtc を　M123 に更新した際に、 Xcode で libvpx がビルドできなくなった
         # LLVM 由来の arm_neon_sve_bridge.h というファイルをパッチで追加してビルド・エラーを解消したので、
         # ライセンスを追加する
@@ -1287,6 +1551,12 @@ def package_webrtc(
         files = [
             (["libwebrtc.a"], ["lib", "libwebrtc.a"]),
             (["framework", "WebRTC.xcframework"], ["Frameworks", "WebRTC.xcframework"]),
+        ]
+    elif target == "visionos":
+        files = [
+            (["libwebrtc.a"], ["lib", "libwebrtc.a"]),
+            # visionOS の WebRTC.xcframework 利用は現時点でないため作成しない
+            # (["framework", "WebRTC.xcframework"], ["Frameworks", "WebRTC.xcframework"]),
         ]
     elif target == "android":
         # aar を展開して classes.jar を取り出す
@@ -1331,6 +1601,7 @@ def package_webrtc(
                     f.add(name=file, arcname=file)
 
     # target が ios のときに WebRTC.xcframework を zip 化
+    # visionOS は現時点で xcframework を作成しないため除外
     if target == "ios":
         frameworks_dir = os.path.join(package_dir, "webrtc", "Frameworks")
         with cd(frameworks_dir):
@@ -1358,6 +1629,7 @@ TARGETS = [
     "raspberry-pi-os_armv8",
     "android",
     "ios",
+    "visionos",
 ]
 
 
@@ -1369,7 +1641,7 @@ def check_target(target):
         return target in ["windows_x86_64", "windows_arm64"]
     elif platform.system() == "Darwin":
         logging.info(f"OS: {platform.system()}")
-        return target in ("macos_arm64", "ios")
+        return target in ("macos_arm64", "ios", "visionos")
     elif platform.system() == "Linux":
         release = read_version_file("/etc/os-release")
         os = release["NAME"]
@@ -1702,12 +1974,18 @@ def main():
                 "gen_force": args.webrtc_gen_force,
                 "nobuild": args.webrtc_nobuild,
             }
-            # iOS と Android は特殊すぎるので別枠行き
+            # iOS と Android と visionOS は特殊すぎるので別枠行き
             if args.target == "ios":
                 build_webrtc_ios(
                     **build_webrtc_args,
                     nobuild_framework=args.webrtc_nobuild_ios_framework,
                     overlap_build_dir=args.webrtc_overlap_ios_build_dir,
+                )
+            elif args.target == "visionos":
+                build_webrtc_visionos(
+                    **build_webrtc_args,
+                    nobuild_framework=args.webrtc_nobuild_ios_framework,  # iOS フレームワークのフラグを再利用
+                    overlap_build_dir=args.webrtc_overlap_ios_build_dir,  # iOS ビルドディレクトリのフラグを再利用
                 )
             elif args.target == "android":
                 build_webrtc_android(
