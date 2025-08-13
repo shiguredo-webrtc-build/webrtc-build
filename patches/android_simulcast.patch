@@ -344,7 +344,7 @@ index 0000000000..3bf904e989
 +JNIEXPORT jobject JNICALL Java_org_webrtc_SimulcastVideoEncoderFactory_nativeAV1Codec
 +  (JNIEnv *env, jclass klass) {
 +    SdpVideoFormat format = SdpVideoFormat(
-+        cricket::kAv1CodecName, webrtc::CodecParameterMap(),
++        webrtc::kAv1CodecName, webrtc::CodecParameterMap(),
 +        LibaomAv1EncoderSupportedScalabilityModes());
 +    return SdpVideoFormatToVideoCodecInfo(env, format).Release();
 +}
