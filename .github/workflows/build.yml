@@ -21,7 +21,7 @@ jobs:
           - name: windows_arm64
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -73,7 +73,7 @@ jobs:
           - name: ios_sdk
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Select Xcode 16.1
         run: sudo xcode-select --switch /Applications/Xcode_16.1.app/Contents/Developer
       - run: brew install ninja
@@ -131,7 +131,7 @@ jobs:
             runs-on: ubuntu-24.04
     runs-on: ${{ matrix.platform.runs-on }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Disk Cleanup
         run: |
           set -x
@@ -191,7 +191,7 @@ jobs:
       - build-linux
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/download
         with:
           platform: windows_x86_64
@@ -243,7 +243,7 @@ jobs:
         run: |
           PACKAGE_NAME=WebRTC.xcframework.zip
           echo "$PACKAGE_NAME/$PACKAGE_NAME" >> package_paths.env
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: WebRTC.xcframework.zip
           path: WebRTC.xcframework.zip
@@ -254,6 +254,6 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
         id: env
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.env.outputs.package_paths }}

@@ -29,6 +29,10 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-08-14 [UPDATE] GitHub Actions の依存ライブラリをアップデート
+  - actions/download-artifact@v4 から actions/download-artifact@v5 にアップデート
+  - actions/checkout@v4 から actions/checkout@v5 にアップデート
+  - softprops/action-gh-release@v1 から softprops/action-gh-release@v2 にアップデート
 - 2025-08-05 [CHANGE] `ios` ビルドを `ios` と `ios_sdk` に、`android` ビルドを `android` と `android_sdk` に分ける
   - 提供するバイナリやディレクトリ構成、ダウンロード URL が変わるため破壊的変更となります
   - @melpon
