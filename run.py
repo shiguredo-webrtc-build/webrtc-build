@@ -269,6 +269,7 @@ PATCHES = {
         "fix_moved_function_call.patch",
         "android_add_scale_resolution_down_to.patch",
         "remove_crel.patch",
+        "android_include_jni_zero_java.patch",
     ],
     "raspberry-pi-os_armv6": [
         "nacl_armv6_2.patch",

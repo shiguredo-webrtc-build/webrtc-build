@@ -29,6 +29,13 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-08-20 [FIX] ビルドした Android AAR ファイルに `org.jni_zero.JniInit` が含まれていなかった問題を修正する
+  - 含まれていないと `java.lang.ClassNotFoundException: Didn't find class "org.jni_zero.JniInit" on path ...` というエラーが実行時に発生する
+  - この修正は `feature/m136.7103` 以降では修正されているため、master へのマージは行わずに `feature/m135.7049` にのみ適用する
+  - 参考情報
+    - libwebrtc で修正されたコミット: <https://webrtc.googlesource.com/src.git/+/56a6af06ff1555523eef62371e5a909dd59faab0>
+    - 7103 に修正が入っていることがわかるコミット履歴: <https://webrtc.googlesource.com/src.git/+log/refs/branch-heads/7103/?s=49ba3e2af0744647c286993eb340071bdeafa1d1>
+  - @zztkm
 - 2025-04-14 [RELEASE] m135.7049.3.1
   - @torikizi
 - 2025-04-12 [RELEASE] m134.6998.1.2
