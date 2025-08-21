@@ -29,6 +29,12 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-08-21 [UPDATE] Raspberry Pi OS (armv8) のビルドを buster から bookworm にアップデートする
+  - multistrap の suite を buster から bookworm に修正
+  - libstdc++-8-dev を libstdc++-11-dev に変更
+  - libstdc++-11-dev には libgcc-11-dev が含まれているため、ライブラリアップデートに合わせて libgcc-8-dev を削除
+  - python-dev を python3-dev に変更
+  - @zztkm
 - 2025-08-21 [CHANGE] リリース対象から ubuntu-20.04_x86_64 を削除する
   - @zztkm
 - 2025-08-21 [UPDATE] Github Actions のビルド実行環境を Ubuntu 20.04 から Ubuntu 24.04 にあげる
