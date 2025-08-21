@@ -29,6 +29,15 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-08-21 [CHANGE] リリース対象から ubuntu-20.04_x86_64 を削除する
+  - @zztkm
+- 2025-08-21 [UPDATE] Github Actions のビルド実行環境を Ubuntu 20.04 から Ubuntu 24.04 にあげる
+  - 対象のビルドターゲットは以下の通り
+    - ubuntu-20.04_armv8
+    - raspberry-pi-os_armv6
+    - raspberry-pi-os_armv7
+    - raspberry-pi-os_armv8
+  - @zztkm
 - 2025-08-20 [FIX] ビルドした Android AAR ファイルに `org.jni_zero.JniInit` が含まれていなかった問題を修正する
   - 含まれていないと `java.lang.ClassNotFoundException: Didn't find class "org.jni_zero.JniInit" on path ...` というエラーが実行時に発生する
   - この修正は `feature/m136.7103` 以降では修正されているため、master へのマージは行わずに `feature/m135.7049` にのみ適用する
