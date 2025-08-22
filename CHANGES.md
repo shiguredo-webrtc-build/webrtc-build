@@ -29,6 +29,28 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-08-21 [UPDATE] Raspberry Pi OS (armv8) のビルドを buster から bookworm にアップデートする
+  - multistrap の suite を buster から bookworm に修正
+  - libstdc++-8-dev を libstdc++-11-dev に変更
+  - libstdc++-11-dev には libgcc-11-dev が含まれているため、ライブラリアップデートに合わせて libgcc-8-dev を削除
+  - python-dev を python3-dev に変更
+  - @zztkm
+- 2025-08-21 [CHANGE] リリース対象から ubuntu-20.04_x86_64 を削除する
+  - @zztkm
+- 2025-08-21 [UPDATE] Github Actions のビルド実行環境を Ubuntu 20.04 から Ubuntu 24.04 にあげる
+  - 対象のビルドターゲットは以下の通り
+    - ubuntu-20.04_armv8
+    - raspberry-pi-os_armv6
+    - raspberry-pi-os_armv7
+    - raspberry-pi-os_armv8
+  - @zztkm
+- 2025-08-20 [FIX] ビルドした Android AAR ファイルに `org.jni_zero.JniInit` が含まれていなかった問題を修正する
+  - 含まれていないと `java.lang.ClassNotFoundException: Didn't find class "org.jni_zero.JniInit" on path ...` というエラーが実行時に発生する
+  - この修正は `feature/m136.7103` 以降では修正されているため、master へのマージは行わずに `feature/m135.7049` にのみ適用する
+  - 参考情報
+    - libwebrtc で修正されたコミット: <https://webrtc.googlesource.com/src.git/+/56a6af06ff1555523eef62371e5a909dd59faab0>
+    - 7103 に修正が入っていることがわかるコミット履歴: <https://webrtc.googlesource.com/src.git/+log/refs/branch-heads/7103/?s=49ba3e2af0744647c286993eb340071bdeafa1d1>
+  - @zztkm
 - 2025-04-14 [RELEASE] m135.7049.3.1
   - @torikizi
 - 2025-04-12 [RELEASE] m134.6998.1.2
