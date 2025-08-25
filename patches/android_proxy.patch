@@ -198,14 +198,14 @@ index 0000000000..4afd909bda
 +  UNKNOWN,
 +}
 diff --git a/sdk/android/src/jni/pc/owned_factory_and_threads.cc b/sdk/android/src/jni/pc/owned_factory_and_threads.cc
-index 7c83de6d5f..c8c85baac8 100644
+index 7c83de6d5f..7ae9f7d5dd 100644
 --- a/sdk/android/src/jni/pc/owned_factory_and_threads.cc
 +++ b/sdk/android/src/jni/pc/owned_factory_and_threads.cc
 @@ -20,11 +20,13 @@ OwnedFactoryAndThreads::OwnedFactoryAndThreads(
      std::unique_ptr<Thread> network_thread,
      std::unique_ptr<Thread> worker_thread,
      std::unique_ptr<Thread> signaling_thread,
-+    rtc::scoped_refptr<webrtc::ConnectionContext> context,
++    webrtc::scoped_refptr<webrtc::ConnectionContext> context,
      const scoped_refptr<PeerConnectionFactoryInterface>& factory)
      : socket_factory_(std::move(socket_factory)),
        network_thread_(std::move(network_thread)),
@@ -216,7 +216,7 @@ index 7c83de6d5f..c8c85baac8 100644
  
  }  // namespace jni
 diff --git a/sdk/android/src/jni/pc/owned_factory_and_threads.h b/sdk/android/src/jni/pc/owned_factory_and_threads.h
-index 4b22cb95ad..bae43433eb 100644
+index 4b22cb95ad..451a2cd0c1 100644
 --- a/sdk/android/src/jni/pc/owned_factory_and_threads.h
 +++ b/sdk/android/src/jni/pc/owned_factory_and_threads.h
 @@ -17,6 +17,7 @@
@@ -231,7 +231,7 @@ index 4b22cb95ad..bae43433eb 100644
        std::unique_ptr<Thread> network_thread,
        std::unique_ptr<Thread> worker_thread,
        std::unique_ptr<Thread> signaling_thread,
-+      rtc::scoped_refptr<webrtc::ConnectionContext> context,
++      webrtc::scoped_refptr<webrtc::ConnectionContext> context,
        const scoped_refptr<PeerConnectionFactoryInterface>& factory);
  
    ~OwnedFactoryAndThreads() = default;
@@ -247,12 +247,12 @@ index 4b22cb95ad..bae43433eb 100644
    const std::unique_ptr<Thread> network_thread_;
    const std::unique_ptr<Thread> worker_thread_;
    const std::unique_ptr<Thread> signaling_thread_;
-+  const rtc::scoped_refptr<webrtc::ConnectionContext> context_;
++  const webrtc::scoped_refptr<webrtc::ConnectionContext> context_;
    const scoped_refptr<PeerConnectionFactoryInterface> factory_;
  };
  
 diff --git a/sdk/android/src/jni/pc/peer_connection_factory.cc b/sdk/android/src/jni/pc/peer_connection_factory.cc
-index 910ad58c34..41a5181e24 100644
+index 910ad58c34..bf0259018b 100644
 --- a/sdk/android/src/jni/pc/peer_connection_factory.cc
 +++ b/sdk/android/src/jni/pc/peer_connection_factory.cc
 @@ -31,6 +31,7 @@
@@ -280,7 +280,7 @@ index 910ad58c34..41a5181e24 100644
      std::unique_ptr<Thread> worker_thread,
 -    std::unique_ptr<Thread> signaling_thread) {
 +    std::unique_ptr<Thread> signaling_thread,
-+    rtc::scoped_refptr<webrtc::ConnectionContext> context) {
++    webrtc::scoped_refptr<webrtc::ConnectionContext> context) {
    OwnedFactoryAndThreads* owned_factory = new OwnedFactoryAndThreads(
        std::move(socket_factory), std::move(network_thread),
 -      std::move(worker_thread), std::move(signaling_thread), pcf);
@@ -294,7 +294,7 @@ index 910ad58c34..41a5181e24 100644
      std::unique_ptr<Thread> worker_thread,
 -    std::unique_ptr<Thread> signaling_thread) {
 +    std::unique_ptr<Thread> signaling_thread,
-+    rtc::scoped_refptr<webrtc::ConnectionContext> context) {
++    webrtc::scoped_refptr<webrtc::ConnectionContext> context) {
    return NativeToScopedJavaPeerConnectionFactory(
               jni, pcf, std::move(socket_factory), std::move(network_thread),
 -             std::move(worker_thread), std::move(signaling_thread))
@@ -317,23 +317,23 @@ index 910ad58c34..41a5181e24 100644
 +                                              &dependencies),
 +            &dependencies) {}
 +  CustomPeerConnectionFactory(
-+      rtc::scoped_refptr<webrtc::ConnectionContext> context,
++      webrtc::scoped_refptr<webrtc::ConnectionContext> context,
 +      webrtc::PeerConnectionFactoryDependencies* dependencies)
 +      : webrtc::PeerConnectionFactory(context, dependencies),
 +        conn_context_(context) {}
 +
-+  static rtc::scoped_refptr<CustomPeerConnectionFactory> Create(
++  static webrtc::scoped_refptr<CustomPeerConnectionFactory> Create(
 +      webrtc::PeerConnectionFactoryDependencies dependencies) {
-+    return rtc::make_ref_counted<CustomPeerConnectionFactory>(
++    return webrtc::make_ref_counted<CustomPeerConnectionFactory>(
 +        std::move(dependencies));
 +  }
 +
-+  rtc::scoped_refptr<webrtc::ConnectionContext> GetContext() const {
++  webrtc::scoped_refptr<webrtc::ConnectionContext> GetContext() const {
 +    return conn_context_;
 +  }
 +
 + private:
-+  rtc::scoped_refptr<webrtc::ConnectionContext> conn_context_;
++  webrtc::scoped_refptr<webrtc::ConnectionContext> conn_context_;
 +};
 +
  // Following parameters are optional:
@@ -349,8 +349,8 @@ index 910ad58c34..41a5181e24 100644
 +  // scoped_refptr<PeerConnectionFactoryInterface> factory =
 +  //     CreateModularPeerConnectionFactory(std::move(dependencies));
 +  using result_type =
-+      std::pair<rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>,
-+                rtc::scoped_refptr<webrtc::ConnectionContext>>;
++      std::pair<webrtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>,
++                webrtc::scoped_refptr<webrtc::ConnectionContext>>;
 +  auto p = dependencies.signaling_thread->BlockingCall([&dependencies]() {
 +    auto factory = CustomPeerConnectionFactory::Create(std::move(dependencies));
 +    if (factory == nullptr) {
@@ -460,7 +460,7 @@ index 910ad58c34..41a5181e24 100644
 +
 +    webrtc::revive::ProxyInfo pi;
 +    pi.type = proxyType;
-+    pi.address = rtc::SocketAddress(hostname, proxyPort);
++    pi.address = webrtc::SocketAddress(hostname, proxyPort);
 +    if (!username.empty()) {
 +      pi.username = username;
 +    }
