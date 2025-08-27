@@ -20,7 +20,7 @@ Please read <https://github.com/shiguredo/oss/blob/master/README.en.md> before u
 
 ## ダウンロード
 
-[リリース](https://github.com/melpon/webrtc-build/releases) からダウンロードしてください。
+[リリース](https://github.com/shiguredo-webrtc-build/webrtc-build/releases) からダウンロードしてください。
 
 ## パッケージに入っている内容
 
@@ -160,3 +160,4 @@ support ブランチでは `<webrtc-build>-<support-branch-name>.<release>` と�
 - 最新版でパッチが動作しない場合はパッチ作成者が修正をしてください
 - 何かしらの理由でパッチ修正が難しい場合はパッチを削除します
   - 時雨堂で必要と思ったパッチは時雨堂にて対応します
+
