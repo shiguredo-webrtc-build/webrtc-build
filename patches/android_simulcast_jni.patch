@@ -42,10 +42,10 @@ index 9c9cd415db..e14c80c69a 100644
    # target for backwards compatibility.
    rtc_library("video_egl_jni") {
 diff --git a/sdk/android/api/org/webrtc/RtpParameters.java b/sdk/android/api/org/webrtc/RtpParameters.java
-index 9ca8311610..ac881aec09 100644
+index 9ca8311610..e0457aa1bc 100644
 --- a/sdk/android/api/org/webrtc/RtpParameters.java
 +++ b/sdk/android/api/org/webrtc/RtpParameters.java
-@@ -43,6 +43,24 @@ public class RtpParameters {
+@@ -43,6 +43,21 @@ public class RtpParameters {
      }
    }
  
@@ -54,23 +54,20 @@ index 9ca8311610..ac881aec09 100644
 +    @Nullable public final Integer maxWidth;
 +    @Nullable public final Integer maxHeight;
 +
-+    @CalledByNative("ResolutionRestriction")
 +    ResolutionRestriction(Integer maxWidth, Integer maxHeight) {
 +      this.maxWidth = maxWidth;
 +      this.maxHeight = maxHeight;
 +    }
 +
-+    @CalledByNative("ResolutionRestriction")
 +    Integer getMaxWidth() { return maxWidth; }
 +
-+    @CalledByNative("ResolutionRestriction")
 +    Integer getMaxHeight() { return maxHeight; }
 +  }
 +
    public static class Encoding {
      // If non-null, this represents the RID that identifies this encoding layer.
      // RIDs are used to identify layers in simulcast.
-@@ -76,6 +94,10 @@ public class RtpParameters {
+@@ -76,6 +91,10 @@ public class RtpParameters {
      // If non-null, scale the width and height down by this factor for video. If null,
      // implementation default scaling factor will be used.
      @Nullable public Double scaleResolutionDownBy;
@@ -81,7 +78,7 @@ index 9ca8311610..ac881aec09 100644
      // SSRC to be used by this encoding.
      // Can't be changed between getParameters/setParameters.
      public Long ssrc;
-@@ -94,7 +116,8 @@ public class RtpParameters {
+@@ -94,7 +113,8 @@ public class RtpParameters {
      Encoding(String rid, boolean active, double bitratePriority, @Priority int networkPriority,
          Integer maxBitrateBps, Integer minBitrateBps, Integer maxFramerate,
          Integer numTemporalLayers, Double scaleResolutionDownBy, Long ssrc,
@@ -91,7 +88,7 @@ index 9ca8311610..ac881aec09 100644
        this.rid = rid;
        this.active = active;
        this.bitratePriority = bitratePriority;
-@@ -106,6 +129,11 @@ public class RtpParameters {
+@@ -106,6 +126,11 @@ public class RtpParameters {
        this.scaleResolutionDownBy = scaleResolutionDownBy;
        this.ssrc = ssrc;
        this.adaptiveAudioPacketTime = adaptiveAudioPacketTime;
@@ -103,7 +100,7 @@ index 9ca8311610..ac881aec09 100644
      }
  
      @Nullable
-@@ -169,6 +197,24 @@ public class RtpParameters {
+@@ -169,6 +194,24 @@ public class RtpParameters {
      boolean getAdaptivePTime() {
        return adaptiveAudioPacketTime;
      }
@@ -130,10 +127,10 @@ index 9ca8311610..ac881aec09 100644
    public static class Codec {
 diff --git a/sdk/android/api/org/webrtc/SimulcastVideoEncoder.java b/sdk/android/api/org/webrtc/SimulcastVideoEncoder.java
 new file mode 100644
-index 0000000000..7a841c7e5f
+index 0000000000..1368a9a9f7
 --- /dev/null
 +++ b/sdk/android/api/org/webrtc/SimulcastVideoEncoder.java
-@@ -0,0 +1,31 @@
+@@ -0,0 +1,30 @@
 +package org.webrtc;
 +
 +import androidx.annotation.Nullable;
@@ -164,7 +161,6 @@ index 0000000000..7a841c7e5f
 +    return false;
 +  }
 +}
-+
 diff --git a/sdk/android/api/org/webrtc/SimulcastVideoEncoderFactory.java b/sdk/android/api/org/webrtc/SimulcastVideoEncoderFactory.java
 new file mode 100644
 index 0000000000..2d69dca4a0
@@ -275,10 +271,10 @@ index c83ea8599c..d25bd66806 100644
  
 diff --git a/sdk/android/src/jni/simulcast_video_encoder.cc b/sdk/android/src/jni/simulcast_video_encoder.cc
 new file mode 100644
-index 0000000000..0fc612062f
+index 0000000000..d778247653
 --- /dev/null
 +++ b/sdk/android/src/jni/simulcast_video_encoder.cc
-@@ -0,0 +1,46 @@
+@@ -0,0 +1,45 @@
 +#include <jni.h>
 +
 +#include <memory>
@@ -324,10 +320,9 @@ index 0000000000..0fc612062f
 +
 +}  // namespace jni
 +}  // namespace webrtc
-+
 diff --git a/sdk/android/src/jni/simulcast_video_encoder.h b/sdk/android/src/jni/simulcast_video_encoder.h
 new file mode 100644
-index 0000000000..9d570f7199
+index 0000000000..141e9578dc
 --- /dev/null
 +++ b/sdk/android/src/jni/simulcast_video_encoder.h
 @@ -0,0 +1,24 @@
@@ -349,12 +344,12 @@ index 0000000000..9d570f7199
 +    jobject fallback,
 +    jobject info);
 +
++
 +#ifdef __cplusplus
 +}
 +#endif
 +
 +#endif  // SDK_ANDROID_SRC_JNI_SIMULCAST_VIDEO_ENCODER_H_
-+
 diff --git a/sdk/android/src/jni/video_codec_info.cc b/sdk/android/src/jni/video_codec_info.cc
 index a218a1d23f..1e60d1ba6b 100644
 --- a/sdk/android/src/jni/video_codec_info.cc
