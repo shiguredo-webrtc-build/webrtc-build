@@ -29,6 +29,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-09-02 [UPDATE] macOS GitHub Actions の `build-macos` から Ninja をインストールするステップを削除する
+  - 現在利用している `macos-14` には Ninja がインストール済みであるため本変更を行った
+  - @zztkm
 - 2025-08-14 [UPDATE] GitHub Actions の依存ライブラリをアップデート
   - actions/download-artifact@v4 から actions/download-artifact@v5 にアップデート
   - actions/checkout@v4 から actions/checkout@v5 にアップデート

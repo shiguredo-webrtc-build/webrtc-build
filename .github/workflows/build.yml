@@ -76,7 +76,6 @@ jobs:
       - uses: actions/checkout@v5
       - name: Select Xcode 16.1
         run: sudo xcode-select --switch /Applications/Xcode_16.1.app/Contents/Developer
-      - run: brew install ninja
       - name: Setup Git User
         run: |
           git config --global user.name  "${{ github.actor }}"
