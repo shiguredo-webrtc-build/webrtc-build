@@ -20,6 +20,7 @@
 ## 変更点（概要）
 
 1) `RtpParameters`（Java）への最小追加
+
 - 追加クラス: `ResolutionRestriction`（W3C の `RTCResolutionRestriction` 互換）
   - フィールド: `maxWidth`, `maxHeight`（いずれも `Integer` / nullable）
 - 追加フィールド: `RtpParameters.Encoding`
@@ -33,17 +34,20 @@
   - `getScaleResolutionDownToWidth()` / `getScaleResolutionDownToHeight()`
 
 2) JNI ブリッジ（Encoding のみ）
+
 - `sdk/android/src/jni/pc/rtp_parameters.cc`
   - C++ → Java（`NativeToJavaRtpEncodingParameter`）で `scalability_mode` と `scale_resolution_down_to` を追加で渡す
   - Java → C++（`JavaToNativeRtpEncodingParameters`）で上記値を読み取り、`RtpEncodingParameters` に設定
   - `#include "api/video/resolution.h"` を追加（`Resolution` 構築のため）
 
 3) codec list への最小広告（VP9/AV1 に L1T1）
+
 - `sdk/android/src/jni/video_codec_info.cc`
   - `VideoCodecInfo` → `SdpVideoFormat` 変換時、VP9/AV1 の場合に限って `scalability_modes = { L1T1 }` を追加
   - `setParameters` の `CheckScalabilityModeValues` を確実に通すための最小広告
 
 4) Simulcast を直接使う Java+JNI の最小追加
+
 - Java 側（`video_java` に含める）
   - `api/org/webrtc/SimulcastVideoEncoder.java`
     - `WrappedNativeVideoEncoder` を継承、`createNative()` で JNI へ委譲
@@ -59,26 +63,44 @@
     - 備考: `SimulcastEncoderAdapter` は factory を所有しないため、JNI 側では工場ラッパを意図的にリーク（小規模）させて寿命を保ちます（従来パッチと同様の割り切り）
 
 5) BUILD.gn の更新
+
 - `sdk/android/BUILD.gn`
   - `video_java` の `sources` に Java 2 ファイルを追加
   - `rtc_library("simulcast_jni")` を追加（dep: `:base_jni`, `:video_jni`, `:native_api_codecs`, `../../media:rtc_simulcast_encoder_adapter`）
   - `rtc_shared_library("libjingle_peerconnection_so")` に `:simulcast_jni` を追加
+
+6) Android HW エンコーダ経路の統計 `scalabilityMode` 埋め込み（L1T1 固定）
+
+- `sdk/android/src/jni/video_encoder_wrapper.cc`
+  - `VideoEncoderWrapper::ParseCodecSpecificInfo(...)` の戻り直前に、
+    `info.scalability_mode = ScalabilityMode::kL1T1;` を追加
+  - 目的: Java 実装（HW エンコーダ）経路で `outbound-rtp` の統計に
+    `scalabilityMode` を確実に含める（L1T1 固定）
+  - 注意: エンコード動作の実体は変えず、統計の可観測性のみを向上
 
 ---
 
 ## 期待する効果と挙動
 
 1) Simulcast のゲート（legacy 判定）の解除
+
 - encodings のいずれかで以下が成立すれば、legacy から脱し、複数 SSRC のサイマルキャストが維持されます。
   - `scalabilityMode` が指定されている
   - かつ `scaleResolutionDownBy` または `scaleResolutionDownTo` が指定されている
 
 2) `setParameters` の検証
+
 - `pc/rtp_sender.cc` → `media/base/media_engine.cc` の `CheckScalabilityModeValues` は、指定された `scalabilityMode` が codec list に存在する必要あり
 - 本パッチで VP9/AV1 に L1T1 を最小広告するため、`scalabilityMode="L1T1"` は必ず受理され、値が消されません
 
 3) SDK 側は .so 追加不要
+
 - Java から `SimulcastVideoEncoderFactory` を使うだけで、内部的に `SimulcastEncoderAdapter` を直接利用できます
+
+4) Android HW エンコーダ経路の統計
+
+- Java ベースの HW エンコーダ経路では、`outbound-rtp` の `scalabilityMode` が
+  常に `"L1T1"` としてレポートされます（観測性向上のための固定）。
 
 ---
 
@@ -90,6 +112,7 @@
     - `scalabilityMode = "L1T1"`
     - `scaleResolutionDownBy` もしくは `scaleResolutionDownTo`（`ResolutionRestriction(maxWidth, maxHeight)`）
   - Kotlin 例（概念的）:
+
     ```kotlin
     sender.parameters = sender.parameters.apply {
       encodings.forEachIndexed { _, e ->
@@ -106,6 +129,7 @@
 このパッチは shiguredo/webrtc-build の仕組みで自動適用・ビルドする想定です。手動で `gn gen`/`ninja` は不要です。
 
 1) パッチの配置と run.py のパッチリスト変更（必須）
+
 - 本ファイルと同じディレクトリに `android_simulcast_jni.patch` があることを確認
 - `webrtc-build/run.py` の `PATCHES["android"]` を編集し、以下を反映
   - 削除: `android_simulcast.patch`, `android_add_scale_resolution_down_to.patch`
@@ -113,6 +137,7 @@
   - 配置順: 既存の `android_simulcast.patch` があった位置に置き換える（他のパッチ順は維持）
 
   例（概念・抜粋）:
+
   ```python
   PATCHES = {
       "android": [
@@ -130,14 +155,17 @@
   ```
 
 2) 取得（初回のみ）または再適用
+
 - 初回やクリーン取得時は、build だけで自動的にフェッチ＋パッチ適用まで行われます
 - 既にソースがあり、当該パッチだけを差し替えたい場合の例
+
   ```bash
   cd /Users/voluntas/shiguredo/webrtc-build
   python3 run.py revert android --patch android_simulcast_jni.patch
   ```
 
 3) ビルド
+
 ```bash
 cd /Users/voluntas/shiguredo/webrtc-build
 # Release ビルド（デフォルト）で Android 用 libwebrtc をビルド
@@ -150,6 +178,7 @@ python3 run.py build android
 ```
 
 4) 生成物
+
 - `_build/android/release/webrtc/aar/libwebrtc.aar` と `_build/android/release/webrtc/aar/webrtc.jar`
 - 各 ABI の `libwebrtc.a`: `_build/android/release/webrtc/<abi>/libwebrtc.a`
 
@@ -185,6 +214,7 @@ python3 run.py build android
 - JNI/C++
   - `sdk/android/src/jni/pc/rtp_parameters.cc`
   - `sdk/android/src/jni/video_codec_info.cc`
+  - `sdk/android/src/jni/video_encoder_wrapper.cc`
   - `sdk/android/src/jni/simulcast_video_encoder.cc`
   - `sdk/android/src/jni/simulcast_video_encoder.h`
 - GN
