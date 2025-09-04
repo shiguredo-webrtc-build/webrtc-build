@@ -384,11 +384,17 @@ index a218a1d23f..1e60d1ba6b 100644
  
  ScopedJavaLocalRef<jobject> SdpVideoFormatToVideoCodecInfo(
 diff --git a/sdk/android/src/jni/video_encoder_wrapper.cc b/sdk/android/src/jni/video_encoder_wrapper.cc
+index 6f70b743c8..6867a9811a 100644
 --- a/sdk/android/src/jni/video_encoder_wrapper.cc
 +++ b/sdk/android/src/jni/video_encoder_wrapper.cc
-@@ -420,7 +420,10 @@ CodecSpecificInfo VideoEncoderWrapper::ParseCodecSpecificInfo(
--  return info;
-+  // Android の HW エンコーダ（Java 実装）経路では、統計に scalabilityMode を含めるため L1T1 を固定設定する。
+@@ -424,7 +424,9 @@ CodecSpecificInfo VideoEncoderWrapper::ParseCodecSpecificInfo(
+     default:
+       break;
+   }
+-
++  // Android の HW エンコーダ（Java 実装）経路では、
++  // 統計に scalabilityMode を含めるため L1T1 を固定設定する。
 +  info.scalability_mode = ScalabilityMode::kL1T1;
-+  return info;
+   return info;
  }
+ 
