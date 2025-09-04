@@ -244,14 +244,14 @@ index c83ea8599c..d25bd66806 100644
    if (!IsNull(jni, j_ssrc))
      encoding.ssrc = JavaToNativeLong(jni, j_ssrc);
 +
-+  // 任意: scalability_mode
++  // オプショナル: scalability_mode
 +  ScopedJavaLocalRef<jstring> j_scalability_mode =
 +      Java_Encoding_getScalabilityMode(jni, j_encoding_parameters);
 +  if (!IsNull(jni, j_scalability_mode)) {
 +    encoding.scalability_mode = JavaToNativeString(jni, j_scalability_mode);
 +  }
 +
-+  // 任意: scaleResolutionDownTo（幅と高さの両方が必須）
++  // オプショナル: scaleResolutionDownTo（幅と高さの両方が必須）
 +  ScopedJavaLocalRef<jobject> j_srdt_w =
 +      Java_Encoding_getScaleResolutionDownToWidth(jni, j_encoding_parameters);
 +  ScopedJavaLocalRef<jobject> j_srdt_h =
