@@ -193,7 +193,7 @@ index 0000000000..2d69dca4a0
 +
 +  @Override
 +  public VideoCodecInfo[] getSupportedCodecs() {
-+    // Union of primary and fallback, preserving order and removing duplicates by name+params.
++    // primary と fallback の和集合（順序維持、name+params で重複排除）。
 +    List<VideoCodecInfo> list = new ArrayList<>();
 +    list.addAll(Arrays.asList(primary.getSupportedCodecs()));
 +    if (fallback != null) {
@@ -202,7 +202,7 @@ index 0000000000..2d69dca4a0
 +
 +    LinkedHashMap<String, VideoCodecInfo> dedup = new LinkedHashMap<>();
 +    for (VideoCodecInfo c : list) {
-+      // Build a key from name + params to avoid duplicates.
++      // 重複排除のため name + params をキーにする。
 +      dedup.put(c.name + "|" + c.params.toString(), c);
 +    }
 +    return dedup.values().toArray(new VideoCodecInfo[dedup.size()]);
@@ -244,14 +244,14 @@ index c83ea8599c..d25bd66806 100644
    if (!IsNull(jni, j_ssrc))
      encoding.ssrc = JavaToNativeLong(jni, j_ssrc);
 +
-+  // Optional: scalability_mode
++  // 任意: scalability_mode
 +  ScopedJavaLocalRef<jstring> j_scalability_mode =
 +      Java_Encoding_getScalabilityMode(jni, j_encoding_parameters);
 +  if (!IsNull(jni, j_scalability_mode)) {
 +    encoding.scalability_mode = JavaToNativeString(jni, j_scalability_mode);
 +  }
 +
-+  // Optional: scaleResolutionDownTo (width/height must both be set)
++  // 任意: scaleResolutionDownTo（幅と高さの両方が必須）
 +  ScopedJavaLocalRef<jobject> j_srdt_w =
 +      Java_Encoding_getScaleResolutionDownToWidth(jni, j_encoding_parameters);
 +  ScopedJavaLocalRef<jobject> j_srdt_h =
@@ -300,9 +300,9 @@ index 0000000000..d778247653
 +  JavaParamRef<jobject> info_ref(env, info);
 +  SdpVideoFormat format = VideoCodecInfoToSdpVideoFormat(env, info_ref);
 +
-+  // NOTE: Lifecycle of factories is tied to the encoder. We don't have an owning
-+  // field in SimulcastEncoderAdapter, so we intentionally leak the wrappers here
-+  // to keep them alive for the lifetime of the native encoder instance.
++  // 注意: ファクトリのライフサイクルはエンコーダに紐づく。
++  // SimulcastEncoderAdapter に所有ポインタがないため、ネイティブエンコーダの寿命中は
++  // ラッパーを保持する目的で意図的に解放しない。
 +  VideoEncoderFactory* primary_factory =
 +      JavaToNativeVideoEncoderFactory(env, primary).release();
 +  VideoEncoderFactory* fallback_factory = nullptr;
@@ -326,7 +326,7 @@ index 0000000000..141e9578dc
 --- /dev/null
 +++ b/sdk/android/src/jni/simulcast_video_encoder.h
 @@ -0,0 +1,24 @@
-+// Minimal JNI declarations for SimulcastVideoEncoder
++// SimulcastVideoEncoder 用の最小限の JNI 宣言
 +#ifndef SDK_ANDROID_SRC_JNI_SIMULCAST_VIDEO_ENCODER_H_
 +#define SDK_ANDROID_SRC_JNI_SIMULCAST_VIDEO_ENCODER_H_
 +
