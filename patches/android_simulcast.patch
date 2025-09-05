@@ -1,17 +1,25 @@
 diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
-index 8858d21b60..3911b834e1 100644
+index 9c9cd415db..e14c80c69a 100644
 --- a/sdk/android/BUILD.gn
 +++ b/sdk/android/BUILD.gn
-@@ -528,6 +529,8 @@ if (is_android) {
-     sources = [
-       "api/org/webrtc/SoftwareVideoDecoderFactory.java",
-       "api/org/webrtc/SoftwareVideoEncoderFactory.java",
+@@ -139,6 +139,7 @@ if (is_android) {
+       ":libjingle_peerconnection_jni",
+       ":libjingle_peerconnection_metrics_default_jni",
+       ":native_api_jni",
++      ":simulcast_jni",
+       ":video_egl_jni",
+       "../../pc:libjingle_peerconnection",
+       "../../rtc_base:logging",
+@@ -256,6 +257,8 @@ if (is_android) {
+       "api/org/webrtc/WrappedNativeVideoEncoder.java",
+       "api/org/webrtc/YuvConverter.java",
+       "api/org/webrtc/YuvHelper.java",
 +      "api/org/webrtc/SimulcastVideoEncoder.java",
 +      "api/org/webrtc/SimulcastVideoEncoderFactory.java",
-     ]
- 
-     deps = [
-@@ -874,6 +877,23 @@ if (current_os == "linux" || is_android) {
+       "src/java/org/webrtc/EglBase10Impl.java",
+       "src/java/org/webrtc/EglBase14Impl.java",
+       "src/java/org/webrtc/GlGenericDrawer.java",
+@@ -731,6 +734,21 @@ if (current_os == "linux" || is_android) {
      ]
    }
  
@@ -21,416 +29,372 @@ index 8858d21b60..3911b834e1 100644
 +    sources = [
 +      "src/jni/simulcast_video_encoder.cc",
 +      "src/jni/simulcast_video_encoder.h",
-+      "src/jni/simulcast_video_encoder_factory.cc",
-+      "src/jni/simulcast_video_encoder_factory.h"
 +    ]
 +    deps = [
 +      ":base_jni",
 +      ":video_jni",
 +      ":native_api_codecs",
-+      "../../media:rtc_simulcast_encoder_adapter"
++      "../../media:rtc_simulcast_encoder_adapter",
 +    ]
 +  }
 +
-   rtc_library("libaom_av1_encoder_jni") {
-     visibility = [ "*" ]
-     allow_poison = [ "software_video_codecs" ]
-@@ -911,6 +931,7 @@ if (current_os == "linux" || is_android) {
-       ":generated_swcodecs_jni",
-       ":libvpx_vp8_jni",
-       ":libvpx_vp9_jni",
-+      ":simulcast_jni",
-       ":native_api_jni",
-       ":video_jni",
-       "../../api/environment",
+   # Sources here require -lEGL linker flag. It is separated from video_jni
+   # target for backwards compatibility.
+   rtc_library("video_egl_jni") {
 diff --git a/sdk/android/api/org/webrtc/RtpParameters.java b/sdk/android/api/org/webrtc/RtpParameters.java
-index 9ca8311610..d6a22662bb 100644
+index 9ca8311610..e0457aa1bc 100644
 --- a/sdk/android/api/org/webrtc/RtpParameters.java
 +++ b/sdk/android/api/org/webrtc/RtpParameters.java
-@@ -76,6 +76,7 @@ public class RtpParameters {
+@@ -43,6 +43,21 @@ public class RtpParameters {
+     }
+   }
+ 
++  // W3C RTCResolutionRestriction に相当するクラス。
++  public static class ResolutionRestriction {
++    @Nullable public final Integer maxWidth;
++    @Nullable public final Integer maxHeight;
++
++    ResolutionRestriction(Integer maxWidth, Integer maxHeight) {
++      this.maxWidth = maxWidth;
++      this.maxHeight = maxHeight;
++    }
++
++    Integer getMaxWidth() { return maxWidth; }
++
++    Integer getMaxHeight() { return maxHeight; }
++  }
++
+   public static class Encoding {
+     // If non-null, this represents the RID that identifies this encoding layer.
+     // RIDs are used to identify layers in simulcast.
+@@ -76,6 +91,10 @@ public class RtpParameters {
      // If non-null, scale the width and height down by this factor for video. If null,
      // implementation default scaling factor will be used.
      @Nullable public Double scaleResolutionDownBy;
++    // Simulcast を有効化するための判定に用いる（SVC 自体は必須ではない）。
 +    @Nullable public String scalabilityMode;
++    // W3C 互換の絶対解像度制限。両方指定がある場合はこちらを優先。
++    @Nullable public ResolutionRestriction scaleResolutionDownTo;
      // SSRC to be used by this encoding.
      // Can't be changed between getParameters/setParameters.
      public Long ssrc;
-@@ -93,7 +94,7 @@ public class RtpParameters {
-     @CalledByNative("Encoding")
+@@ -94,7 +113,8 @@ public class RtpParameters {
      Encoding(String rid, boolean active, double bitratePriority, @Priority int networkPriority,
          Integer maxBitrateBps, Integer minBitrateBps, Integer maxFramerate,
--        Integer numTemporalLayers, Double scaleResolutionDownBy, Long ssrc,
-+        Integer numTemporalLayers, Double scaleResolutionDownBy, String scalabilityMode, Long ssrc,
-         boolean adaptiveAudioPacketTime) {
+         Integer numTemporalLayers, Double scaleResolutionDownBy, Long ssrc,
+-        boolean adaptiveAudioPacketTime) {
++        boolean adaptiveAudioPacketTime, String scalabilityMode,
++        Integer scaleResolutionDownToWidth, Integer scaleResolutionDownToHeight) {
        this.rid = rid;
        this.active = active;
-@@ -104,10 +105,17 @@ public class RtpParameters {
-       this.maxFramerate = maxFramerate;
-       this.numTemporalLayers = numTemporalLayers;
+       this.bitratePriority = bitratePriority;
+@@ -106,6 +126,11 @@ public class RtpParameters {
        this.scaleResolutionDownBy = scaleResolutionDownBy;
-+      this.scalabilityMode = scalabilityMode;
        this.ssrc = ssrc;
        this.adaptiveAudioPacketTime = adaptiveAudioPacketTime;
++      this.scalabilityMode = scalabilityMode;
++      if (scaleResolutionDownToWidth != null && scaleResolutionDownToHeight != null) {
++        this.scaleResolutionDownTo =
++            new ResolutionRestriction(scaleResolutionDownToWidth, scaleResolutionDownToHeight);
++      }
      }
  
+     @Nullable
+@@ -169,6 +194,24 @@ public class RtpParameters {
+     boolean getAdaptivePTime() {
+       return adaptiveAudioPacketTime;
+     }
++
 +    @Nullable
 +    @CalledByNative("Encoding")
 +    String getScalabilityMode() {
 +      return scalabilityMode;
 +    }
 +
-     @Nullable
-     @CalledByNative("Encoding")
-     String getRid() {
++    @Nullable
++    @CalledByNative("Encoding")
++    Integer getScaleResolutionDownToWidth() {
++      return scaleResolutionDownTo != null ? scaleResolutionDownTo.maxWidth : null;
++    }
++
++    @Nullable
++    @CalledByNative("Encoding")
++    Integer getScaleResolutionDownToHeight() {
++      return scaleResolutionDownTo != null ? scaleResolutionDownTo.maxHeight : null;
++    }
+   }
+ 
+   public static class Codec {
 diff --git a/sdk/android/api/org/webrtc/SimulcastVideoEncoder.java b/sdk/android/api/org/webrtc/SimulcastVideoEncoder.java
 new file mode 100644
-index 0000000000..1bea910fae
+index 0000000000..1368a9a9f7
 --- /dev/null
 +++ b/sdk/android/api/org/webrtc/SimulcastVideoEncoder.java
-@@ -0,0 +1,27 @@
+@@ -0,0 +1,30 @@
 +package org.webrtc;
++
++import androidx.annotation.Nullable;
 +
 +public class SimulcastVideoEncoder extends WrappedNativeVideoEncoder {
 +
-+    static native long nativeCreateEncoder(long webrtcEnvRef, VideoEncoderFactory primary, VideoEncoderFactory fallback, VideoCodecInfo info);
++  static native long nativeCreateEncoder(
++      long webrtcEnvRef, VideoEncoderFactory primary, @Nullable VideoEncoderFactory fallback, VideoCodecInfo info);
 +
-+    VideoEncoderFactory primary;
-+    VideoEncoderFactory fallback;
-+    VideoCodecInfo info;
++  private final VideoEncoderFactory primary;
++  @Nullable private final VideoEncoderFactory fallback;
++  private final VideoCodecInfo info;
 +
-+    public SimulcastVideoEncoder(VideoEncoderFactory primary, VideoEncoderFactory fallback, VideoCodecInfo info) {
-+        this.primary = primary;
-+        this.fallback = fallback;
-+        this.info = info;
-+    }
++  public SimulcastVideoEncoder(VideoEncoderFactory primary, @Nullable VideoEncoderFactory fallback,
++      VideoCodecInfo info) {
++    this.primary = primary;
++    this.fallback = fallback;
++    this.info = info;
++  }
 +
-+    @Override
-+    public long createNative(long webrtcEnvRef) {
-+        return nativeCreateEncoder(webrtcEnvRef, primary, fallback, info);
-+    }
++  @Override
++  public long createNative(long webrtcEnvRef) {
++    return nativeCreateEncoder(webrtcEnvRef, primary, fallback, info);
++  }
 +
-+    @Override
-+    public boolean isHardwareEncoder() {
-+        return false;
-+    }
-+
++  @Override
++  public boolean isHardwareEncoder() {
++    return false;
++  }
 +}
 diff --git a/sdk/android/api/org/webrtc/SimulcastVideoEncoderFactory.java b/sdk/android/api/org/webrtc/SimulcastVideoEncoderFactory.java
 new file mode 100644
-index 0000000000..21339f8349
+index 0000000000..2d69dca4a0
 --- /dev/null
 +++ b/sdk/android/api/org/webrtc/SimulcastVideoEncoderFactory.java
-@@ -0,0 +1,50 @@
-+/*
-+ *  Copyright 2017 The WebRTC project authors. All Rights Reserved.
-+ *
-+ *  Use of this source code is governed by a BSD-style license
-+ *  that can be found in the LICENSE file in the root of the source
-+ *  tree. An additional intellectual property rights grant can be found
-+ *  in the file PATENTS.  All contributing project authors may
-+ *  be found in the AUTHORS file in the root of the source tree.
-+ */
-+
+@@ -0,0 +1,42 @@
 +package org.webrtc;
 +
 +import androidx.annotation.Nullable;
 +import java.util.ArrayList;
-+import java.util.HashMap;
-+import java.util.List;
 +import java.util.Arrays;
-+ 
++import java.util.LinkedHashMap;
++import java.util.List;
++
 +public class SimulcastVideoEncoderFactory implements VideoEncoderFactory {
-+ 
-+    static native List<VideoCodecInfo> nativeVP9Codecs();
-+    static native VideoCodecInfo nativeAV1Codec();
 +
-+    VideoEncoderFactory primary;
-+    VideoEncoderFactory fallback;
-+ 
-+    public SimulcastVideoEncoderFactory(VideoEncoderFactory primary, VideoEncoderFactory fallback) {
-+        this.primary = primary;
-+        this.fallback = fallback;
-+    }
-+ 
-+    @Nullable
-+    @Override
-+    public VideoEncoder createEncoder(VideoCodecInfo info) {
-+        return new SimulcastVideoEncoder(primary, fallback, info);
-+    }
-+ 
-+    @Override
-+    public VideoCodecInfo[] getSupportedCodecs() {
-+        List<VideoCodecInfo> codecs = new ArrayList<VideoCodecInfo>();
-+        codecs.addAll(Arrays.asList(primary.getSupportedCodecs()));
-+        if (fallback != null) {
-+            codecs.addAll(Arrays.asList(fallback.getSupportedCodecs()));
-+        }
-+        codecs.addAll(nativeVP9Codecs());
-+        codecs.add(nativeAV1Codec());
-+        return codecs.toArray(new VideoCodecInfo[codecs.size()]);
++  private final VideoEncoderFactory primary;
++  @Nullable private final VideoEncoderFactory fallback;
++
++  public SimulcastVideoEncoderFactory(VideoEncoderFactory primary, @Nullable VideoEncoderFactory fallback) {
++    this.primary = primary;
++    this.fallback = fallback;
++  }
++
++  @Nullable
++  @Override
++  public VideoEncoder createEncoder(VideoCodecInfo info) {
++    return new SimulcastVideoEncoder(primary, fallback, info);
++  }
++
++  @Override
++  public VideoCodecInfo[] getSupportedCodecs() {
++    // primary と fallback の和集合（順序維持、name+params で重複排除）。
++    List<VideoCodecInfo> list = new ArrayList<>();
++    list.addAll(Arrays.asList(primary.getSupportedCodecs()));
++    if (fallback != null) {
++      list.addAll(Arrays.asList(fallback.getSupportedCodecs()));
 +    }
 +
++    LinkedHashMap<String, VideoCodecInfo> dedup = new LinkedHashMap<>();
++    for (VideoCodecInfo c : list) {
++      // 重複排除のため name + params をキーにする。
++      dedup.put(c.name + "|" + c.params.toString(), c);
++    }
++    return dedup.values().toArray(new VideoCodecInfo[dedup.size()]);
++  }
 +}
-diff --git a/sdk/android/api/org/webrtc/VideoCodecInfo.java b/sdk/android/api/org/webrtc/VideoCodecInfo.java
-index 4f97cf74cf..7e57d3fa4c 100644
---- a/sdk/android/api/org/webrtc/VideoCodecInfo.java
-+++ b/sdk/android/api/org/webrtc/VideoCodecInfo.java
-@@ -34,6 +34,7 @@ public class VideoCodecInfo {
- 
-   public final String name;
-   public final Map<String, String> params;
-+  public int[] scalabilityModes;
-   @Deprecated public final int payload;
- 
-   @CalledByNative
-@@ -41,6 +42,7 @@ public class VideoCodecInfo {
-     this.payload = 0;
-     this.name = name;
-     this.params = params;
-+    this.scalabilityModes = new int[0];
-   }
- 
-   @Deprecated
-@@ -48,6 +50,7 @@ public class VideoCodecInfo {
-     this.payload = payload;
-     this.name = name;
-     this.params = params;
-+    this.scalabilityModes = new int[0];
-   }
- 
-   @Override
-@@ -83,4 +86,14 @@ public class VideoCodecInfo {
-   Map getParams() {
-     return params;
-   }
 +
-+  @CalledByNative
-+  int[] getScalabilityModes() {
-+    return scalabilityModes;
-+  }
-+
-+  @CalledByNative
-+  void setScalabilityModes(int[] values) {
-+    scalabilityModes = values;
-+  }
- }
 diff --git a/sdk/android/src/jni/pc/rtp_parameters.cc b/sdk/android/src/jni/pc/rtp_parameters.cc
-index 4bd9ee0e1d..dfc7f17f6d 100644
+index c83ea8599c..d25bd66806 100644
 --- a/sdk/android/src/jni/pc/rtp_parameters.cc
 +++ b/sdk/android/src/jni/pc/rtp_parameters.cc
-@@ -53,6 +53,7 @@ ScopedJavaLocalRef<jobject> NativeToJavaRtpEncodingParameter(
-       NativeToJavaInteger(env, encoding.max_framerate),
+@@ -14,6 +14,7 @@
+ #include "sdk/android/native_api/jni/java_types.h"
+ #include "sdk/android/src/jni/jni_helpers.h"
+ #include "sdk/android/src/jni/pc/media_stream_track.h"
++#include "api/video/resolution.h"
+ 
+ namespace webrtc {
+ namespace jni {
+@@ -54,7 +55,16 @@ ScopedJavaLocalRef<jobject> NativeToJavaRtpEncodingParameter(
        NativeToJavaInteger(env, encoding.num_temporal_layers),
        NativeToJavaDouble(env, encoding.scale_resolution_down_by),
-+      NativeToJavaString(env, encoding.scalability_mode),
        encoding.ssrc ? NativeToJavaLong(env, *encoding.ssrc) : nullptr,
-       encoding.adaptive_ptime);
+-      encoding.adaptive_ptime);
++      encoding.adaptive_ptime,
++      encoding.scalability_mode.has_value()
++          ? NativeToJavaString(env, *encoding.scalability_mode)
++          : nullptr,
++      encoding.scale_resolution_down_to.has_value()
++          ? NativeToJavaInteger(env, encoding.scale_resolution_down_to->width)
++          : nullptr,
++      encoding.scale_resolution_down_to.has_value()
++          ? NativeToJavaInteger(env, encoding.scale_resolution_down_to->height)
++          : nullptr);
  }
-@@ -116,6 +117,11 @@ RtpEncodingParameters JavaToNativeRtpEncodingParameters(
-       Java_Encoding_getScaleResolutionDownBy(jni, j_encoding_parameters);
-   encoding.scale_resolution_down_by =
-       JavaToNativeOptionalDouble(jni, j_scale_resolution_down_by);
+ 
+ ScopedJavaLocalRef<jobject> NativeToJavaRtpCodecParameter(
+@@ -122,6 +132,29 @@ RtpEncodingParameters JavaToNativeRtpEncodingParameters(
+       Java_Encoding_getSsrc(jni, j_encoding_parameters);
+   if (!IsNull(jni, j_ssrc))
+     encoding.ssrc = JavaToNativeLong(jni, j_ssrc);
++
++  // オプショナル: scalability_mode
 +  ScopedJavaLocalRef<jstring> j_scalability_mode =
 +      Java_Encoding_getScalabilityMode(jni, j_encoding_parameters);
 +  if (!IsNull(jni, j_scalability_mode)) {
 +    encoding.scalability_mode = JavaToNativeString(jni, j_scalability_mode);
 +  }
-   encoding.adaptive_ptime =
-       Java_Encoding_getAdaptivePTime(jni, j_encoding_parameters);
-   ScopedJavaLocalRef<jobject> j_ssrc =
++
++  // オプショナル: scaleResolutionDownTo（幅と高さの両方が必須）
++  ScopedJavaLocalRef<jobject> j_srdt_w =
++      Java_Encoding_getScaleResolutionDownToWidth(jni, j_encoding_parameters);
++  ScopedJavaLocalRef<jobject> j_srdt_h =
++      Java_Encoding_getScaleResolutionDownToHeight(jni, j_encoding_parameters);
++  if (!IsNull(jni, j_srdt_w) && !IsNull(jni, j_srdt_h)) {
++    auto opt_w = JavaToNativeOptionalInt(jni, j_srdt_w);
++    auto opt_h = JavaToNativeOptionalInt(jni, j_srdt_h);
++    if (opt_w && opt_h) {
++      Resolution r;
++      r.width = *opt_w;
++      r.height = *opt_h;
++      encoding.scale_resolution_down_to = r;
++    }
++  }
+   return encoding;
+ }
+ 
 diff --git a/sdk/android/src/jni/simulcast_video_encoder.cc b/sdk/android/src/jni/simulcast_video_encoder.cc
 new file mode 100644
-index 0000000000..3f0ca5331c
+index 0000000000..d778247653
 --- /dev/null
 +++ b/sdk/android/src/jni/simulcast_video_encoder.cc
-@@ -0,0 +1,35 @@
+@@ -0,0 +1,45 @@
 +#include <jni.h>
 +
-+#include "api/transport/field_trial_based_config.h"
++#include <memory>
++
 +#include "sdk/android/src/jni/jni_helpers.h"
-+#include "sdk/android/src/jni/video_encoder_factory_wrapper.h"
 +#include "sdk/android/src/jni/video_codec_info.h"
 +#include "sdk/android/native_api/codecs/wrapper.h"
++#include "sdk/android/native_api/jni/java_types.h"
 +#include "media/engine/simulcast_encoder_adapter.h"
-+#include "rtc_base/logging.h"
 +
-+using namespace webrtc;
-+using namespace webrtc::jni;
++namespace webrtc {
++namespace jni {
 +
-+#ifdef __cplusplus
 +extern "C" {
-+#endif
 +
-+// (VideoEncoderFactory primary, VideoEncoderFactory fallback, VideoCodecInfo info)
-+JNIEXPORT jlong JNICALL Java_org_webrtc_SimulcastVideoEncoder_nativeCreateEncoder(JNIEnv *env, jclass klass, jlong webrtcEnvRef, jobject primary, jobject fallback, jobject info) {
-+    RTC_LOG(LS_INFO) << "Create simulcast video encoder";
-+    JavaParamRef<jobject> info_ref(env, info);
-+    SdpVideoFormat format = VideoCodecInfoToSdpVideoFormat(env, info_ref);
++JNIEXPORT jlong JNICALL
++Java_org_webrtc_SimulcastVideoEncoder_nativeCreateEncoder(JNIEnv* env,
++                                                          jclass /*klass*/,
++                                                          jlong webrtc_env_ref,
++                                                          jobject primary,
++                                                          jobject fallback,
++                                                          jobject info) {
++  JavaParamRef<jobject> info_ref(env, info);
++  SdpVideoFormat format = VideoCodecInfoToSdpVideoFormat(env, info_ref);
 +
-+    // TODO: 影響は軽微だが、リークする可能性があるので将来的に修正したい
-+    // https://github.com/shiguredo-webrtc-build/webrtc-build/pull/16#pullrequestreview-600675795
-+    return NativeToJavaPointer(std::make_unique<SimulcastEncoderAdapter>(
-+                            *reinterpret_cast<const webrtc::Environment*>(webrtcEnvRef),
-+                            JavaToNativeVideoEncoderFactory(env, primary).release(),
-+                            fallback != nullptr ? JavaToNativeVideoEncoderFactory(env, fallback).release() : nullptr,
-+                            format).release());
++  // 注意: ファクトリのライフサイクルはエンコーダに紐づく。
++  // SimulcastEncoderAdapter に所有ポインタがないため、ネイティブエンコーダの寿命中は
++  // ラッパーを保持する目的で意図的に解放しない。
++  VideoEncoderFactory* primary_factory =
++      JavaToNativeVideoEncoderFactory(env, primary).release();
++  VideoEncoderFactory* fallback_factory = nullptr;
++  if (fallback != nullptr) {
++    fallback_factory = JavaToNativeVideoEncoderFactory(env, fallback).release();
++  }
++
++  auto* native = new SimulcastEncoderAdapter(
++      *reinterpret_cast<const Environment*>(webrtc_env_ref), primary_factory,
++      fallback_factory, format);
++  return NativeToJavaPointer(native);
 +}
 +
-+#ifdef __cplusplus
-+}
-+#endif
++}  // extern "C"
++
++}  // namespace jni
++}  // namespace webrtc
 diff --git a/sdk/android/src/jni/simulcast_video_encoder.h b/sdk/android/src/jni/simulcast_video_encoder.h
 new file mode 100644
-index 0000000000..985fc036b7
+index 0000000000..141e9578dc
 --- /dev/null
 +++ b/sdk/android/src/jni/simulcast_video_encoder.h
-@@ -0,0 +1,21 @@
-+/* DO NOT EDIT THIS FILE - it is machine generated */
+@@ -0,0 +1,24 @@
++// SimulcastVideoEncoder 用の最小限の JNI 宣言
++#ifndef SDK_ANDROID_SRC_JNI_SIMULCAST_VIDEO_ENCODER_H_
++#define SDK_ANDROID_SRC_JNI_SIMULCAST_VIDEO_ENCODER_H_
++
 +#include <jni.h>
-+/* Header for class org_webrtc_SimulcastVideoEncoder */
-+
-+#ifndef _Included_org_webrtc_SimulcastVideoEncoder
-+#define _Included_org_webrtc_SimulcastVideoEncoder
-+#ifdef __cplusplus
-+extern "C" {
-+#endif
-+/*
-+ * Class:     org_webrtc_SimulcastVideoEncoder
-+ * Method:    nativeCreateEncoder
-+ * Signature: (JLorg/webrtc/VideoEncoderFactory;Lorg/webrtc/VideoEncoderFactory;Lorg/webrtc/VideoCodecInfo;)J
-+ */
-+JNIEXPORT jlong JNICALL Java_org_webrtc_SimulcastVideoEncoder_nativeCreateEncoder
-+  (JNIEnv *, jclass, jlong, jobject, jobject, jobject);
-+
-+#ifdef __cplusplus
-+}
-+#endif
-+#endif
-diff --git a/sdk/android/src/jni/simulcast_video_encoder_factory.cc b/sdk/android/src/jni/simulcast_video_encoder_factory.cc
-new file mode 100644
-index 0000000000..3bf904e989
---- /dev/null
-+++ b/sdk/android/src/jni/simulcast_video_encoder_factory.cc
-@@ -0,0 +1,40 @@
-+#include <jni.h>
-+
-+#include "sdk/android/src/jni/jni_helpers.h"
-+#include "sdk/android/src/jni/video_encoder_factory_wrapper.h"
-+#include "sdk/android/src/jni/video_codec_info.h"
-+#include "sdk/android/native_api/codecs/wrapper.h"
-+#include "sdk/android/native_api/jni/class_loader.h"
-+#include "modules/video_coding/codecs/av1/av1_svc_config.h"
-+#include "modules/video_coding/codecs/vp9/include/vp9.h"
-+#include "media/base/media_constants.h"
-+#include "media/engine/simulcast_encoder_adapter.h"
-+#include "absl/container/inlined_vector.h"
-+#include "api/video_codecs/video_codec.h"
-+#include "api/video_codecs/sdp_video_format.h"
-+#include "api/video_codecs/video_codec.h"
-+
-+using namespace webrtc;
-+using namespace webrtc::jni;
 +
 +#ifdef __cplusplus
 +extern "C" {
 +#endif
 +
-+JNIEXPORT jobject JNICALL Java_org_webrtc_SimulcastVideoEncoderFactory_nativeVP9Codecs
-+  (JNIEnv *env, jclass klass) {
-+    std::vector<SdpVideoFormat> formats = SupportedVP9Codecs(true);
-+    return NativeToJavaList(env, formats, &SdpVideoFormatToVideoCodecInfo).Release();
-+}
++JNIEXPORT jlong JNICALL Java_org_webrtc_SimulcastVideoEncoder_nativeCreateEncoder(
++    JNIEnv* env,
++    jclass clazz,
++    jlong webrtc_env_ref,
++    jobject primary,
++    jobject fallback,
++    jobject info);
 +
-+JNIEXPORT jobject JNICALL Java_org_webrtc_SimulcastVideoEncoderFactory_nativeAV1Codec
-+  (JNIEnv *env, jclass klass) {
-+    SdpVideoFormat format = SdpVideoFormat(
-+        cricket::kAv1CodecName, webrtc::CodecParameterMap(),
-+        LibaomAv1EncoderSupportedScalabilityModes());
-+    return SdpVideoFormatToVideoCodecInfo(env, format).Release();
-+}
 +
 +#ifdef __cplusplus
 +}
 +#endif
-diff --git a/sdk/android/src/jni/simulcast_video_encoder_factory.h b/sdk/android/src/jni/simulcast_video_encoder_factory.h
-new file mode 100644
-index 0000000000..d7426953a0
---- /dev/null
-+++ b/sdk/android/src/jni/simulcast_video_encoder_factory.h
-@@ -0,0 +1,29 @@
-+/* DO NOT EDIT THIS FILE - it is machine generated */
-+#include <jni.h>
-+/* Header for class org_webrtc_SimulcastVideoEncoderFactory */
 +
-+#ifndef _Included_org_webrtc_SimulcastVideoEncoderFactory
-+#define _Included_org_webrtc_SimulcastVideoEncoderFactory
-+#ifdef __cplusplus
-+extern "C" {
-+#endif
-+/*
-+ * Class:     org_webrtc_SimulcastVideoEncoderFactory
-+ * Method:    nativeVP9Codecs
-+ * Signature: ()Ljava/util/List;
-+ */
-+JNIEXPORT jobject JNICALL Java_org_webrtc_SimulcastVideoEncoderFactory_nativeVP9Codecs
-+  (JNIEnv *, jclass);
-+
-+/*
-+ * Class:     org_webrtc_SimulcastVideoEncoderFactory
-+ * Method:    nativeAV1Codec
-+ * Signature: ()Lorg/webrtc/VideoCodecInfo;
-+ */
-+JNIEXPORT jobject JNICALL Java_org_webrtc_SimulcastVideoEncoderFactory_nativeAV1Codec
-+  (JNIEnv *, jclass);
-+
-+#ifdef __cplusplus
-+}
-+#endif
-+#endif
++#endif  // SDK_ANDROID_SRC_JNI_SIMULCAST_VIDEO_ENCODER_H_
 diff --git a/sdk/android/src/jni/video_codec_info.cc b/sdk/android/src/jni/video_codec_info.cc
-index a218a1d23f..22deafadd4 100644
+index a218a1d23f..1e60d1ba6b 100644
 --- a/sdk/android/src/jni/video_codec_info.cc
 +++ b/sdk/android/src/jni/video_codec_info.cc
-@@ -14,14 +14,22 @@
+@@ -13,15 +13,25 @@
+ #include "sdk/android/generated_video_jni/VideoCodecInfo_jni.h"
  #include "sdk/android/native_api/jni/java_types.h"
  #include "sdk/android/src/jni/jni_helpers.h"
++#include "absl/strings/match.h"
++#include "api/video_codecs/scalability_mode.h"
  
-+#include "absl/container/inlined_vector.h"
-+
  namespace webrtc {
  namespace jni {
  
  SdpVideoFormat VideoCodecInfoToSdpVideoFormat(JNIEnv* jni,
                                                const JavaRef<jobject>& j_info) {
-+  absl::InlinedVector<webrtc::ScalabilityMode, webrtc::kScalabilityModeCount> scalabilityModes;
-+  std::vector<int32_t> javaScalabilityModes = JavaToNativeIntArray(jni, Java_VideoCodecInfo_getScalabilityModes(jni, j_info));
-+  for (const auto& scalabilityMode : javaScalabilityModes) {
-+    scalabilityModes.push_back(static_cast<webrtc::ScalabilityMode>(scalabilityMode));
-+  }
-   return SdpVideoFormat(
-       JavaToNativeString(jni, Java_VideoCodecInfo_getName(jni, j_info)),
+-  return SdpVideoFormat(
+-      JavaToNativeString(jni, Java_VideoCodecInfo_getName(jni, j_info)),
 -      JavaToNativeStringMap(jni, Java_VideoCodecInfo_getParams(jni, j_info)));
-+      JavaToNativeStringMap(jni, Java_VideoCodecInfo_getParams(jni, j_info)),
-+      scalabilityModes);
++  std::string name =
++      JavaToNativeString(jni, Java_VideoCodecInfo_getName(jni, j_info));
++  CodecParameterMap params =
++      JavaToNativeStringMap(jni, Java_VideoCodecInfo_getParams(jni, j_info));
++  // VP9/AV1 のみに L1T1 を最小広告して、CheckScalabilityModeValues を通す。
++  absl::InlinedVector<ScalabilityMode, kScalabilityModeCount> scalability_modes;
++  if (absl::EqualsIgnoreCase(name, "VP9") || absl::EqualsIgnoreCase(name, "AV1")) {
++    scalability_modes.push_back(ScalabilityMode::kL1T1);
++    return SdpVideoFormat(name, params, scalability_modes);
++  }
++  return SdpVideoFormat(name, params);
  }
  
  ScopedJavaLocalRef<jobject> SdpVideoFormatToVideoCodecInfo(
-@@ -29,8 +37,17 @@ ScopedJavaLocalRef<jobject> SdpVideoFormatToVideoCodecInfo(
-     const SdpVideoFormat& format) {
-   ScopedJavaLocalRef<jobject> j_params =
-       NativeToJavaStringMap(jni, format.parameters);
--  return Java_VideoCodecInfo_Constructor(
-+  ScopedJavaLocalRef<jobject> codec = Java_VideoCodecInfo_Constructor(
-       jni, NativeToJavaString(jni, format.name), j_params);
-+
-+  size_t size = format.scalability_modes.size();
-+  std::vector<int32_t> temp(size);
-+  for (size_t i = 0; i < size; i++) {
-+    temp[i] = static_cast<jint>(format.scalability_modes[i]);
-+  }
-+  Java_VideoCodecInfo_setScalabilityModes(jni, codec, NativeToJavaIntArray(jni, temp));
-+
-+  return codec;
+diff --git a/sdk/android/src/jni/video_encoder_wrapper.cc b/sdk/android/src/jni/video_encoder_wrapper.cc
+index 6f70b743c8..6867a9811a 100644
+--- a/sdk/android/src/jni/video_encoder_wrapper.cc
++++ b/sdk/android/src/jni/video_encoder_wrapper.cc
+@@ -424,7 +424,9 @@ CodecSpecificInfo VideoEncoderWrapper::ParseCodecSpecificInfo(
+     default:
+       break;
+   }
+-
++  // Android の HW エンコーダ（Java 実装）経路では、
++  // 統計に scalabilityMode を含めるため L1T1 を固定設定する。
++  info.scalability_mode = ScalabilityMode::kL1T1;
+   return info;
  }
  
- }  // namespace jni
