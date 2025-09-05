@@ -33,8 +33,6 @@ Please read <https://github.com/shiguredo/oss/blob/master/README.en.md> before u
 - windows_x86_64
 - windows_arm64
 - macos_arm64
-- raspberry-pi-os_armv6 (Raspberry Pi Zero, 1)
-- raspberry-pi-os_armv7 (Raspberry Pi 2, 3, 4)
 - raspberry-pi-os_armv8 (Raspberry Pi Zero 2, 3, 4)
 - ubuntu-20.04_armv8
   - Jetson Xavier NX

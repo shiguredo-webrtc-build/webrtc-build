@@ -261,10 +261,6 @@ Objective-C では以下のように利用する。
 WebRTC が用意している clang でビルドすると、M1 Mac で実行時エラーが発生してしまう。
 なので Xcode clang を利用してビルドするように修正する。
 
-## nacl_armv6_2.patch
-
-current_cpu の条件に armv6 以前は false に armv7 以降は true になるよう追加するパッチ。
-
 ## windows_build_gn.patch
 
 C++17 で deprecated されているコードを多数含むために \_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS を追加している。
