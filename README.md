@@ -69,9 +69,9 @@ Please read <https://github.com/shiguredo/oss/blob/master/README.en.md> before u
 - Ubuntu 20.04 x86_64 廃止
   - 2025 年 4 月を持って廃止しました
 - raspberry-pi-os_armv6 廃止
-  - 2025 年 8 月を持って廃止しました
+  - 2025 年 9 月を持って廃止しました
 - raspberry-pi-os_armv7 廃止
-  - 2025 年 8 月を持って廃止しました
+  - 2025 年 9 月を持って廃止しました
 
 ## H.264 (AVC) と H.265 (HEVC) のライセンスについて
 
