@@ -40,17 +40,6 @@ Android にて映像フレームの処理時にクラッシュするいくつか
 
 同等の機能が本家に実装されるか、 PR を出して取り込まれたら削除する。
 
-## android_simulcast.patch
-
-Android でのサイマルキャストのサポートを追加するパッチ。この実装は C++ の `SimulcastEncoderAdapter` の簡単なラッパーであり、既存の仕様に破壊的変更も行わない。
-
-以下の API を追加する。
-
-- `SimulcastVideoEncoder`
-- `SimulcastVideoEncoderFactory`
-
-同等の機能が本家に実装されるか、 PR を出して取り込まれたら削除する。
-
 ## android_webrtc_version.patch
 
 Android API に libwebrtc のビルド時のバージョンを取得する API を追加する。
