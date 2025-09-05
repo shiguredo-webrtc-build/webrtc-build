@@ -108,10 +108,6 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - name: raspberry-pi-os_armv6
-            runs-on: ubuntu-24.04
-          - name: raspberry-pi-os_armv7
-            runs-on: ubuntu-24.04
           - name: raspberry-pi-os_armv8
             runs-on: ubuntu-24.04
           - name: ubuntu-20.04_armv8
@@ -206,12 +202,6 @@ jobs:
       - uses: ./.github/actions/download
         with:
           platform: ios_sdk
-      - uses: ./.github/actions/download
-        with:
-          platform: raspberry-pi-os_armv6
-      - uses: ./.github/actions/download
-        with:
-          platform: raspberry-pi-os_armv7
       - uses: ./.github/actions/download
         with:
           platform: raspberry-pi-os_armv8

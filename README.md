@@ -33,8 +33,6 @@ Please read <https://github.com/shiguredo/oss/blob/master/README.en.md> before u
 - windows_x86_64
 - windows_arm64
 - macos_arm64
-- raspberry-pi-os_armv6 (Raspberry Pi Zero, 1)
-- raspberry-pi-os_armv7 (Raspberry Pi 2, 3, 4)
 - raspberry-pi-os_armv8 (Raspberry Pi Zero 2, 3, 4)
 - ubuntu-20.04_armv8
   - Jetson Xavier NX
@@ -70,6 +68,10 @@ Please read <https://github.com/shiguredo/oss/blob/master/README.en.md> before u
   - 2025 年 3 月を持って廃止しました
 - Ubuntu 20.04 x86_64 廃止
   - 2025 年 4 月を持って廃止しました
+- raspberry-pi-os_armv6 廃止
+  - 2025 年 9 月を持って廃止しました
+- raspberry-pi-os_armv7 廃止
+  - 2025 年 9 月を持って廃止しました
 
 ## H.264 (AVC) と H.265 (HEVC) のライセンスについて
 

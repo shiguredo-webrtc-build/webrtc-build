@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-09-05 [CHANGE] raspberry-pi-os_armv6 と raspberry-pi-os_armv7 を削除する
+  - @torikizi
 - 2025-09-02 [UPDATE] macOS GitHub Actions の `build-macos` から Ninja をインストールするステップを削除する
   - 現在利用している `macos-14` には Ninja がインストール済みであるため本変更を行った
   - @zztkm
