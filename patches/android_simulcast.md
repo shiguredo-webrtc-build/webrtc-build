@@ -1,6 +1,6 @@
 # android_simulcast.patch の解説
 
-このドキュメントは、`android_simulcast.patch` の目的・変更点・使い方をまとめたものです。パッチは以下の2点を、Android 側の最小変更で満たすことを狙っています。
+このドキュメントは、`android_simulcast.patch` の目的・変更点をまとめたものです。パッチは以下の2点を、Android 側の最小変更で満たすことを狙っています。
 
 - W3C 互換の `scalabilityMode` / `scaleResolutionDownTo` を Java ↔ C++ で正しく往復し、legacy 判定を外して VP9/AV1 のサイマルキャスト（複数 SSRC）を維持できるようにする
 - SDK に独自 `.so` を同梱せず、libwebrtc 側の Java+JNI から `SimulcastEncoderAdapter` を直接利用できるようにする
@@ -106,7 +106,7 @@
 
 ## 使い方（SDK 側）
 
-- 既存の `SimulcastVideoEncoderFactoryWrapper` などから、`org.webrtc.SimulcastVideoEncoderFactory` をこれまで通り利用してください（コード変更不要）
+- 既存の `SimulcastVideoEncoderFactoryWrapper` などから、`org.webrtc.SimulcastVideoEncoderFactory` を利用してください
 - 送信パラメータ設定（例）
   - encodings の各 `RtpParameters.Encoding` に対して最低限:
     - `scalabilityMode = "L1T1"`

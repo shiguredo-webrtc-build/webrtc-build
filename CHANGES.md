@@ -31,13 +31,13 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 - 2025-09-05 [FIX] Android の Pixel 8, Pixel 9 について、VP9 と AV1 のサイマルキャストが行えない不具合を修正する
   - AV1, VP9 ともハードウェアエンコーダーを持っている端末で不具合が発生する
-  - m136 で利用可能コーデック情報のリストを作成する際に重複を除外する処理が追加された結果、scalabilityMode を保持しているコーデック情報が重複により除外され、サイマルキャストが行えなくなった
+  - m136 で利用可能コーデック情報のリストを作成する際に重複を除外する処理が追加された結果、 `scalabilityMode` を保持しているコーデック情報が重複により除外され、サイマルキャストが行えなくなった
     - https://source.chromium.org/chromium/_/webrtc/src/+/a22e244a8d22db2291cc51dcc4bdb0a54488c488:media/engine/webrtc_video_engine.cc;dlc=c2f1bc703d24f105ff3612f8e4ff7bea21a0aadf
-  - 利用可能コーデック情報作成時に、AV1 と VP9 の場合は常に scalabilityMode に "L1T1" を固定で設定することで必ず calabilityMode を保持するようにした
+  - 利用可能コーデック情報作成時に、AV1 と VP9 の場合は常に `scalabilityMode` に `L1T1` を固定で設定することで必ず scalabilityMode を保持するようにした
   - @voluntas
-- 2025-09-05 [CHANGE] Android のサイマルキャストにおいて、 AV1 と VP9 の場合は常に scalabilityMode に "L1T1" を固定で設定する
-  - VideoCodecInfo の scalabilityMode を利用せず、常に scalabilityMode に "L1T1" を固定で設定するように変更した
-  - この変更により、Android のサイマルキャストにおいて、 RTP パラメーターの scalabilityMode が "L1T1" 以外の場合はサイマルキャストが動作しなくなる
+- 2025-09-05 [CHANGE] Android のサイマルキャストにおいて、 AV1 と VP9 の場合は常に `scalabilityMode` に `L1T1` を固定で設定する
+  - `VideoCodecInfo` の `scalabilityMode` を利用せず、常に `scalabilityMode` に `L1T1` を固定で設定するように変更した
+  - この変更により、Android のサイマルキャストにおいて、 RTP パラメーターの `scalabilityMode` が `L1T1` 以外の場合はサイマルキャストが動作しなくなる
   - @voluntas
 - 2025-09-05 [CHANGE] Android のサイマルキャストの利用可能コーデック情報リスト作成時に、エンコーダーから取得した情報のみを利用するように変更する
   - エンコーダー情報に加えて SdpVideoFormat で生成したコーデック情報を利用していたが不要であるためこれをやめる
