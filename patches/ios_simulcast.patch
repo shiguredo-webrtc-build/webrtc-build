@@ -359,7 +359,7 @@ index 0000000000..15a6249c11
 +    }
 +
 +    auto av1Format = webrtc::SdpVideoFormat(
-+         cricket::kAv1CodecName, webrtc::CodecParameterMap(),
++         webrtc::kAv1CodecName, webrtc::CodecParameterMap(),
 +         webrtc::LibaomAv1EncoderSupportedScalabilityModes());
 +    RTCVideoCodecInfo *av1Codec = [[RTCVideoCodecInfo alloc] initWithNativeSdpVideoFormat: av1Format];
 +    [addingCodecs addObject: av1Codec];
@@ -408,7 +408,7 @@ index 0000000000..15a6249c11
 +    // AV1
 +    {
 +        webrtc::SdpVideoFormat format(
-+            cricket::kAv1CodecName, webrtc::CodecParameterMap(),
++            webrtc::kAv1CodecName, webrtc::CodecParameterMap(),
 +            webrtc::LibaomAv1EncoderSupportedScalabilityModes());
 +        RTCVideoCodecInfo *codec = [[RTCVideoCodecInfo alloc] initWithNativeSdpVideoFormat: format];
 +        [codecs addObject: codec];
