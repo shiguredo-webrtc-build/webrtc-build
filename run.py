@@ -261,7 +261,7 @@ PATCHES = {
         "ssl_verify_callback_with_native_handle.patch",
         "android_webrtc_version.patch",
         "android_fixsegv.patch",
-        "android_simulcast_jni.patch",
+        "android_simulcast.patch",
         "android_hardware_video_encoder.patch",
         "android_proxy.patch",
         "h265.patch",

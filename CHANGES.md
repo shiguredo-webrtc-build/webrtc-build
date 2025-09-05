@@ -43,7 +43,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - エンコーダー情報に加えて SdpVideoFormat で生成したコーデック情報を利用していたが不要であるためこれをやめる
   - @voluntas
 - 2025-09-05 [UPDATE] Android Simulcast 用のパッチを整理
-  - パッチ構成の変更: `android_simulcast.patch` と `android_add_scale_resolution_down_to.patch` を統合し、整理した `android_simulcast_jni.patch` に置き換えた
+  - パッチ構成の変更とリファクタリング: `android_add_scale_resolution_down_to.patch` を `android_simulcast.patch` に統合し、処理の見直しを行った
+  - 内部の引数の見直し等を行なっているが、従来の Android SDK には影響が与えないように対応した
   - @voluntas
 - 2025-08-06 [RELEASE] m138.7204.0.4
   - @torikizi

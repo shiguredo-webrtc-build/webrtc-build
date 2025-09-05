@@ -1,6 +1,6 @@
-# android_simulcast_jni.patch の解説
+# android_simulcast.patch の解説
 
-このドキュメントは、`android_simulcast_jni.patch` の目的・変更点・使い方をまとめたものです。パッチは以下の2点を、Android 側の最小変更で満たすことを狙っています。
+このドキュメントは、`android_simulcast.patch` の目的・変更点・使い方をまとめたものです。パッチは以下の2点を、Android 側の最小変更で満たすことを狙っています。
 
 - W3C 互換の `scalabilityMode` / `scaleResolutionDownTo` を Java ↔ C++ で正しく往復し、legacy 判定を外して VP9/AV1 のサイマルキャスト（複数 SSRC）を維持できるようにする
 - SDK に独自 `.so` を同梱せず、libwebrtc 側の Java+JNI から `SimulcastEncoderAdapter` を直接利用できるようにする
@@ -121,66 +121,6 @@
       }
     }
     ```
-
----
-
-## ビルド手順（webrtc-build の run.py を使用）
-
-このパッチは shiguredo/webrtc-build の仕組みで自動適用・ビルドする想定です。手動で `gn gen`/`ninja` は不要です。
-
-1) パッチの配置と run.py のパッチリスト変更（必須）
-
-- 本ファイルと同じディレクトリに `android_simulcast_jni.patch` があることを確認
-- `webrtc-build/run.py` の `PATCHES["android"]` を編集し、以下を反映
-  - 削除: `android_simulcast.patch`, `android_add_scale_resolution_down_to.patch`
-  - 追加: `android_simulcast_jni.patch`
-  - 配置順: 既存の `android_simulcast.patch` があった位置に置き換える（他のパッチ順は維持）
-
-  例（概念・抜粋）:
-
-  ```python
-  PATCHES = {
-      "android": [
-          "add_deps.patch",
-          # ... 省略 ...
-          "android_webrtc_version.patch",
-          "android_fixsegv.patch",
-          # "android_simulcast.patch",  # ← 削除
-          # "android_add_scale_resolution_down_to.patch",  # ← 削除
-          "android_simulcast_jni.patch",  # ← 追加（置き換え）
-          "android_hardware_video_encoder.patch",
-          # ... 省略 ...
-      ],
-  }
-  ```
-
-2) 取得（初回のみ）または再適用
-
-- 初回やクリーン取得時は、build だけで自動的にフェッチ＋パッチ適用まで行われます
-- 既にソースがあり、当該パッチだけを差し替えたい場合の例
-
-  ```bash
-  cd /Users/voluntas/shiguredo/webrtc-build
-  python3 run.py revert android --patch android_simulcast_jni.patch
-  ```
-
-3) ビルド
-
-```bash
-cd /Users/voluntas/shiguredo/webrtc-build
-# Release ビルド（デフォルト）で Android 用 libwebrtc をビルド
-python3 run.py build android
-
-# 必要に応じてオプション
-# - デバッグビルド: --debug
-# - AAR を作らない: --webrtc-nobuild-android-aar
-# - GN を再生成: --webrtc-gen / 強制再生成: --webrtc-gen-force
-```
-
-4) 生成物
-
-- `_build/android/release/webrtc/aar/libwebrtc.aar` と `_build/android/release/webrtc/aar/webrtc.jar`
-- 各 ABI の `libwebrtc.a`: `_build/android/release/webrtc/<abi>/libwebrtc.a`
 
 ---
 
