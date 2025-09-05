@@ -339,6 +339,13 @@ iOS でのサイマルキャストのサポートを追加するパッチ。こ�
 
 特に scalabilityMode は libwebrtc 側で NSString 記述となったため RTCScalabilityMode ENUM を削除した。変数名は同じだが NSNumber から NSString に型が変更になっているので注意すること。
 
+## android_simulcast_jni.patch
+
+Android において `scalabilityMode` / `scaleResolutionDownTo` を Java ↔ C++ で正しく往復し、VP9/AV1 のサイマルキャストを維持できるようにするパッチ。
+SDK に独自 `.so` を同梱せず、libwebrtc 側の Java+JNI から `SimulcastEncoderAdapter` を直接利用する方針とした。
+
+パッチの詳細は [android_simulcast_jni.patch の解説](./android_simulcast_jni.md) を参照のこと。
+
 ## remove_crel.patch
 
 [CREL](https://maskray.me/blog/2024-03-09-a-compact-relocation-format-for-elf) (compact relocation) を有効にするオプションを削除するパッチ。
