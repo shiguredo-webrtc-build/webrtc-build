@@ -341,8 +341,7 @@ iOS でのサイマルキャストのサポートを追加するパッチ。こ�
 
 ## android_simulcast.patch
 
-Android において `scalabilityMode` / `scaleResolutionDownTo` を Java ↔ C++ で正しく往復し、VP9/AV1 のサイマルキャストを維持できるようにするパッチ。
-SDK に独自 `.so` を同梱せず、libwebrtc 側の Java+JNI から `SimulcastEncoderAdapter` を直接利用する方針とした。
+Android でサイマルキャストを実現するためのパッチ。
 
 パッチの詳細は [android_simulcast.patch の解説](./android_simulcast.md) を参照のこと。
 

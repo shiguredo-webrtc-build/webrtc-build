@@ -1,118 +1,69 @@
 # android_simulcast.patch の解説
 
-このドキュメントは、`android_simulcast.patch` の目的・変更点をまとめたものです。パッチは以下の2点を、Android 側の最小変更で満たすことを狙っています。
+このドキュメントは、`android_simulcast.patch` の目的・変更点をまとめたものです。
 
-- W3C 互換の `scalabilityMode` / `scaleResolutionDownTo` を Java ↔ C++ で正しく往復し、legacy 判定を外して VP9/AV1 のサイマルキャスト（複数 SSRC）を維持できるようにする
-- SDK に独自 `.so` を同梱せず、libwebrtc 側の Java+JNI から `SimulcastEncoderAdapter` を直接利用できるようにする
+## 目的
 
----
+- libwebrtc の Android ライブラリでサイマルキャストが実現できるようになること
 
-## 背景・目的
+## 背景
 
-- libwebrtc の送信側では、VP9/AV1 に対し旧来挙動（legacy）のゲートがあり、以下の条件を満たすとゲートが外れ、複数 SSRC のサイマルキャストが維持されます。
-  - encodings のいずれかで `scalabilityMode` が指定されている
-  - かつ `scaleResolutionDownBy` または `scaleResolutionDownTo` が指定されている
-- また、`setParameters` 時の `scalabilityMode` は codec list の `scalability_modes` に含まれている必要があります（含まれない場合は INVALID_MODIFICATION）。
-- 本パッチは、上記を Android（Java）→ C++ で確実に満たしつつ、Java から `SimulcastEncoderAdapter` を直接使える薄いファクトリを追加します。SDK 側に .so を持たせる必要はありません。
+- 現在の libwebrtc の実装では Android からサイマルキャストができません。
+- C++ の `webrtc::SimulcastEncoderAdapter` に相当する機能が libwebrtc の Android ライブラリに含まれていないからです。
+- Android 版のサイマルキャストを実装するにあたって以下のことを考慮する必要があります。
+  - `webrtc::SimulcastEncoderAdapter` の Android 版を実装すると同時に、このエンコーダーを生成するためのファクトリも実装する必要がある
+  - `webrtc::RtpEncodingParameters` の `scalability_mode`, `scale_resolution_down_by`, `scale_resolution_down_to` のどれにも値が設定されていない場合、VP9 と AV1 ではサイマルキャストが無効化される
+    - ref: https://source.chromium.org/chromium/chromium/src/+/main:third_party/webrtc/media/engine/webrtc_video_engine.cc;l=2255-2276;drc=de4667eb4f071c691cfe5304210480ee61a112b0
+    - また、Android 側の `webrtc::RtpEncodingParameters` に相当する `RtpParameters.Encoding` には `scalabilityMode`, `scaleResolutionDownTo` の設定が存在しない。
+  - ただし、例え `webrtc::RtpEncodingParameters` の `scalability_mode` に値を設定しても、`webrtc::VideoEncoderFactory::GetSupportedFormats()` が返す `webrtc::SdpVideoFormat` の一覧に、対応する scalability mode が存在しない場合には設定することが出来ない
+    - ref: https://source.chromium.org/chromium/chromium/src/+/main:third_party/webrtc/media/base/media_engine.cc;l=117-154;drc=3bd6510e6f1a508b4042e4be266f126afaa18e8c
+    - また、Android 側の `webrtc::SdpVideoFormat` に相当する `VideoCodecInfo` には scalability mode の設定が存在しない
+    - Android の HWA を利用するエンコーダファクトリである `HardwareVideoEncoderFactory` が実装している `getSupportedCodecs()` 関数は（`VideoCodecInfo` が scalability mode に対応していないので当然）scalability mode の設定が存在しない
+- これらのことを考慮してパッチを記述する必要があります。
 
----
+## やること
 
-## 変更点（概要）
+上記のことを踏まえると、以下のことをやる必要があります。
 
-1) `RtpParameters`（Java）への最小追加
+- `webrtc::SimulcastEncoderAdapter` の Android 版と、このエンコーダーを生成するためのファクトリの実装
+- `webrtc::RtpEncodingParameters` の `scalability_mode`, `scale_resolution_down_to` に相当する機能を Android 版に追加
+- `webrtc::SdpVideoFormat` に相当する `VideoCodecInfo` に scalability mode の対応を入れる
+- `HardwareVideoEncoderFactory` の `getSupportedCodecs()` 関数が返す `VideoCodecInfo` に scalability mode の設定を入れる
 
-- 追加クラス: `ResolutionRestriction`（W3C の `RTCResolutionRestriction` 互換）
-  - フィールド: `maxWidth`, `maxHeight`（いずれも `Integer` / nullable）
-- 追加フィールド: `RtpParameters.Encoding`
-  - `@Nullable String scalabilityMode`
-  - `@Nullable ResolutionRestriction scaleResolutionDownTo`
-- JNI コンストラクタ拡張（`@CalledByNative("Encoding")`）
-  - 末尾に `scalabilityMode` と `scaleResolutionDownTo` の幅/高（`Integer`）を引数として追加
-  - 幅/高がどちらも non-null の場合のみ `scaleResolutionDownTo` オブジェクトを生成
-- ゲッター追加
-  - `getScalabilityMode()`
-  - `getScaleResolutionDownToWidth()` / `getScaleResolutionDownToHeight()`
+## 変更点の概要
 
-2) JNI ブリッジ（Encoding のみ）
+- `webrtc::SimulcastEncoderAdapter` の Android 版と、このエンコーダーを生成するためのファクトリも実装するために、以下の変更をしています。
+  - `sdk/android/api/org/webrtc/SimulcastVideoEncoder.java` の追加
+  - `sdk/android/api/org/webrtc/SimulcastVideoEncoderFactory.java` の追加
+  - `SimulcastVideoEncoder` の JNI として `sdk/android/src/jni/simulcast_video_encoder.cc` の追加
+  - `BUILD.gn` に、これらの追加したファイルをそれぞれ `simulcast_java` と `simulcast_jni` という名前で生成して、最終的な成果物の依存に含める。
+    - なお最終的な成果物である `dist_jar("libwebrtc")` には `direct_deps_only = true` が存在しているため、`simulcast_java` は必ずここに含める必要がある。含めない場合、実行時に .class ファイルが見つからずに実行時エラーとなる。
+      - ref: https://source.chromium.org/chromium/chromium/src/+/main:third_party/webrtc/sdk/android/BUILD.gn;l=33;drc=dc0a35fe850060ed606107299ccd7ad3dcbd5809
+- `webrtc::RtpEncodingParameters` の `scalability_mode`, `scale_resolution_down_to` に相当する機能を Android 版に追加するため、以下の変更を行っています。
+  - `sdk/android/api/org/webrtc/RtpParameters.java` に `RtpParameters.ResolutionRestriction` クラスの追加。
+    - これは C++ 側の `webrtc::Resolution` に相当する。
+  - `RtpParameters.Encoding` に `scalabilityMode` と `scaleResolutionDownTo` フィールドを追加し、コンストラクタでこれらを指定して初期化できるように変更したり、取得するための関数を追加。
+  - `RtpParameters` と C++ 実装の `webrtc::RtpParameters` を相互に変換する JNI 実装に、`scalablityMode` と `scaleResolutionDownTo` を含める
+    - この JNI 実装は `sdk/android/src/jni/pc/rtp_parameters.cc` にある。
+- Android 側の `webrtc::SdpVideoFormat` に相当する `VideoCodecInfo` に scalability mode の対応を入れるため、以下の変更を行っています。
+  - `sdk/android/api/org/webrtc/VideoCodecInfo.java` に `scalabilityModes` フィールドと、これを指定可能なコンストラクタと、取得するための関数を追加
+  - また、`hashCode()` や `equals()` で `scalabilityModes` も見るように変更
+    - これは `webrtc::SdpVideoFormat` の実装でもそうなっていたので、同様の実装にした
+- `HardwareVideoEncoderFactory` の `getSupportedCodecs()` 関数が返す `VideoCodecInfo` に scalability mode の設定を入れるため、以下の変更を行っています。
+  - `sdk/android/api/org/webrtc/HardwareVideoEncoderFactory.java` の `getSupportedCodecs()` 関数内で生成している `VideoCodecInfo` に scalability mode の値を設定する
+    - 本当にサポートしている値だけ入れるべきだが、とりあえず L1T1, L1T2, L1T3 だけ渡しておくことにする。
+      - これは VP8, H264 などの、SVC に対応していないソフトウェア実装で渡している値と同じとなる
+      - ref: https://source.chromium.org/chromium/chromium/src/+/main:third_party/webrtc/modules/video_coding/codecs/vp8/vp8_scalability.h;l=18-19;drc=845d2024791ea649a25c4074bf25263b1f648ff9
+      - ref: https://source.chromium.org/chromium/chromium/src/+/main:third_party/webrtc/modules/video_coding/codecs/h264/h264.cc;l=54-55;drc=845d2024791ea649a25c4074bf25263b1f648ff9
+- ついでに、統計情報に `scalabilityMode` が含まれていない問題を解消するために、`sdk/android/src/jni/video_encoder_wrapper.cc` のコーデック情報を設定する部分で `CodecSpecificInfo` の `scalability_mode` に L1T1 の値を設定しています。
 
-- `sdk/android/src/jni/pc/rtp_parameters.cc`
-  - C++ → Java（`NativeToJavaRtpEncodingParameter`）で `scalability_mode` と `scale_resolution_down_to` を追加で渡す
-  - Java → C++（`JavaToNativeRtpEncodingParameters`）で上記値を読み取り、`RtpEncodingParameters` に設定
-  - `#include "api/video/resolution.h"` を追加（`Resolution` 構築のため）
+## 利用方法
 
-3) codec list への最小広告（VP9/AV1 に L1T1）
+このパッチを当てた libwebrtc を使ってサイマルキャストを実現する場合、以下のように利用して下さい。
 
-- `sdk/android/src/jni/video_codec_info.cc`
-  - `VideoCodecInfo` → `SdpVideoFormat` 変換時、VP9/AV1 の場合に限って `scalability_modes = { L1T1 }` を追加
-  - `setParameters` の `CheckScalabilityModeValues` を確実に通すための最小広告
-
-4) Simulcast を直接使う Java+JNI の最小追加
-
-- Java 側（`video_java` に含める）
-  - `api/org/webrtc/SimulcastVideoEncoder.java`
-    - `WrappedNativeVideoEncoder` を継承、`createNative()` で JNI へ委譲
-  - `api/org/webrtc/SimulcastVideoEncoderFactory.java`
-    - `VideoEncoderFactory` 実装。`createEncoder()` で上記エンコーダを返す
-    - `getSupportedCodecs()` は primary + fallback の和集合（重複除去）
-- JNI 側
-  - `src/jni/simulcast_video_encoder.cc/.h`
-    - `Java_org_webrtc_SimulcastVideoEncoder_nativeCreateEncoder(...)`
-      - `VideoCodecInfo` を `SdpVideoFormat` に変換
-      - `JavaToNativeVideoEncoderFactory(...)` で factory をネイティブ化
-      - `new SimulcastEncoderAdapter(env, primary, fallback, format)` を生成してポインタを返却
-    - 備考: `SimulcastEncoderAdapter` は factory を所有しないため、JNI 側では工場ラッパを意図的にリーク（小規模）させて寿命を保ちます（従来パッチと同様の割り切り）
-
-5) BUILD.gn の更新
-
-- `sdk/android/BUILD.gn`
-  - `video_java` の `sources` に Java 2 ファイルを追加
-  - `rtc_library("simulcast_jni")` を追加（dep: `:base_jni`, `:video_jni`, `:native_api_codecs`, `../../media:rtc_simulcast_encoder_adapter`）
-  - `rtc_shared_library("libjingle_peerconnection_so")` に `:simulcast_jni` を追加
-
-6) Android HW エンコーダ経路の統計 `scalabilityMode` 埋め込み（L1T1 固定）
-
-- `sdk/android/src/jni/video_encoder_wrapper.cc`
-  - `VideoEncoderWrapper::ParseCodecSpecificInfo(...)` の戻り直前に、
-    `info.scalability_mode = ScalabilityMode::kL1T1;` を追加
-  - 目的: Java 実装（HW エンコーダ）経路で `outbound-rtp` の統計に
-    `scalabilityMode` を確実に含める（L1T1 固定）
-  - 注意: エンコード動作の実体は変えず、統計の可観測性のみを向上
-
----
-
-## 期待する効果と挙動
-
-1) Simulcast のゲート（legacy 判定）の解除
-
-- encodings のいずれかで以下が成立すれば、legacy から脱し、複数 SSRC のサイマルキャストが維持されます。
-  - `scalabilityMode` が指定されている
-  - かつ `scaleResolutionDownBy` または `scaleResolutionDownTo` が指定されている
-
-2) `setParameters` の検証
-
-- `pc/rtp_sender.cc` → `media/base/media_engine.cc` の `CheckScalabilityModeValues` は、指定された `scalabilityMode` が codec list に存在する必要あり
-- 本パッチで VP9/AV1 に L1T1 を最小広告するため、`scalabilityMode="L1T1"` は必ず受理され、値が消されません
-
-3) SDK 側は .so 追加不要
-
-- Java から `SimulcastVideoEncoderFactory` を使うだけで、内部的に `SimulcastEncoderAdapter` を直接利用できます
-
-4) Android HW エンコーダ経路の統計
-
-- Java ベースの HW エンコーダ経路では、`outbound-rtp` の `scalabilityMode` が
-  常に `"L1T1"` としてレポートされます（観測性向上のための固定）。
-
----
-
-## 使い方（SDK 側）
-
-- 既存の `SimulcastVideoEncoderFactoryWrapper` などから、`org.webrtc.SimulcastVideoEncoderFactory` を利用してください
+- まずビデオエンコーダファクトリとして `SimulcastVideoEncoderFactory` を利用して下さい
+- その上で `RtpParameters.Encoding` を設定する時に、`scalabilityMode`, `scaleResolutionDownBy`, `scaleResolutionDownTo` のどれかを設定して下さい
 - 送信パラメータ設定（例）
-  - encodings の各 `RtpParameters.Encoding` に対して最低限:
-    - `scalabilityMode = "L1T1"`
-    - `scaleResolutionDownBy` もしくは `scaleResolutionDownTo`（`ResolutionRestriction(maxWidth, maxHeight)`）
-  - Kotlin 例（概念的）:
-
     ```kotlin
     sender.parameters = sender.parameters.apply {
       encodings.forEachIndexed { _, e ->
@@ -121,48 +72,3 @@
       }
     }
     ```
-
----
-
-## 既知の注意点 / 制限
-
-- 工場ラッパの寿命管理
-  - `SimulcastEncoderAdapter` は factory を所有しないため、JNI で生成した工場ラッパを解放せず寿命を保つ実装（小規模リーク）になっています。必要であれば後続で解放機構を追加可能です
-- `scalability_modes` の広告は最小（L1T1 のみ）
-  - Simulcast のゲートを外す目的には十分です。L2/L3 を許可したい場合は codec list の広告を拡張してください
-- 既定の Java 側 Factory（`DefaultVideoEncoderFactory` 等）との併用
-  - 本パッチの `SimulcastVideoEncoderFactory` は primary/fallback を合成し、エンコーダ生成時に `SimulcastEncoderAdapter` を利用します
-- 依存
-  - 既存の `VideoEncoderFactoryWrapper`/`VideoCodecInfoToSdpVideoFormat` などの JNI/utility に依存しています
-
----
-
-## 動作確認のヒント
-
-- Offer/Answer の送受信後、送信側が複数 SSRC を持っていることを確認（Sender の stats、SDP、ログなど）
-- `scalabilityMode`/`scaleResolutionDownTo` が `setParameters` 後に保持されていることを確認
-- ログ上で `SimulcastEncoderAdapter` が利用されているか確認（実装名）
-
----
-
-## 変更ファイル一覧（参考）
-
-- Java
-  - `sdk/android/api/org/webrtc/RtpParameters.java`
-  - `sdk/android/api/org/webrtc/SimulcastVideoEncoder.java`
-  - `sdk/android/api/org/webrtc/SimulcastVideoEncoderFactory.java`
-- JNI/C++
-  - `sdk/android/src/jni/pc/rtp_parameters.cc`
-  - `sdk/android/src/jni/video_codec_info.cc`
-  - `sdk/android/src/jni/video_encoder_wrapper.cc`
-  - `sdk/android/src/jni/simulcast_video_encoder.cc`
-  - `sdk/android/src/jni/simulcast_video_encoder.h`
-- GN
-  - `sdk/android/BUILD.gn`
-
----
-
-## まとめ
-
-- 本パッチは、`scalabilityMode/scaleResolutionDownTo` の最小 JNI と、`SimulcastEncoderAdapter` を直接使う薄い Java+JNI を同時に導入します
-- SDK 側に .so を追加せず、Android で VP9/AV1 の複数 SSRC サイマルキャストを実現することを目標としています
