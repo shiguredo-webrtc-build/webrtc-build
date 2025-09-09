@@ -33,15 +33,11 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - AV1, VP9 ともハードウェアエンコーダーを持っている端末で不具合が発生する
   - m136 で利用可能コーデック情報のリストを作成する際に重複を除外する処理が追加された結果、 `scalabilityMode` を保持しているコーデック情報が重複により除外され、サイマルキャストが行えなくなった
     - https://source.chromium.org/chromium/_/webrtc/src/+/a22e244a8d22db2291cc51dcc4bdb0a54488c488:media/engine/webrtc_video_engine.cc;dlc=c2f1bc703d24f105ff3612f8e4ff7bea21a0aadf
-  - 利用可能コーデック情報作成時に、AV1 と VP9 の場合は常に `scalabilityMode` に `L1T1` を固定で設定することで必ず scalabilityMode を保持するようにした
-  - @voluntas
-- 2025-09-05 [CHANGE] Android のサイマルキャストにおいて、 AV1 と VP9 の場合は常に `scalabilityMode` に `L1T1` を固定で設定する
-  - `VideoCodecInfo` の `scalabilityMode` を利用せず、常に `scalabilityMode` に `L1T1` を固定で設定するように変更した
-  - この変更により、Android のサイマルキャストにおいて、 RTP パラメーターの `scalabilityMode` が `L1T1` 以外の場合はサイマルキャストが動作しなくなる
-  - @voluntas
+  - `HardwareVideoEncoderFactory` の `getSupportedCodecs()` に `scalabilityMode` を追加することで対応した
+  - @voluntas @melpon
 - 2025-09-05 [CHANGE] Android のサイマルキャストの利用可能コーデック情報リスト作成時に、エンコーダーから取得した情報のみを利用するように変更する
   - エンコーダー情報に加えて SdpVideoFormat で生成したコーデック情報を利用していたが不要であるためこれをやめる
-  - @voluntas
+  - @voluntas @melpon
 - 2025-09-05 [UPDATE] Android Simulcast 用のパッチを整理
   - パッチ構成の変更とリファクタリング: `android_add_scale_resolution_down_to.patch` を `android_simulcast.patch` に統合し、処理の見直しを行った
   - 内部の引数の見直し等を行なっているが、従来の Android SDK には影響が与えないように対応した
