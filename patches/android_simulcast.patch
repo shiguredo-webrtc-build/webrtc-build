@@ -489,3 +489,19 @@ index a218a1d23f..8e29fb0828 100644
  }
  
  }  // namespace jni
+diff --git a/sdk/android/src/jni/video_encoder_wrapper.cc b/sdk/android/src/jni/video_encoder_wrapper.cc
+index 326f96375f..456369e5fc 100644
+--- a/sdk/android/src/jni/video_encoder_wrapper.cc
++++ b/sdk/android/src/jni/video_encoder_wrapper.cc
+@@ -427,6 +427,11 @@ CodecSpecificInfo VideoEncoderWrapper::ParseCodecSpecificInfo(
+       break;
+   }
+ 
++  // scalability_mode を L1T1 固定で設定する。
++  // これをちゃんと対応するなら、実際に使っている scalability mode をここに設定するだけでなく
++  // svc_controller_ もそれぞれの scalability mode に対応する型にする必要がある。
++  // （現在 svc_controller_ は L1T1 に対応する ScalableVideoControllerNoLayering 型になっている）
++  info.scalability_mode = ScalabilityMode::kL1T1;
+   return info;
+ }
+ 
