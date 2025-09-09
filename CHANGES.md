@@ -36,11 +36,10 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - `HardwareVideoEncoderFactory` の `getSupportedCodecs()` に `scalabilityMode` を追加することで対応した
   - @voluntas @melpon
 - 2025-09-05 [CHANGE] Android のサイマルキャストの利用可能コーデック情報リスト作成時に、エンコーダーから取得した情報のみを利用するように変更する
-  - Android 実装の利用可能なコーデック情報に加えて、C++ 側のソフトウェア実装で利用可能なコーデック情報を取得していたが、C++ 側のコーデック情報は不要であるためこれをやめる
+  - SimulcastVideoEncoder でソフトウェアエンコーダーで利用可能なコーデック情報を常に取得していたが、指定したエンコーダーのコーデック情報のみを使用するようにする
   - @voluntas @melpon
 - 2025-09-05 [UPDATE] Android Simulcast 用のパッチを整理
   - パッチ構成の変更とリファクタリング: `android_add_scale_resolution_down_to.patch` を `android_simulcast.patch` に統合し、処理の見直しを行った
-  - 内部の引数の見直し等を行なっているが、従来の Android SDK には影響が与えないように対応した
   - @voluntas
 - 2025-08-06 [RELEASE] m138.7204.0.4
   - @torikizi
