@@ -58,22 +58,22 @@ Please read <https://github.com/shiguredo/oss/blob/master/README.en.md> before u
 
 ## 廃止
 
-- macOS x86_64
-  - 2022 年 6 月を持って廃止しました
-- Ubuntu 18.04 x86_64
-  - 2022 年 6 月を持って廃止しました
-- Jetson 向け ARM 版 Ubuntu 18.04 廃止
-  - 2023 年 4 月を持って廃止しました
-- HoloLens 2
-  - 2025 年 3 月を持って廃止しました
-- Ubuntu 20.04 x86_64
-  - 2025 年 4 月を持って廃止しました
-- Raspberry Pi armv6
+- Android armeabi-v7a
   - 2025 年 9 月を持って廃止しました
 - Raspberry Pi armv7
   - 2025 年 9 月を持って廃止しました
-- Android armeabi-v7a
+- Raspberry Pi armv6
   - 2025 年 9 月を持って廃止しました
+- Ubuntu 20.04 x86_64
+  - 2025 年 4 月を持って廃止しました
+- HoloLens 2
+  - 2025 年 3 月を持って廃止しました
+- Jetson 向け ARM 版 Ubuntu 18.04 廃止
+  - 2023 年 4 月を持って廃止しました
+- Ubuntu 18.04 x86_64
+  - 2022 年 6 月を持って廃止しました
+- macOS x86_64
+  - 2022 年 6 月を持って廃止しました
 
 ## H.264 (AVC) と H.265 (HEVC) のライセンスについて
 
