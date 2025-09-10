@@ -29,6 +29,13 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-09-11 [UPDATE] m140 に対応する
+  - `rtc::` を `webrtc::` に変更する
+  - `ios_sdk` 向けのビルドで使っている `build_ios.py` が、出力ディレクトリがソースディレクトリ以下でないとエラーを出すようになったので、`ios_sdk` のビルドの場合だけソースディレクトリ以下に出力するように変更
+  - @melpon
+- 2025-09-11 [CHANGE] macOS, iOS のビルドに Xcode clang, libc++ ではなく libwebrtc が提供しているものを利用する
+  - これによって macOS, iOS で libwebrtc を利用してビルドする時に libwebrtc の clang, libc++ を指定しなければならなくなる
+  - @melpon
 - 2025-08-05 [CHANGE] `ios` ビルドを `ios` と `ios_sdk` に、`android` ビルドを `android` と `android_sdk` に分ける
   - 提供するバイナリやディレクトリ構成、ダウンロード URL が変わるため破壊的変更となります
   - @melpon
