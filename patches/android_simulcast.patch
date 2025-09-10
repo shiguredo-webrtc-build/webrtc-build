@@ -242,7 +242,7 @@ index 0000000000..1824cb595d
 +}
 +
 diff --git a/sdk/android/api/org/webrtc/VideoCodecInfo.java b/sdk/android/api/org/webrtc/VideoCodecInfo.java
-index 4f97cf74cf..bca9e049a5 100644
+index 4f97cf74cf..49ce048388 100644
 --- a/sdk/android/api/org/webrtc/VideoCodecInfo.java
 +++ b/sdk/android/api/org/webrtc/VideoCodecInfo.java
 @@ -34,13 +34,22 @@ public class VideoCodecInfo {
@@ -282,7 +282,7 @@ index 4f97cf74cf..bca9e049a5 100644
  
      VideoCodecInfo otherInfo = (VideoCodecInfo) obj;
 -    return name.equalsIgnoreCase(otherInfo.name) && params.equals(otherInfo.params);
-+    return name.equalsIgnoreCase(otherInfo.name) && params.equals(otherInfo.params) && scalabilityModes.equals(otherInfo.scalabilityModes);
++    return name.equalsIgnoreCase(otherInfo.name) && params.equals(otherInfo.params) && Arrays.equals(scalabilityModes, otherInfo.scalabilityModes);
    }
  
    @Override
