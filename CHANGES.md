@@ -29,6 +29,18 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-09-05 [FIX] Android の Pixel 8, Pixel 9 について、VP9 と AV1 のサイマルキャストが行えない不具合を修正する
+  - AV1, VP9 ともハードウェアエンコーダーを持っている端末で不具合が発生する
+  - m136 で利用可能コーデック情報のリストを作成する際に重複を除外する処理が追加された結果、 `scalabilityMode` を保持しているコーデック情報が重複により除外され、サイマルキャストが行えなくなった
+    - https://source.chromium.org/chromium/_/webrtc/src/+/a22e244a8d22db2291cc51dcc4bdb0a54488c488:media/engine/webrtc_video_engine.cc;dlc=c2f1bc703d24f105ff3612f8e4ff7bea21a0aadf
+  - `HardwareVideoEncoderFactory` の `getSupportedCodecs()` に `scalabilityMode` を追加することで対応した
+  - @voluntas @melpon
+- 2025-09-05 [CHANGE] Android のサイマルキャストの利用可能コーデック情報リスト作成時に、エンコーダーから取得した情報のみを利用するように変更する
+  - SimulcastVideoEncoder でソフトウェアエンコーダーで利用可能なコーデック情報を常に取得していたが、指定したエンコーダーのコーデック情報のみを使用するようにする
+  - @voluntas @melpon
+- 2025-09-05 [UPDATE] Android Simulcast 用のパッチを整理
+  - パッチ構成の変更とリファクタリング: `android_add_scale_resolution_down_to.patch` を `android_simulcast.patch` に統合し、処理の見直しを行った
+  - @voluntas
 - 2025-08-06 [RELEASE] m138.7204.0.4
   - @torikizi
 - 2025-07-14 [UPDATE] Raspberry Pi OS (armv8) のビルドを buster から bookworm にアップデートする
