@@ -904,7 +904,7 @@ def build_webrtc_ios_sdk(
 
 
 ANDROID_ARCHS = ["arm64-v8a"]
-ANDROID_SDK_ARCHS = ["armeabi-v7a", "arm64-v8a"]
+ANDROID_SDK_ARCHS = ["arm64-v8a"]
 ANDROID_TARGET_CPU = {
     "armeabi-v7a": "arm",
     "arm64-v8a": "arm64",
