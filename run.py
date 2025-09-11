@@ -253,6 +253,28 @@ PATCHES = {
         # "remove_crel.patch",
         "revert_siso.patch",
     ],
+    "ios_sdk": [
+        "add_deps.patch",
+        "4k.patch",
+        "revive_proxy.patch",
+        "add_license_dav1d.patch",
+        "macos_screen_capture.patch",
+        "ios_manual_audio_input.patch",
+        "ios_simulcast.patch",
+        "ssl_verify_callback_with_native_handle.patch",
+        "ios_build.patch",
+        "ios_proxy.patch",
+        "h265.patch",
+        "h265_ios.patch",
+        "arm_neon_sve_bridge.patch",
+        "dav1d_config_change.patch",
+        "fix_perfetto.patch",
+        "fix_moved_function_call.patch",
+        "ios_add_scale_resolution_down_to.patch",
+        # 既に ios_build.patch で同じ内容を適用済み
+        # "remove_crel.patch",
+        "revert_siso.patch",
+    ],
     "android": [
         "add_deps.patch",
         "4k.patch",
@@ -268,33 +290,28 @@ PATCHES = {
         "h265_android.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
-        "android_add_scale_resolution_down_to.patch",
         "remove_crel.patch",
         "revert_siso.patch",
         "android_include_environment_java.patch",
     ],
-    "raspberry-pi-os_armv6": [
-        "nacl_armv6_2.patch",
+    "android_sdk": [
         "add_deps.patch",
         "4k.patch",
         "revive_proxy.patch",
         "add_license_dav1d.patch",
         "ssl_verify_callback_with_native_handle.patch",
+        "android_webrtc_version.patch",
+        "android_fixsegv.patch",
+        "android_simulcast.patch",
+        "android_hardware_video_encoder.patch",
+        "android_proxy.patch",
         "h265.patch",
+        "h265_android.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
         "remove_crel.patch",
-    ],
-    "raspberry-pi-os_armv7": [
-        "add_deps.patch",
-        "4k.patch",
-        "revive_proxy.patch",
-        "add_license_dav1d.patch",
-        "ssl_verify_callback_with_native_handle.patch",
-        "h265.patch",
-        "fix_perfetto.patch",
-        "fix_moved_function_call.patch",
-        "remove_crel.patch",
+        "revert_siso.patch",
+        "android_include_environment_java.patch",
     ],
     "raspberry-pi-os_armv8": [
         "add_deps.patch",
@@ -450,29 +467,44 @@ def get_base_commit(n=30):
     raise Exception("base commit not found")
 
 
-def get_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir):
+def get_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir, no_history=False):
     if webrtc_source_dir is None:
         webrtc_source_dir = os.path.join(source_dir, "webrtc")
 
     mkdir_p(webrtc_source_dir)
 
+    no_history_flag = ["--no-history"] if no_history else []
+
     src_dir = os.path.join(webrtc_source_dir, "src")
     if not os.path.exists(src_dir):
         with cd(webrtc_source_dir):
             cmd(["gclient"])
-            cmd(["fetch", "webrtc"])
-            if target == "android":
+            cmd(["fetch", *no_history_flag, "webrtc"])
+            if target in ("android", "android_sdk"):
                 with open(".gclient", "a") as f:
                     f.write("target_os = [ 'android' ]\n")
-            if target == "ios":
+            if target in ("ios", "ios_sdk"):
                 with open(".gclient", "a") as f:
                     f.write("target_os = [ 'ios' ]\n")
 
         with cd(src_dir):
-            cmd(["git", "fetch"])
+            if no_history:
+                cmd(["git", "fetch", "--depth=1", "origin", version])
+            else:
+                cmd(["git", "fetch"])
             cmd(["git", "checkout", "-f", version])
             cmd(["git", "clean", "-df"])
-            cmd(["gclient", "sync", "-D", "--force", "--reset", "--with_branch_heads"])
+            cmd(
+                [
+                    "gclient",
+                    "sync",
+                    "-D",
+                    "--force",
+                    "--reset",
+                    "--with_branch_heads",
+                    *no_history_flag,
+                ]
+            )
             apply_patches(target, patch_dir, src_dir, None, False)
 
 
@@ -582,16 +614,6 @@ def archive_objects(ar, dir, output):
 
 MultistrapConfig = collections.namedtuple("MultistrapConfig", ["config_file", "arch", "triplet"])
 MULTISTRAP_CONFIGS = {
-    "raspberry-pi-os_armv6": MultistrapConfig(
-        config_file=["multistrap", "raspberry-pi-os_armv6.conf"],
-        arch="armhf",
-        triplet="arm-linux-gnueabihf",
-    ),
-    "raspberry-pi-os_armv7": MultistrapConfig(
-        config_file=["multistrap", "raspberry-pi-os_armv7.conf"],
-        arch="armhf",
-        triplet="arm-linux-gnueabihf",
-    ),
     "raspberry-pi-os_armv8": MultistrapConfig(
         config_file=["multistrap", "raspberry-pi-os_armv8.conf"],
         arch="arm64",
@@ -680,6 +702,21 @@ COMMON_GN_ARGS = [
     "rtc_rusty_base64=false",
     "use_debug_fission=false",
 ]
+# - M92-M93 あたりで clang++: error: -gdwarf-aranges is not supported with -fembed-bitcode
+#   がでていたので use_xcode_clang=false をすることで修正
+# - M94 で use_xcode_clang=true かつ --bitcode を有効にしてビルドが通り bitcode が有効になってることを確認
+# - M95 で再度 clang++: error: -gdwarf-aranges is not supported with -fembed-bitcode エラーがでるようになった
+# - https://webrtc-review.googlesource.com/c/src/+/232600 が影響している可能性があるため use_lld=false を追加
+IOS_COMMON_GN_ARGS = [
+    "rtc_libvpx_build_vp9=true",
+    "enable_dsyms=true",
+    "use_custom_libcxx=false",
+    "use_custom_libcxx_for_host=false",
+    "use_lld=false",
+    "rtc_enable_objc_symbol_export=true",
+    "treat_warnings_as_errors=false",
+]
+ANDROID_COMMON_GN_ARGS: list[str] = []
 
 WEBRTC_BUILD_TARGETS_MACOS_COMMON = [
     "api/audio_codecs:builtin_audio_decoder_factory",
@@ -692,7 +729,13 @@ WEBRTC_BUILD_TARGETS_MACOS_COMMON = [
 WEBRTC_BUILD_TARGETS = {
     "macos_arm64": [*WEBRTC_BUILD_TARGETS_MACOS_COMMON, "sdk:mac_framework_objc"],
     "ios": [*WEBRTC_BUILD_TARGETS_MACOS_COMMON, "sdk:framework_objc"],
+    "ios_sdk": [*WEBRTC_BUILD_TARGETS_MACOS_COMMON, "sdk:framework_objc"],
     "android": [
+        "sdk/android:libwebrtc",
+        "sdk/android:libjingle_peerconnection_so",
+        "sdk/android:native_api",
+    ],
+    "android_sdk": [
         "sdk/android:libwebrtc",
         "sdk/android:libjingle_peerconnection_so",
         "sdk/android:native_api",
@@ -702,7 +745,7 @@ WEBRTC_BUILD_TARGETS = {
 
 def get_build_targets(target):
     ts = [":default"]
-    if target not in ("windows_x86_64", "windows_arm64", "ios", "macos_arm64"):
+    if target not in ("windows_x86_64", "windows_arm64", "ios", "ios_sdk", "macos_arm64"):
         ts += ["buildtools/third_party/libc++"]
     ts += WEBRTC_BUILD_TARGETS.get(target, [])
     return ts
@@ -755,8 +798,6 @@ def build_webrtc_ios(
     gen=False,
     gen_force=False,
     nobuild=False,
-    nobuild_framework=False,
-    overlap_build_dir=False,
 ):
     if webrtc_source_dir is None:
         webrtc_source_dir = os.path.join(source_dir, "webrtc")
@@ -767,60 +808,10 @@ def build_webrtc_ios(
 
     mkdir_p(webrtc_build_dir)
 
-    mkdir_p(os.path.join(webrtc_build_dir, "framework"))
-    # - M92-M93 あたりで clang++: error: -gdwarf-aranges is not supported with -fembed-bitcode
-    #   がでていたので use_xcode_clang=false をすることで修正
-    # - M94 で use_xcode_clang=true かつ --bitcode を有効にしてビルドが通り bitcode が有効になってることを確認
-    # - M95 で再度 clang++: error: -gdwarf-aranges is not supported with -fembed-bitcode エラーがでるようになった
-    # - https://webrtc-review.googlesource.com/c/src/+/232600 が影響している可能性があるため use_lld=false を追加
-    gn_args_base = [
-        "rtc_libvpx_build_vp9=true",
-        "enable_dsyms=true",
-        "use_custom_libcxx=false",
-        "use_custom_libcxx_for_host=false",
-        "use_lld=false",
-        "rtc_enable_objc_symbol_export=true",
-        "treat_warnings_as_errors=false",
-        *COMMON_GN_ARGS,
-    ]
-
-    # WebRTC.xcframework のビルド
-    if not nobuild_framework:
-        gn_args = [
-            *gn_args_base,
-        ]
-        cmd(
-            [
-                os.path.join(webrtc_src_dir, "tools_webrtc", "ios", "build_ios_libs.sh"),
-                "-o",
-                os.path.join(webrtc_build_dir, "framework"),
-                "--build_config",
-                "debug" if debug else "release",
-                "--arch",
-                *IOS_FRAMEWORK_ARCHS,
-                "--extra-gn-args",
-                to_gn_args(gn_args, extra_gn_args),
-            ]
-        )
-        info = {}
-        branch, commit, revision, maint = get_webrtc_version_info(version_info)
-        info["branch"] = branch
-        info["commit"] = commit
-        info["revision"] = revision
-        info["maint"] = maint
-        with open(
-            os.path.join(webrtc_build_dir, "framework", "WebRTC.xcframework", "build_info.json"),
-            "w",
-        ) as f:
-            f.write(json.dumps(info, indent=4))
-
     libs = []
     for device_arch in IOS_ARCHS:
         [device, arch] = device_arch.split(":")
-        if overlap_build_dir:
-            work_dir = os.path.join(webrtc_build_dir, "framework", f"{device}_{arch}_libs")
-        else:
-            work_dir = os.path.join(webrtc_build_dir, device, arch)
+        work_dir = os.path.join(webrtc_build_dir, device, arch)
         if gen_force:
             rm_rf(work_dir)
 
@@ -834,7 +825,7 @@ def build_webrtc_ios(
                 ]
             )
 
-        if not os.path.exists(os.path.join(work_dir, "args.gn")) or gen or overlap_build_dir:
+        if not os.path.exists(os.path.join(work_dir, "args.gn")) or gen:
             gn_args = [
                 f"is_debug={'true' if debug else 'false'}",
                 'target_os="ios"',
@@ -843,7 +834,8 @@ def build_webrtc_ios(
                 "ios_enable_code_signing=false",
                 f'ios_deployment_target="{ios_deployment_target}"',
                 f"enable_stripping={'false' if debug else 'true'}",
-                *gn_args_base,
+                *IOS_COMMON_GN_ARGS,
+                *COMMON_GN_ARGS,
             ]
             gn_gen(webrtc_src_dir, work_dir, gn_args, extra_gn_args)
         if not nobuild:
@@ -857,7 +849,60 @@ def build_webrtc_ios(
     cmd(["lipo", *libs, "-create", "-output", os.path.join(webrtc_build_dir, "libwebrtc.a")])
 
 
-ANDROID_ARCHS = ["armeabi-v7a", "arm64-v8a"]
+def build_webrtc_ios_sdk(
+    source_dir,
+    build_dir,
+    version_info: VersionInfo,
+    deps_info: DepsInfo,
+    extra_gn_args,
+    webrtc_source_dir=None,
+    webrtc_build_dir=None,
+    debug=False,
+):
+    if webrtc_source_dir is None:
+        webrtc_source_dir = os.path.join(source_dir, "webrtc")
+    if webrtc_build_dir is None:
+        webrtc_build_dir = os.path.join(build_dir, "webrtc")
+
+    webrtc_src_dir = os.path.join(webrtc_source_dir, "src")
+
+    mkdir_p(webrtc_build_dir)
+
+    mkdir_p(os.path.join(webrtc_build_dir, "framework"))
+
+    # WebRTC.xcframework のビルド
+    gn_args = [
+        *COMMON_GN_ARGS,
+        *IOS_COMMON_GN_ARGS,
+    ]
+    cmd(
+        [
+            os.path.join(webrtc_src_dir, "tools_webrtc", "ios", "build_ios_libs.sh"),
+            "-o",
+            os.path.join(webrtc_build_dir, "framework"),
+            "--build_config",
+            "debug" if debug else "release",
+            "--arch",
+            *IOS_FRAMEWORK_ARCHS,
+            "--extra-gn-args",
+            to_gn_args(gn_args, extra_gn_args),
+        ]
+    )
+    info = {}
+    branch, commit, revision, maint = get_webrtc_version_info(version_info)
+    info["branch"] = branch
+    info["commit"] = commit
+    info["revision"] = revision
+    info["maint"] = maint
+    with open(
+        os.path.join(webrtc_build_dir, "framework", "WebRTC.xcframework", "build_info.json"),
+        "w",
+    ) as f:
+        f.write(json.dumps(info, indent=4))
+
+
+ANDROID_ARCHS = ["arm64-v8a"]
+ANDROID_SDK_ARCHS = ["arm64-v8a"]
 ANDROID_TARGET_CPU = {
     "armeabi-v7a": "arm",
     "arm64-v8a": "arm64",
@@ -876,7 +921,64 @@ def build_webrtc_android(
     gen=False,
     gen_force=False,
     nobuild=False,
-    nobuild_aar=False,
+):
+    if webrtc_source_dir is None:
+        webrtc_source_dir = os.path.join(source_dir, "webrtc")
+    if webrtc_build_dir is None:
+        webrtc_build_dir = os.path.join(build_dir, "webrtc")
+
+    webrtc_src_dir = os.path.join(webrtc_source_dir, "src")
+
+    mkdir_p(webrtc_build_dir)
+
+    # Java ファイル作成
+    branch, commit, revision, maint = get_webrtc_version_info(version_info)
+    name = "WebrtcBuildVersion"
+    lines = []
+    lines.append("package org.webrtc;")
+    lines.append(f"public interface {name} {{")
+    lines.append(f'    public static final String webrtc_branch = "{branch}";')
+    lines.append(f'    public static final String webrtc_commit = "{commit}";')
+    lines.append(f'    public static final String webrtc_revision = "{revision}";')
+    lines.append(f'    public static final String maint_version = "{maint}";')
+    lines.append("}")
+    with open(
+        os.path.join(webrtc_src_dir, "sdk", "android", "api", "org", "webrtc", f"{name}.java"), "wb"
+    ) as f:
+        f.writelines(map(lambda x: (x + "\n").encode("utf-8"), lines))
+
+    for arch in ANDROID_ARCHS:
+        work_dir = os.path.join(webrtc_build_dir, arch)
+        if gen_force:
+            rm_rf(work_dir)
+        if not os.path.exists(os.path.join(work_dir, "args.gn")) or gen:
+            gn_args = [
+                f"is_debug={'true' if debug else 'false'}",
+                f"is_java_debug={'true' if debug else 'false'}",
+                'target_os="android"',
+                f'target_cpu="{ANDROID_TARGET_CPU[arch]}"',
+                'android_static_analysis="off"',
+                *ANDROID_COMMON_GN_ARGS,
+                *COMMON_GN_ARGS,
+            ]
+            gn_gen(webrtc_src_dir, work_dir, gn_args, extra_gn_args)
+        if not nobuild:
+            cmd(["ninja", "-C", work_dir, *get_build_targets("android")])
+            ar = os.path.join(webrtc_src_dir, "third_party/llvm-build/Release+Asserts/bin/llvm-ar")
+            archive_objects(
+                ar, os.path.join(work_dir, "obj"), os.path.join(work_dir, "libwebrtc.a")
+            )
+
+
+def build_webrtc_android_sdk(
+    source_dir,
+    build_dir,
+    version_info: VersionInfo,
+    deps_info: DepsInfo,
+    extra_gn_args,
+    webrtc_source_dir=None,
+    webrtc_build_dir=None,
+    debug=False,
 ):
     if webrtc_source_dir is None:
         webrtc_source_dir = os.path.join(source_dir, "webrtc")
@@ -907,47 +1009,28 @@ def build_webrtc_android(
         f"is_debug={'true' if debug else 'false'}",
         f"is_java_debug={'true' if debug else 'false'}",
         *COMMON_GN_ARGS,
+        *ANDROID_COMMON_GN_ARGS,
     ]
 
     # aar 生成
-    if not nobuild_aar:
-        work_dir = os.path.join(webrtc_build_dir, "aar")
-        mkdir_p(work_dir)
-        gn_args = [*gn_args_base]
-        with cd(webrtc_src_dir):
-            cmd(
-                [
-                    "python3",
-                    os.path.join(webrtc_src_dir, "tools_webrtc", "android", "build_aar.py"),
-                    "--build-dir",
-                    work_dir,
-                    "--output",
-                    os.path.join(work_dir, "libwebrtc.aar"),
-                    "--arch",
-                    *ANDROID_ARCHS,
-                    "--extra-gn-args",
-                    to_gn_args(gn_args, extra_gn_args),
-                ]
-            )
-
-    for arch in ANDROID_ARCHS:
-        work_dir = os.path.join(webrtc_build_dir, arch)
-        if gen_force:
-            rm_rf(work_dir)
-        if not os.path.exists(os.path.join(work_dir, "args.gn")) or gen:
-            gn_args = [
-                *gn_args_base,
-                'target_os="android"',
-                f'target_cpu="{ANDROID_TARGET_CPU[arch]}"',
-                'android_static_analysis="off"',
+    work_dir = os.path.join(webrtc_build_dir, "aar")
+    mkdir_p(work_dir)
+    gn_args = [*gn_args_base]
+    with cd(webrtc_src_dir):
+        cmd(
+            [
+                "python3",
+                os.path.join(webrtc_src_dir, "tools_webrtc", "android", "build_aar.py"),
+                "--build-dir",
+                work_dir,
+                "--output",
+                os.path.join(work_dir, "libwebrtc.aar"),
+                "--arch",
+                *ANDROID_SDK_ARCHS,
+                "--extra-gn-args",
+                to_gn_args(gn_args, extra_gn_args),
             ]
-            gn_gen(webrtc_src_dir, work_dir, gn_args, extra_gn_args)
-        if not nobuild:
-            cmd(["ninja", "-C", work_dir, *get_build_targets("android")])
-            ar = os.path.join(webrtc_src_dir, "third_party/llvm-build/Release+Asserts/bin/llvm-ar")
-            archive_objects(
-                ar, os.path.join(work_dir, "obj"), os.path.join(work_dir, "libwebrtc.a")
-            )
+        )
 
 
 def build_webrtc(
@@ -1006,8 +1089,6 @@ def build_webrtc(
                 "use_lld=false",
             ]
         elif target in (
-            "raspberry-pi-os_armv6",
-            "raspberry-pi-os_armv7",
             "raspberry-pi-os_armv8",
             "ubuntu-20.04_armv8",
             "ubuntu-22.04_armv8",
@@ -1026,16 +1107,6 @@ def build_webrtc(
                 f'target_sysroot="{sysroot}"',
                 "rtc_use_pipewire=false",
             ]
-            if target == "raspberry-pi-os_armv6":
-                gn_args += [
-                    "arm_version=6",
-                    'arm_arch="armv6"',
-                    'arm_tune="arm1176jzf-s"',
-                    'arm_fpu="vfpv2"',
-                    'arm_float_abi="hard"',
-                    "arm_use_neon=false",
-                    "enable_libaom=false",
-                ]
         elif target in ("ubuntu-22.04_x86_64", "ubuntu-24.04_x86_64"):
             gn_args += [
                 'target_os="linux"',
@@ -1198,7 +1269,6 @@ def package_webrtc(
     webrtc_source_dir=None,
     webrtc_build_dir=None,
     webrtc_package_dir=None,
-    overlap_ios_build_dir=False,
 ):
     if webrtc_source_dir is None:
         webrtc_source_dir = os.path.join(source_dir, "webrtc")
@@ -1218,17 +1288,23 @@ def package_webrtc(
         for arch in ANDROID_ARCHS:
             dirs += [
                 os.path.join(webrtc_build_dir, arch),
+            ]
+    elif target == "android_sdk":
+        dirs = []
+        for arch in ANDROID_SDK_ARCHS:
+            dirs += [
                 os.path.join(webrtc_build_dir, "aar", arch),
             ]
     elif target == "ios":
         dirs = []
+        for device_arch in IOS_ARCHS:
+            [device, arch] = device_arch.split(":")
+            dirs.append(os.path.join(webrtc_build_dir, device, arch))
+    elif target == "ios_sdk":
+        dirs = []
         for device_arch in IOS_FRAMEWORK_ARCHS:
             [device, arch] = device_arch.split(":")
             dirs.append(os.path.join(webrtc_build_dir, "framework", f"{device}_{arch}_libs"))
-        if not overlap_ios_build_dir:
-            for device_arch in IOS_ARCHS:
-                [device, arch] = device_arch.split(":")
-                dirs.append(os.path.join(webrtc_build_dir, device, arch))
     else:
         dirs = [webrtc_build_dir]
     ts = []
@@ -1286,26 +1362,26 @@ def package_webrtc(
     elif target == "ios":
         files = [
             (["libwebrtc.a"], ["lib", "libwebrtc.a"]),
+        ]
+    elif target == "ios_sdk":
+        files = [
             (["framework", "WebRTC.xcframework"], ["Frameworks", "WebRTC.xcframework"]),
         ]
     elif target == "android":
-        # aar を展開して classes.jar を取り出す
-        tmp = os.path.join(webrtc_build_dir, "tmp")
-        rm_rf(tmp)
-        mkdir_p(tmp)
-        with cd(tmp):
-            cmd(["unzip", os.path.join(webrtc_build_dir, "aar", "libwebrtc.aar")])
-            dstpath = os.path.join(webrtc_build_dir, "aar", "webrtc.jar")
-            rm_rf(dstpath)
-            os.rename("classes.jar", dstpath)
-        rm_rf(tmp)
-
+        # どの arch でも jar は同じなので適当に最初のアーキテクチャを選ぶ
+        jar_arch = ANDROID_ARCHS[0]
         files = [
-            (["aar", "libwebrtc.aar"], ["aar", "libwebrtc.aar"]),
-            (["aar", "webrtc.jar"], ["jar", "webrtc.jar"]),
+            (
+                [jar_arch, "lib.java", "sdk", "android", "libwebrtc.jar"],
+                ["jar", "webrtc.jar"],
+            ),
         ]
         for arch in ANDROID_ARCHS:
             files.append(([arch, "libwebrtc.a"], ["lib", arch, "libwebrtc.a"]))
+    elif target == "android_sdk":
+        files = [
+            (["aar", "libwebrtc.aar"], ["aar", "libwebrtc.aar"]),
+        ]
     else:
         files = [
             (["libwebrtc.a"], ["lib", "libwebrtc.a"]),
@@ -1330,8 +1406,8 @@ def package_webrtc(
                 for file in enum_all_files("webrtc", "."):
                     f.add(name=file, arcname=file)
 
-    # target が ios のときに WebRTC.xcframework を zip 化
-    if target == "ios":
+    # target が ios_sdk のときに WebRTC.xcframework を zip 化
+    if target == "ios_sdk":
         frameworks_dir = os.path.join(package_dir, "webrtc", "Frameworks")
         with cd(frameworks_dir):
             with zipfile.ZipFile("WebRTC.xcframework.zip", "w") as f:
@@ -1353,11 +1429,11 @@ TARGETS = [
     "ubuntu-20.04_armv8",
     "ubuntu-22.04_armv8",
     "ubuntu-24.04_armv8",
-    "raspberry-pi-os_armv6",
-    "raspberry-pi-os_armv7",
     "raspberry-pi-os_armv8",
     "android",
+    "android_sdk",
     "ios",
+    "ios_sdk",
 ]
 
 
@@ -1369,7 +1445,7 @@ def check_target(target):
         return target in ["windows_x86_64", "windows_arm64"]
     elif platform.system() == "Darwin":
         logging.info(f"OS: {platform.system()}")
-        return target in ("macos_arm64", "ios")
+        return target in ("macos_arm64", "ios", "ios_sdk")
     elif platform.system() == "Linux":
         release = read_version_file("/etc/os-release")
         os = release["NAME"]
@@ -1388,10 +1464,9 @@ def check_target(target):
             "ubuntu-20.04_armv8",
             "ubuntu-22.04_armv8",
             "ubuntu-24.04_armv8",
-            "raspberry-pi-os_armv6",
-            "raspberry-pi-os_armv7",
             "raspberry-pi-os_armv8",
             "android",
+            "android_sdk",
         ):
             return True
 
@@ -1528,11 +1603,9 @@ def main():
     bp.add_argument("--webrtc-gen-force", action="store_true")
     bp.add_argument("--webrtc-extra-gn-args", default="")
     bp.add_argument("--webrtc-nobuild", action="store_true")
-    bp.add_argument("--webrtc-nobuild-ios-framework", action="store_true")
-    bp.add_argument("--webrtc-nobuild-android-aar", action="store_true")
-    bp.add_argument("--webrtc-overlap-ios-build-dir", action="store_true")
     bp.add_argument("--webrtc-build-dir")
     bp.add_argument("--webrtc-source-dir")
+    bp.add_argument("--no-history", action="store_true")
     # VERSION で指定されたバージョンのソースを取得する
     fp = sp.add_parser("fetch")
     fp.set_defaults(op="fetch")
@@ -1575,7 +1648,6 @@ def main():
     pp.add_argument("--webrtc-build-dir")
     pp.add_argument("--webrtc-source-dir")
     pp.add_argument("--webrtc-package-dir")
-    pp.add_argument("--webrtc-overlap-ios-build-dir", action="store_true")
     # バージョン操作系
     vup = sp.add_parser("version_update")
     vup.set_defaults(op="version_update")
@@ -1686,6 +1758,7 @@ def main():
                 version_info.webrtc_commit,
                 args.target,
                 webrtc_source_dir=webrtc_source_dir,
+                no_history=args.no_history,
             )
 
             # ビルド
@@ -1698,23 +1771,38 @@ def main():
                 "webrtc_source_dir": webrtc_source_dir,
                 "webrtc_build_dir": webrtc_build_dir,
                 "debug": args.debug,
-                "gen": args.webrtc_gen,
-                "gen_force": args.webrtc_gen_force,
-                "nobuild": args.webrtc_nobuild,
             }
             # iOS と Android は特殊すぎるので別枠行き
             if args.target == "ios":
                 build_webrtc_ios(
                     **build_webrtc_args,
-                    nobuild_framework=args.webrtc_nobuild_ios_framework,
-                    overlap_build_dir=args.webrtc_overlap_ios_build_dir,
+                    gen=args.webrtc_gen,
+                    gen_force=args.webrtc_gen_force,
+                    nobuild=args.webrtc_nobuild,
+                )
+            elif args.target == "ios_sdk":
+                build_webrtc_ios_sdk(
+                    **build_webrtc_args,
                 )
             elif args.target == "android":
                 build_webrtc_android(
-                    **build_webrtc_args, nobuild_aar=args.webrtc_nobuild_android_aar
+                    **build_webrtc_args,
+                    gen=args.webrtc_gen,
+                    gen_force=args.webrtc_gen_force,
+                    nobuild=args.webrtc_nobuild,
+                )
+            elif args.target == "android_sdk":
+                build_webrtc_android_sdk(
+                    **build_webrtc_args,
                 )
             else:
-                build_webrtc(**build_webrtc_args, target=args.target)
+                build_webrtc(
+                    **build_webrtc_args,
+                    target=args.target,
+                    gen=args.webrtc_gen,
+                    gen_force=args.webrtc_gen_force,
+                    nobuild=args.webrtc_nobuild,
+                )
 
     if args.op == "fetch":
         mkdir_p(source_dir)
@@ -1770,7 +1858,6 @@ def main():
                 webrtc_source_dir=webrtc_source_dir,
                 webrtc_build_dir=webrtc_build_dir,
                 webrtc_package_dir=webrtc_package_dir,
-                overlap_ios_build_dir=args.webrtc_overlap_ios_build_dir,
             )
 
 
