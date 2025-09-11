@@ -15,17 +15,6 @@ from typing import Dict, List, Optional, Tuple
 logging.basicConfig(level=logging.INFO)
 
 
-ARM_NEON_SVE_BRIDGE_LICENSE = """/*===---- arm_neon_sve_bridge.h - ARM NEON SVE Bridge intrinsics -----------===
- *
- *
- * Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
- * See https://llvm.org/LICENSE.txt for license information.
- * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
- *
- *===-----------------------------------------------------------------------===
- */"""
-
-
 class ChangeDirectory(object):
     def __init__(self, cwd):
         self._cwd = cwd
@@ -221,15 +210,13 @@ PATCHES = {
         "macos_screen_capture.patch",
         "ios_simulcast.patch",
         "ssl_verify_callback_with_native_handle.patch",
-        "macos_use_xcode_clang.patch",
         "h265.patch",
         "h265_ios.patch",
         "arm_neon_sve_bridge.patch",
         "dav1d_config_change.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
-        # 既に macos_use_xcode_clang.patch で同じ内容を適用済み
-        # "remove_crel.patch",
+        "remove_crel.patch",
     ],
     "ios": [
         "add_deps.patch",
@@ -240,7 +227,6 @@ PATCHES = {
         "ios_manual_audio_input.patch",
         "ios_simulcast.patch",
         "ssl_verify_callback_with_native_handle.patch",
-        "ios_build.patch",
         "ios_proxy.patch",
         "h265.patch",
         "h265_ios.patch",
@@ -249,8 +235,7 @@ PATCHES = {
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
         "ios_add_scale_resolution_down_to.patch",
-        # 既に ios_build.patch で同じ内容を適用済み
-        # "remove_crel.patch",
+        "remove_crel.patch",
         "revert_siso.patch",
     ],
     "ios_sdk": [
@@ -262,7 +247,6 @@ PATCHES = {
         "ios_manual_audio_input.patch",
         "ios_simulcast.patch",
         "ssl_verify_callback_with_native_handle.patch",
-        "ios_build.patch",
         "ios_proxy.patch",
         "h265.patch",
         "h265_ios.patch",
@@ -271,8 +255,7 @@ PATCHES = {
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
         "ios_add_scale_resolution_down_to.patch",
-        # 既に ios_build.patch で同じ内容を適用済み
-        # "remove_crel.patch",
+        "remove_crel.patch",
         "revert_siso.patch",
     ],
     "android": [
@@ -737,16 +720,10 @@ COMMON_GN_ARGS = [
     "rtc_rusty_base64=false",
     "use_debug_fission=false",
 ]
-# - M92-M93 あたりで clang++: error: -gdwarf-aranges is not supported with -fembed-bitcode
-#   がでていたので use_xcode_clang=false をすることで修正
-# - M94 で use_xcode_clang=true かつ --bitcode を有効にしてビルドが通り bitcode が有効になってることを確認
-# - M95 で再度 clang++: error: -gdwarf-aranges is not supported with -fembed-bitcode エラーがでるようになった
 # - https://webrtc-review.googlesource.com/c/src/+/232600 が影響している可能性があるため use_lld=false を追加
 IOS_COMMON_GN_ARGS = [
     "rtc_libvpx_build_vp9=true",
     "enable_dsyms=true",
-    "use_custom_libcxx=false",
-    "use_custom_libcxx_for_host=false",
     "use_lld=false",
     "rtc_enable_objc_symbol_export=true",
     "treat_warnings_as_errors=false",
@@ -780,7 +757,7 @@ WEBRTC_BUILD_TARGETS = {
 
 def get_build_targets(target):
     ts = [":default"]
-    if target not in ("windows_x86_64", "windows_arm64", "ios", "ios_sdk", "macos_arm64"):
+    if target not in ("windows_x86_64", "windows_arm64"):
         ts += ["buildtools/third_party/libc++"]
     ts += WEBRTC_BUILD_TARGETS.get(target, [])
     return ts
@@ -896,14 +873,8 @@ def build_webrtc_ios_sdk(
 ):
     if webrtc_source_dir is None:
         webrtc_source_dir = os.path.join(source_dir, "webrtc")
-    if webrtc_build_dir is None:
-        webrtc_build_dir = os.path.join(build_dir, "webrtc")
 
     webrtc_src_dir = os.path.join(webrtc_source_dir, "src")
-
-    mkdir_p(webrtc_build_dir)
-
-    mkdir_p(os.path.join(webrtc_build_dir, "framework"))
 
     # WebRTC.xcframework のビルド
     gn_args = [
@@ -914,7 +885,10 @@ def build_webrtc_ios_sdk(
         [
             os.path.join(webrtc_src_dir, "tools_webrtc", "ios", "build_ios_libs.sh"),
             "-o",
-            os.path.join(webrtc_build_dir, "framework"),
+            # M140 あたりからソースディレクトリ以下でないとエラーになるようになっているので
+            # webrtc_src_dir を利用する
+            # os.path.join(webrtc_build_dir, "framework"),
+            os.path.join(webrtc_src_dir, "out"),
             "--build_config",
             "debug" if debug else "release",
             "--arch",
@@ -930,7 +904,7 @@ def build_webrtc_ios_sdk(
     info["revision"] = revision
     info["maint"] = maint
     with open(
-        os.path.join(webrtc_build_dir, "framework", "WebRTC.xcframework", "build_info.json"),
+        os.path.join(webrtc_src_dir, "out", "WebRTC.xcframework", "build_info.json"),
         "w",
     ) as f:
         f.write(json.dumps(info, indent=4))
@@ -1048,7 +1022,9 @@ def build_webrtc_android_sdk(
     ]
 
     # aar 生成
-    work_dir = os.path.join(webrtc_build_dir, "aar")
+    # M140 あたりからソースディレクトリ以下でないとエラーになるようになっているので
+    # webrtc_src_dir を利用する
+    work_dir = os.path.join(webrtc_src_dir, "out")
     mkdir_p(work_dir)
     gn_args = [*gn_args_base]
     with cd(webrtc_src_dir):
@@ -1117,8 +1093,6 @@ def build_webrtc(
                 "rtc_libvpx_build_vp9=true",
                 "rtc_enable_symbol_export=true",
                 "rtc_enable_objc_symbol_export=false",
-                "use_custom_libcxx=false",
-                "use_custom_libcxx_for_host=false",
                 "treat_warnings_as_errors=false",
                 "clang_use_chrome_plugins=false",
                 "use_lld=false",
@@ -1258,6 +1232,7 @@ def copy_headers(webrtc_src_dir, webrtc_package_dir, target):
             [
                 "rsync",
                 "-amv",
+                "--exclude=out/",
                 "--include=*/",
                 "--include=*.h",
                 "--include=*.hpp",
@@ -1340,7 +1315,7 @@ def package_webrtc(
         dirs = []
         for arch in ANDROID_SDK_ARCHS:
             dirs += [
-                os.path.join(webrtc_build_dir, "aar", arch),
+                os.path.join(webrtc_src_dir, "out", arch),
             ]
     elif target == "ios":
         dirs = []
@@ -1351,7 +1326,7 @@ def package_webrtc(
         dirs = []
         for device_arch in IOS_FRAMEWORK_ARCHS:
             [device, arch] = device_arch.split(":")
-            dirs.append(os.path.join(webrtc_build_dir, "framework", f"{device}_{arch}_libs"))
+            dirs.append(os.path.join(webrtc_src_dir, "out", f"{device}_{arch}_libs"))
     else:
         dirs = [webrtc_build_dir]
     ts = []
@@ -1370,23 +1345,6 @@ def package_webrtc(
         os.path.join(webrtc_package_dir, "LICENSE.md"), os.path.join(webrtc_package_dir, "NOTICE")
     )
 
-    if target in ["ios", "macos_arm64"]:
-        # libwebrtc を　M123 に更新した際に、 Xcode で libvpx がビルドできなくなった
-        # LLVM 由来の arm_neon_sve_bridge.h というファイルをパッチで追加してビルド・エラーを解消したので、
-        # ライセンスを追加する
-        #
-        # chromium の LLVM を利用している場合は LLVM のライセンスが generate_licenses.py の出力に含まれるが、
-        # Xcode の LLVM を利用する場合はその限りではないので、この対応が必要になった
-        #
-        # 当初は generate_licenses.py に `--target 'buildtools/third_party/libc++'` を指定する方法も検討したが、
-        # iOS/macOS のビルドでは libc++ が gn のターゲットに含まれていないため、エラーになった
-        with open(os.path.join(webrtc_package_dir, "NOTICE"), "a") as f:
-            f.write(f"""# arm_neon_sve_bridge.h
-```
-{ARM_NEON_SVE_BRIDGE_LICENSE}
-```
-""")
-
     # ヘッダーファイルをコピー
     copy_headers(webrtc_src_dir, webrtc_package_dir, target)
 
@@ -1397,6 +1355,7 @@ def package_webrtc(
     generate_deps_info(webrtc_src_dir, webrtc_package_dir)
 
     # ライブラリ
+    src_root_dir = webrtc_build_dir
     if target in ["windows_x86_64", "windows_arm64"]:
         files = [
             (["webrtc.lib"], ["lib", "webrtc.lib"]),
@@ -1411,8 +1370,11 @@ def package_webrtc(
             (["libwebrtc.a"], ["lib", "libwebrtc.a"]),
         ]
     elif target == "ios_sdk":
+        # M140 あたりからソースディレクトリ以下でないとエラーになるようになっているので
+        # webrtc_src_dir にビルド済みバイナリが配置されている
+        src_root_dir = webrtc_src_dir
         files = [
-            (["framework", "WebRTC.xcframework"], ["Frameworks", "WebRTC.xcframework"]),
+            (["out", "WebRTC.xcframework"], ["Frameworks", "WebRTC.xcframework"]),
         ]
     elif target == "android":
         # どの arch でも jar は同じなので適当に最初のアーキテクチャを選ぶ
@@ -1426,8 +1388,12 @@ def package_webrtc(
         for arch in ANDROID_ARCHS:
             files.append(([arch, "libwebrtc.a"], ["lib", arch, "libwebrtc.a"]))
     elif target == "android_sdk":
+        # M140 あたりからソースディレクトリ以下でないとエラーになるようになっているので
+        # webrtc_src_dir にビルド済みバイナリが配置されている
+        src_root_dir = webrtc_src_dir
+
         files = [
-            (["aar", "libwebrtc.aar"], ["aar", "libwebrtc.aar"]),
+            (["out", "libwebrtc.aar"], ["aar", "libwebrtc.aar"]),
         ]
     else:
         files = [
@@ -1436,11 +1402,11 @@ def package_webrtc(
     for src, dst in files:
         dstpath = os.path.join(webrtc_package_dir, *dst)
         mkdir_p(os.path.dirname(dstpath))
-        srcpath = os.path.join(webrtc_build_dir, *src)
+        srcpath = os.path.join(src_root_dir, *src)
         if os.path.isdir(srcpath):
             shutil.copytree(srcpath, dstpath)
         else:
-            shutil.copy2(os.path.join(webrtc_build_dir, *src), dstpath)
+            shutil.copy2(srcpath, dstpath)
 
     # 圧縮
     with cd(package_dir):
