@@ -1022,7 +1022,9 @@ def build_webrtc_android_sdk(
     ]
 
     # aar 生成
-    work_dir = os.path.join(webrtc_build_dir, "aar")
+    # M140 あたりからソースディレクトリ以下でないとエラーになるようになっているので
+    # webrtc_src_dir を利用する
+    work_dir = os.path.join(webrtc_src_dir, "out")
     mkdir_p(work_dir)
     gn_args = [*gn_args_base]
     with cd(webrtc_src_dir):
@@ -1313,7 +1315,7 @@ def package_webrtc(
         dirs = []
         for arch in ANDROID_SDK_ARCHS:
             dirs += [
-                os.path.join(webrtc_build_dir, "aar", arch),
+                os.path.join(webrtc_src_dir, "out", arch),
             ]
     elif target == "ios":
         dirs = []
@@ -1375,16 +1377,20 @@ def package_webrtc(
             (["out", "WebRTC.xcframework"], ["Frameworks", "WebRTC.xcframework"]),
         ]
     elif target == "android":
+        # M140 あたりからソースディレクトリ以下でないとエラーになるようになっているので
+        # webrtc_src_dir にビルド済みバイナリが配置されている
+        src_root_dir = webrtc_src_dir
+
         # どの arch でも jar は同じなので適当に最初のアーキテクチャを選ぶ
         jar_arch = ANDROID_ARCHS[0]
         files = [
             (
-                [jar_arch, "lib.java", "sdk", "android", "libwebrtc.jar"],
+                ["out", jar_arch, "lib.java", "sdk", "android", "libwebrtc.jar"],
                 ["jar", "webrtc.jar"],
             ),
         ]
         for arch in ANDROID_ARCHS:
-            files.append(([arch, "libwebrtc.a"], ["lib", arch, "libwebrtc.a"]))
+            files.append((["out", arch, "libwebrtc.a"], ["lib", arch, "libwebrtc.a"]))
     elif target == "android_sdk":
         files = [
             (["aar", "libwebrtc.aar"], ["aar", "libwebrtc.aar"]),
