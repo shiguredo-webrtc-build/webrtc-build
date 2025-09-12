@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-09-12 [RELEASE] m139.7528.3.1
+  - @miosakuma
 - 2025-09-11 [CHANGE] android_sdk ビルドから armeabi-v7a 向けのバイナリを削除する
   - @melpon
 - 2025-09-10 [RELEASE] m138.7204.0.5
