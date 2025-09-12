@@ -20,7 +20,7 @@ Please read <https://github.com/shiguredo/oss/blob/master/README.en.md> before u
 
 ## ダウンロード
 
-[リリース](https://github.com/melpon/webrtc-build/releases) からダウンロードしてください。
+[リリース](https://github.com/shiguredo-webrtc-build/webrtc-build/releases) からダウンロードしてください。
 
 ## パッケージに入っている内容
 
@@ -33,8 +33,6 @@ Please read <https://github.com/shiguredo/oss/blob/master/README.en.md> before u
 - windows_x86_64
 - windows_arm64
 - macos_arm64
-- raspberry-pi-os_armv6 (Raspberry Pi Zero, 1)
-- raspberry-pi-os_armv7 (Raspberry Pi 2, 3, 4)
 - raspberry-pi-os_armv8 (Raspberry Pi Zero 2, 3, 4)
 - ubuntu-20.04_armv8
   - Jetson Xavier NX
@@ -60,16 +58,22 @@ Please read <https://github.com/shiguredo/oss/blob/master/README.en.md> before u
 
 ## 廃止
 
-- macOS x86_64 廃止
-  - 2022 年 6 月を持って廃止しました
-- Ubuntu 18.04 x86_64 廃止
-  - 2022 年 6 月を持って廃止しました
+- Android armeabi-v7a
+  - 2025 年 9 月を持って廃止しました
+- Raspberry Pi armv7
+  - 2025 年 9 月を持って廃止しました
+- Raspberry Pi armv6
+  - 2025 年 9 月を持って廃止しました
+- Ubuntu 20.04 x86_64
+  - 2025 年 4 月を持って廃止しました
+- HoloLens 2
+  - 2025 年 3 月を持って廃止しました
 - Jetson 向け ARM 版 Ubuntu 18.04 廃止
   - 2023 年 4 月を持って廃止しました
-- hololens2 ビルド
-  - 2025 年 3 月を持って廃止しました
-- Ubuntu 20.04 x86_64 廃止
-  - 2025 年 4 月を持って廃止しました
+- Ubuntu 18.04 x86_64
+  - 2022 年 6 月を持って廃止しました
+- macOS x86_64
+  - 2022 年 6 月を持って廃止しました
 
 ## H.264 (AVC) と H.265 (HEVC) のライセンスについて
 

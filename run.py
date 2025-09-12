@@ -273,7 +273,6 @@ PATCHES = {
         "h265_android.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
-        "android_add_scale_resolution_down_to.patch",
         "remove_crel.patch",
         "revert_siso.patch",
         "android_include_environment_java.patch",
@@ -293,33 +292,9 @@ PATCHES = {
         "h265_android.patch",
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
-        "android_add_scale_resolution_down_to.patch",
         "remove_crel.patch",
         "revert_siso.patch",
         "android_include_environment_java.patch",
-    ],
-    "raspberry-pi-os_armv6": [
-        "nacl_armv6_2.patch",
-        "add_deps.patch",
-        "4k.patch",
-        "revive_proxy.patch",
-        "add_license_dav1d.patch",
-        "ssl_verify_callback_with_native_handle.patch",
-        "h265.patch",
-        "fix_perfetto.patch",
-        "fix_moved_function_call.patch",
-        "remove_crel.patch",
-    ],
-    "raspberry-pi-os_armv7": [
-        "add_deps.patch",
-        "4k.patch",
-        "revive_proxy.patch",
-        "add_license_dav1d.patch",
-        "ssl_verify_callback_with_native_handle.patch",
-        "h265.patch",
-        "fix_perfetto.patch",
-        "fix_moved_function_call.patch",
-        "remove_crel.patch",
     ],
     "raspberry-pi-os_armv8": [
         "add_deps.patch",
@@ -622,16 +597,6 @@ def archive_objects(ar, dir, output):
 
 MultistrapConfig = collections.namedtuple("MultistrapConfig", ["config_file", "arch", "triplet"])
 MULTISTRAP_CONFIGS = {
-    "raspberry-pi-os_armv6": MultistrapConfig(
-        config_file=["multistrap", "raspberry-pi-os_armv6.conf"],
-        arch="armhf",
-        triplet="arm-linux-gnueabihf",
-    ),
-    "raspberry-pi-os_armv7": MultistrapConfig(
-        config_file=["multistrap", "raspberry-pi-os_armv7.conf"],
-        arch="armhf",
-        triplet="arm-linux-gnueabihf",
-    ),
     "raspberry-pi-os_armv8": MultistrapConfig(
         config_file=["multistrap", "raspberry-pi-os_armv8.conf"],
         arch="arm64",
@@ -911,7 +876,7 @@ def build_webrtc_ios_sdk(
 
 
 ANDROID_ARCHS = ["arm64-v8a"]
-ANDROID_SDK_ARCHS = ["armeabi-v7a", "arm64-v8a"]
+ANDROID_SDK_ARCHS = ["arm64-v8a"]
 ANDROID_TARGET_CPU = {
     "armeabi-v7a": "arm",
     "arm64-v8a": "arm64",
@@ -1098,8 +1063,6 @@ def build_webrtc(
                 "use_lld=false",
             ]
         elif target in (
-            "raspberry-pi-os_armv6",
-            "raspberry-pi-os_armv7",
             "raspberry-pi-os_armv8",
             "ubuntu-20.04_armv8",
             "ubuntu-22.04_armv8",
@@ -1118,16 +1081,6 @@ def build_webrtc(
                 f'target_sysroot="{sysroot}"',
                 "rtc_use_pipewire=false",
             ]
-            if target == "raspberry-pi-os_armv6":
-                gn_args += [
-                    "arm_version=6",
-                    'arm_arch="armv6"',
-                    'arm_tune="arm1176jzf-s"',
-                    'arm_fpu="vfpv2"',
-                    'arm_float_abi="hard"',
-                    "arm_use_neon=false",
-                    "enable_libaom=false",
-                ]
         elif target in ("ubuntu-22.04_x86_64", "ubuntu-24.04_x86_64"):
             gn_args += [
                 'target_os="linux"',
@@ -1442,8 +1395,6 @@ TARGETS = [
     "ubuntu-20.04_armv8",
     "ubuntu-22.04_armv8",
     "ubuntu-24.04_armv8",
-    "raspberry-pi-os_armv6",
-    "raspberry-pi-os_armv7",
     "raspberry-pi-os_armv8",
     "android",
     "android_sdk",
@@ -1479,8 +1430,6 @@ def check_target(target):
             "ubuntu-20.04_armv8",
             "ubuntu-22.04_armv8",
             "ubuntu-24.04_armv8",
-            "raspberry-pi-os_armv6",
-            "raspberry-pi-os_armv7",
             "raspberry-pi-os_armv8",
             "android",
             "android_sdk",
