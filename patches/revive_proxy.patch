@@ -747,7 +747,7 @@ index 0000000000..071e116d19
 +    std::string HA2 = MD5(A2);
 +    std::string dig_response = MD5(HA1 + ":" + middle + ":" + HA2);
 +
-+    rtc::StringBuilder ss;
++    webrtc::StringBuilder ss;
 +    ss << auth_method;
 +    ss << " username=" << quote(username);
 +    ss << ", realm=" << quote(realm);
@@ -1246,7 +1246,7 @@ index 0000000000..0263110ef4
 +}
 +
 +void AsyncHttpsProxySocket::SendRequest() {
-+  rtc::StringBuilder ss;
++  webrtc::StringBuilder ss;
 +  ss << "CONNECT " << dest_.ToString() << " HTTP/1.0\r\n";
 +  ss << "User-Agent: " << agent_ << "\r\n";
 +  ss << "Host: " << dest_.HostAsURIString() << "\r\n";
