@@ -495,7 +495,7 @@ index 0000000000..9e7891a83e
 +  RTC_OBJC_TYPE (RTCVideoFrame)* decodedFrame = [[RTC_OBJC_TYPE (RTCVideoFrame) alloc]
 +      initWithBuffer:frameBuffer
 +            rotation:RTCVideoRotation_0
-+         timeStampNs:CMTimeGetSeconds(timestamp) * rtc::kNumNanosecsPerSec];
++         timeStampNs:CMTimeGetSeconds(timestamp) * webrtc::kNumNanosecsPerSec];
 +  decodedFrame.timeStamp = decodeParams->timestamp;
 +  [decoder processFrame:decodedFrame reorderSize:decodeParams->reorderSize];
 +}
@@ -533,7 +533,7 @@ index 0000000000..9e7891a83e
 +    RTC_LOG(LS_ERROR) << "H265BufferToCMSampleBuffer CMBlockBufferCreateWithMemoryBlock failed with: " << error;
 +    return nullptr;
 +  }
-+  auto block_buffer = rtc::ScopedCF(new_block_buffer);
++  auto block_buffer = webrtc::ScopedCF(new_block_buffer);
 +
 +  if (auto error = CMBlockBufferReplaceDataBytes(buffer, block_buffer.get(), 0, buffer_size)) {
 +    RTC_LOG(LS_ERROR) << "H265BufferToCMSampleBuffer CMBlockBufferReplaceDataBytes failed with: " << error;
@@ -568,7 +568,7 @@ index 0000000000..9e7891a83e
 +  }
 +
 +  if (!_useHEVC) {
-+    rtc::ScopedCFTypeRef<CMVideoFormatDescriptionRef> inputFormat = rtc::ScopedCF(webrtc::CreateH265VideoFormatDescription(webrtc::MakeArrayView((uint8_t*)data, size)));
++    webrtc::ScopedCFTypeRef<CMVideoFormatDescriptionRef> inputFormat = webrtc::ScopedCF(webrtc::CreateH265VideoFormatDescription(webrtc::MakeArrayView((uint8_t*)data, size)));
 +    if (inputFormat) {
 +      _reorderQueue.setReorderSize(ComputeH265ReorderSizeFromAnnexB(data, size));
 +
@@ -660,7 +660,7 @@ index 0000000000..9e7891a83e
 +      return err;
 +  }
 +
-+  rtc::ScopedCFTypeRef<CMVideoFormatDescriptionRef> inputFormat = rtc::ScopedCF(videoFormatDescription);
++  webrtc::ScopedCFTypeRef<CMVideoFormatDescriptionRef> inputFormat = webrtc::ScopedCF(videoFormatDescription);
 +  if (inputFormat) {
 +    _reorderQueue.setReorderSize(ComputeH265ReorderSizeFromHVCC(data, size));
 +
@@ -1197,7 +1197,7 @@ index 0000000000..42284c1ab3
 +  }
 +
 +  CMTime presentationTimeStamp =
-+      CMTimeMake(frame.timeStampNs / rtc::kNumNanosecsPerMillisec, 1000);
++      CMTimeMake(frame.timeStampNs / webrtc::kNumNanosecsPerMillisec, 1000);
 +  CFDictionaryRef frameProperties = nullptr;
 +  if (isKeyframeRequired) {
 +    CFTypeRef keys[] = {kVTEncodeFrameOptionKey_ForceKeyFrame};
@@ -1207,7 +1207,7 @@ index 0000000000..42284c1ab3
 +
 +  std::unique_ptr<RTCFrameEncodeParams> encodeParams;
 +  encodeParams.reset(new RTCFrameEncodeParams(
-+      self, _width, _height, frame.timeStampNs / rtc::kNumNanosecsPerMillisec,
++      self, _width, _height, frame.timeStampNs / webrtc::kNumNanosecsPerMillisec,
 +      frame.timeStamp, frame.rotation));
 +
 +  // Update the bitrate if needed.
@@ -1417,7 +1417,7 @@ index 0000000000..42284c1ab3
 +    RTC_LOG(LS_INFO) << "Generated keyframe";
 +  }
 +
-+  std::unique_ptr<rtc::Buffer> buffer(new rtc::Buffer());
++  std::unique_ptr<webrtc::Buffer> buffer(new webrtc::Buffer());
 +  if (_useAnnexB) {
 +    if (!webrtc::H265CMSampleBufferToAnnexBBuffer(sampleBuffer, isKeyframe, buffer.get())) {
 +      RTC_LOG(LS_WARNING) << "Unable to parse H265 encoded buffer";
@@ -1675,7 +1675,7 @@ index 236ef32d08..16b5dc1754 100644
 +bool H265CMSampleBufferToAnnexBBuffer(
 +    CMSampleBufferRef hvcc_sample_buffer,
 +    bool is_keyframe,
-+    rtc::Buffer* annexb_buffer) {
++    webrtc::Buffer* annexb_buffer) {
 +  RTC_DCHECK(hvcc_sample_buffer);
 +
 +  // Get format description from the sample buffer.
@@ -2285,7 +2285,7 @@ index 507aa67a69..495fcb3d85 100644
 +// needs to be in Annex B format. Data is written directly to |annexb_buffer|.
 +bool H265CMSampleBufferToAnnexBBuffer(CMSampleBufferRef avcc_sample_buffer,
 +                                      bool is_keyframe,
-+                                      rtc::Buffer* annexb_buffer);
++                                      webrtc::Buffer* annexb_buffer);
 +
 +// Converts a buffer received from RTP into a sample buffer suitable for the
 +// VideoToolbox decoder. The RTP buffer is in annex b format whereas the sample

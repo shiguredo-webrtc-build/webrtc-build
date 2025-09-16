@@ -133,7 +133,7 @@ index 7b6b3bfc27..a67a18d3a8 100644
 +        proxyType == RTCProxyTypeNone ? webrtc::revive::PROXY_NONE :
 +        proxyType == RTCProxyTypeHttps ? webrtc::revive::PROXY_HTTPS :
 +        proxyType == RTCProxyTypeSocks5 ? webrtc::revive::PROXY_SOCKS5 : webrtc::revive::PROXY_UNKNOWN;
-+    pi.address = rtc::SocketAddress([proxyHostname UTF8String], proxyPort);
++    pi.address = webrtc::SocketAddress([proxyHostname UTF8String], proxyPort);
 +    pi.username = [proxyUsername UTF8String];
 +    pi.password = webrtc::revive::CryptString(webrtc::RawCryptString([proxyPassword UTF8String]));
 +    dependencies->allocator->set_proxy([proxyAgent UTF8String], pi);
@@ -164,7 +164,7 @@ index 510ee32614..3ef2a0e64d 100644
  @property(nonatomic, readonly) webrtc::Thread* workerThread;
  @property(nonatomic, readonly) webrtc::Thread* networkThread;
  
-+    @property(nonatomic, readonly) rtc::scoped_refptr<webrtc::ConnectionContext> connectionContext;
++    @property(nonatomic, readonly) webrtc::scoped_refptr<webrtc::ConnectionContext> connectionContext;
  @end
  
  NS_ASSUME_NONNULL_END
@@ -228,32 +228,32 @@ index 79afe271da..7e3f2e23f8 100644
 +            webrtc::ConnectionContext::Create(CreateEnvironment(), &dependencies),
 +            &dependencies) {}
 +  PeerConnectionFactoryWithContext(
-+      rtc::scoped_refptr<webrtc::ConnectionContext> context,
++      webrtc::scoped_refptr<webrtc::ConnectionContext> context,
 +      webrtc::PeerConnectionFactoryDependencies* dependencies)
 +      : webrtc::PeerConnectionFactory(context, dependencies),
 +        conn_context_(context) {}
 +
-+  static rtc::scoped_refptr<PeerConnectionFactoryWithContext> Create(
++  static webrtc::scoped_refptr<PeerConnectionFactoryWithContext> Create(
 +      webrtc::PeerConnectionFactoryDependencies dependencies) {
-+    return rtc::make_ref_counted<PeerConnectionFactoryWithContext>(
++    return webrtc::make_ref_counted<PeerConnectionFactoryWithContext>(
 +        std::move(dependencies));
 +  }
 +
-+  rtc::scoped_refptr<webrtc::ConnectionContext> GetContext() const {
++  webrtc::scoped_refptr<webrtc::ConnectionContext> GetContext() const {
 +    return conn_context_;
 +  }
 +
 +private:
-+  rtc::scoped_refptr<webrtc::ConnectionContext> conn_context_;
++  webrtc::scoped_refptr<webrtc::ConnectionContext> conn_context_;
 +};
 +
-+rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
++webrtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
 +CreateModularPeerConnectionFactoryWithContext(
 +    webrtc::PeerConnectionFactoryDependencies dependencies,
-+    rtc::scoped_refptr<webrtc::ConnectionContext>& context) {
++    webrtc::scoped_refptr<webrtc::ConnectionContext>& context) {
 +  using result_type =
-+      std::pair<rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>,
-+                rtc::scoped_refptr<webrtc::ConnectionContext>>;
++      std::pair<webrtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>,
++                webrtc::scoped_refptr<webrtc::ConnectionContext>>;
 +  auto p = dependencies.signaling_thread->BlockingCall([&dependencies]() {
 +        auto factory =
 +            PeerConnectionFactoryWithContext::Create(std::move(dependencies));
