@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-09-16 [RELEASE] 140.7339.2.2
+  - @torikizi
 - 2025-09-16 [UPDATE] DEPS の MACOS_DEPLOYMENT_TARGET を 14 にアップデートする
   - @torikizi
 - 2025-09-12 [RELEASE] 140.7339.2.1
