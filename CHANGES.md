@@ -29,6 +29,11 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-09-xx [UPDATE] m141 ブランチのビルドエラーを修正する
+  - remove_crel.patch の単純なパッチ適用失敗を修正
+  - ios_simulcast.patch の修正
+    - RTCVideoEncoderSimulcast.mm で include していた `api/transport/field_trial_based_config.h` は libwebrtc 側で削除されていたため削除
+  - @torikizi
 - 2025-09-16 [RELEASE] 140.7339.2.2
   - @torikizi
 - 2025-09-16 [UPDATE] DEPS の MACOS_DEPLOYMENT_TARGET を 14 にアップデートする
