@@ -33,11 +33,15 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - remove_crel.patch の単純なパッチ適用失敗を修正
   - ios_manual_audio_input.patch の単純なパッチ適用失敗を修正
   - ios_simulcast.patch の修正
-    - RTCVideoEncoderSimulcast.mm で include していた `api/transport/field_trial_based_config.h` は libwebrtc 側で削除されていたため削除
+    - RTCVideoEncoderSimulcast.mm で include していた `api/transport/field_trial_based_config.h` を削除
+      - libwebrtc の field_trial_based_config.h は削除されたため
+      - 参考 : https://source.chromium.org/chromium/_/webrtc/src/+/80b3659d7db613638946484010d440001d42fbb7
   - android_include_environment_java.patch は libwebrtc 側で対応されたため削除
+    - 参考 : https://source.chromium.org/chromium/_/webrtc/src/+/dc0a35fe850060ed606107299ccd7ad3dcbd5809
   - android_simulcast.patch の修正
     - `sdk/android/src/jni/simulcast_video_encoder.cc` の `api/transport/field_trial_based_config.h` の include を削除
-      - libwebrtc 側 field_trial_based_config.h は削除されていたため
+      - libwebrtc 側 field_trial_based_config.h は削除されたため
+      - 参考 : https://source.chromium.org/chromium/_/webrtc/src/+/80b3659d7db613638946484010d440001d42fbb7
     - `sdk/android/src/jni/pc/rtp_parameters.cc` の単純なパッチ適用失敗を修正
   - @torikizi
 - 2025-09-16 [RELEASE] 140.7339.2.2
