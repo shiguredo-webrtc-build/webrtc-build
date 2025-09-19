@@ -31,6 +31,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 - 2025-09-xx [UPDATE] m141 ブランチのビルドエラーを修正する
   - remove_crel.patch の単純なパッチ適用失敗を修正
+  - ios_manual_audio_input.patch の単純なパッチ適用失敗を修正
   - ios_simulcast.patch の修正
     - RTCVideoEncoderSimulcast.mm で include していた `api/transport/field_trial_based_config.h` は libwebrtc 側で削除されていたため削除
   - @torikizi
