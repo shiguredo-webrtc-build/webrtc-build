@@ -43,6 +43,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
       - libwebrtc 側 field_trial_based_config.h は削除されたため
       - 参考 : https://source.chromium.org/chromium/_/webrtc/src/+/80b3659d7db613638946484010d440001d42fbb7
     - `sdk/android/src/jni/pc/rtp_parameters.cc` の単純なパッチ適用失敗を修正
+  - revive_proxy.patch の単純なパッチ適用失敗を修正
   - @torikizi
 - 2025-09-16 [RELEASE] 140.7339.2.2
   - @torikizi
