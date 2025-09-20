@@ -143,10 +143,10 @@ index 0000000000..4f1b55c713
 +@end
 diff --git a/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.mm b/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.mm
 new file mode 100644
-index 0000000000..96305cd784
+index 0000000000..04bebb9621
 --- /dev/null
 +++ b/sdk/objc/api/video_codec/RTCVideoEncoderSimulcast.mm
-@@ -0,0 +1,65 @@
+@@ -0,0 +1,63 @@
 +#import <Foundation/Foundation.h>
 +
 +#import "RTCMacros.h"
@@ -154,7 +154,6 @@ index 0000000000..96305cd784
 +#import "RTCNativeVideoEncoder.h"
 +#import "RTCNativeVideoEncoderBuilder+Native.h"
 +#import "api/peerconnection/RTCVideoCodecInfo+Private.h"
-+#include "api/transport/field_trial_based_config.h"
 +
 +#include "native/api/video_encoder_factory.h"
 +#include "media/engine/simulcast_encoder_adapter.h"
