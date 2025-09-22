@@ -29,7 +29,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
-- 2025-09-xx [UPDATE] m141 ブランチのビルドエラーを修正する
+- 2025-09-22 [RELEASE] 141.7390.2.0
+  - @torikizi
+- 2025-09-22 [UPDATE] m141 ブランチのビルドエラーを修正する
   - remove_crel.patch の単純なパッチ適用失敗を修正
   - ios_manual_audio_input.patch の単純なパッチ適用失敗を修正
   - ios_simulcast.patch の修正
