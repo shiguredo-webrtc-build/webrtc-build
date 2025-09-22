@@ -69,7 +69,7 @@ index 276e30956d..057b0c13a9 100644
  
    std::unique_ptr<AsyncDnsResolverInterface> CreateAsyncDnsResolver() override;
 diff --git a/p2p/base/port.h b/p2p/base/port.h
-index 522fc9329e..00fd4e7569 100644
+index 1a237be898..9a38b20dbb 100644
 --- a/p2p/base/port.h
 +++ b/p2p/base/port.h
 @@ -48,6 +48,8 @@
@@ -81,7 +81,7 @@ index 522fc9329e..00fd4e7569 100644
  namespace webrtc {
  
  // RFC 6544, TCP candidate encoding rules.
-@@ -353,6 +355,17 @@ class RTC_EXPORT Port : public PortInterface, public sigslot::has_slots<> {
+@@ -390,6 +392,17 @@ class RTC_EXPORT Port : public PortInterface, public sigslot::has_slots<> {
  
    void GetStunStats(std::optional<StunStats>* /* stats */) override {}
  
@@ -96,9 +96,9 @@ index 522fc9329e..00fd4e7569 100644
 +  webrtc::revive::ProxyInfo revived_proxy_;
 + public:
 +
-  protected:
-   void UpdateNetworkCost() override;
- 
+   // Signals for ICE role conflicts.
+   void SubscribeRoleConflict(absl::AnyInvocable<void()> callback) override;
+   void NotifyRoleConflict() override;
 diff --git a/p2p/base/port_allocator.h b/p2p/base/port_allocator.h
 index 3b957720ef..25bf9b5d06 100644
 --- a/p2p/base/port_allocator.h
