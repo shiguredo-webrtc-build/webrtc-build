@@ -16,7 +16,22 @@ env:
   ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY_WEBRTC_BUILD_SONNET }}
 
 jobs:
+  claude-opus-response-voluntas:
+    if: github.event.comment.user.login == 'voluntas'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN_VOLUNTAS }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          trigger_phrase: "!opus"
+          claude_args: |
+            --model claude-opus-4-1-20250805
+
   check-permission:
+    if: github.event.comment.user.login != 'voluntas'
     runs-on: ubuntu-24.04
     outputs:
       has_permission: ${{ steps.check.outputs.has-permission }}
@@ -27,18 +42,17 @@ jobs:
         with:
           username: ${{ github.event.comment.user.login }}
 
-  claude-sonnet-response:
+  claude-sonnet-response-others:
     needs: check-permission
     if: needs.check-permission.outputs.has_permission == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - uses: anthropics/claude-code-action@beta
+      - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ env.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          model: "claude-sonnet-4-20250514"
           trigger_phrase: "!sonnet"
-          timeout_minutes: 15
-          disallowed_tools: "Bash(git:*)"
+          claude_args: |
+            --model claude-sonnet-4-5-20250929
