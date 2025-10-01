@@ -295,6 +295,7 @@ PATCHES = {
         "remove_crel.patch",
         "revert_siso.patch",
         "android_include_environment_java.patch",
+        "android_audio_pause_resume.patch",
     ],
     "raspberry-pi-os_armv8": [
         "add_deps.patch",
