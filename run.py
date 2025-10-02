@@ -540,6 +540,7 @@ def diff_webrtc(source_dir, webrtc_source_dir):
                 ":!*.rej",
                 ":!:__config_site",
                 ":!:__assertion_handler",
+                ":!:sdk/android/api/org/webrtc/WebrtcBuildVersion.java",
             ]
         )
         dirs = _deps_dirs(src_dir)
