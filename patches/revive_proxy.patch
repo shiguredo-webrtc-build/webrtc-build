@@ -1,8 +1,8 @@
 diff --git a/api/packet_socket_factory.h b/api/packet_socket_factory.h
-index 602eeaa9ed..f44f20e436 100644
+index 9b9b45e22c..070f9a9e9f 100644
 --- a/api/packet_socket_factory.h
 +++ b/api/packet_socket_factory.h
-@@ -22,6 +22,8 @@
+@@ -25,6 +25,8 @@
  #include "rtc_base/ssl_certificate.h"
  #include "rtc_base/system/rtc_export.h"
  
@@ -11,17 +11,30 @@ index 602eeaa9ed..f44f20e436 100644
  namespace webrtc {
  
  struct PacketSocketTcpOptions {
-@@ -66,6 +68,8 @@ class RTC_EXPORT PacketSocketFactory {
+@@ -86,9 +88,11 @@ class RTC_EXPORT PacketSocketFactory {
+       const Environment& /*env*/,
+       const SocketAddress& local_address,
+       const SocketAddress& remote_address,
++      const webrtc::revive::ProxyInfo& proxy_info,
++      const std::string& user_agent,
+       const PacketSocketTcpOptions& tcp_options) {
+     return absl::WrapUnique(
+-        CreateClientTcpSocket(local_address, remote_address, tcp_options));
++        CreateClientTcpSocket(local_address, remote_address, proxy_info, user_agent, tcp_options));
+   }
+ 
+   virtual std::unique_ptr<AsyncDnsResolverInterface>
+@@ -113,6 +117,8 @@ class RTC_EXPORT PacketSocketFactory {
    virtual AsyncPacketSocket* CreateClientTcpSocket(
        const SocketAddress& local_address,
        const SocketAddress& remote_address,
 +      const webrtc::revive::ProxyInfo& proxy_info,
 +      const std::string& user_agent,
-       const PacketSocketTcpOptions& tcp_options) = 0;
- 
-   virtual std::unique_ptr<AsyncDnsResolverInterface>
+       const PacketSocketTcpOptions& tcp_options) {
+     RTC_DCHECK_NOTREACHED();
+     return nullptr;
 diff --git a/p2p/base/basic_packet_socket_factory.cc b/p2p/base/basic_packet_socket_factory.cc
-index 785f80b330..144d8bacd7 100644
+index c410099bbc..42de5f51c6 100644
 --- a/p2p/base/basic_packet_socket_factory.cc
 +++ b/p2p/base/basic_packet_socket_factory.cc
 @@ -32,6 +32,8 @@
@@ -33,34 +46,34 @@ index 785f80b330..144d8bacd7 100644
  namespace webrtc {
  
  BasicPacketSocketFactory::BasicPacketSocketFactory(
-@@ -92,6 +94,8 @@ AsyncListenSocket* BasicPacketSocketFactory::CreateServerTcpSocket(
- AsyncPacketSocket* BasicPacketSocketFactory::CreateClientTcpSocket(
+@@ -96,6 +98,8 @@ BasicPacketSocketFactory::CreateClientTcpSocket(
+     const Environment& env,
      const SocketAddress& local_address,
      const SocketAddress& remote_address,
 +    const webrtc::revive::ProxyInfo& proxy_info,
 +    const std::string& user_agent,
      const PacketSocketTcpOptions& tcp_options) {
-   Socket* socket =
-       socket_factory_->CreateSocket(local_address.family(), SOCK_STREAM);
-@@ -123,6 +127,12 @@ AsyncPacketSocket* BasicPacketSocketFactory::CreateClientTcpSocket(
+   std::unique_ptr<Socket> socket =
+       socket_factory_->Create(local_address.family(), SOCK_STREAM);
+@@ -126,6 +130,12 @@ BasicPacketSocketFactory::CreateClientTcpSocket(
                        << socket->GetError();
    }
  
 +  if (proxy_info.type == webrtc::revive::PROXY_HTTPS) {
-+    socket =
-+        new webrtc::revive::AsyncHttpsProxySocket(socket, user_agent, proxy_info.address,
-+                                          proxy_info.username, proxy_info.password);
++    socket.reset(
++        new webrtc::revive::AsyncHttpsProxySocket(socket.release(), user_agent, proxy_info.address,
++                                          proxy_info.username, proxy_info.password));
 +  }
 +
    // Assert that at most one TLS option is used.
    int tlsOpts = tcp_options.opts & (PacketSocketFactory::OPT_TLS |
                                      PacketSocketFactory::OPT_TLS_FAKE |
 diff --git a/p2p/base/basic_packet_socket_factory.h b/p2p/base/basic_packet_socket_factory.h
-index 276e30956d..057b0c13a9 100644
+index b5c382ff29..2a45af41d3 100644
 --- a/p2p/base/basic_packet_socket_factory.h
 +++ b/p2p/base/basic_packet_socket_factory.h
-@@ -40,6 +40,8 @@ class RTC_EXPORT BasicPacketSocketFactory : public PacketSocketFactory {
-   AsyncPacketSocket* CreateClientTcpSocket(
+@@ -45,6 +45,8 @@ class RTC_EXPORT BasicPacketSocketFactory : public PacketSocketFactory {
+       const Environment& env,
        const SocketAddress& local_address,
        const SocketAddress& remote_address,
 +      const webrtc::revive::ProxyInfo& proxy_info,
@@ -69,7 +82,7 @@ index 276e30956d..057b0c13a9 100644
  
    std::unique_ptr<AsyncDnsResolverInterface> CreateAsyncDnsResolver() override;
 diff --git a/p2p/base/port.h b/p2p/base/port.h
-index 1a237be898..9a38b20dbb 100644
+index 48e2b5f2d6..3496e8856f 100644
 --- a/p2p/base/port.h
 +++ b/p2p/base/port.h
 @@ -48,6 +48,8 @@
@@ -81,7 +94,7 @@ index 1a237be898..9a38b20dbb 100644
  namespace webrtc {
  
  // RFC 6544, TCP candidate encoding rules.
-@@ -390,6 +392,17 @@ class RTC_EXPORT Port : public PortInterface, public sigslot::has_slots<> {
+@@ -395,6 +397,17 @@ class RTC_EXPORT Port : public PortInterface, public sigslot::has_slots<> {
  
    void GetStunStats(std::optional<StunStats>* /* stats */) override {}
  
@@ -100,7 +113,7 @@ index 1a237be898..9a38b20dbb 100644
    void SubscribeRoleConflict(absl::AnyInvocable<void()> callback) override;
    void NotifyRoleConflict() override;
 diff --git a/p2p/base/port_allocator.h b/p2p/base/port_allocator.h
-index 3b957720ef..25bf9b5d06 100644
+index abd9b39cb9..9af8eb0524 100644
 --- a/p2p/base/port_allocator.h
 +++ b/p2p/base/port_allocator.h
 @@ -32,6 +32,8 @@
@@ -112,7 +125,7 @@ index 3b957720ef..25bf9b5d06 100644
  namespace webrtc {
  
  class TurnCustomizer;
-@@ -457,6 +459,26 @@ class RTC_EXPORT PortAllocator : public sigslot::has_slots<> {
+@@ -521,6 +523,26 @@ class RTC_EXPORT PortAllocator : public sigslot::has_slots<> {
      flags_ = flags;
    }
  
@@ -140,10 +153,10 @@ index 3b957720ef..25bf9b5d06 100644
    int min_port() const {
      CheckRunOnValidThreadIfInitialized();
 diff --git a/p2p/base/port_interface.h b/p2p/base/port_interface.h
-index 93a3a252ee..47c57781da 100644
+index 10b447d959..c9e6e8cda3 100644
 --- a/p2p/base/port_interface.h
 +++ b/p2p/base/port_interface.h
-@@ -32,6 +32,8 @@
+@@ -34,6 +34,8 @@
  #include "rtc_base/socket_address.h"
  #include "rtc_base/third_party/sigslot/sigslot.h"
  
@@ -152,7 +165,7 @@ index 93a3a252ee..47c57781da 100644
  namespace webrtc {
  
  class Connection;
-@@ -166,6 +168,9 @@ class PortInterface {
+@@ -195,6 +197,9 @@ class PortInterface {
    // Called when the Connection discovers a local peer reflexive candidate.
    virtual void AddPrflxCandidate(const Candidate& local) = 0;
  
@@ -163,37 +176,36 @@ index 93a3a252ee..47c57781da 100644
    PortInterface();
    virtual void UpdateNetworkCost() = 0;
 diff --git a/p2p/base/tcp_port.cc b/p2p/base/tcp_port.cc
-index 625ff766fd..acd8a2b196 100644
+index de01d116a2..cd2c854dd4 100644
 --- a/p2p/base/tcp_port.cc
 +++ b/p2p/base/tcp_port.cc
-@@ -600,7 +600,9 @@ void TCPConnection::CreateOutgoingTcpSocket() {
+@@ -600,7 +600,10 @@ void TCPConnection::CreateOutgoingTcpSocket() {
    tcp_opts.opts = opts;
-   socket_.reset(port()->socket_factory()->CreateClientTcpSocket(
-       SocketAddress(port()->Network()->GetBestIP(), 0),
--      remote_candidate().address(), tcp_opts));
+   socket_ = port()->socket_factory()->CreateClientTcpSocket(
+       env(), SocketAddress(port()->Network()->GetBestIP(), 0),
+-      remote_candidate().address(), tcp_opts);
 +      remote_candidate().address(),
 +      port()->get_proxy(), port()->get_user_agent(),
-+      tcp_opts));
++      tcp_opts);
++
    if (socket_) {
      RTC_LOG(LS_VERBOSE) << ToString() << ": Connecting from "
                          << socket_->GetLocalAddress().ToSensitiveString()
 diff --git a/p2p/base/turn_port.cc b/p2p/base/turn_port.cc
-index 9395fe5ee9..ca201a0c49 100644
+index b43fe450b7..3e52d05dd3 100644
 --- a/p2p/base/turn_port.cc
 +++ b/p2p/base/turn_port.cc
-@@ -432,7 +432,9 @@ bool TurnPort::CreateTurnClientSocket() {
-     tcp_options.tls_elliptic_curves = tls_elliptic_curves_;
+@@ -459,7 +459,7 @@ bool TurnPort::CreateTurnClientSocket() {
      tcp_options.tls_cert_verifier = tls_cert_verifier_;
-     socket_ = socket_factory()->CreateClientTcpSocket(
--        SocketAddress(Network()->GetBestIP(), 0), server_address_.address,
-+        SocketAddress(Network()->GetBestIP(), 0),
-+        server_address_.address,
-+        get_proxy(), get_user_agent(),
-         tcp_options);
+     owned_socket_ = socket_factory()->CreateClientTcpSocket(
+         env(), SocketAddress(Network()->GetBestIP(), 0),
+-        server_address_.address, tcp_options);
++        server_address_.address, get_proxy(), get_user_agent(), tcp_options);
+     socket_ = owned_socket_.get();
    }
  
 diff --git a/p2p/client/basic_port_allocator.cc b/p2p/client/basic_port_allocator.cc
-index fa12319c6c..bf22af3098 100644
+index feb77df9f5..f6491ed194 100644
 --- a/p2p/client/basic_port_allocator.cc
 +++ b/p2p/client/basic_port_allocator.cc
 @@ -55,6 +55,8 @@
@@ -205,8 +217,8 @@ index fa12319c6c..bf22af3098 100644
  namespace webrtc {
  namespace {
  
-@@ -923,6 +925,8 @@ void BasicPortAllocatorSession::AddAllocatedPort(Port* port,
-   port->set_content_name(content_name());
+@@ -913,6 +915,8 @@ void BasicPortAllocatorSession::AddAllocatedPort(Port* port,
+   RTC_LOG(LS_INFO) << "Adding allocated port for " << content_name();
    port->set_component(component());
    port->set_generation(generation());
 +  if (allocator_->proxy().type != webrtc::revive::PROXY_NONE)
@@ -215,10 +227,10 @@ index fa12319c6c..bf22af3098 100644
        (flags() & PORTALLOCATOR_ENABLE_STUN_RETRANSMIT_ATTRIBUTE) != 0);
  
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 1211f0c856..b5f6ff9673 100644
+index 49245ac8a3..d49d5446ea 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
-@@ -1232,6 +1232,8 @@ rtc_library("socket_adapters") {
+@@ -1272,6 +1272,8 @@ rtc_library("socket_adapters") {
    sources = [
      "socket_adapters.cc",
      "socket_adapters.h",
@@ -227,7 +239,7 @@ index 1211f0c856..b5f6ff9673 100644
    ]
    deps = [
      ":async_socket",
-@@ -1246,6 +1248,7 @@ rtc_library("socket_adapters") {
+@@ -1286,6 +1288,7 @@ rtc_library("socket_adapters") {
      "../api:array_view",
      "//third_party/abseil-cpp/absl/strings",
      "//third_party/abseil-cpp/absl/strings:string_view",
@@ -235,7 +247,7 @@ index 1211f0c856..b5f6ff9673 100644
    ]
  }
  
-@@ -1375,6 +1378,20 @@ rtc_library("dscp") {
+@@ -1438,6 +1441,20 @@ rtc_library("dscp") {
    sources = [ "dscp.h" ]
  }
  
@@ -256,7 +268,7 @@ index 1211f0c856..b5f6ff9673 100644
  rtc_library("file_rotating_stream") {
    sources = [
      "file_rotating_stream.cc",
-@@ -1642,6 +1659,13 @@ rtc_library("ssl_adapter") {
+@@ -1704,6 +1721,13 @@ rtc_library("ssl_adapter") {
    }
  }
  
@@ -400,7 +412,7 @@ index 0000000000..3635bd0512
 +#endif  // RTC_BASE_CRYPT_STRING_REVIVE_H_
 diff --git a/rtc_base/http_common_revive.cc b/rtc_base/http_common_revive.cc
 new file mode 100644
-index 0000000000..071e116d19
+index 0000000000..e575943e41
 --- /dev/null
 +++ b/rtc_base/http_common_revive.cc
 @@ -0,0 +1,562 @@
@@ -1101,7 +1113,7 @@ index 0000000000..5217436b2a
 +#endif
 diff --git a/rtc_base/socket_adapters_revive.cc b/rtc_base/socket_adapters_revive.cc
 new file mode 100644
-index 0000000000..0263110ef4
+index 0000000000..446af9c557
 --- /dev/null
 +++ b/rtc_base/socket_adapters_revive.cc
 @@ -0,0 +1,268 @@

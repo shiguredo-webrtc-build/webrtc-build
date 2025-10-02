@@ -1,8 +1,8 @@
 diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
-index 516f7d85f..e964819f9 100644
+index 07e876cab..d34f53d2b 100644
 --- a/build/config/compiler/BUILD.gn
 +++ b/build/config/compiler/BUILD.gn
-@@ -681,15 +681,6 @@ config("compiler") {
+@@ -701,14 +701,6 @@ config("compiler") {
      } else {
        cflags += [ "-ffp-contract=off" ]
      }
@@ -11,8 +11,7 @@ index 516f7d85f..e964819f9 100644
 -    # TODO(crbug.com/376278218): This causes segfault on Linux ARM builds.
 -    # It also causes segfault on Linux s390x:
 -    # https://github.com/llvm/llvm-project/issues/149511
--    if (is_linux && use_lld && !llvm_android_mainline && current_cpu != "arm" &&
--        current_cpu != "s390x") {
+-    if (is_linux && use_lld && current_cpu != "arm" && current_cpu != "s390x") {
 -      cflags += [ "-Wa,--crel,--allow-experimental-crel" ]
 -    }
    }
