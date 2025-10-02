@@ -28,19 +28,6 @@ index fe3ef15a9a..1075bc8411 100644
    // Audio mixer initialization
    virtual int32_t InitSpeaker() = 0;
    virtual bool SpeakerIsInitialized() const = 0;
-diff --git a/sdk/android/api/org/webrtc/WebrtcBuildVersion.java b/sdk/android/api/org/webrtc/WebrtcBuildVersion.java
-new file mode 100644
-index 0000000000..4e478652b0
---- /dev/null
-+++ b/sdk/android/api/org/webrtc/WebrtcBuildVersion.java
-@@ -0,0 +1,7 @@
-+package org.webrtc;
-+public interface WebrtcBuildVersion {
-+    public static final String webrtc_branch = "M140";
-+    public static final String webrtc_commit = "2";
-+    public static final String webrtc_revision = "36ea4535a500ac137dbf1f577ce40dc1aaa774ef";
-+    public static final String maint_version = "2";
-+}
 diff --git a/sdk/android/api/org/webrtc/audio/JavaAudioDeviceModule.java b/sdk/android/api/org/webrtc/audio/JavaAudioDeviceModule.java
 index bbf1c3a753..1746ccca42 100644
 --- a/sdk/android/api/org/webrtc/audio/JavaAudioDeviceModule.java
@@ -372,7 +359,7 @@ index dc7c73d587..6309c8e7a4 100644
    virtual void AttachAudioBuffer(AudioDeviceBuffer* audioBuffer) = 0;
  
 diff --git a/sdk/android/src/jni/audio_device/audio_record_jni.cc b/sdk/android/src/jni/audio_device/audio_record_jni.cc
-index 43706e9a6d..cb23305c52 100644
+index 43706e9a6d..8568c834e8 100644
 --- a/sdk/android/src/jni/audio_device/audio_record_jni.cc
 +++ b/sdk/android/src/jni/audio_device/audio_record_jni.cc
 @@ -66,6 +66,7 @@ AudioRecordJni::AudioRecordJni(JNIEnv* env,
@@ -399,7 +386,7 @@ index 43706e9a6d..cb23305c52 100644
    return 0;
  }
  
-@@ -179,10 +182,42 @@ int32_t AudioRecordJni::StopRecording() {
+@@ -179,10 +182,44 @@ int32_t AudioRecordJni::StopRecording() {
    thread_checker_java_.Detach();
    initialized_ = false;
    recording_ = false;
@@ -414,6 +401,7 @@ index 43706e9a6d..cb23305c52 100644
 +  if (!initialized_ || !recording_) {
 +    return 0;
 +  }
++  env_ = AttachCurrentThreadIfNeeded();
 +  if (!Java_WebRtcAudioRecord_pauseRecording(env_, j_audio_record_)) {
 +    RTC_LOG(LS_ERROR) << "PauseRecording failed";
 +    return -1;
@@ -430,6 +418,7 @@ index 43706e9a6d..cb23305c52 100644
 +  if (!initialized_ || !paused_) {
 +    return 0;
 +  }
++  env_ = AttachCurrentThreadIfNeeded();
 +  if (!Java_WebRtcAudioRecord_resumeRecording(env_, j_audio_record_)) {
 +    RTC_LOG(LS_ERROR) << "ResumeRecording failed";
 +    return -1;
