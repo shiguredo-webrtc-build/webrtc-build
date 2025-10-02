@@ -1,8 +1,8 @@
 diff --git a/api/packet_socket_factory.h b/api/packet_socket_factory.h
-index 602eeaa9ed..f44f20e436 100644
+index 9b9b45e22c..cd99977c80 100644
 --- a/api/packet_socket_factory.h
 +++ b/api/packet_socket_factory.h
-@@ -22,6 +22,8 @@
+@@ -25,6 +25,8 @@
  #include "rtc_base/ssl_certificate.h"
  #include "rtc_base/system/rtc_export.h"
  
@@ -11,15 +11,30 @@ index 602eeaa9ed..f44f20e436 100644
  namespace webrtc {
  
  struct PacketSocketTcpOptions {
-@@ -66,6 +68,8 @@ class RTC_EXPORT PacketSocketFactory {
+@@ -87,8 +89,12 @@ class RTC_EXPORT PacketSocketFactory {
+       const SocketAddress& local_address,
+       const SocketAddress& remote_address,
+       const PacketSocketTcpOptions& tcp_options) {
+-    return absl::WrapUnique(
+-        CreateClientTcpSocket(local_address, remote_address, tcp_options));
++    return absl::WrapUnique(CreateClientTcpSocket(
++        local_address,
++        remote_address,
++        webrtc::revive::ProxyInfo{},
++        std::string{},
++        tcp_options));
+   }
+ 
+   virtual std::unique_ptr<AsyncDnsResolverInterface>
+@@ -113,6 +119,8 @@ class RTC_EXPORT PacketSocketFactory {
    virtual AsyncPacketSocket* CreateClientTcpSocket(
        const SocketAddress& local_address,
        const SocketAddress& remote_address,
 +      const webrtc::revive::ProxyInfo& proxy_info,
 +      const std::string& user_agent,
-       const PacketSocketTcpOptions& tcp_options) = 0;
- 
-   virtual std::unique_ptr<AsyncDnsResolverInterface>
+       const PacketSocketTcpOptions& tcp_options) {
+     RTC_DCHECK_NOTREACHED();
+     return nullptr;
 diff --git a/p2p/base/basic_packet_socket_factory.cc b/p2p/base/basic_packet_socket_factory.cc
 index 785f80b330..144d8bacd7 100644
 --- a/p2p/base/basic_packet_socket_factory.cc
@@ -163,14 +178,14 @@ index 93a3a252ee..47c57781da 100644
    PortInterface();
    virtual void UpdateNetworkCost() = 0;
 diff --git a/p2p/base/tcp_port.cc b/p2p/base/tcp_port.cc
-index 625ff766fd..acd8a2b196 100644
+index de01d116a2..438dcc4f0c 100644
 --- a/p2p/base/tcp_port.cc
 +++ b/p2p/base/tcp_port.cc
 @@ -600,7 +600,9 @@ void TCPConnection::CreateOutgoingTcpSocket() {
    tcp_opts.opts = opts;
-   socket_.reset(port()->socket_factory()->CreateClientTcpSocket(
-       SocketAddress(port()->Network()->GetBestIP(), 0),
--      remote_candidate().address(), tcp_opts));
+   socket_ = port()->socket_factory()->CreateClientTcpSocket(
+       env(), SocketAddress(port()->Network()->GetBestIP(), 0),
+-      remote_candidate().address(), tcp_opts);
 +      remote_candidate().address(),
 +      port()->get_proxy(), port()->get_user_agent(),
 +      tcp_opts));
@@ -178,18 +193,18 @@ index 625ff766fd..acd8a2b196 100644
      RTC_LOG(LS_VERBOSE) << ToString() << ": Connecting from "
                          << socket_->GetLocalAddress().ToSensitiveString()
 diff --git a/p2p/base/turn_port.cc b/p2p/base/turn_port.cc
-index 9395fe5ee9..ca201a0c49 100644
+index b43fe450b7..bbe061a909 100644
 --- a/p2p/base/turn_port.cc
 +++ b/p2p/base/turn_port.cc
-@@ -432,7 +432,9 @@ bool TurnPort::CreateTurnClientSocket() {
-     tcp_options.tls_elliptic_curves = tls_elliptic_curves_;
+@@ -459,7 +459,9 @@ bool TurnPort::CreateTurnClientSocket() {
      tcp_options.tls_cert_verifier = tls_cert_verifier_;
-     socket_ = socket_factory()->CreateClientTcpSocket(
--        SocketAddress(Network()->GetBestIP(), 0), server_address_.address,
-+        SocketAddress(Network()->GetBestIP(), 0),
+     owned_socket_ = socket_factory()->CreateClientTcpSocket(
+         env(), SocketAddress(Network()->GetBestIP(), 0),
+-        server_address_.address, tcp_options);
 +        server_address_.address,
 +        get_proxy(), get_user_agent(),
-         tcp_options);
++        tcp_options);
+     socket_ = owned_socket_.get();
    }
  
 diff --git a/p2p/client/basic_port_allocator.cc b/p2p/client/basic_port_allocator.cc
