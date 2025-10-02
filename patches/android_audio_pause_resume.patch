@@ -83,20 +83,6 @@ index bbf1c3a753..1746ccca42 100644
 +  private static native boolean nativePauseRecording(long nativeAudioDeviceModule);
 +  private static native boolean nativeResumeRecording(long nativeAudioDeviceModule);
  }
-diff --git a/sdk/android/src/java/org/webrtc/WebrtcBuildVersion.java b/sdk/android/src/java/org/webrtc/WebrtcBuildVersion.java
-new file mode 100644
-index 0000000000..66c4da5e43
---- /dev/null
-+++ b/sdk/android/src/java/org/webrtc/WebrtcBuildVersion.java
-@@ -0,0 +1,7 @@
-+package org.webrtc;
-+public interface WebrtcBuildVersion {
-+    public static final String webrtc_branch = "M140";
-+    public static final String webrtc_commit = "2";
-+    public static final String webrtc_revision = "36ea4535a500ac137dbf1f577ce40dc1aaa774ef";
-+    public static final String maint_version = "2";
-+}
-\ No newline at end of file
 diff --git a/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java b/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
 index ac62308aa3..32997f158c 100644
 --- a/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
