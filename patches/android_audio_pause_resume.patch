@@ -455,28 +455,28 @@ index fa39318d36..865e3e1d0f 100644
    // Raw pointer handle provided to us in AttachAudioBuffer(). Owned by the
    // AudioDeviceModuleImpl class and called by AudioDeviceModule::Create().
 diff --git a/sdk/android/src/jni/audio_device/java_audio_device_module.cc b/sdk/android/src/jni/audio_device/java_audio_device_module.cc
-index a8152a39c4..d287807bbf 100644
+index a8152a39c4..db9db9afb7 100644
 --- a/sdk/android/src/jni/audio_device/java_audio_device_module.cc
 +++ b/sdk/android/src/jni/audio_device/java_audio_device_module.cc
 @@ -58,5 +58,26 @@ static jlong JNI_JavaAudioDeviceModule_CreateAudioDeviceModule(
            .release());
  }
  
-+static jboolean JNI_JavaAudioDeviceModule_nativePauseRecording(
++[[maybe_unused]] static jboolean JNI_JavaAudioDeviceModule_nativePauseRecording(
 +    JNIEnv* env,
 +    jlong native_adm) {
 +  auto* adm = reinterpret_cast<AudioDeviceModule*>(native_adm);
 +  return adm && adm->PauseRecording(env);
 +}
 +
-+static jboolean JNI_JavaAudioDeviceModule_nativeResumeRecording(
++[[maybe_unused]] static jboolean JNI_JavaAudioDeviceModule_nativeResumeRecording(
 +    JNIEnv* env,
 +    jlong native_adm) {
 +  auto* adm = reinterpret_cast<AudioDeviceModule*>(native_adm);
 +  return adm && adm->ResumeRecording(env);
 +}
 +
-+static jboolean JNI_JavaAudioDeviceModule_nativeSupportsPauseRecording(
++[[maybe_unused]] static jboolean JNI_JavaAudioDeviceModule_nativeSupportsPauseRecording(
 +    JNIEnv* env,
 +    jlong native_adm) {
 +  auto* adm = reinterpret_cast<AudioDeviceModule*>(native_adm);
