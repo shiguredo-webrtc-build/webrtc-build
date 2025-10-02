@@ -29,10 +29,10 @@ index fe3ef15a9a..1075bc8411 100644
    virtual int32_t InitSpeaker() = 0;
    virtual bool SpeakerIsInitialized() const = 0;
 diff --git a/sdk/android/api/org/webrtc/audio/JavaAudioDeviceModule.java b/sdk/android/api/org/webrtc/audio/JavaAudioDeviceModule.java
-index bbf1c3a753..1746ccca42 100644
+index bbf1c3a753..4dc7da9881 100644
 --- a/sdk/android/api/org/webrtc/audio/JavaAudioDeviceModule.java
 +++ b/sdk/android/api/org/webrtc/audio/JavaAudioDeviceModule.java
-@@ -419,6 +419,42 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
+@@ -419,6 +419,50 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
      audioInput.setMicrophoneMute(mute);
    }
  
@@ -48,10 +48,14 @@ index bbf1c3a753..1746ccca42 100644
 +          Logging.w(TAG, "pauseRecording not supported by native ADM");
 +          return false;
 +        }
-+        return nativePauseRecording(nativeAudioDeviceModule);
++        boolean result = nativePauseRecording(nativeAudioDeviceModule);
++        Logging.d(TAG, "pauseRecording native result=" + result);
++        return result;
 +      }
 +    }
-+    return audioInput.pauseRecording();
++    boolean result = audioInput.pauseRecording();
++    Logging.d(TAG, "pauseRecording java result=" + result);
++    return result;
 +  }
 +
 +  /**
@@ -66,16 +70,20 @@ index bbf1c3a753..1746ccca42 100644
 +          Logging.w(TAG, "resumeRecording not supported by native ADM");
 +          return false;
 +        }
-+        return nativeResumeRecording(nativeAudioDeviceModule);
++        boolean result = nativeResumeRecording(nativeAudioDeviceModule);
++        Logging.d(TAG, "resumeRecording native result=" + result);
++        return result;
 +      }
 +    }
-+    return audioInput.resumeRecording();
++    boolean result = audioInput.resumeRecording();
++    Logging.d(TAG, "resumeRecording java result=" + result);
++    return result;
 +  }
 +
    @Override
    public boolean setNoiseSuppressorEnabled(boolean enabled) {
      Logging.d(TAG, "setNoiseSuppressorEnabled: " + enabled);
-@@ -441,4 +477,7 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
+@@ -441,4 +485,7 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
        AudioManager audioManager, WebRtcAudioRecord audioInput, WebRtcAudioTrack audioOutput,
        long webrtcEnvRef, int inputSampleRate, int outputSampleRate, boolean useStereoInput,
        boolean useStereoOutput);
@@ -84,7 +92,7 @@ index bbf1c3a753..1746ccca42 100644
 +  private static native boolean nativeResumeRecording(long nativeAudioDeviceModule);
  }
 diff --git a/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java b/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
-index ac62308aa3..32997f158c 100644
+index ac62308aa3..70769f337c 100644
 --- a/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
 +++ b/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
 @@ -79,6 +79,13 @@ class WebRtcAudioRecord {
@@ -128,7 +136,7 @@ index ac62308aa3..32997f158c 100644
      assertTrue(audioRecord != null);
      assertTrue(audioThread == null);
      try {
-@@ -392,29 +409,97 @@ class WebRtcAudioRecord {
+@@ -392,29 +409,101 @@ class WebRtcAudioRecord {
      audioThread = new AudioRecordThread("AudioRecordJavaThread");
      audioThread.start();
      scheduleLogRecordingConfigurationsTask(audioRecord);
@@ -162,6 +170,7 @@ index ac62308aa3..32997f158c 100644
 +    }
 +    stopAudioThread(/*releaseEffects=*/false, /*releaseResources=*/false);
 +    recordingState = RecordingState.PAUSED;
++    Logging.d(TAG, "pauseRecording succeeded");
 +    return true;
 +  }
 +
@@ -187,6 +196,7 @@ index ac62308aa3..32997f158c 100644
 +    } catch (IllegalStateException e) {
 +      reportWebRtcAudioRecordStartError(AudioRecordStartErrorCode.AUDIO_RECORD_START_EXCEPTION,
 +          "AudioRecord.startRecording failed (resume): " + e.getMessage());
++      stopAudioThread(/*releaseEffects=*/true, /*releaseResources=*/true);
 +      recordingState = RecordingState.STOPPED;
 +      return false;
 +    }
@@ -194,6 +204,7 @@ index ac62308aa3..32997f158c 100644
 +      reportWebRtcAudioRecordStartError(AudioRecordStartErrorCode.AUDIO_RECORD_START_STATE_MISMATCH,
 +          "AudioRecord.startRecording failed during resume - incorrect state: "
 +              + audioRecord.getRecordingState());
++      stopAudioThread(/*releaseEffects=*/true, /*releaseResources=*/true);
 +      recordingState = RecordingState.STOPPED;
 +      return false;
 +    }
@@ -201,6 +212,7 @@ index ac62308aa3..32997f158c 100644
 +    audioThread.start();
 +    scheduleLogRecordingConfigurationsTask(audioRecord);
 +    recordingState = RecordingState.RECORDING;
++    Logging.d(TAG, "resumeRecording succeeded");
 +    return true;
 +  }
 +
@@ -237,10 +249,12 @@ index ac62308aa3..32997f158c 100644
    }
  
    @TargetApi(Build.VERSION_CODES.M)
-@@ -531,6 +616,9 @@ class WebRtcAudioRecord {
+@@ -531,6 +620,11 @@ class WebRtcAudioRecord {
        audioRecord = null;
      }
      audioSourceMatchesRecordingSessionRef.set(null);
++    // Keep STOPPED semantics for all non-recording states to avoid treating a failed resume as
++    // PAUSED (which would assume resources are intact).
 +    if (recordingState != RecordingState.RECORDING) {
 +      recordingState = RecordingState.STOPPED;
 +    }
@@ -441,28 +455,28 @@ index fa39318d36..865e3e1d0f 100644
    // Raw pointer handle provided to us in AttachAudioBuffer(). Owned by the
    // AudioDeviceModuleImpl class and called by AudioDeviceModule::Create().
 diff --git a/sdk/android/src/jni/audio_device/java_audio_device_module.cc b/sdk/android/src/jni/audio_device/java_audio_device_module.cc
-index a8152a39c4..479c96af2d 100644
+index a8152a39c4..d287807bbf 100644
 --- a/sdk/android/src/jni/audio_device/java_audio_device_module.cc
 +++ b/sdk/android/src/jni/audio_device/java_audio_device_module.cc
 @@ -58,5 +58,26 @@ static jlong JNI_JavaAudioDeviceModule_CreateAudioDeviceModule(
            .release());
  }
  
-+[[maybe_unused]] static jboolean JNI_JavaAudioDeviceModule_PauseRecording(
++static jboolean JNI_JavaAudioDeviceModule_nativePauseRecording(
 +    JNIEnv* env,
 +    jlong native_adm) {
 +  auto* adm = reinterpret_cast<AudioDeviceModule*>(native_adm);
 +  return adm && adm->PauseRecording(env);
 +}
 +
-+[[maybe_unused]] static jboolean JNI_JavaAudioDeviceModule_ResumeRecording(
++static jboolean JNI_JavaAudioDeviceModule_nativeResumeRecording(
 +    JNIEnv* env,
 +    jlong native_adm) {
 +  auto* adm = reinterpret_cast<AudioDeviceModule*>(native_adm);
 +  return adm && adm->ResumeRecording(env);
 +}
 +
-+[[maybe_unused]] static jboolean JNI_JavaAudioDeviceModule_IsPauseRecordingSupported(
++static jboolean JNI_JavaAudioDeviceModule_nativeSupportsPauseRecording(
 +    JNIEnv* env,
 +    jlong native_adm) {
 +  auto* adm = reinterpret_cast<AudioDeviceModule*>(native_adm);
