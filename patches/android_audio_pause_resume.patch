@@ -92,7 +92,7 @@ index bbf1c3a753..4dc7da9881 100644
 +  private static native boolean nativeResumeRecording(long nativeAudioDeviceModule);
  }
 diff --git a/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java b/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
-index ac62308aa3..70769f337c 100644
+index ac62308aa3..81b5939aab 100644
 --- a/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
 +++ b/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
 @@ -79,6 +79,13 @@ class WebRtcAudioRecord {
@@ -118,12 +118,9 @@ index ac62308aa3..70769f337c 100644
    /**
     * Audio thread which keeps calling ByteBuffer.read() waiting for audio
     * to be recorded. Feeds recorded data to the native counterpart as a
-@@ -372,8 +381,16 @@ class WebRtcAudioRecord {
-   }
- 
+@@ -374,6 +383,14 @@ class WebRtcAudioRecord {
    @CalledByNative
--  private boolean startRecording() {
-+  boolean startRecording() {
+   private boolean startRecording() {
      Logging.d(TAG, "startRecording");
 +    if (recordingState == RecordingState.RECORDING) {
 +      Logging.w(TAG, "startRecording invoked while already recording");
@@ -145,8 +142,7 @@ index ac62308aa3..70769f337c 100644
    }
  
    @CalledByNative
--  private boolean stopRecording() {
-+  boolean stopRecording() {
+   private boolean stopRecording() {
      Logging.d(TAG, "stopRecording");
 -    assertTrue(audioThread != null);
 +    if (recordingState == RecordingState.IDLE || recordingState == RecordingState.STOPPED) {

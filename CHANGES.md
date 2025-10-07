@@ -29,8 +29,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
-- 2025-10-02　[ADD] Android SDK の WebRtcAudioRecord に pauseRecording()/resumeRecording() を追加
-  - Android アプリ側でハードミュート(マイクインジケータが消える)状態にできるようにする
+- 2025-10-02　[ADD] Android SDK の WebRtcAudioRecord に pauseRecording()/resumeRecording() を追加した
+  - Android 実機のマイクインジケータが消灯状態のミュートをできるようにする
+  - WebRtcAudioRecord の内部状態管理用に RecordingState を追加する
   - @t-miya
 - 2025-09-16 [RELEASE] 140.7339.2.2
   - @torikizi
