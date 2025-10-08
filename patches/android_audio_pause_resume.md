@@ -1,6 +1,7 @@
 # android_audio_pause_resume.patch の解説
 
 このドキュメントは、`android_audio_pause_resume.patch` の目的・変更点をまとめたものです。
+このパッチは WebRtcAudioRecord にマイク録音の一時停止/再開機能を追加します。
 
 ## 目的
 
@@ -11,7 +12,7 @@
 ### パブリック API の拡張
 
 JavaAudioDeviceModule に pauseRecording() / resumeRecording() メソッドを追加しました。
-ネイティブ ADM が生成済みで pause/resume をサポートしている場合は JNI 経由で実行します。未対応バックエンド(AAudio/OpenSLES)では即座に false を返します。
+ネイティブ ADM が生成済みで **JavaAudioDeviceModule バックエンドを使用している場合のみ** をサポートしている場合は JNI 経由で実行します。未対応バックエンド(AAudio/OpenSLES)では即座に false を返します。
 
 ### WebRtcAudioRecord の内部状態管理
 
@@ -22,6 +23,16 @@ JavaAudioDeviceModule に pauseRecording() / resumeRecording() メソッドを�
 - RECORDING: 録音中。 startRecording() での録音開始および、resumeRecording() による録音復帰
 - PAUSED: pauseRecording() により録音一時停止
 - STOPPED: stopRecording() により録音終了
+```
+
+状態遷移は以下のようになります。
+
+```
+IDLE → RECORDING (startRecording)
+RECORDING → PAUSED (pauseRecording)
+PAUSED → RECORDING (resumeRecording)
+RECORDING → STOPPED (stopRecording)
+PAUSED → STOPPED (stopRecording or エラー時)
 ```
 
 - startRecording() / stopRecording() / pauseRecording() / resumeRecording() それぞれの実行時に内部状態のチェック・更新を行います。
@@ -64,6 +75,12 @@ val factory = PeerConnectionFactory.builder()
 // pause/resume（UI スレッド以外で実行推奨）
 val paused = adm.pauseRecording()
 val resumed = adm.resumeRecording()
+
+// エラーハンドリングの例
+if (!paused) {
+    // 未対応バックエンド、または既に一時停止済み、録音未開始などの場合
+    Log.w(TAG, "pauseRecording failed. Check logcat for details.")
+}
 ```
 
 - 両メソッドとも Boolean を返します。true なら成功、false なら未対応（AAudio, OpenSL ES など）または失敗となりますのでログを確認してください。

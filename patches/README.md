@@ -360,4 +360,4 @@ siso を実行すると即座に `Error: can not detect exec_root: build/config/
 
 Android で録音一時停止・解除をできるようにするパッチ。
 
-パッチの詳細は [android_audio_resume_pause.patch の解説](./android_audio_resume_pause.md) を参照のこと。
+パッチの詳細は [android_audio_pause_resume.patch の解説](./android_audio_pause_resume.md) を参照のこと。
