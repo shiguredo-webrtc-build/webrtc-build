@@ -355,3 +355,9 @@ CREL は LLVM のリンカ(lld)特有の機能なので、これを有効にす�
 このコミットを revert したパッチ。
 
 siso を実行すると即座に `Error: can not detect exec_root: build/config/siso not found` というエラーが出てどうしようも無かったので revert する。
+
+## android_audio_pause_resume.md
+
+Android で録音一時停止・解除をできるようにするパッチ。
+
+パッチの詳細は [android_audio_resume_pause.patch の解説](./android_audio_resume_pause.md) を参照のこと。
