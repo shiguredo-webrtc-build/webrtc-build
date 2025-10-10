@@ -29,6 +29,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-10-10 [ADD] Android SDK 向けに AudioSink 機能を追加する
+  - AudioSink を利用すると AudioTrack ごとに PCM 音声データを取得することができる
+  - @zztkm
 - 2025-10-10 [RELEASE] 141.7390.3.0
   - @torikizi
 - 2025-09-22 [RELEASE] 141.7390.2.0

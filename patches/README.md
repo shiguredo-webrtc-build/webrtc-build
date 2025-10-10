@@ -347,3 +347,9 @@ CREL は LLVM のリンカ(lld)特有の機能なので、これを有効にす�
 このコミットを revert したパッチ。
 
 siso を実行すると即座に `Error: can not detect exec_root: build/config/siso not found` というエラーが出てどうしようも無かったので revert する。
+
+## android_audio_sink.patch
+
+Android SDK 向けに AudioSink を提供し、AudioTrack ごとに PCM データを取得できるようにするための機能を追加するパッチ
+
+パッチの詳細は [android_audio_sink.patch の解説](./android_audio_sink.md) を参照
