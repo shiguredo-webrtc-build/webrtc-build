@@ -29,10 +29,10 @@ index fe3ef15a9a..1075bc8411 100644
    virtual int32_t InitSpeaker() = 0;
    virtual bool SpeakerIsInitialized() const = 0;
 diff --git a/sdk/android/api/org/webrtc/audio/JavaAudioDeviceModule.java b/sdk/android/api/org/webrtc/audio/JavaAudioDeviceModule.java
-index bbf1c3a753..ed7032612e 100644
+index bbf1c3a753..ad24ef42a3 100644
 --- a/sdk/android/api/org/webrtc/audio/JavaAudioDeviceModule.java
 +++ b/sdk/android/api/org/webrtc/audio/JavaAudioDeviceModule.java
-@@ -419,6 +419,51 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
+@@ -419,6 +419,50 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
      audioInput.setMicrophoneMute(mute);
    }
  
@@ -73,8 +73,7 @@ index bbf1c3a753..ed7032612e 100644
 +        boolean result = nativeResumeRecording(nativeAudioDeviceModule);
 +        Logging.d(TAG, "resumeRecording native result=" + result);
 +        return result;
-+      }
-+      else {
++      } else {
 +        Logging.w(TAG, "nativeAudioDeviceModule has not been created");
 +        return false;
 +      }
@@ -84,7 +83,7 @@ index bbf1c3a753..ed7032612e 100644
    @Override
    public boolean setNoiseSuppressorEnabled(boolean enabled) {
      Logging.d(TAG, "setNoiseSuppressorEnabled: " + enabled);
-@@ -441,4 +486,8 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
+@@ -441,4 +485,8 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
        AudioManager audioManager, WebRtcAudioRecord audioInput, WebRtcAudioTrack audioOutput,
        long webrtcEnvRef, int inputSampleRate, int outputSampleRate, boolean useStereoInput,
        boolean useStereoOutput);
@@ -94,7 +93,7 @@ index bbf1c3a753..ed7032612e 100644
 +  private static native boolean nativeResumeRecording(long nativeAudioDeviceModule);
  }
 diff --git a/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java b/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
-index ac62308aa3..0d796daff0 100644
+index ac62308aa3..395496bd31 100644
 --- a/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
 +++ b/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
 @@ -79,6 +79,13 @@ class WebRtcAudioRecord {
@@ -261,15 +260,17 @@ index ac62308aa3..0d796daff0 100644
      return true;
    }
  
-@@ -531,6 +654,13 @@ class WebRtcAudioRecord {
+@@ -531,6 +654,15 @@ class WebRtcAudioRecord {
        audioRecord = null;
      }
      audioSourceMatchesRecordingSessionRef.set(null);
 +    // Keep STOPPED semantics for all non-recording states to avoid treating a failed resume as
 +    // PAUSED (which would assume resources are intact).
 +    if (recordingState != RecordingState.RECORDING) {
-+      assertTrue(recordingState == RecordingState.IDLE || recordingState == RecordingState.PAUSED
-+          || recordingState == RecordingState.STOPPED);
++      assertTrue(recordingState == RecordingState.IDLE
++        || recordingState == RecordingState.PAUSED
++        || recordingState == RecordingState.STOPPED,
++        "Unexpected recordingState: " + recordingState);
 +      recordingState = RecordingState.STOPPED;
 +    }
    }
