@@ -1,0 +1,322 @@
+diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
+index d5ae419ec6..098e173887 100644
+--- a/sdk/android/BUILD.gn
++++ b/sdk/android/BUILD.gn
+@@ -287,6 +287,7 @@ if (is_android) {
+     visibility = [ "*" ]
+     sources = [
+       "api/org/webrtc/AddIceObserver.java",
++      "api/org/webrtc/AudioSink.java",
+       "api/org/webrtc/AudioProcessingFactory.java",
+       "api/org/webrtc/AudioSource.java",
+       "api/org/webrtc/AudioTrack.java",
+@@ -781,6 +782,7 @@ if (current_os == "linux" || is_android) {
+       "src/jni/pc/add_ice_candidate_observer.cc",
+       "src/jni/pc/add_ice_candidate_observer.h",
+       "src/jni/pc/android_network_monitor.h",
++      "src/jni/pc/audio_sink.cc",
+       "src/jni/pc/audio_track.cc",
+       "src/jni/pc/call_session_file_rotating_log_sink.cc",
+       "src/jni/pc/crypto_options.cc",
+@@ -884,6 +886,7 @@ if (current_os == "linux" || is_android) {
+       "../../rtc_base:ssl",
+       "../../rtc_base:stringutils",
+       "../../rtc_base:threading",
++      "../../rtc_base/synchronization:mutex",
+       "../../stats:rtc_stats",
+       "../../system_wrappers:field_trial",
+       "//third_party/abseil-cpp/absl/memory",
+@@ -1503,6 +1506,7 @@ if (current_os == "linux" || is_android) {
+   generate_jni("generated_peerconnection_jni") {
+     sources = [
+       "api/org/webrtc/AddIceObserver.java",
++      "api/org/webrtc/AudioSink.java",
+       "api/org/webrtc/AudioTrack.java",
+       "api/org/webrtc/CallSessionFileRotatingLogSink.java",
+       "api/org/webrtc/CandidatePairChangeEvent.java",
+diff --git a/sdk/android/api/org/webrtc/AudioSink.java b/sdk/android/api/org/webrtc/AudioSink.java
+new file mode 100644
+index 0000000000..14379daf09
+--- /dev/null
++++ b/sdk/android/api/org/webrtc/AudioSink.java
+@@ -0,0 +1,30 @@
++/*
++ *  Copyright 2024 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++package org.webrtc;
++
++import java.nio.ByteBuffer;
++
++/** Interface for receiving raw PCM audio from {@link AudioTrack}. */
++public interface AudioSink {
++  /**
++   * Called from native audio threads with PCM16 data. Implementations should avoid heavy work and
++   * offload processing to background threads when possible.
++   */
++  @CalledByNative
++  void onData(AudioTrack audioTrack, ByteBuffer audioData, int bitsPerSample, int sampleRate,
++      int numberOfChannels, int numberOfFrames);
++
++  /** Number of channels preferred by the sink. {@code -1} means no preference. */
++  @CalledByNative
++  default int getPreferredNumberOfChannels() {
++    return -1;
++  }
++}
+diff --git a/sdk/android/api/org/webrtc/AudioTrack.java b/sdk/android/api/org/webrtc/AudioTrack.java
+index ca745db634..5bda3e5cd4 100644
+--- a/sdk/android/api/org/webrtc/AudioTrack.java
++++ b/sdk/android/api/org/webrtc/AudioTrack.java
+@@ -10,12 +10,47 @@
+ 
+ package org.webrtc;
+ 
++import java.util.IdentityHashMap;
++
+ /** Java wrapper for a C++ AudioTrackInterface */
+ public class AudioTrack extends MediaStreamTrack {
++  private final IdentityHashMap<AudioSink, Long> sinks = new IdentityHashMap<>();
++
+   public AudioTrack(long nativeTrack) {
+     super(nativeTrack);
+   }
+ 
++  /** Adds an {@link AudioSink} to receive PCM data from this track. */
++  public void addSink(AudioSink sink) {
++    if (sink == null) {
++      throw new IllegalArgumentException("AudioSink must not be null");
++    }
++    if (!sinks.containsKey(sink)) {
++      final long nativeSink = nativeWrapSink(sink, this);
++      sinks.put(sink, nativeSink);
++      nativeAddSink(getNativeAudioTrack(), nativeSink);
++    }
++  }
++
++  /** Removes a previously registered {@link AudioSink}. */
++  public void removeSink(AudioSink sink) {
++    final Long nativeSink = sinks.remove(sink);
++    if (nativeSink != null) {
++      nativeRemoveSink(getNativeAudioTrack(), nativeSink);
++      nativeFreeSink(nativeSink);
++    }
++  }
++
++  @Override
++  public void dispose() {
++    for (long nativeSink : sinks.values()) {
++      nativeRemoveSink(getNativeAudioTrack(), nativeSink);
++      nativeFreeSink(nativeSink);
++    }
++    sinks.clear();
++    super.dispose();
++  }
++
+   /** Sets the volume for the underlying MediaSource. Volume is a gain value in the range
+    *  0 to 10.
+    */
+@@ -29,4 +64,8 @@ public class AudioTrack extends MediaStreamTrack {
+   }
+ 
+   private static native void nativeSetVolume(long track, double volume);
++  private static native void nativeAddSink(long audioTrackHandle, long sinkHandle);
++  private static native long nativeWrapSink(AudioSink sink, Object track);
++  private static native void nativeRemoveSink(long audioTrackHandle, long sinkHandle);
++  private static native void nativeFreeSink(long sink);
+ }
+diff --git a/sdk/android/src/jni/pc/audio_sink.cc b/sdk/android/src/jni/pc/audio_sink.cc
+new file mode 100644
+index 0000000000..285ae02c17
+--- /dev/null
++++ b/sdk/android/src/jni/pc/audio_sink.cc
+@@ -0,0 +1,71 @@
++/*
++ *  Copyright 2024 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#include "sdk/android/src/jni/pc/audio_sink.h"
++
++#include <cstring>
++
++#include "rtc_base/checks.h"
++#include "sdk/android/generated_peerconnection_jni/AudioSink_jni.h"
++#include "sdk/android/native_api/jni/jvm.h"
++
++namespace webrtc {
++namespace jni {
++
++AudioSinkBridge::AudioSinkBridge(JNIEnv* env,
++                                 const JavaRef<jobject>& j_sink,
++                                 const JavaRef<jobject>& j_track)
++    : j_sink_(env, j_sink), j_track_(env, j_track) {}
++
++AudioSinkBridge::~AudioSinkBridge() = default;
++
++void AudioSinkBridge::EnsureBufferSize(JNIEnv* env, size_t size) const {
++  if (capacity_ >= size && j_buffer_) {
++    return;
++  }
++
++  buffer_ = std::make_unique<uint8_t[]>(size);
++  capacity_ = size;
++
++  ScopedJavaLocalRef<jobject> buffer(
++      env, env->NewDirectByteBuffer(buffer_.get(), capacity_));
++  RTC_CHECK(buffer);
++  j_buffer_.Reset(env, buffer);
++}
++
++void AudioSinkBridge::OnData(const void* audio_data,
++                             int bits_per_sample,
++                             int sample_rate,
++                             size_t number_of_channels,
++                             size_t number_of_frames,
++                             std::optional<int64_t>) {
++  JNIEnv* env = AttachCurrentThreadIfNeeded();
++  const size_t byte_size =
++      number_of_frames * number_of_channels * (bits_per_sample / 8);
++
++  webrtc::MutexLock lock(&mutex_);
++  EnsureBufferSize(env, byte_size);
++  ScopedJavaLocalRef<jobject> buffer(env, j_buffer_);
++  void* direct_ptr = env->GetDirectBufferAddress(buffer.obj());
++  RTC_CHECK(direct_ptr);
++  std::memcpy(direct_ptr, audio_data, byte_size);
++  Java_AudioSink_onData(env, j_sink_, j_track_, buffer, bits_per_sample,
++                        sample_rate, static_cast<int>(number_of_channels),
++                        static_cast<int>(number_of_frames));
++}
++
++int AudioSinkBridge::NumPreferredChannels() const {
++  JNIEnv* env = AttachCurrentThreadIfNeeded();
++  return Java_AudioSink_getPreferredNumberOfChannels(env, j_sink_);
++}
++
++}  // namespace jni
++}  // namespace webrtc
++
+diff --git a/sdk/android/src/jni/pc/audio_sink.h b/sdk/android/src/jni/pc/audio_sink.h
+new file mode 100644
+index 0000000000..987c348d17
+--- /dev/null
++++ b/sdk/android/src/jni/pc/audio_sink.h
+@@ -0,0 +1,61 @@
++/*
++ *  Copyright 2024 The WebRTC project authors. All Rights Reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#ifndef SDK_ANDROID_SRC_JNI_PC_AUDIO_SINK_H_
++#define SDK_ANDROID_SRC_JNI_PC_AUDIO_SINK_H_
++
++#include <cstddef>
++#include <cstdint>
++#include <memory>
++#include <optional>
++
++#include "api/media_stream_interface.h"
++#include "rtc_base/synchronization/mutex.h"
++#include "rtc_base/thread_annotations.h"
++#include "sdk/android/native_api/jni/scoped_java_ref.h"
++
++namespace webrtc {
++namespace jni {
++
++// JNI bridge that forwards webrtc::AudioTrackSinkInterface callbacks to
++// org.webrtc.AudioSink on the Java side.
++class AudioSinkBridge : public AudioTrackSinkInterface {
++ public:
++  AudioSinkBridge(JNIEnv* env,
++                  const JavaRef<jobject>& j_sink,
++                  const JavaRef<jobject>& j_track);
++  ~AudioSinkBridge() override;
++
++  void OnData(const void* audio_data,
++              int bits_per_sample,
++              int sample_rate,
++              size_t number_of_channels,
++              size_t number_of_frames,
++              std::optional<int64_t> absolute_capture_timestamp_ms) override;
++
++  int NumPreferredChannels() const override;
++
++ private:
++  void EnsureBufferSize(JNIEnv* env, size_t size) const
++      RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
++
++  mutable webrtc::Mutex mutex_;
++  mutable std::unique_ptr<uint8_t[]> buffer_ RTC_GUARDED_BY(mutex_);
++  mutable size_t capacity_ RTC_GUARDED_BY(mutex_) = 0;
++  ScopedJavaGlobalRef<jobject> j_sink_;
++  ScopedJavaGlobalRef<jobject> j_track_;
++  mutable ScopedJavaGlobalRef<jobject> j_buffer_ RTC_GUARDED_BY(mutex_);
++};
++
++}  // namespace jni
++}  // namespace webrtc
++
++#endif  // SDK_ANDROID_SRC_JNI_PC_AUDIO_SINK_H_
++
+diff --git a/sdk/android/src/jni/pc/audio_track.cc b/sdk/android/src/jni/pc/audio_track.cc
+index a2048620b4..40aa358a9d 100644
+--- a/sdk/android/src/jni/pc/audio_track.cc
++++ b/sdk/android/src/jni/pc/audio_track.cc
+@@ -10,6 +10,9 @@
+ 
+ #include "api/media_stream_interface.h"
+ #include "sdk/android/generated_peerconnection_jni/AudioTrack_jni.h"
++#include "sdk/android/native_api/jni/scoped_java_ref.h"
++#include "sdk/android/src/jni/jni_helpers.h"
++#include "sdk/android/src/jni/pc/audio_sink.h"
+ 
+ namespace webrtc {
+ namespace jni {
+@@ -20,5 +23,30 @@ static void JNI_AudioTrack_SetVolume(JNIEnv*, jlong j_p, jdouble volume) {
+   source->SetVolume(volume);
+ }
+ 
++static void JNI_AudioTrack_AddSink(JNIEnv*,
++                                   jlong native_track,
++                                   jlong native_sink) {
++  reinterpret_cast<AudioTrackInterface*>(native_track)
++      ->AddSink(reinterpret_cast<AudioSinkBridge*>(native_sink));
++}
++
++static void JNI_AudioTrack_RemoveSink(JNIEnv*,
++                                      jlong native_track,
++                                      jlong native_sink) {
++  reinterpret_cast<AudioTrackInterface*>(native_track)
++      ->RemoveSink(reinterpret_cast<AudioSinkBridge*>(native_sink));
++}
++
++static jlong JNI_AudioTrack_WrapSink(
++    JNIEnv* env,
++    const JavaParamRef<jobject>& j_sink,
++    const JavaParamRef<jobject>& j_track) {
++  return jlongFromPointer(new AudioSinkBridge(env, j_sink, j_track));
++}
++
++static void JNI_AudioTrack_FreeSink(JNIEnv*, jlong native_sink) {
++  delete reinterpret_cast<AudioSinkBridge*>(native_sink);
++}
++
+ }  // namespace jni
+ }  // namespace webrtc

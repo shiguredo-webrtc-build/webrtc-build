@@ -293,6 +293,8 @@ PATCHES = {
         "fix_moved_function_call.patch",
         "remove_crel.patch",
         "revert_siso.patch",
+        "android_include_environment_java.patch",
+        "android_audio_sink.patch",
     ],
     "raspberry-pi-os_armv8": [
         "add_deps.patch",
