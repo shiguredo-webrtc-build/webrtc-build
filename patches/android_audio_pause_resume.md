@@ -36,7 +36,7 @@ PAUSED → STOPPED (stopRecording or エラー時)
 ```
 
 - startRecording() / stopRecording() / pauseRecording() / resumeRecording() それぞれの実行時に内部状態のチェック・更新を行います。
-- stopRecording() 内で実装されていた、stopAudioThread(...) を共通化し、pause/resume 失敗時にもスレッド停止・リソース解放を適切に行います。
+- libwebrtc の大元の実装変更時に追従しやすくするために、pauseRecording() / resumeRecording() における録音停止処理は stopRecording() の録音停止処理の実装を移植して実装しています。
 pause/resume 失敗時はエラーログに加えて STOPPED へ状態遷移させます。
 
 ### JNI／ネイティブ層の更新
