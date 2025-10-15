@@ -36,12 +36,12 @@ index dcdd999bf6..e177cc8f69 100644
        "api/org/webrtc/CandidatePairChangeEvent.java",
 diff --git a/sdk/android/api/org/webrtc/AudioSink.java b/sdk/android/api/org/webrtc/AudioSink.java
 new file mode 100644
-index 0000000000..14379daf09
+index 0000000000..773cdb9d1a
 --- /dev/null
 +++ b/sdk/android/api/org/webrtc/AudioSink.java
 @@ -0,0 +1,30 @@
 +/*
-+ *  Copyright 2024 The WebRTC project authors. All Rights Reserved.
++ *  Copyright 2025 The WebRTC project authors. All Rights Reserved.
 + *
 + *  Use of this source code is governed by a BSD-style license
 + *  that can be found in the LICENSE file in the root of the source
@@ -54,24 +54,24 @@ index 0000000000..14379daf09
 +
 +import java.nio.ByteBuffer;
 +
-+/** Interface for receiving raw PCM audio from {@link AudioTrack}. */
++/** AudioTrack から PCM オーディオを受け取るためのインターフェース。 */
 +public interface AudioSink {
 +  /**
-+   * Called from native audio threads with PCM16 data. Implementations should avoid heavy work and
-+   * offload processing to background threads when possible.
++   * ネイティブのオーディオスレッドから PCM16 データとともに呼び出されます。
++   * このコールバック内の処理はバックグラウンドスレッドにオフロードするようにしてください。
 +   */
 +  @CalledByNative
 +  void onData(AudioTrack audioTrack, ByteBuffer audioData, int bitsPerSample, int sampleRate,
 +      int numberOfChannels, int numberOfFrames);
 +
-+  /** Number of channels preferred by the sink. {@code -1} means no preference. */
++  /** チャンネル数。-1 は指定なしを意味します。 */
 +  @CalledByNative
 +  default int getPreferredNumberOfChannels() {
 +    return -1;
 +  }
 +}
 diff --git a/sdk/android/api/org/webrtc/AudioTrack.java b/sdk/android/api/org/webrtc/AudioTrack.java
-index ca745db634..5bda3e5cd4 100644
+index ca745db634..6eecbb462d 100644
 --- a/sdk/android/api/org/webrtc/AudioTrack.java
 +++ b/sdk/android/api/org/webrtc/AudioTrack.java
 @@ -10,12 +10,47 @@
@@ -88,7 +88,7 @@ index ca745db634..5bda3e5cd4 100644
      super(nativeTrack);
    }
  
-+  /** Adds an {@link AudioSink} to receive PCM data from this track. */
++  /** この AudioTrack から PCM データを受け取るための AudioSink を追加する */
 +  public void addSink(AudioSink sink) {
 +    if (sink == null) {
 +      throw new IllegalArgumentException("AudioSink must not be null");
@@ -100,7 +100,7 @@ index ca745db634..5bda3e5cd4 100644
 +    }
 +  }
 +
-+  /** Removes a previously registered {@link AudioSink}. */
++  /** AudioSink の登録を解除する */
 +  public void removeSink(AudioSink sink) {
 +    final Long nativeSink = sinks.remove(sink);
 +    if (nativeSink != null) {
@@ -131,6 +131,19 @@ index ca745db634..5bda3e5cd4 100644
 +  private static native void nativeRemoveSink(long audioTrackHandle, long sinkHandle);
 +  private static native void nativeFreeSink(long sink);
  }
+diff --git a/sdk/android/api/org/webrtc/WebrtcBuildVersion.java b/sdk/android/api/org/webrtc/WebrtcBuildVersion.java
+new file mode 100644
+index 0000000000..d518c49906
+--- /dev/null
++++ b/sdk/android/api/org/webrtc/WebrtcBuildVersion.java
+@@ -0,0 +1,7 @@
++package org.webrtc;
++public interface WebrtcBuildVersion {
++    public static final String webrtc_branch = "M141";
++    public static final String webrtc_commit = "3";
++    public static final String webrtc_revision = "d2eaa5570fc9959f8dbde32912a16366b8ee75f4";
++    public static final String maint_version = "0";
++}
 diff --git a/sdk/android/src/jni/pc/audio_sink.cc b/sdk/android/src/jni/pc/audio_sink.cc
 new file mode 100644
 index 0000000000..3594ded8d0
@@ -254,7 +267,7 @@ index 0000000000..3594ded8d0
 +}  // namespace webrtc
 diff --git a/sdk/android/src/jni/pc/audio_sink.h b/sdk/android/src/jni/pc/audio_sink.h
 new file mode 100644
-index 0000000000..987c348d17
+index 0000000000..73e19513a1
 --- /dev/null
 +++ b/sdk/android/src/jni/pc/audio_sink.h
 @@ -0,0 +1,61 @@
@@ -284,8 +297,8 @@ index 0000000000..987c348d17
 +namespace webrtc {
 +namespace jni {
 +
-+// JNI bridge that forwards webrtc::AudioTrackSinkInterface callbacks to
-+// org.webrtc.AudioSink on the Java side.
++// JNI ブリッジで AudioTrackSinkInterface のコールバックを
++// Java 側の org.webrtc.AudioSink に転送する
 +class AudioSinkBridge : public AudioTrackSinkInterface {
 + public:
 +  AudioSinkBridge(JNIEnv* env,
