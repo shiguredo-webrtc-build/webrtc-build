@@ -36,20 +36,10 @@ index dcdd999bf6..e177cc8f69 100644
        "api/org/webrtc/CandidatePairChangeEvent.java",
 diff --git a/sdk/android/api/org/webrtc/AudioSink.java b/sdk/android/api/org/webrtc/AudioSink.java
 new file mode 100644
-index 0000000000..773cdb9d1a
+index 0000000000..c198a0e295
 --- /dev/null
 +++ b/sdk/android/api/org/webrtc/AudioSink.java
-@@ -0,0 +1,30 @@
-+/*
-+ *  Copyright 2025 The WebRTC project authors. All Rights Reserved.
-+ *
-+ *  Use of this source code is governed by a BSD-style license
-+ *  that can be found in the LICENSE file in the root of the source
-+ *  tree. An additional intellectual property rights grant can be found
-+ *  in the file PATENTS.  All contributing project authors may
-+ *  be found in the AUTHORS file in the root of the source tree.
-+ */
-+
+@@ -0,0 +1,20 @@
 +package org.webrtc;
 +
 +import java.nio.ByteBuffer;
@@ -146,20 +136,10 @@ index 0000000000..d518c49906
 +}
 diff --git a/sdk/android/src/jni/pc/audio_sink.cc b/sdk/android/src/jni/pc/audio_sink.cc
 new file mode 100644
-index 0000000000..3594ded8d0
+index 0000000000..055c853501
 --- /dev/null
 +++ b/sdk/android/src/jni/pc/audio_sink.cc
-@@ -0,0 +1,115 @@
-+/*
-+ *  Copyright 2024 The WebRTC project authors. All Rights Reserved.
-+ *
-+ *  Use of this source code is governed by a BSD-style license
-+ *  that can be found in the LICENSE file in the root of the source
-+ *  tree. An additional intellectual property rights grant can be found
-+ *  in the file PATENTS.  All contributing project authors may
-+ *  be found in the AUTHORS file in the root of the source tree.
-+ */
-+
+@@ -0,0 +1,105 @@
 +#include "sdk/android/src/jni/pc/audio_sink.h"
 +
 +#include <cstring>
@@ -267,20 +247,10 @@ index 0000000000..3594ded8d0
 +}  // namespace webrtc
 diff --git a/sdk/android/src/jni/pc/audio_sink.h b/sdk/android/src/jni/pc/audio_sink.h
 new file mode 100644
-index 0000000000..73e19513a1
+index 0000000000..744cf7a28a
 --- /dev/null
 +++ b/sdk/android/src/jni/pc/audio_sink.h
-@@ -0,0 +1,61 @@
-+/*
-+ *  Copyright 2024 The WebRTC project authors. All Rights Reserved.
-+ *
-+ *  Use of this source code is governed by a BSD-style license
-+ *  that can be found in the LICENSE file in the root of the source
-+ *  tree. An additional intellectual property rights grant can be found
-+ *  in the file PATENTS.  All contributing project authors may
-+ *  be found in the AUTHORS file in the root of the source tree.
-+ */
-+
+@@ -0,0 +1,51 @@
 +#ifndef SDK_ANDROID_SRC_JNI_PC_AUDIO_SINK_H_
 +#define SDK_ANDROID_SRC_JNI_PC_AUDIO_SINK_H_
 +
