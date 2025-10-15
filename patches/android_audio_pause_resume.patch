@@ -32,7 +32,7 @@ index bbf1c3a753..cfc3c8b623 100644
    public boolean setNoiseSuppressorEnabled(boolean enabled) {
      Logging.d(TAG, "setNoiseSuppressorEnabled: " + enabled);
 diff --git a/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java b/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
-index ac62308aa3..573893cb1d 100644
+index ac62308aa3..7fb3cc272a 100644
 --- a/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
 +++ b/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
 @@ -79,6 +79,13 @@ class WebRtcAudioRecord {
@@ -90,7 +90,7 @@ index ac62308aa3..573893cb1d 100644
      assertTrue(audioThread != null);
      if (future != null) {
        if (!future.isDone()) {
-@@ -414,6 +435,89 @@ class WebRtcAudioRecord {
+@@ -414,6 +435,93 @@ class WebRtcAudioRecord {
      audioThread = null;
      effects.release();
      releaseAudioResources();
@@ -145,6 +145,10 @@ index ac62308aa3..573893cb1d 100644
 +      return false;
 +    }
 +    assertTrue(audioThread == null);
++    // 録画開始処理は startRecording() での処理に準拠する
++    // 以下は startRecording() との差異点
++    // - audioRecord.startRecording() 失敗時はエラーログ出力に加えて、リソース解放を行い、recordingState を STOPPED に変更する
++    // - audioRecord.getRecordingState() の状態不整合時はエラーログ出力に加えて、リソース解放を行い、recordingState を STOPPED に変更する
 +    try {
 +      audioRecord.startRecording();
 +    } catch (IllegalStateException e) {

@@ -35,15 +35,15 @@ RECORDING → STOPPED (stopRecording)
 PAUSED → STOPPED (stopRecording or エラー時)
 ```
 
-- startRecording() / stopRecording() / pauseRecording() / resumeRecording() それぞれの実行時に内部状態のチェック・更新を行います。
-- libwebrtc の大元の変更時に追従しやすくするために、以下の箇所は既存処理をほぼそのまま移植しています
-  - pauseRecording() の停止処理 -> stopRecording() の録音停止処理
-  - resumeRecording() の録音再開処理 -> startRecording() の録音開始処理。録音再開失敗時のフォールバックとして stopRecording() の録音停止処理
-- pause/resume 失敗時はエラーログに加えて STOPPED へ状態遷移させます。
+- startRecording() では録音開始成功時、RECORDING への状態の更新を行います。
+- stopRecording() ではリソース開放後、STOPPED への状態の更新を行います。
+- pauseRecording() では stopRecording() の処理と同様に audioThread の停止、PAUSED への状態の更新を行います。リソース解放は行いません。
+- resumeRecording() では startRecording() の処理と同様に、audioRecord.startRecording() の実行と、audioThread の生成と開始を行います。
+  - audioRecord.startRecording() の失敗(IllegalStateException)、または audioRecord.getRecordingState() が意図しない値だった場合のエラーハンドリングを startRecording() と同様に行いますが、追加でリソースの解放と STOPPED への状態の更新を行います。
 
 ### Android からの呼び出し経路
 
-以下はpause の場合。resume においても同様の経路となります。
+以下は pause の場合。resume においても同様の経路となります。
 
 1. Java: JavaAudioDeviceModule.pauseRecording()
 2. Java: WebRtcAudioRecord.pauseRecording()
