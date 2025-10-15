@@ -1,5 +1,5 @@
 diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
-index d5ae419ec6..098e173887 100644
+index dcdd999bf6..e177cc8f69 100644
 --- a/sdk/android/BUILD.gn
 +++ b/sdk/android/BUILD.gn
 @@ -287,6 +287,7 @@ if (is_android) {
@@ -10,7 +10,7 @@ index d5ae419ec6..098e173887 100644
        "api/org/webrtc/AudioProcessingFactory.java",
        "api/org/webrtc/AudioSource.java",
        "api/org/webrtc/AudioTrack.java",
-@@ -781,6 +782,7 @@ if (current_os == "linux" || is_android) {
+@@ -787,6 +788,7 @@ if (current_os == "linux" || is_android) {
        "src/jni/pc/add_ice_candidate_observer.cc",
        "src/jni/pc/add_ice_candidate_observer.h",
        "src/jni/pc/android_network_monitor.h",
@@ -18,7 +18,7 @@ index d5ae419ec6..098e173887 100644
        "src/jni/pc/audio_track.cc",
        "src/jni/pc/call_session_file_rotating_log_sink.cc",
        "src/jni/pc/crypto_options.cc",
-@@ -884,6 +886,7 @@ if (current_os == "linux" || is_android) {
+@@ -905,6 +907,7 @@ if (current_os == "linux" || is_android) {
        "../../rtc_base:ssl",
        "../../rtc_base:stringutils",
        "../../rtc_base:threading",
@@ -26,7 +26,7 @@ index d5ae419ec6..098e173887 100644
        "../../stats:rtc_stats",
        "../../system_wrappers:field_trial",
        "//third_party/abseil-cpp/absl/memory",
-@@ -1503,6 +1506,7 @@ if (current_os == "linux" || is_android) {
+@@ -1534,6 +1537,7 @@ if (current_os == "linux" || is_android) {
    generate_jni("generated_peerconnection_jni") {
      sources = [
        "api/org/webrtc/AddIceObserver.java",
@@ -133,10 +133,10 @@ index ca745db634..5bda3e5cd4 100644
  }
 diff --git a/sdk/android/src/jni/pc/audio_sink.cc b/sdk/android/src/jni/pc/audio_sink.cc
 new file mode 100644
-index 0000000000..285ae02c17
+index 0000000000..3594ded8d0
 --- /dev/null
 +++ b/sdk/android/src/jni/pc/audio_sink.cc
-@@ -0,0 +1,71 @@
+@@ -0,0 +1,115 @@
 +/*
 + *  Copyright 2024 The WebRTC project authors. All Rights Reserved.
 + *
@@ -150,6 +150,7 @@ index 0000000000..285ae02c17
 +#include "sdk/android/src/jni/pc/audio_sink.h"
 +
 +#include <cstring>
++#include <limits>
 +
 +#include "rtc_base/checks.h"
 +#include "sdk/android/generated_peerconnection_jni/AudioSink_jni.h"
@@ -157,6 +158,49 @@ index 0000000000..285ae02c17
 +
 +namespace webrtc {
 +namespace jni {
++
++namespace {
++
++// direct ByteBuffer は Java オブジェクトであるため、C++ 側で limit/position の更新を行うには
++// JNI 経由で Buffer API を呼ぶ必要がある。
++// このヘルパーにメソッド ID のキャッシュと境界リセット処理を集約し、フレームごとに
++// 再利用するバッファの有効長を常に正しく反映させる。
++void ResetByteBufferBounds(JNIEnv* env,
++                           const ScopedJavaLocalRef<jobject>& buffer,
++                           size_t valid_byte_count) {
++  // 再利用している direct ByteBuffer の limit/position を都度更新し、Java 側で有効データ長のみ参照できるようにする。
++  RTC_CHECK(buffer.obj());
++  RTC_CHECK_LE(valid_byte_count,
++               static_cast<size_t>(std::numeric_limits<jint>::max()));
++
++  static jclass buffer_class = nullptr;
++  static jmethodID limit_method = nullptr;
++  static jmethodID position_method = nullptr;
++
++  if (!buffer_class) {
++    jclass local_class = env->FindClass("java/nio/Buffer");
++    RTC_CHECK(local_class);
++    buffer_class =
++        static_cast<jclass>(env->NewGlobalRef(local_class));
++    env->DeleteLocalRef(local_class);
++    RTC_CHECK(buffer_class);
++    limit_method =
++        env->GetMethodID(buffer_class, "limit", "(I)Ljava/nio/Buffer;");
++    RTC_CHECK(limit_method);
++    position_method =
++        env->GetMethodID(buffer_class, "position", "(I)Ljava/nio/Buffer;");
++    RTC_CHECK(position_method);
++  }
++
++  ScopedJavaLocalRef<jobject> limit_ref(
++      env, env->CallObjectMethod(buffer.obj(), limit_method,
++                                 static_cast<jint>(valid_byte_count)));
++  ScopedJavaLocalRef<jobject> position_ref(
++      env, env->CallObjectMethod(buffer.obj(), position_method, 0));
++  RTC_CHECK(!env->ExceptionCheck());
++}
++
++}  // namespace
 +
 +AudioSinkBridge::AudioSinkBridge(JNIEnv* env,
 +                                 const JavaRef<jobject>& j_sink,
@@ -195,6 +239,7 @@ index 0000000000..285ae02c17
 +  void* direct_ptr = env->GetDirectBufferAddress(buffer.obj());
 +  RTC_CHECK(direct_ptr);
 +  std::memcpy(direct_ptr, audio_data, byte_size);
++  ResetByteBufferBounds(env, buffer, byte_size);
 +  Java_AudioSink_onData(env, j_sink_, j_track_, buffer, bits_per_sample,
 +                        sample_rate, static_cast<int>(number_of_channels),
 +                        static_cast<int>(number_of_frames));
@@ -207,7 +252,6 @@ index 0000000000..285ae02c17
 +
 +}  // namespace jni
 +}  // namespace webrtc
-+
 diff --git a/sdk/android/src/jni/pc/audio_sink.h b/sdk/android/src/jni/pc/audio_sink.h
 new file mode 100644
 index 0000000000..987c348d17
@@ -276,12 +320,12 @@ index 0000000000..987c348d17
 +#endif  // SDK_ANDROID_SRC_JNI_PC_AUDIO_SINK_H_
 +
 diff --git a/sdk/android/src/jni/pc/audio_track.cc b/sdk/android/src/jni/pc/audio_track.cc
-index a2048620b4..40aa358a9d 100644
+index 1ec0f44e95..6a056cb8ea 100644
 --- a/sdk/android/src/jni/pc/audio_track.cc
 +++ b/sdk/android/src/jni/pc/audio_track.cc
-@@ -10,6 +10,9 @@
- 
+@@ -13,6 +13,9 @@
  #include "api/media_stream_interface.h"
+ #include "api/scoped_refptr.h"
  #include "sdk/android/generated_peerconnection_jni/AudioTrack_jni.h"
 +#include "sdk/android/native_api/jni/scoped_java_ref.h"
 +#include "sdk/android/src/jni/jni_helpers.h"
@@ -289,7 +333,7 @@ index a2048620b4..40aa358a9d 100644
  
  namespace webrtc {
  namespace jni {
-@@ -20,5 +23,30 @@ static void JNI_AudioTrack_SetVolume(JNIEnv*, jlong j_p, jdouble volume) {
+@@ -23,5 +26,30 @@ static void JNI_AudioTrack_SetVolume(JNIEnv*, jlong j_p, jdouble volume) {
    source->SetVolume(volume);
  }
  
