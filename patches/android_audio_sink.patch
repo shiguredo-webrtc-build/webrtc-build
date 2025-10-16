@@ -136,10 +136,10 @@ index 0000000000..d518c49906
 +}
 diff --git a/sdk/android/src/jni/pc/audio_sink.cc b/sdk/android/src/jni/pc/audio_sink.cc
 new file mode 100644
-index 0000000000..055c853501
+index 0000000000..307219a2d3
 --- /dev/null
 +++ b/sdk/android/src/jni/pc/audio_sink.cc
-@@ -0,0 +1,105 @@
+@@ -0,0 +1,109 @@
 +#include "sdk/android/src/jni/pc/audio_sink.h"
 +
 +#include <cstring>
@@ -195,6 +195,8 @@ index 0000000000..055c853501
 +
 +}  // namespace
 +
++// Java 側の AudioSink インターフェースと WebRTC の AudioTrack を橋渡しするブリッジ。
++// AudioTrackSourceInterface::Observer から提供される PCM データを JNI 経由で AudioSink#onData に引き渡す。
 +AudioSinkBridge::AudioSinkBridge(JNIEnv* env,
 +                                 const JavaRef<jobject>& j_sink,
 +                                 const JavaRef<jobject>& j_track)
@@ -207,6 +209,7 @@ index 0000000000..055c853501
 +    return;
 +  }
 +
++  // JNI 側で再利用する direct ByteBuffer を必要サイズまで拡張し、ネイティブ側のバッファと同期させる。
 +  buffer_ = std::make_unique<uint8_t[]>(size);
 +  capacity_ = size;
 +
@@ -227,6 +230,7 @@ index 0000000000..055c853501
 +      number_of_frames * number_of_channels * (bits_per_sample / 8);
 +
 +  webrtc::MutexLock lock(&mutex_);
++  // AudioSink#onData へ渡す前に direct ByteBuffer の実体と境界を更新し、Java 側が連続した PCM データを安全に参照できるようにする。
 +  EnsureBufferSize(env, byte_size);
 +  ScopedJavaLocalRef<jobject> buffer(env, j_buffer_);
 +  void* direct_ptr = env->GetDirectBufferAddress(buffer.obj());
