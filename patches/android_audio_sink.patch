@@ -183,7 +183,7 @@ index 0000000000..307219a2d3
 +}  // namespace
 +
 +// Java 側の AudioSink インターフェースと WebRTC の AudioTrack を橋渡しするブリッジ。
-+// AudioTrackSourceInterface::Observer から提供される PCM データを JNI 経由で AudioSink#onData に引き渡す。
++// AudioTrackSourceInterface から提供される PCM データを JNI 経由で AudioSink#onData に引き渡す。
 +AudioSinkBridge::AudioSinkBridge(JNIEnv* env,
 +                                 const JavaRef<jobject>& j_sink,
 +                                 const JavaRef<jobject>& j_track)
