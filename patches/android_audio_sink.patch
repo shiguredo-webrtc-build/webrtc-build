@@ -36,12 +36,13 @@ index dcdd999bf6..e177cc8f69 100644
        "api/org/webrtc/CandidatePairChangeEvent.java",
 diff --git a/sdk/android/api/org/webrtc/AudioSink.java b/sdk/android/api/org/webrtc/AudioSink.java
 new file mode 100644
-index 0000000000..c198a0e295
+index 0000000000..b379b88d9d
 --- /dev/null
 +++ b/sdk/android/api/org/webrtc/AudioSink.java
-@@ -0,0 +1,20 @@
+@@ -0,0 +1,23 @@
 +package org.webrtc;
 +
++import androidx.annotation.Nullable;
 +import java.nio.ByteBuffer;
 +
 +/** AudioTrack から PCM オーディオを受け取るためのインターフェース。 */
@@ -49,10 +50,12 @@ index 0000000000..c198a0e295
 +  /**
 +   * ネイティブのオーディオスレッドから PCM16 データとともに呼び出されます。
 +   * このコールバック内の処理はバックグラウンドスレッドにオフロードするようにしてください。
++   * {@code absoluteCaptureTimestampMs} は入力元が提供する絶対キャプチャタイムスタンプで、未設定の場合は
++   * {@code null} が渡されます。
 +   */
 +  @CalledByNative
 +  void onData(AudioTrack audioTrack, ByteBuffer audioData, int bitsPerSample, int sampleRate,
-+      int numberOfChannels, int numberOfFrames);
++      int numberOfChannels, int numberOfFrames, @Nullable Long absoluteCaptureTimestampMs);
 +
 +  /** チャンネル数。-1 は指定なしを意味します。 */
 +  @CalledByNative
@@ -123,10 +126,10 @@ index ca745db634..6eecbb462d 100644
  }
 diff --git a/sdk/android/src/jni/pc/audio_sink.cc b/sdk/android/src/jni/pc/audio_sink.cc
 new file mode 100644
-index 0000000000..307219a2d3
+index 0000000000..e9dcbe0ea1
 --- /dev/null
 +++ b/sdk/android/src/jni/pc/audio_sink.cc
-@@ -0,0 +1,109 @@
+@@ -0,0 +1,117 @@
 +#include "sdk/android/src/jni/pc/audio_sink.h"
 +
 +#include <cstring>
@@ -134,6 +137,7 @@ index 0000000000..307219a2d3
 +
 +#include "rtc_base/checks.h"
 +#include "sdk/android/generated_peerconnection_jni/AudioSink_jni.h"
++#include "sdk/android/native_api/jni/java_types.h"
 +#include "sdk/android/native_api/jni/jvm.h"
 +
 +namespace webrtc {
@@ -206,15 +210,21 @@ index 0000000000..307219a2d3
 +  j_buffer_.Reset(env, buffer);
 +}
 +
-+void AudioSinkBridge::OnData(const void* audio_data,
-+                             int bits_per_sample,
-+                             int sample_rate,
-+                             size_t number_of_channels,
-+                             size_t number_of_frames,
-+                             std::optional<int64_t>) {
++void AudioSinkBridge::OnData(
++    const void* audio_data,
++    int bits_per_sample,
++    int sample_rate,
++    size_t number_of_channels,
++    size_t number_of_frames,
++    std::optional<int64_t> absolute_capture_timestamp_ms) {
 +  JNIEnv* env = AttachCurrentThreadIfNeeded();
 +  const size_t byte_size =
 +      number_of_frames * number_of_channels * (bits_per_sample / 8);
++  ScopedJavaLocalRef<jobject> capture_timestamp;
++  if (absolute_capture_timestamp_ms.has_value()) {
++    capture_timestamp =
++        NativeToJavaLong(env, *absolute_capture_timestamp_ms);
++  }
 +
 +  webrtc::MutexLock lock(&mutex_);
 +  // AudioSink#onData へ渡す前に direct ByteBuffer の実体と境界を更新し、Java 側が連続した PCM データを安全に参照できるようにする。
@@ -226,7 +236,8 @@ index 0000000000..307219a2d3
 +  ResetByteBufferBounds(env, buffer, byte_size);
 +  Java_AudioSink_onData(env, j_sink_, j_track_, buffer, bits_per_sample,
 +                        sample_rate, static_cast<int>(number_of_channels),
-+                        static_cast<int>(number_of_frames));
++                        static_cast<int>(number_of_frames),
++                        capture_timestamp);
 +}
 +
 +int AudioSinkBridge::NumPreferredChannels() const {
