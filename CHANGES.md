@@ -31,7 +31,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 - 2025-10-02 [ADD] Android SDK の JavaAudioDeviceModule に公開 API として pauseRecording()/resumeRecording() を追加する
   - Android 実機のマイクインジケータが消灯状態のミュートをできるようにする
-  - 呼び出し先として録画処理を行う WebRtcAudioRecord に以下の機能を追加する
+  - 呼び出し先として録音処理を行う WebRtcAudioRecord に以下の機能を追加する
     - 録音状態管理用に RecordingState Enum と recordingState プロパティを追加する
     - pauseRecording()/resumeRecording() メソッドを追加する
     - startRecording()/stopRecording() メソッド内に recordingState を更新する処理を追加する
