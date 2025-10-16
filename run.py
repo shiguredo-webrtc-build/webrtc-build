@@ -295,6 +295,7 @@ PATCHES = {
         "remove_crel.patch",
         "revert_siso.patch",
         "android_include_environment_java.patch",
+        "android_audio_pause_resume.patch",
     ],
     "raspberry-pi-os_armv8": [
         "add_deps.patch",
@@ -364,6 +365,15 @@ PATCHES = {
     ],
 }
 
+# パッチ適用および差分表示で無視したいファイルは以下に追加する
+GIT_ADD_EXCLUDES = [
+    ":!*.orig",
+    ":!*.rej",
+    ":!:__config_site",
+    ":!:__assertion_handler",
+    ":!:sdk/android/api/org/webrtc/WebrtcBuildVersion.java",
+]
+
 
 def apply_patch(patch, dir, depth):
     with cd(dir):
@@ -412,19 +422,7 @@ def apply_patches(target, patch_dir, src_dir, patch_until, commit_patch):
             apply_patch(os.path.join(patch_dir, patch), src_dir, 1)
             if patch == patch_until and not commit_patch:
                 break
-            cmd(
-                [
-                    "gclient",
-                    "recurse",
-                    "git",
-                    "add",
-                    "--",
-                    ":!*.orig",
-                    ":!*.rej",
-                    ":!:__config_site",
-                    ":!:__assertion_handler",
-                ]
-            )
+            cmd(["gclient", "recurse", "git", "add", "--", *GIT_ADD_EXCLUDES])
             cmd(
                 [
                     "gclient",
@@ -527,20 +525,8 @@ def diff_webrtc(source_dir, webrtc_source_dir):
 
     src_dir = os.path.join(webrtc_source_dir, "src")
     with cd(src_dir):
-        cmd(
-            [
-                "gclient",
-                "recurse",
-                "git",
-                "add",
-                "-N",
-                "--",
-                ":!*.orig",
-                ":!*.rej",
-                ":!:__config_site",
-                ":!:__assertion_handler",
-            ]
-        )
+        cmd(["gclient", "recurse", "git", "add", "-N", "--", *GIT_ADD_EXCLUDES])
+
         dirs = _deps_dirs(src_dir)
         for dir in dirs:
             with cd(dir):
