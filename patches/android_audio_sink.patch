@@ -121,19 +121,6 @@ index ca745db634..6eecbb462d 100644
 +  private static native void nativeRemoveSink(long audioTrackHandle, long sinkHandle);
 +  private static native void nativeFreeSink(long sink);
  }
-diff --git a/sdk/android/api/org/webrtc/WebrtcBuildVersion.java b/sdk/android/api/org/webrtc/WebrtcBuildVersion.java
-new file mode 100644
-index 0000000000..d518c49906
---- /dev/null
-+++ b/sdk/android/api/org/webrtc/WebrtcBuildVersion.java
-@@ -0,0 +1,7 @@
-+package org.webrtc;
-+public interface WebrtcBuildVersion {
-+    public static final String webrtc_branch = "M141";
-+    public static final String webrtc_commit = "3";
-+    public static final String webrtc_revision = "d2eaa5570fc9959f8dbde32912a16366b8ee75f4";
-+    public static final String maint_version = "0";
-+}
 diff --git a/sdk/android/src/jni/pc/audio_sink.cc b/sdk/android/src/jni/pc/audio_sink.cc
 new file mode 100644
 index 0000000000..307219a2d3
