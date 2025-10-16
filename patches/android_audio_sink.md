@@ -58,3 +58,22 @@ audioTrack.removeSink(sink)
 - `onData()` のコールバック中は PCM データの所有権が JNI 側にあるため、必要であればバッファ内容を別領域へコピーしてから非同期処理に渡す。
 - `getPreferredNumberOfChannels()` が `-1` を返す場合は「制約なし」を意味し、既存のチャンネル数がそのまま渡される。
 
+## 付録
+
+### `org.webrtc.AudioSink` の `onData()` 呼び出しシーケンス
+
+※ この処理シーケンスはパッチで追加されたものではなく、libwebrtc に元々実装されている AudioSink の onData() 処理シーケンスを説明したもの
+
+1. アプリ側で `AudioTrack.addSink()` を呼ぶと、Java 層から JNI を経由して `AudioSinkBridge` が生成され、C++ の `AudioTrackInterface::AddSink()` に登録される。
+   - 参照: `sdk/android/api/org/webrtc/AudioTrack.java`, `sdk/android/src/jni/pc/audio_track.cc`
+2. リモートトラックの場合、`AudioRtpReceiver` が内部で `RemoteAudioSource` を生成し、メディアチャネルへ `AudioDataProxy` を生 PCM 受信用シンクとして登録する。
+   - 参照: `pc/audio_rtp_receiver.cc`, `pc/remote_audio_source.cc`
+3. メディアチャネル (`WebRtcVoiceReceiveChannel`) は受信ストリーム (`WebRtcAudioReceiveStream`) の `SetRawAudioSink()` を通じて、音声デコーダーチャネル (`ChannelReceive`) に `AudioSinkInterface` を設定する。
+   - 参照: `media/engine/webrtc_voice_engine.cc`, `audio/audio_receive_stream.cc`, `audio/channel_receive.cc`
+4. ネットワークから復号されたフレームが `ChannelReceive::GetAudioFrameWithInfo()` に到達すると、設定済みの `AudioSinkInterface` に `AudioSinkInterface::Data` を渡す。
+   - 参照: `audio/channel_receive.cc`
+5. `AudioDataProxy::OnData()` が `RemoteAudioSource::OnData()` を呼び出し、登録されている各 `AudioTrackSinkInterface`（ここでは `AudioSinkBridge`）へ PCM16 データをファンアウトする。
+   - 参照: `pc/remote_audio_source.cc`
+6. `AudioSinkBridge::OnData()` が JNI を通じて Java の `AudioSink.onData()` を呼び、Direct ByteBuffer にコピーした PCM データとメタ情報（ビット深度、サンプルレート、チャンネル数、フレーム数）を渡す。
+   - 参照: `sdk/android/src/jni/pc/audio_sink.cc`, `sdk/android/api/org/webrtc/AudioSink.java`
+
