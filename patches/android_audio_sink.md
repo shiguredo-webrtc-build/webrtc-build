@@ -49,14 +49,22 @@ val sink = object : AudioSink {
   override fun getPreferredNumberOfChannels(): Int = 1 // 例: モノラルが欲しい場合
 }
 
+// AudioTrack に AudioSink を紐づける
 audioTrack.addSink(sink)
 
-// 不要になったら必ず removeSink() するか、audioTrack.dispose() 実行前に解除する。
+// 不要になったら removeSink() で AudioTrack から AudioSink を外す。
 audioTrack.removeSink(sink)
 ```
 
 - `onData()` のコールバック中は PCM データの所有権が JNI 側にあるため、必要であればバッファ内容を別領域へコピーしてから非同期処理に渡す。
 - `getPreferredNumberOfChannels()` が `-1` を返す場合は「制約なし」を意味し、既存のチャンネル数がそのまま渡される。
+
+## AudioTrack と AudioSink の紐づけについて
+
+- 同じ `AudioSink` インスタンスを複数の `AudioTrack` に登録することも可能で、その場合はトラックごとに別の `AudioSinkBridge` が生成され、それぞれ対応する `AudioTrackInterface` に紐づく。
+- `onData()` には必ず送信元の `AudioTrack` が引数で渡されるため、共有シンクを使うときは `audioTrack == myTrack` や `audioTrack.id()` で送信元を判別可能。
+- 1 つの `AudioSink` を複数の `AudioTrack` に共有するとバッファをまとめて扱える反面、トラックごとの排他制御や状態管理を自前で持つ必要がある。
+- 処理をトラック単位で分けたい、あるいはスレッド干渉を避けたい場合は各 `AudioTrack` 専用に `AudioSink` を用意する方がシンプル。
 
 ## 付録
 
@@ -76,4 +84,3 @@ audioTrack.removeSink(sink)
    - 参照: `pc/remote_audio_source.cc`
 6. `AudioSinkBridge::OnData()` が JNI を通じて Java の `AudioSink.onData()` を呼び、Direct ByteBuffer にコピーした PCM データとメタ情報（ビット深度、サンプルレート、チャンネル数、フレーム数）を渡す。
    - 参照: `sdk/android/src/jni/pc/audio_sink.cc`, `sdk/android/api/org/webrtc/AudioSink.java`
-
