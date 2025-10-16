@@ -36,10 +36,10 @@ index dcdd999bf6..e177cc8f69 100644
        "api/org/webrtc/CandidatePairChangeEvent.java",
 diff --git a/sdk/android/api/org/webrtc/AudioSink.java b/sdk/android/api/org/webrtc/AudioSink.java
 new file mode 100644
-index 0000000000..b379b88d9d
+index 0000000000..709cf8b49d
 --- /dev/null
 +++ b/sdk/android/api/org/webrtc/AudioSink.java
-@@ -0,0 +1,23 @@
+@@ -0,0 +1,30 @@
 +package org.webrtc;
 +
 +import androidx.annotation.Nullable;
@@ -50,8 +50,15 @@ index 0000000000..b379b88d9d
 +  /**
 +   * ネイティブのオーディオスレッドから PCM16 データとともに呼び出されます。
 +   * このコールバック内の処理はバックグラウンドスレッドにオフロードするようにしてください。
-+   * {@code absoluteCaptureTimestampMs} は入力元が提供する絶対キャプチャタイムスタンプで、未設定の場合は
-+   * {@code null} が渡されます。
++   *
++   * @param audioTrack 呼び出し元の AudioTrack。
++   * @param audioData リトルエンディアンの PCM16 サンプルが格納された ByteBuffer。
++   * @param bitsPerSample サンプル当たりのビット数 (例: 16)。
++   * @param sampleRate サンプルレート (単位: Hz)。
++   * @param numberOfChannels チャンネル数。
++   * @param numberOfFrames {@code audioData} に含まれるフレーム数。
++   * @param absoluteCaptureTimestampMs 入力元が提供する絶対キャプチャタイムスタンプ。未設定の場合は
++   *     {@code null}。
 +   */
 +  @CalledByNative
 +  void onData(AudioTrack audioTrack, ByteBuffer audioData, int bitsPerSample, int sampleRate,
