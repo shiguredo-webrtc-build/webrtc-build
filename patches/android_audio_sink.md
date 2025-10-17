@@ -21,7 +21,7 @@ Android SDK 向けに AudioSink 機能を追加するパッチである、`andro
 - `sdk/android/src/jni/pc/audio_sink.{h,cc}` を追加し、`AudioTrackSinkInterface` から Java の `AudioSink` へ PCM データを転送する `AudioSinkBridge` を定義する。
 - `sdk/android/src/jni/pc/audio_track.cc` に JNI 関数を追加し、Java 側の `AudioTrack` からネイティブブリッジを作成・破棄できるようにする。
 
-## 実装のポイント
+### 実装のポイント
 
 - `AudioSinkBridge` は音声スレッド上で呼ばれるため、`webrtc::Mutex` で内部バッファを保護しながら `std::unique_ptr<uint8_t[]>` を再利用する。
   - `EnsureBufferSize()` で必要なサイズに合わせて Direct ByteBuffer を確保し直し、毎フレームの確保コストを最小化する。
@@ -30,7 +30,7 @@ Android SDK 向けに AudioSink 機能を追加するパッチである、`andro
 - `AudioTrack.dispose()` は登録済みのすべてのネイティブブリッジを解放し、C++ 側の参照リークを防ぐ。
 - `IdentityHashMap` を利用することで、`equals()` をオーバーライドした `AudioSink` 実装でも同一インスタンスの重複登録/解除を正しく扱える。
 
-## 利用方法
+## AudioSink 利用方法
 
 ```kotlin
 val audioTrack: AudioTrack = /* MediaStream などから取得 */
