@@ -161,7 +161,7 @@ python3 run.py diff <target>
 
 1. `python3 run.py revert <target>` コマンドでソースを綺麗にする
 2. libwebrtc のソースを編集する
-3. `python3 run.py diff <target>` コマンドで差分を確認した後、問題なければ `python3 run.py diff <target> > <patch>` でパッチをファイルに出力する
+3. `python3 run.py diff <target>` コマンドで差分を確認した後、問題なければ `python3 run.py diff <target> > <patch>` で `<patch>` ファイル名でパッチを標準出力リダイレクトで生成する
 4. run.py の PATCHES に追加したパッチを最後に付け加える
 5. `python3 run.py revert <target>` でパッチが正しく適用されているか確認する
 
