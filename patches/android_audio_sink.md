@@ -41,8 +41,7 @@ val sink = object : AudioSink {
     bitsPerSample: Int,
     sampleRate: Int,
     numberOfChannels: Int,
-    numberOfFrames: Int,
-    absoluteCaptureTimestampMs: Long?
+    numberOfFrames: Int
   ) {
     // audioData は PCM16LE。重たい処理は別スレッドへ渡すこと。
   }

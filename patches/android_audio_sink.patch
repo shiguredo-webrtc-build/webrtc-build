@@ -36,13 +36,12 @@ index dcdd999bf6..e177cc8f69 100644
        "api/org/webrtc/CandidatePairChangeEvent.java",
 diff --git a/sdk/android/api/org/webrtc/AudioSink.java b/sdk/android/api/org/webrtc/AudioSink.java
 new file mode 100644
-index 0000000000..4cd8a50432
+index 0000000000..46cee75692
 --- /dev/null
 +++ b/sdk/android/api/org/webrtc/AudioSink.java
-@@ -0,0 +1,31 @@
+@@ -0,0 +1,27 @@
 +package org.webrtc;
 +
-+import androidx.annotation.Nullable;
 +import java.nio.ByteBuffer;
 +
 +/** AudioTrack から PCM オーディオを受け取るためのインターフェース。 */
@@ -57,13 +56,10 @@ index 0000000000..4cd8a50432
 +   * @param sampleRate サンプルレート (単位: Hz)。
 +   * @param numberOfChannels チャンネル数。
 +   * @param numberOfFrames {@code audioData} に含まれるフレーム数。
-+   * @param absoluteCaptureTimestampMs Absolute Capture Timestamp。未設定の場合は
-+   *     {@code null}。ローカルの AudioTrack に紐づく場合のみ値が設定され、リモート
-+   *     トラックでは常に {@code null} になります。
 +   */
 +  @CalledByNative
 +  void onData(AudioTrack audioTrack, ByteBuffer audioData, int bitsPerSample, int sampleRate,
-+      int numberOfChannels, int numberOfFrames, @Nullable Long absoluteCaptureTimestampMs);
++      int numberOfChannels, int numberOfFrames);
 +
 +  /** チャンネル数。-1 は指定なしを意味します。 */
 +  @CalledByNative
@@ -134,10 +130,10 @@ index ca745db634..6eecbb462d 100644
  }
 diff --git a/sdk/android/src/jni/pc/audio_sink.cc b/sdk/android/src/jni/pc/audio_sink.cc
 new file mode 100644
-index 0000000000..352fb3b923
+index 0000000000..bdbc971f14
 --- /dev/null
 +++ b/sdk/android/src/jni/pc/audio_sink.cc
-@@ -0,0 +1,118 @@
+@@ -0,0 +1,109 @@
 +#include "sdk/android/src/jni/pc/audio_sink.h"
 +
 +#include <cstring>
@@ -145,7 +141,6 @@ index 0000000000..352fb3b923
 +
 +#include "rtc_base/checks.h"
 +#include "sdk/android/generated_peerconnection_jni/AudioSink_jni.h"
-+#include "sdk/android/native_api/jni/java_types.h"
 +#include "sdk/android/native_api/jni/jvm.h"
 +
 +namespace webrtc {
@@ -218,21 +213,14 @@ index 0000000000..352fb3b923
 +  j_buffer_.Reset(env, buffer);
 +}
 +
-+void AudioSinkBridge::OnData(
-+    const void* audio_data,
-+    int bits_per_sample,
-+    int sample_rate,
-+    size_t number_of_channels,
-+    size_t number_of_frames,
-+    std::optional<int64_t> absolute_capture_timestamp_ms) {
++void AudioSinkBridge::OnData(const void* audio_data,
++                             int bits_per_sample,
++                             int sample_rate,
++                             size_t number_of_channels,
++                             size_t number_of_frames) {
 +  JNIEnv* env = AttachCurrentThreadIfNeeded();
 +  const size_t byte_size =
 +      number_of_frames * number_of_channels * (bits_per_sample / 8);
-+  ScopedJavaLocalRef<jobject> capture_timestamp;
-+  if (absolute_capture_timestamp_ms.has_value()) {
-+    capture_timestamp =
-+        NativeToJavaLong(env, *absolute_capture_timestamp_ms);
-+  }
 +
 +  // 再利用するバッファと JNI コールバックを排他制御し、Java 側が DirectByteBuffer を参照している間に別スレッドから書き換わらないよう保証する。
 +  webrtc::MutexLock lock(&mutex_);
@@ -245,8 +233,7 @@ index 0000000000..352fb3b923
 +  ResetByteBufferBounds(env, buffer, byte_size);
 +  Java_AudioSink_onData(env, j_sink_, j_track_, buffer, bits_per_sample,
 +                        sample_rate, static_cast<int>(number_of_channels),
-+                        static_cast<int>(number_of_frames),
-+                        capture_timestamp);
++                        static_cast<int>(number_of_frames));
 +}
 +
 +int AudioSinkBridge::NumPreferredChannels() const {
@@ -258,17 +245,16 @@ index 0000000000..352fb3b923
 +}  // namespace webrtc
 diff --git a/sdk/android/src/jni/pc/audio_sink.h b/sdk/android/src/jni/pc/audio_sink.h
 new file mode 100644
-index 0000000000..744cf7a28a
+index 0000000000..9ef999e588
 --- /dev/null
 +++ b/sdk/android/src/jni/pc/audio_sink.h
-@@ -0,0 +1,51 @@
+@@ -0,0 +1,48 @@
 +#ifndef SDK_ANDROID_SRC_JNI_PC_AUDIO_SINK_H_
 +#define SDK_ANDROID_SRC_JNI_PC_AUDIO_SINK_H_
 +
 +#include <cstddef>
 +#include <cstdint>
 +#include <memory>
-+#include <optional>
 +
 +#include "api/media_stream_interface.h"
 +#include "rtc_base/synchronization/mutex.h"
@@ -291,8 +277,7 @@ index 0000000000..744cf7a28a
 +              int bits_per_sample,
 +              int sample_rate,
 +              size_t number_of_channels,
-+              size_t number_of_frames,
-+              std::optional<int64_t> absolute_capture_timestamp_ms) override;
++              size_t number_of_frames) override;
 +
 +  int NumPreferredChannels() const override;
 +
@@ -312,7 +297,6 @@ index 0000000000..744cf7a28a
 +}  // namespace webrtc
 +
 +#endif  // SDK_ANDROID_SRC_JNI_PC_AUDIO_SINK_H_
-+
 diff --git a/sdk/android/src/jni/pc/audio_track.cc b/sdk/android/src/jni/pc/audio_track.cc
 index 1ec0f44e95..6a056cb8ea 100644
 --- a/sdk/android/src/jni/pc/audio_track.cc
