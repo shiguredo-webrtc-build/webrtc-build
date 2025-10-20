@@ -36,10 +36,10 @@ index dcdd999bf6..e177cc8f69 100644
        "api/org/webrtc/CandidatePairChangeEvent.java",
 diff --git a/sdk/android/api/org/webrtc/AudioSink.java b/sdk/android/api/org/webrtc/AudioSink.java
 new file mode 100644
-index 0000000000..709cf8b49d
+index 0000000000..4cd8a50432
 --- /dev/null
 +++ b/sdk/android/api/org/webrtc/AudioSink.java
-@@ -0,0 +1,30 @@
+@@ -0,0 +1,31 @@
 +package org.webrtc;
 +
 +import androidx.annotation.Nullable;
@@ -57,8 +57,9 @@ index 0000000000..709cf8b49d
 +   * @param sampleRate サンプルレート (単位: Hz)。
 +   * @param numberOfChannels チャンネル数。
 +   * @param numberOfFrames {@code audioData} に含まれるフレーム数。
-+   * @param absoluteCaptureTimestampMs 入力元が提供する絶対キャプチャタイムスタンプ。未設定の場合は
-+   *     {@code null}。
++   * @param absoluteCaptureTimestampMs Absolute Capture Timestamp。未設定の場合は
++   *     {@code null}。ローカルの AudioTrack に紐づく場合のみ値が設定され、リモート
++   *     トラックでは常に {@code null} になります。
 +   */
 +  @CalledByNative
 +  void onData(AudioTrack audioTrack, ByteBuffer audioData, int bitsPerSample, int sampleRate,
