@@ -42,15 +42,6 @@ python3 run.py build <target> --webrtc-gen
 
 なお既存のビルドディレクトリを全て破棄して生成し直す `--webrtc-gen-force` 引数も存在する。
 
-### iOS, Android のビルド
-
-iOS の `WebRTC.xcframework`、Android の `webrtc.aar` は、他の場合と変わらず build コマンドで生成できる。
-
-ただし `--webrtc-gen` コマンドは効かず、常に gn gen が実行される。
-
-また、iOS や Android の `libwebrtc.a` が欲しいだけの状況で `WebRTC.xcframework` や `webrtc.aar` が生成されるのは無駄なので、
-その場合は `--webrtc-nobuild-ios-framework` または `--webrtc-nobuild-android-aar` を利用すれば良い。
-
 ### ディレクトリ構成
 
 - ソースは `_source` 以下に、ビルド成果物は `_build` 以下に配置される。
@@ -88,20 +79,23 @@ webrtc-build/
 - `--webrtc-source-dir`: WebRTC のソースを配置するディレクトリ。`--source-dir` よりもこちらの設定を優先する。
   - デフォルトは `<source-dir>/webrtc` 
 - `--build-dir`: ビルドディレクトリ
-  - デフォルトは `<run.pyのあるディレクトリ>/_build/<target名>/<configuration>` 
+  - デフォルトは `<run.pyのあるディレクトリ>/_build/<target名>/<configuration>`
 - `--webrtc-build-dir`: WebRTC のビルド成果物を配置するディレクトリ。`--build-dir` よりもこちらの設定を優先する。
   - デフォルトは `<build-dir>/webrtc` 
 
 これらのディレクトリは、カレントディレクトリからの相対パスで指定可能となっている。
+
+ただし `ios_sdk`, `android_sdk` の場合、`--build-dir` 及び `--webrtc-build-dir` の設定は無視されます。
+これらのターゲットでは、最終的な WebRTC のソースディレクトリの下に `out` ディレクトリが作られ、その下にビルド成果物が生成されます。
 
 ### 制限
 
 ローカルでのビルドは、以下の制限がある。
 
 - Windows の場合は `windows` ターゲットのみビルド可能。
-- macOS の場合は `macos_x86_64`, `macos_arm64`, `ios` ターゲットのみビルド可能。
+- macOS の場合は `macos_x86_64`, `macos_arm64`, `ios`, `ios_sdk` ターゲットのみビルド可能。
 - Ubuntu の x86_64 環境の場合、上記以外のターゲットのみビルド可能。
-  - `android`, `raspberry-pi-os_armv8`, `ubuntu-*_armv8` あたりの ARM 環境は Ubuntu のバージョンに関係なくビルド可能
+  - `android`, `android_sdk`, `raspberry-pi-os_armv8`, `ubuntu-*_armv8` あたりの ARM 環境は Ubuntu のバージョンに関係なくビルド可能
   - `ubuntu-22.04_x86_64` の場合は Ubuntu 22.04 が必要
   - `ubuntu-24.04_x86_64` の場合は Ubuntu 24.04 が必要
 - Ubuntu の x86_64 でない環境ではビルド不可能。
