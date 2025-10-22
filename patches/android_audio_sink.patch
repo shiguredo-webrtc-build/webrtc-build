@@ -135,10 +135,10 @@ index 0000000000..ccc3d6acb4
 +}
 diff --git a/sdk/android/src/jni/audio_track_sink.cc b/sdk/android/src/jni/audio_track_sink.cc
 new file mode 100644
-index 0000000000..f8fcc80cd4
+index 0000000000..4a4fd4d6ec
 --- /dev/null
 +++ b/sdk/android/src/jni/audio_track_sink.cc
-@@ -0,0 +1,110 @@
+@@ -0,0 +1,91 @@
 +#include "sdk/android/src/jni/audio_track_sink.h"
 +
 +#include <cstring>
@@ -153,48 +153,49 @@ index 0000000000..f8fcc80cd4
 +
 +namespace {
 +
-+// direct ByteBuffer は Java オブジェクトであるため、C++ 側で limit/position の更新を行うには
-+// JNI 経由で Buffer API を呼ぶ必要がある。
-+// このヘルパーにメソッド ID のキャッシュと境界リセット処理を集約し、フレームごとに
-+// 再利用するバッファの有効長を常に正しく反映させる。
-+void ResetByteBufferBounds(JNIEnv* env,
-+                           const ScopedJavaLocalRef<jobject>& buffer,
-+                           size_t valid_byte_count) {
-+  // 再利用している direct ByteBuffer の limit/position を都度更新し、Java 側で有効データ長のみ参照できるようにする。
-+  RTC_CHECK(buffer.obj());
-+  RTC_CHECK_LE(valid_byte_count,
++// AudioTrackSink::OnData が必要とする direct ByteBuffer の生成手続きを集約しておくことで、
++// 呼び出し側は「毎回新しい direct ByteBuffer を受け取る」前提の単純な実装にできる。
++// 併せて ByteBuffer クラスと allocateDirect メソッドを静的にキャッシュし、高頻度のコールでも
++// JNI シンボル探索を繰り返さずに済む。戻り値は direct ByteBuffer なので
++// GetDirectBufferAddress から PCM 書き込み用のポインタを安全に取得できる。
++ScopedJavaLocalRef<jobject> CreateDirectByteBuffer(JNIEnv* env,
++                                                    size_t capacity_bytes) {
++  // allocateDirect(int) の引数は int なので、サイズが 32bit を超えないことを確認。
++  RTC_CHECK_LE(capacity_bytes,
 +               static_cast<size_t>(std::numeric_limits<jint>::max()));
 +
-+  static jclass buffer_class = nullptr;
-+  static jmethodID limit_method = nullptr;
-+  static jmethodID position_method = nullptr;
++  static jclass byte_buffer_class = nullptr;
++  static jmethodID allocate_direct_method = nullptr;
 +
-+  if (!buffer_class) {
-+    jclass local_class = env->FindClass("java/nio/Buffer");
++  if (!byte_buffer_class) {
++    // 初回のみクラス参照とメソッド ID を解決し、静的変数にキャッシュする。
++    // java.nio.ByteBuffer を解決し、次回以降も使えるようグローバル参照を保持する。
++    jclass local_class = env->FindClass("java/nio/ByteBuffer");
 +    RTC_CHECK(local_class);
-+    buffer_class =
++    byte_buffer_class =
 +        static_cast<jclass>(env->NewGlobalRef(local_class));
 +    env->DeleteLocalRef(local_class);
-+    RTC_CHECK(buffer_class);
-+    limit_method =
-+        env->GetMethodID(buffer_class, "limit", "(I)Ljava/nio/Buffer;");
-+    RTC_CHECK(limit_method);
-+    position_method =
-+        env->GetMethodID(buffer_class, "position", "(I)Ljava/nio/Buffer;");
-+    RTC_CHECK(position_method);
++    RTC_CHECK(byte_buffer_class);
++    // ByteBuffer#allocateDirect(int) のメソッド ID を初期化時のみ取得。
++    allocate_direct_method = env->GetStaticMethodID(
++        byte_buffer_class, "allocateDirect", "(I)Ljava/nio/ByteBuffer;");
++    RTC_CHECK(allocate_direct_method);
 +  }
 +
-+  ScopedJavaLocalRef<jobject> limit_ref(
-+      env, env->CallObjectMethod(buffer.obj(), limit_method,
-+                                 static_cast<jint>(valid_byte_count)));
-+  ScopedJavaLocalRef<jobject> position_ref(
-+      env, env->CallObjectMethod(buffer.obj(), position_method, 0));
++  // Java 側で direct ByteBuffer を確保し、JNI 経由で受け取る。
++  ScopedJavaLocalRef<jobject> buffer(
++      env,
++      env->CallStaticObjectMethod(byte_buffer_class, allocate_direct_method,
++                                  static_cast<jint>(capacity_bytes)));
++  // buffer を返す前に例外が発生していないかチェック
 +  RTC_CHECK(!env->ExceptionCheck());
++  RTC_CHECK(buffer.obj());
++  return buffer;
 +}
 +
 +}  // namespace
 +
-+// Java 側の AudioTrackSink インターフェースと WebRTC の AudioTrack を橋渡しするブリッジ。
++// Java 側の AudioTrackSink インターフェースと AudioTrack を橋渡しするラッパー。
 +// AudioTrackSourceInterface から提供される PCM データを JNI 経由で AudioTrackSink#onData に引き渡す。
 +AudioTrackSinkWrapper::AudioTrackSinkWrapper(
 +    JNIEnv* env,
@@ -203,21 +204,6 @@ index 0000000000..f8fcc80cd4
 +    : j_sink_(env, j_sink), j_track_(env, j_track) {}
 +
 +AudioTrackSinkWrapper::~AudioTrackSinkWrapper() = default;
-+
-+void AudioTrackSinkWrapper::EnsureBufferSize(JNIEnv* env, size_t size) const {
-+  if (capacity_ >= size && j_buffer_) {
-+    return;
-+  }
-+
-+  // JNI 側で再利用する direct ByteBuffer を必要サイズまで拡張し、ネイティブ側のバッファと同期させる。
-+  buffer_ = std::make_unique<uint8_t[]>(size);
-+  capacity_ = size;
-+
-+  ScopedJavaLocalRef<jobject> buffer(
-+      env, env->NewDirectByteBuffer(buffer_.get(), capacity_));
-+  RTC_CHECK(buffer);
-+  j_buffer_.Reset(env, buffer);
-+}
 +
 +void AudioTrackSinkWrapper::OnData(const void* audio_data,
 +                                   int bits_per_sample,
@@ -228,15 +214,10 @@ index 0000000000..f8fcc80cd4
 +  const size_t byte_size =
 +      number_of_frames * number_of_channels * (bits_per_sample / 8);
 +
-+  // 再利用するバッファと JNI コールバックを排他制御し、Java 側が DirectByteBuffer を参照している間に別スレッドから書き換わらないよう保証する。
-+  webrtc::MutexLock lock(&mutex_);
-+  // AudioTrackSink#onData へ渡す前に direct ByteBuffer の実体と境界を更新し、Java 側が連続した PCM データを安全に参照できるようにする。
-+  EnsureBufferSize(env, byte_size);
-+  ScopedJavaLocalRef<jobject> buffer(env, j_buffer_);
++  ScopedJavaLocalRef<jobject> buffer = CreateDirectByteBuffer(env, byte_size);
 +  void* direct_ptr = env->GetDirectBufferAddress(buffer.obj());
 +  RTC_CHECK(direct_ptr);
 +  std::memcpy(direct_ptr, audio_data, byte_size);
-+  ResetByteBufferBounds(env, buffer, byte_size);
 +  Java_AudioTrackSink_onData(env, j_sink_, j_track_, buffer, bits_per_sample,
 +                            sample_rate, static_cast<int>(number_of_channels),
 +                            static_cast<int>(number_of_frames));
@@ -251,20 +232,17 @@ index 0000000000..f8fcc80cd4
 +}  // namespace webrtc
 diff --git a/sdk/android/src/jni/audio_track_sink.h b/sdk/android/src/jni/audio_track_sink.h
 new file mode 100644
-index 0000000000..cf270e4e9a
+index 0000000000..1f92478826
 --- /dev/null
 +++ b/sdk/android/src/jni/audio_track_sink.h
-@@ -0,0 +1,48 @@
+@@ -0,0 +1,38 @@
 +#ifndef SDK_ANDROID_SRC_JNI_AUDIO_TRACK_SINK_H_
 +#define SDK_ANDROID_SRC_JNI_AUDIO_TRACK_SINK_H_
 +
 +#include <cstddef>
 +#include <cstdint>
-+#include <memory>
 +
 +#include "api/media_stream_interface.h"
-+#include "rtc_base/synchronization/mutex.h"
-+#include "rtc_base/thread_annotations.h"
 +#include "sdk/android/native_api/jni/scoped_java_ref.h"
 +
 +namespace webrtc {
@@ -288,15 +266,8 @@ index 0000000000..cf270e4e9a
 +  int NumPreferredChannels() const override;
 +
 + private:
-+  void EnsureBufferSize(JNIEnv* env, size_t size) const
-+      RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-+
-+  mutable webrtc::Mutex mutex_;
-+  mutable std::unique_ptr<uint8_t[]> buffer_ RTC_GUARDED_BY(mutex_);
-+  mutable size_t capacity_ RTC_GUARDED_BY(mutex_) = 0;
 +  ScopedJavaGlobalRef<jobject> j_sink_;
 +  ScopedJavaGlobalRef<jobject> j_track_;
-+  mutable ScopedJavaGlobalRef<jobject> j_buffer_ RTC_GUARDED_BY(mutex_);
 +};
 +
 +}  // namespace jni
