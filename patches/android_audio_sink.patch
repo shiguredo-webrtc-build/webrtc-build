@@ -27,7 +27,7 @@ index dcdd999bf6..7eb2f9731c 100644
        "api/org/webrtc/CallSessionFileRotatingLogSink.java",
        "api/org/webrtc/CandidatePairChangeEvent.java",
 diff --git a/sdk/android/api/org/webrtc/AudioTrack.java b/sdk/android/api/org/webrtc/AudioTrack.java
-index ca745db634..d1c253ec28 100644
+index ca745db634..408dfcd4df 100644
 --- a/sdk/android/api/org/webrtc/AudioTrack.java
 +++ b/sdk/android/api/org/webrtc/AudioTrack.java
 @@ -10,12 +10,51 @@
@@ -55,7 +55,7 @@ index ca745db634..d1c253ec28 100644
 +      throw new IllegalArgumentException("AudioTrackSink must not be null");
 +    }
 +    if (!sinks.containsKey(sink)) {
-+      final long nativeSink = nativeWrapSink(sink, this);
++      final long nativeSink = nativeWrapSink(sink);
 +      sinks.put(sink, nativeSink);
 +      nativeAddSink(getNativeAudioTrack(), nativeSink);
 +    }
@@ -88,16 +88,16 @@ index ca745db634..d1c253ec28 100644
  
    private static native void nativeSetVolume(long track, double volume);
 +  private static native void nativeAddSink(long audioTrackHandle, long sinkHandle);
-+  private static native long nativeWrapSink(AudioTrackSink sink, Object track);
++  private static native long nativeWrapSink(AudioTrackSink sink);
 +  private static native void nativeRemoveSink(long audioTrackHandle, long sinkHandle);
 +  private static native void nativeFreeSink(long sink);
  }
 diff --git a/sdk/android/api/org/webrtc/AudioTrackSink.java b/sdk/android/api/org/webrtc/AudioTrackSink.java
 new file mode 100644
-index 0000000000..ccc3d6acb4
+index 0000000000..4f573aac76
 --- /dev/null
 +++ b/sdk/android/api/org/webrtc/AudioTrackSink.java
-@@ -0,0 +1,27 @@
+@@ -0,0 +1,26 @@
 +package org.webrtc;
 +
 +import java.nio.ByteBuffer;
@@ -108,7 +108,6 @@ index 0000000000..ccc3d6acb4
 +   * ネイティブのオーディオスレッドから PCM16 データとともに呼び出されます。
 +   * このコールバック内の処理はバックグラウンドスレッドにオフロードするようにしてください。
 +   *
-+   * @param audioTrack 呼び出し元の AudioTrack。
 +   * @param audioData リトルエンディアンの PCM16 サンプルが格納された ByteBuffer。
 +   * @param bitsPerSample サンプル当たりのビット数 (例: 16)。
 +   * @param sampleRate サンプルレート (単位: Hz)。
@@ -116,8 +115,8 @@ index 0000000000..ccc3d6acb4
 +   * @param numberOfFrames {@code audioData} に含まれるフレーム数。
 +   */
 +  @CalledByNative
-+  void onData(AudioTrack audioTrack, ByteBuffer audioData, int bitsPerSample, int sampleRate,
-+      int numberOfChannels, int numberOfFrames);
++  void onData(ByteBuffer audioData, int bitsPerSample, int sampleRate, int numberOfChannels,
++      int numberOfFrames);
 +
 +  /** チャンネル数。-1 は指定なしを意味します。 */
 +  @CalledByNative
@@ -127,10 +126,10 @@ index 0000000000..ccc3d6acb4
 +}
 diff --git a/sdk/android/src/jni/audio_track_sink.cc b/sdk/android/src/jni/audio_track_sink.cc
 new file mode 100644
-index 0000000000..4a4fd4d6ec
+index 0000000000..28201136bc
 --- /dev/null
 +++ b/sdk/android/src/jni/audio_track_sink.cc
-@@ -0,0 +1,91 @@
+@@ -0,0 +1,90 @@
 +#include "sdk/android/src/jni/audio_track_sink.h"
 +
 +#include <cstring>
@@ -191,9 +190,8 @@ index 0000000000..4a4fd4d6ec
 +// AudioTrackSourceInterface から提供される PCM データを JNI 経由で AudioTrackSink#onData に引き渡す。
 +AudioTrackSinkWrapper::AudioTrackSinkWrapper(
 +    JNIEnv* env,
-+    const JavaRef<jobject>& j_sink,
-+    const JavaRef<jobject>& j_track)
-+    : j_sink_(env, j_sink), j_track_(env, j_track) {}
++    const JavaRef<jobject>& j_sink)
++    : j_sink_(env, j_sink) {}
 +
 +AudioTrackSinkWrapper::~AudioTrackSinkWrapper() = default;
 +
@@ -210,9 +208,9 @@ index 0000000000..4a4fd4d6ec
 +  void* direct_ptr = env->GetDirectBufferAddress(buffer.obj());
 +  RTC_CHECK(direct_ptr);
 +  std::memcpy(direct_ptr, audio_data, byte_size);
-+  Java_AudioTrackSink_onData(env, j_sink_, j_track_, buffer, bits_per_sample,
-+                            sample_rate, static_cast<int>(number_of_channels),
-+                            static_cast<int>(number_of_frames));
++  Java_AudioTrackSink_onData(env, j_sink_, buffer, bits_per_sample, sample_rate,
++                             static_cast<int>(number_of_channels),
++                             static_cast<int>(number_of_frames));
 +}
 +
 +int AudioTrackSinkWrapper::NumPreferredChannels() const {
@@ -224,10 +222,10 @@ index 0000000000..4a4fd4d6ec
 +}  // namespace webrtc
 diff --git a/sdk/android/src/jni/audio_track_sink.h b/sdk/android/src/jni/audio_track_sink.h
 new file mode 100644
-index 0000000000..1f92478826
+index 0000000000..73e2d5c062
 --- /dev/null
 +++ b/sdk/android/src/jni/audio_track_sink.h
-@@ -0,0 +1,38 @@
+@@ -0,0 +1,36 @@
 +#ifndef SDK_ANDROID_SRC_JNI_AUDIO_TRACK_SINK_H_
 +#define SDK_ANDROID_SRC_JNI_AUDIO_TRACK_SINK_H_
 +
@@ -245,8 +243,7 @@ index 0000000000..1f92478826
 +class AudioTrackSinkWrapper : public AudioTrackSinkInterface {
 + public:
 +  AudioTrackSinkWrapper(JNIEnv* env,
-+                        const JavaRef<jobject>& j_sink,
-+                        const JavaRef<jobject>& j_track);
++                        const JavaRef<jobject>& j_sink);
 +  ~AudioTrackSinkWrapper() override;
 +
 +  void OnData(const void* audio_data,
@@ -259,7 +256,6 @@ index 0000000000..1f92478826
 +
 + private:
 +  ScopedJavaGlobalRef<jobject> j_sink_;
-+  ScopedJavaGlobalRef<jobject> j_track_;
 +};
 +
 +}  // namespace jni
@@ -267,7 +263,7 @@ index 0000000000..1f92478826
 +
 +#endif  // SDK_ANDROID_SRC_JNI_AUDIO_TRACK_SINK_H_
 diff --git a/sdk/android/src/jni/pc/audio_track.cc b/sdk/android/src/jni/pc/audio_track.cc
-index 1ec0f44e95..1cf7888b10 100644
+index 1ec0f44e95..261eb24faa 100644
 --- a/sdk/android/src/jni/pc/audio_track.cc
 +++ b/sdk/android/src/jni/pc/audio_track.cc
 @@ -13,6 +13,9 @@
@@ -280,7 +276,7 @@ index 1ec0f44e95..1cf7888b10 100644
  
  namespace webrtc {
  namespace jni {
-@@ -23,5 +26,30 @@ static void JNI_AudioTrack_SetVolume(JNIEnv*, jlong j_p, jdouble volume) {
+@@ -23,5 +26,29 @@ static void JNI_AudioTrack_SetVolume(JNIEnv*, jlong j_p, jdouble volume) {
    source->SetVolume(volume);
  }
  
@@ -300,9 +296,8 @@ index 1ec0f44e95..1cf7888b10 100644
 +
 +static jlong JNI_AudioTrack_WrapSink(
 +    JNIEnv* env,
-+    const JavaParamRef<jobject>& j_sink,
-+    const JavaParamRef<jobject>& j_track) {
-+  return jlongFromPointer(new AudioTrackSinkWrapper(env, j_sink, j_track));
++    const JavaParamRef<jobject>& j_sink) {
++  return jlongFromPointer(new AudioTrackSinkWrapper(env, j_sink));
 +}
 +
 +static void JNI_AudioTrack_FreeSink(JNIEnv*, jlong native_sink) {
