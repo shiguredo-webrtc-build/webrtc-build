@@ -17,7 +17,7 @@ Android SDK 向けに AudioTrackSink 機能を追加するパッチである、`
 
 - `sdk/android/api/org/webrtc/AudioTrackSink.java` を新規追加し、`onData()` / `getPreferredNumberOfChannels()` を公開する。
 - `sdk/android/api/org/webrtc/AudioTrack.java` に `addSink()` / `removeSink()` / `dispose()` の拡張を実装し、登録済み `AudioTrackSink` を `IdentityHashMap` で管理する。
-- ビルドルール (`sdk/android/BUILD.gn`) に Java / JNI ファイルを追加し、ネイティブ側で `webrtc::Mutex` を利用できるよう依存を拡張する。
+  - これは VideoTrack.java の実装を真似している
 - `sdk/android/src/jni/audio_track_sink.{h,cc}` を追加し、`AudioTrackSinkInterface` から Java の `AudioTrackSink` へ PCM データを転送する `AudioTrackSinkWrapper` を定義する。
 - `sdk/android/src/jni/pc/audio_track.cc` に JNI 関数を追加し、Java 側の `AudioTrack` からネイティブブリッジを作成・破棄できるようにする。
 
@@ -36,7 +36,6 @@ Android SDK 向けに AudioTrackSink 機能を追加するパッチである、`
 val audioTrack: AudioTrack = /* MediaStream などから取得 */
 val sink = object : AudioTrackSink {
   override fun onData(
-    audioTrack: AudioTrack,
     audioData: ByteBuffer,
     bitsPerSample: Int,
     sampleRate: Int,
@@ -61,10 +60,8 @@ audioTrack.removeSink(sink)
 
 ## AudioTrack と AudioTrackSink の紐づけについて
 
-- 同じ `AudioTrackSink` インスタンスを複数の `AudioTrack` に登録することも可能で、その場合はトラックごとに別の `AudioTrackSinkWrapper` が生成され、それぞれ対応する `AudioTrackInterface` に紐づく。
-- `onData()` には必ず送信元の `AudioTrack` が引数で渡されるため、共有シンクを使うときは `audioTrack == myTrack` や `audioTrack.id()` で送信元を判別可能。
-- 1 つの `AudioTrackSink` を複数の `AudioTrack` に共有するとバッファをまとめて扱える反面、トラックごとの排他制御や状態管理を自前で持つ必要がある。
-- 処理をトラック単位で分けたい、あるいはスレッド干渉を避けたい場合は各 `AudioTrack` 専用に `AudioTrackSink` を用意する方がシンプル。
+- AudioTrackSink と AudioTrack は 1:1 で紐づけるようにする
+- 仮に AudioTrackSink と AudioTrack を 1:N で紐づけてしまうと AudioTrackSink::onData では AudioTrack を識別する情報を返さないため、どの AudioTrack のデータなのか判別できない
 
 ## 付録
 
