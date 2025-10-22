@@ -29,9 +29,22 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
-- 2025-10-16 [ADD] Android SDK 向けに AudioTrackSink 機能を追加する
-  - AudioSink を利用すると AudioTrack ごとに PCM 音声データを取得することができる
+- 2025-10-22 [ADD] Android SDK 向けに AudioTrackSink 機能を追加する
+  - AudioTrackSink を利用すると AudioTrack ごとに PCM 音声データを取得することができる
   - @zztkm
+- 2025-10-17 [RELEASE] 141.7390.3.1
+  - @t-miya
+- 2025-10-16 [RELEASE] 140.7339.2.4
+  - @t-miya
+- 2025-10-16 [RELEASE] 140.7339.2.3
+  - @t-miya
+- 2025-10-16 [ADD] Android SDK の JavaAudioDeviceModule に公開 API として pauseRecording()/resumeRecording() を追加する
+  - Android 実機のマイクインジケータが消灯状態のミュートをできるようにする
+  - 呼び出し先として録音処理を行う WebRtcAudioRecord に以下の機能を追加する
+    - 録音状態管理用に RecordingState Enum と recordingState プロパティを追加する
+    - pauseRecording()/resumeRecording() メソッドを追加する
+    - startRecording()/stopRecording() メソッド内に recordingState を更新する処理を追加する
+  - @t-miya
 - 2025-10-10 [RELEASE] 141.7390.3.0
   - @torikizi
 - 2025-09-22 [RELEASE] 141.7390.2.0
