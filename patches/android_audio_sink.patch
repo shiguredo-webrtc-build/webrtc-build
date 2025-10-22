@@ -126,16 +126,17 @@ index 0000000000..4f573aac76
 +}
 diff --git a/sdk/android/src/jni/audio_track_sink.cc b/sdk/android/src/jni/audio_track_sink.cc
 new file mode 100644
-index 0000000000..6433d8a4ab
+index 0000000000..f7b2faae5a
 --- /dev/null
 +++ b/sdk/android/src/jni/audio_track_sink.cc
-@@ -0,0 +1,79 @@
+@@ -0,0 +1,80 @@
 +#include "sdk/android/src/jni/audio_track_sink.h"
 +
 +#include <cstring>
 +#include <limits>
 +
 +#include "rtc_base/checks.h"
++#include "sdk/android/native_api/jni/class_loader.h"
 +#include "sdk/android/generated_peerconnection_jni/AudioTrackSink_jni.h"
 +#include "sdk/android/native_api/jni/jvm.h"
 +
@@ -154,19 +155,19 @@ index 0000000000..6433d8a4ab
 +  RTC_CHECK_LE(capacity_bytes,
 +               static_cast<size_t>(std::numeric_limits<jint>::max()));
 +
-+  jclass byte_buffer_class = env->FindClass("java/nio/ByteBuffer");
-+  RTC_CHECK(byte_buffer_class);
++  ScopedJavaLocalRef<jclass> byte_buffer_class =
++      GetClass(env, "java/nio/ByteBuffer");
++  RTC_CHECK(byte_buffer_class.obj());
 +  jmethodID allocate_direct_method = env->GetStaticMethodID(
-+      byte_buffer_class, "allocateDirect", "(I)Ljava/nio/ByteBuffer;");
++      byte_buffer_class.obj(), "allocateDirect", "(I)Ljava/nio/ByteBuffer;");
 +  RTC_CHECK(allocate_direct_method);
 +
 +  // Java 側で direct ByteBuffer を確保し、JNI 経由で受け取る。
 +  ScopedJavaLocalRef<jobject> buffer(
 +      env,
-+      env->CallStaticObjectMethod(byte_buffer_class, allocate_direct_method,
++      env->CallStaticObjectMethod(byte_buffer_class.obj(),
++                                  allocate_direct_method,
 +                                  static_cast<jint>(capacity_bytes)));
-+  // FindClass が返す参照はローカルスコープなので不要になったら解放する。
-+  env->DeleteLocalRef(byte_buffer_class);
 +  // buffer を返す前に例外が発生していないかチェック
 +  RTC_CHECK(!env->ExceptionCheck());
 +  RTC_CHECK(buffer.obj());
