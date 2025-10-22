@@ -35,16 +35,21 @@ index dcdd999bf6..92a40cd16f 100644
        "api/org/webrtc/CallSessionFileRotatingLogSink.java",
        "api/org/webrtc/CandidatePairChangeEvent.java",
 diff --git a/sdk/android/api/org/webrtc/AudioTrack.java b/sdk/android/api/org/webrtc/AudioTrack.java
-index ca745db634..6757f0709b 100644
+index ca745db634..d1c253ec28 100644
 --- a/sdk/android/api/org/webrtc/AudioTrack.java
 +++ b/sdk/android/api/org/webrtc/AudioTrack.java
-@@ -10,12 +10,47 @@
+@@ -10,12 +10,51 @@
  
  package org.webrtc;
  
+-/** Java wrapper for a C++ AudioTrackInterface */
 +import java.util.IdentityHashMap;
 +
- /** Java wrapper for a C++ AudioTrackInterface */
++/**
++ * Java wrapper for a C++ AudioTrackInterface
++ *
++ * NOTE: addSink, removeSink, dispose の実装は VideoTrack の実装を真似しています。
++ */
  public class AudioTrack extends MediaStreamTrack {
 +  private final IdentityHashMap<AudioTrackSink, Long> sinks = new IdentityHashMap<>();
 +
@@ -86,7 +91,7 @@ index ca745db634..6757f0709b 100644
    /** Sets the volume for the underlying MediaSource. Volume is a gain value in the range
     *  0 to 10.
     */
-@@ -29,4 +64,8 @@ public class AudioTrack extends MediaStreamTrack {
+@@ -29,4 +68,8 @@ public class AudioTrack extends MediaStreamTrack {
    }
  
    private static native void nativeSetVolume(long track, double volume);
