@@ -1,5 +1,5 @@
 diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
-index dcdd999bf6..2e5c032f60 100644
+index dcdd999bf6..7eb2f9731c 100644
 --- a/sdk/android/BUILD.gn
 +++ b/sdk/android/BUILD.gn
 @@ -287,6 +287,7 @@ if (is_android) {
@@ -18,15 +18,7 @@ index dcdd999bf6..2e5c032f60 100644
        "src/jni/pc/audio_track.cc",
        "src/jni/pc/call_session_file_rotating_log_sink.cc",
        "src/jni/pc/crypto_options.cc",
-@@ -905,6 +907,7 @@ if (current_os == "linux" || is_android) {
-       "../../rtc_base:ssl",
-       "../../rtc_base:stringutils",
-       "../../rtc_base:threading",
-+      "../../rtc_base/synchronization:mutex",
-       "../../stats:rtc_stats",
-       "../../system_wrappers:field_trial",
-       "//third_party/abseil-cpp/absl/memory",
-@@ -1534,6 +1537,7 @@ if (current_os == "linux" || is_android) {
+@@ -1534,6 +1536,7 @@ if (current_os == "linux" || is_android) {
    generate_jni("generated_peerconnection_jni") {
      sources = [
        "api/org/webrtc/AddIceObserver.java",
