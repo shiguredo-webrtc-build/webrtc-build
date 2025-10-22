@@ -126,10 +126,10 @@ index 0000000000..4f573aac76
 +}
 diff --git a/sdk/android/src/jni/audio_track_sink.cc b/sdk/android/src/jni/audio_track_sink.cc
 new file mode 100644
-index 0000000000..28201136bc
+index 0000000000..6433d8a4ab
 --- /dev/null
 +++ b/sdk/android/src/jni/audio_track_sink.cc
-@@ -0,0 +1,90 @@
+@@ -0,0 +1,79 @@
 +#include "sdk/android/src/jni/audio_track_sink.h"
 +
 +#include <cstring>
@@ -146,38 +146,27 @@ index 0000000000..28201136bc
 +
 +// AudioTrackSink::OnData が必要とする direct ByteBuffer の生成手続きを集約しておくことで、
 +// 呼び出し側は「毎回新しい direct ByteBuffer を受け取る」前提の単純な実装にできる。
-+// 併せて ByteBuffer クラスと allocateDirect メソッドを静的にキャッシュし、高頻度のコールでも
-+// JNI シンボル探索を繰り返さずに済む。戻り値は direct ByteBuffer なので
-+// GetDirectBufferAddress から PCM 書き込み用のポインタを安全に取得できる。
++// 戻り値は direct ByteBuffer なので GetDirectBufferAddress から PCM 書き込み用のポインタを
++// 安全に取得できる。
 +ScopedJavaLocalRef<jobject> CreateDirectByteBuffer(JNIEnv* env,
 +                                                    size_t capacity_bytes) {
 +  // allocateDirect(int) の引数は int なので、サイズが 32bit を超えないことを確認。
 +  RTC_CHECK_LE(capacity_bytes,
 +               static_cast<size_t>(std::numeric_limits<jint>::max()));
 +
-+  static jclass byte_buffer_class = nullptr;
-+  static jmethodID allocate_direct_method = nullptr;
-+
-+  if (!byte_buffer_class) {
-+    // 初回のみクラス参照とメソッド ID を解決し、静的変数にキャッシュする。
-+    // java.nio.ByteBuffer を解決し、次回以降も使えるようグローバル参照を保持する。
-+    jclass local_class = env->FindClass("java/nio/ByteBuffer");
-+    RTC_CHECK(local_class);
-+    byte_buffer_class =
-+        static_cast<jclass>(env->NewGlobalRef(local_class));
-+    env->DeleteLocalRef(local_class);
-+    RTC_CHECK(byte_buffer_class);
-+    // ByteBuffer#allocateDirect(int) のメソッド ID を初期化時のみ取得。
-+    allocate_direct_method = env->GetStaticMethodID(
-+        byte_buffer_class, "allocateDirect", "(I)Ljava/nio/ByteBuffer;");
-+    RTC_CHECK(allocate_direct_method);
-+  }
++  jclass byte_buffer_class = env->FindClass("java/nio/ByteBuffer");
++  RTC_CHECK(byte_buffer_class);
++  jmethodID allocate_direct_method = env->GetStaticMethodID(
++      byte_buffer_class, "allocateDirect", "(I)Ljava/nio/ByteBuffer;");
++  RTC_CHECK(allocate_direct_method);
 +
 +  // Java 側で direct ByteBuffer を確保し、JNI 経由で受け取る。
 +  ScopedJavaLocalRef<jobject> buffer(
 +      env,
 +      env->CallStaticObjectMethod(byte_buffer_class, allocate_direct_method,
 +                                  static_cast<jint>(capacity_bytes)));
++  // FindClass が返す参照はローカルスコープなので不要になったら解放する。
++  env->DeleteLocalRef(byte_buffer_class);
 +  // buffer を返す前に例外が発生していないかチェック
 +  RTC_CHECK(!env->ExceptionCheck());
 +  RTC_CHECK(buffer.obj());
