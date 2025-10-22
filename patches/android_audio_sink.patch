@@ -1,5 +1,5 @@
 diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
-index dcdd999bf6..92a40cd16f 100644
+index dcdd999bf6..2e5c032f60 100644
 --- a/sdk/android/BUILD.gn
 +++ b/sdk/android/BUILD.gn
 @@ -287,6 +287,7 @@ if (is_android) {
@@ -14,7 +14,7 @@ index dcdd999bf6..92a40cd16f 100644
        "src/jni/pc/add_ice_candidate_observer.cc",
        "src/jni/pc/add_ice_candidate_observer.h",
        "src/jni/pc/android_network_monitor.h",
-+      "src/jni/pc/audio_sink.cc",
++      "src/jni/audio_track_sink.cc",
        "src/jni/pc/audio_track.cc",
        "src/jni/pc/call_session_file_rotating_log_sink.cc",
        "src/jni/pc/crypto_options.cc",
@@ -133,13 +133,13 @@ index 0000000000..ccc3d6acb4
 +    return -1;
 +  }
 +}
-diff --git a/sdk/android/src/jni/pc/audio_sink.cc b/sdk/android/src/jni/pc/audio_sink.cc
+diff --git a/sdk/android/src/jni/audio_track_sink.cc b/sdk/android/src/jni/audio_track_sink.cc
 new file mode 100644
-index 0000000000..7146a96c12
+index 0000000000..f8fcc80cd4
 --- /dev/null
-+++ b/sdk/android/src/jni/pc/audio_sink.cc
++++ b/sdk/android/src/jni/audio_track_sink.cc
 @@ -0,0 +1,110 @@
-+#include "sdk/android/src/jni/pc/audio_sink.h"
++#include "sdk/android/src/jni/audio_track_sink.h"
 +
 +#include <cstring>
 +#include <limits>
@@ -249,14 +249,14 @@ index 0000000000..7146a96c12
 +
 +}  // namespace jni
 +}  // namespace webrtc
-diff --git a/sdk/android/src/jni/pc/audio_sink.h b/sdk/android/src/jni/pc/audio_sink.h
+diff --git a/sdk/android/src/jni/audio_track_sink.h b/sdk/android/src/jni/audio_track_sink.h
 new file mode 100644
-index 0000000000..9fef6791c6
+index 0000000000..cf270e4e9a
 --- /dev/null
-+++ b/sdk/android/src/jni/pc/audio_sink.h
++++ b/sdk/android/src/jni/audio_track_sink.h
 @@ -0,0 +1,48 @@
-+#ifndef SDK_ANDROID_SRC_JNI_PC_AUDIO_SINK_H_
-+#define SDK_ANDROID_SRC_JNI_PC_AUDIO_SINK_H_
++#ifndef SDK_ANDROID_SRC_JNI_AUDIO_TRACK_SINK_H_
++#define SDK_ANDROID_SRC_JNI_AUDIO_TRACK_SINK_H_
 +
 +#include <cstddef>
 +#include <cstdint>
@@ -302,9 +302,9 @@ index 0000000000..9fef6791c6
 +}  // namespace jni
 +}  // namespace webrtc
 +
-+#endif  // SDK_ANDROID_SRC_JNI_PC_AUDIO_SINK_H_
++#endif  // SDK_ANDROID_SRC_JNI_AUDIO_TRACK_SINK_H_
 diff --git a/sdk/android/src/jni/pc/audio_track.cc b/sdk/android/src/jni/pc/audio_track.cc
-index 1ec0f44e95..4635d9f46e 100644
+index 1ec0f44e95..1cf7888b10 100644
 --- a/sdk/android/src/jni/pc/audio_track.cc
 +++ b/sdk/android/src/jni/pc/audio_track.cc
 @@ -13,6 +13,9 @@
@@ -313,7 +313,7 @@ index 1ec0f44e95..4635d9f46e 100644
  #include "sdk/android/generated_peerconnection_jni/AudioTrack_jni.h"
 +#include "sdk/android/native_api/jni/scoped_java_ref.h"
 +#include "sdk/android/src/jni/jni_helpers.h"
-+#include "sdk/android/src/jni/pc/audio_sink.h"
++#include "sdk/android/src/jni/audio_track_sink.h"
  
  namespace webrtc {
  namespace jni {

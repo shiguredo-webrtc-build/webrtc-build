@@ -18,7 +18,7 @@ Android SDK 向けに AudioTrackSink 機能を追加するパッチである、`
 - `sdk/android/api/org/webrtc/AudioTrackSink.java` を新規追加し、`onData()` / `getPreferredNumberOfChannels()` を公開する。
 - `sdk/android/api/org/webrtc/AudioTrack.java` に `addSink()` / `removeSink()` / `dispose()` の拡張を実装し、登録済み `AudioTrackSink` を `IdentityHashMap` で管理する。
 - ビルドルール (`sdk/android/BUILD.gn`) に Java / JNI ファイルを追加し、ネイティブ側で `webrtc::Mutex` を利用できるよう依存を拡張する。
-- `sdk/android/src/jni/pc/audio_sink.{h,cc}` を追加し、`AudioTrackSinkInterface` から Java の `AudioTrackSink` へ PCM データを転送する `AudioTrackSinkWrapper` を定義する。
+- `sdk/android/src/jni/audio_track_sink.{h,cc}` を追加し、`AudioTrackSinkInterface` から Java の `AudioTrackSink` へ PCM データを転送する `AudioTrackSinkWrapper` を定義する。
 - `sdk/android/src/jni/pc/audio_track.cc` に JNI 関数を追加し、Java 側の `AudioTrack` からネイティブブリッジを作成・破棄できるようにする。
 
 ### 実装のポイント
@@ -83,4 +83,4 @@ audioTrack.removeSink(sink)
 5. `AudioDataProxy::OnData()` が `RemoteAudioSource::OnData()` を呼び出し、登録されている各 `AudioTrackSinkInterface`（ここでは `AudioTrackSinkWrapper`）へ PCM16 データをファンアウトする。
    - 参照: `pc/remote_audio_source.cc`
 6. `AudioTrackSinkWrapper::OnData()` が JNI を通じて Java の `AudioTrackSink.onData()` を呼び、Direct ByteBuffer にコピーした PCM データとメタ情報（ビット深度、サンプルレート、チャンネル数、フレーム数）を渡す。
-   - 参照: `sdk/android/src/jni/pc/audio_sink.cc`, `sdk/android/api/org/webrtc/AudioTrackSink.java`
+   - 参照: `sdk/android/src/jni/audio_track_sink.cc`, `sdk/android/api/org/webrtc/AudioTrackSink.java`
