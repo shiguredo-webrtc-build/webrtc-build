@@ -18,12 +18,12 @@ Android SDK 向けに AudioTrackSink 機能を追加するパッチである、`
 - `sdk/android/api/org/webrtc/AudioTrackSink.java` を新規追加し、`onData()` / `getPreferredNumberOfChannels()` を公開する。
 - `sdk/android/api/org/webrtc/AudioTrack.java` に `addSink()` / `removeSink()` / `dispose()` の拡張を実装し、登録済み `AudioTrackSink` を `IdentityHashMap` で管理する。
 - ビルドルール (`sdk/android/BUILD.gn`) に Java / JNI ファイルを追加し、ネイティブ側で `webrtc::Mutex` を利用できるよう依存を拡張する。
-- `sdk/android/src/jni/pc/audio_sink.{h,cc}` を追加し、`AudioTrackSinkInterface` から Java の `AudioTrackSink` へ PCM データを転送する `AudioTrackSinkBridge` を定義する。
+- `sdk/android/src/jni/pc/audio_sink.{h,cc}` を追加し、`AudioTrackSinkInterface` から Java の `AudioTrackSink` へ PCM データを転送する `AudioTrackSinkWrapper` を定義する。
 - `sdk/android/src/jni/pc/audio_track.cc` に JNI 関数を追加し、Java 側の `AudioTrack` からネイティブブリッジを作成・破棄できるようにする。
 
 ### 実装のポイント
 
-- `AudioTrackSinkBridge` は音声スレッド上で呼ばれるため、`webrtc::Mutex` で内部バッファを保護しながら `std::unique_ptr<uint8_t[]>` を再利用する。
+- `AudioTrackSinkWrapper` は音声スレッド上で呼ばれるため、`webrtc::Mutex` で内部バッファを保護しながら `std::unique_ptr<uint8_t[]>` を再利用する。
   - `EnsureBufferSize()` で必要なサイズに合わせて Direct ByteBuffer を確保し直し、毎フレームの確保コストを最小化する。
 - PCM データは `JNIEnv::NewDirectByteBuffer()` で作成したダイレクトバッファ越しに Java に受け渡す。`onData()` の呼び出しはネイティブ音声スレッドから行われるため、Java 実装側では重たい処理を別スレッドへオフロードする必要がある。
 - `AudioTrackSink.getPreferredNumberOfChannels()` の戻り値は `AudioTrackInterface::AddSink()` に渡す `AudioTrackSinkInterface::NumPreferredChannels()` に接続され、サーバー側が選択可能なチャネル数を調整できる。
@@ -61,7 +61,7 @@ audioTrack.removeSink(sink)
 
 ## AudioTrack と AudioTrackSink の紐づけについて
 
-- 同じ `AudioTrackSink` インスタンスを複数の `AudioTrack` に登録することも可能で、その場合はトラックごとに別の `AudioTrackSinkBridge` が生成され、それぞれ対応する `AudioTrackInterface` に紐づく。
+- 同じ `AudioTrackSink` インスタンスを複数の `AudioTrack` に登録することも可能で、その場合はトラックごとに別の `AudioTrackSinkWrapper` が生成され、それぞれ対応する `AudioTrackInterface` に紐づく。
 - `onData()` には必ず送信元の `AudioTrack` が引数で渡されるため、共有シンクを使うときは `audioTrack == myTrack` や `audioTrack.id()` で送信元を判別可能。
 - 1 つの `AudioTrackSink` を複数の `AudioTrack` に共有するとバッファをまとめて扱える反面、トラックごとの排他制御や状態管理を自前で持つ必要がある。
 - 処理をトラック単位で分けたい、あるいはスレッド干渉を避けたい場合は各 `AudioTrack` 専用に `AudioTrackSink` を用意する方がシンプル。
@@ -72,7 +72,7 @@ audioTrack.removeSink(sink)
 
 ※ この処理シーケンスはパッチで追加されたものではなく、libwebrtc に元々実装されている AudioTrackSink の onData() 処理シーケンスを説明したもの
 
-1. アプリ側で `AudioTrack.addSink()` を呼ぶと、Java 層から JNI を経由して `AudioTrackSinkBridge` が生成され、C++ の `AudioTrackInterface::AddSink()` に登録される。
+1. アプリ側で `AudioTrack.addSink()` を呼ぶと、Java 層から JNI を経由して `AudioTrackSinkWrapper` が生成され、C++ の `AudioTrackInterface::AddSink()` に登録される。
    - 参照: `sdk/android/api/org/webrtc/AudioTrack.java`, `sdk/android/src/jni/pc/audio_track.cc`
 2. リモートトラックの場合、`AudioRtpReceiver` が内部で `RemoteAudioSource` を生成し、メディアチャネルへ `AudioDataProxy` を生 PCM 受信用シンクとして登録する。
    - 参照: `pc/audio_rtp_receiver.cc`, `pc/remote_audio_source.cc`
@@ -80,7 +80,7 @@ audioTrack.removeSink(sink)
    - 参照: `media/engine/webrtc_voice_engine.cc`, `audio/audio_receive_stream.cc`, `audio/channel_receive.cc`
 4. ネットワークから復号されたフレームが `ChannelReceive::GetAudioFrameWithInfo()` に到達すると、設定済みの `AudioTrackSinkInterface` に `AudioTrackSinkInterface::Data` を渡す。
    - 参照: `audio/channel_receive.cc`
-5. `AudioDataProxy::OnData()` が `RemoteAudioSource::OnData()` を呼び出し、登録されている各 `AudioTrackSinkInterface`（ここでは `AudioTrackSinkBridge`）へ PCM16 データをファンアウトする。
+5. `AudioDataProxy::OnData()` が `RemoteAudioSource::OnData()` を呼び出し、登録されている各 `AudioTrackSinkInterface`（ここでは `AudioTrackSinkWrapper`）へ PCM16 データをファンアウトする。
    - 参照: `pc/remote_audio_source.cc`
-6. `AudioTrackSinkBridge::OnData()` が JNI を通じて Java の `AudioTrackSink.onData()` を呼び、Direct ByteBuffer にコピーした PCM データとメタ情報（ビット深度、サンプルレート、チャンネル数、フレーム数）を渡す。
+6. `AudioTrackSinkWrapper::OnData()` が JNI を通じて Java の `AudioTrackSink.onData()` を呼び、Direct ByteBuffer にコピーした PCM データとメタ情報（ビット深度、サンプルレート、チャンネル数、フレーム数）を渡す。
    - 参照: `sdk/android/src/jni/pc/audio_sink.cc`, `sdk/android/api/org/webrtc/AudioTrackSink.java`

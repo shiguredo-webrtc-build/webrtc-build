@@ -135,10 +135,10 @@ index 0000000000..ccc3d6acb4
 +}
 diff --git a/sdk/android/src/jni/pc/audio_sink.cc b/sdk/android/src/jni/pc/audio_sink.cc
 new file mode 100644
-index 0000000000..7a2ec7043f
+index 0000000000..7146a96c12
 --- /dev/null
 +++ b/sdk/android/src/jni/pc/audio_sink.cc
-@@ -0,0 +1,109 @@
+@@ -0,0 +1,110 @@
 +#include "sdk/android/src/jni/pc/audio_sink.h"
 +
 +#include <cstring>
@@ -196,14 +196,15 @@ index 0000000000..7a2ec7043f
 +
 +// Java 側の AudioTrackSink インターフェースと WebRTC の AudioTrack を橋渡しするブリッジ。
 +// AudioTrackSourceInterface から提供される PCM データを JNI 経由で AudioTrackSink#onData に引き渡す。
-+AudioSinkBridge::AudioSinkBridge(JNIEnv* env,
-+                                 const JavaRef<jobject>& j_sink,
-+                                 const JavaRef<jobject>& j_track)
++AudioTrackSinkWrapper::AudioTrackSinkWrapper(
++    JNIEnv* env,
++    const JavaRef<jobject>& j_sink,
++    const JavaRef<jobject>& j_track)
 +    : j_sink_(env, j_sink), j_track_(env, j_track) {}
 +
-+AudioSinkBridge::~AudioSinkBridge() = default;
++AudioTrackSinkWrapper::~AudioTrackSinkWrapper() = default;
 +
-+void AudioSinkBridge::EnsureBufferSize(JNIEnv* env, size_t size) const {
++void AudioTrackSinkWrapper::EnsureBufferSize(JNIEnv* env, size_t size) const {
 +  if (capacity_ >= size && j_buffer_) {
 +    return;
 +  }
@@ -218,11 +219,11 @@ index 0000000000..7a2ec7043f
 +  j_buffer_.Reset(env, buffer);
 +}
 +
-+void AudioSinkBridge::OnData(const void* audio_data,
-+                             int bits_per_sample,
-+                             int sample_rate,
-+                             size_t number_of_channels,
-+                             size_t number_of_frames) {
++void AudioTrackSinkWrapper::OnData(const void* audio_data,
++                                   int bits_per_sample,
++                                   int sample_rate,
++                                   size_t number_of_channels,
++                                   size_t number_of_frames) {
 +  JNIEnv* env = AttachCurrentThreadIfNeeded();
 +  const size_t byte_size =
 +      number_of_frames * number_of_channels * (bits_per_sample / 8);
@@ -237,11 +238,11 @@ index 0000000000..7a2ec7043f
 +  std::memcpy(direct_ptr, audio_data, byte_size);
 +  ResetByteBufferBounds(env, buffer, byte_size);
 +  Java_AudioTrackSink_onData(env, j_sink_, j_track_, buffer, bits_per_sample,
-+                        sample_rate, static_cast<int>(number_of_channels),
-+                        static_cast<int>(number_of_frames));
++                            sample_rate, static_cast<int>(number_of_channels),
++                            static_cast<int>(number_of_frames));
 +}
 +
-+int AudioSinkBridge::NumPreferredChannels() const {
++int AudioTrackSinkWrapper::NumPreferredChannels() const {
 +  JNIEnv* env = AttachCurrentThreadIfNeeded();
 +  return Java_AudioTrackSink_getPreferredNumberOfChannels(env, j_sink_);
 +}
@@ -250,7 +251,7 @@ index 0000000000..7a2ec7043f
 +}  // namespace webrtc
 diff --git a/sdk/android/src/jni/pc/audio_sink.h b/sdk/android/src/jni/pc/audio_sink.h
 new file mode 100644
-index 0000000000..1662573b48
+index 0000000000..9fef6791c6
 --- /dev/null
 +++ b/sdk/android/src/jni/pc/audio_sink.h
 @@ -0,0 +1,48 @@
@@ -271,12 +272,12 @@ index 0000000000..1662573b48
 +
 +// JNI ブリッジで AudioTrackSinkInterface のコールバックを
 +// Java 側の org.webrtc.AudioTrackSink に転送する
-+class AudioSinkBridge : public AudioTrackSinkInterface {
++class AudioTrackSinkWrapper : public AudioTrackSinkInterface {
 + public:
-+  AudioSinkBridge(JNIEnv* env,
-+                  const JavaRef<jobject>& j_sink,
-+                  const JavaRef<jobject>& j_track);
-+  ~AudioSinkBridge() override;
++  AudioTrackSinkWrapper(JNIEnv* env,
++                        const JavaRef<jobject>& j_sink,
++                        const JavaRef<jobject>& j_track);
++  ~AudioTrackSinkWrapper() override;
 +
 +  void OnData(const void* audio_data,
 +              int bits_per_sample,
@@ -303,7 +304,7 @@ index 0000000000..1662573b48
 +
 +#endif  // SDK_ANDROID_SRC_JNI_PC_AUDIO_SINK_H_
 diff --git a/sdk/android/src/jni/pc/audio_track.cc b/sdk/android/src/jni/pc/audio_track.cc
-index 1ec0f44e95..6a056cb8ea 100644
+index 1ec0f44e95..4635d9f46e 100644
 --- a/sdk/android/src/jni/pc/audio_track.cc
 +++ b/sdk/android/src/jni/pc/audio_track.cc
 @@ -13,6 +13,9 @@
@@ -324,25 +325,25 @@ index 1ec0f44e95..6a056cb8ea 100644
 +                                   jlong native_track,
 +                                   jlong native_sink) {
 +  reinterpret_cast<AudioTrackInterface*>(native_track)
-+      ->AddSink(reinterpret_cast<AudioSinkBridge*>(native_sink));
++      ->AddSink(reinterpret_cast<AudioTrackSinkWrapper*>(native_sink));
 +}
 +
 +static void JNI_AudioTrack_RemoveSink(JNIEnv*,
 +                                      jlong native_track,
 +                                      jlong native_sink) {
 +  reinterpret_cast<AudioTrackInterface*>(native_track)
-+      ->RemoveSink(reinterpret_cast<AudioSinkBridge*>(native_sink));
++      ->RemoveSink(reinterpret_cast<AudioTrackSinkWrapper*>(native_sink));
 +}
 +
 +static jlong JNI_AudioTrack_WrapSink(
 +    JNIEnv* env,
 +    const JavaParamRef<jobject>& j_sink,
 +    const JavaParamRef<jobject>& j_track) {
-+  return jlongFromPointer(new AudioSinkBridge(env, j_sink, j_track));
++  return jlongFromPointer(new AudioTrackSinkWrapper(env, j_sink, j_track));
 +}
 +
 +static void JNI_AudioTrack_FreeSink(JNIEnv*, jlong native_sink) {
-+  delete reinterpret_cast<AudioSinkBridge*>(native_sink);
++  delete reinterpret_cast<AudioTrackSinkWrapper*>(native_sink);
 +}
 +
  }  // namespace jni
