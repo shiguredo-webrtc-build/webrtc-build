@@ -1,31 +1,31 @@
 diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
-index dcdd999bf6..7eb2f9731c 100644
+index dcdd999bf6..0d474a50f8 100644
 --- a/sdk/android/BUILD.gn
 +++ b/sdk/android/BUILD.gn
-@@ -287,6 +287,7 @@ if (is_android) {
-     visibility = [ "*" ]
-     sources = [
-       "api/org/webrtc/AddIceObserver.java",
-+      "api/org/webrtc/AudioTrackSink.java",
+@@ -290,6 +290,7 @@ if (is_android) {
        "api/org/webrtc/AudioProcessingFactory.java",
        "api/org/webrtc/AudioSource.java",
        "api/org/webrtc/AudioTrack.java",
-@@ -787,6 +788,7 @@ if (current_os == "linux" || is_android) {
-       "src/jni/pc/add_ice_candidate_observer.cc",
-       "src/jni/pc/add_ice_candidate_observer.h",
-       "src/jni/pc/android_network_monitor.h",
-+      "src/jni/audio_track_sink.cc",
-       "src/jni/pc/audio_track.cc",
-       "src/jni/pc/call_session_file_rotating_log_sink.cc",
-       "src/jni/pc/crypto_options.cc",
-@@ -1534,6 +1536,7 @@ if (current_os == "linux" || is_android) {
-   generate_jni("generated_peerconnection_jni") {
-     sources = [
-       "api/org/webrtc/AddIceObserver.java",
 +      "api/org/webrtc/AudioTrackSink.java",
-       "api/org/webrtc/AudioTrack.java",
        "api/org/webrtc/CallSessionFileRotatingLogSink.java",
        "api/org/webrtc/CandidatePairChangeEvent.java",
+       "api/org/webrtc/CryptoOptions.java",
+@@ -788,6 +789,7 @@ if (current_os == "linux" || is_android) {
+       "src/jni/pc/add_ice_candidate_observer.h",
+       "src/jni/pc/android_network_monitor.h",
+       "src/jni/pc/audio_track.cc",
++      "src/jni/audio_track_sink.cc",
+       "src/jni/pc/call_session_file_rotating_log_sink.cc",
+       "src/jni/pc/crypto_options.cc",
+       "src/jni/pc/crypto_options.h",
+@@ -1535,6 +1537,7 @@ if (current_os == "linux" || is_android) {
+     sources = [
+       "api/org/webrtc/AddIceObserver.java",
+       "api/org/webrtc/AudioTrack.java",
++      "api/org/webrtc/AudioTrackSink.java",
+       "api/org/webrtc/CallSessionFileRotatingLogSink.java",
+       "api/org/webrtc/CandidatePairChangeEvent.java",
+       "api/org/webrtc/CryptoOptions.java",
 diff --git a/sdk/android/api/org/webrtc/AudioTrack.java b/sdk/android/api/org/webrtc/AudioTrack.java
 index ca745db634..408dfcd4df 100644
 --- a/sdk/android/api/org/webrtc/AudioTrack.java
