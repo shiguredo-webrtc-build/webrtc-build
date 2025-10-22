@@ -1,12 +1,12 @@
 diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
-index dcdd999bf6..e177cc8f69 100644
+index dcdd999bf6..92a40cd16f 100644
 --- a/sdk/android/BUILD.gn
 +++ b/sdk/android/BUILD.gn
 @@ -287,6 +287,7 @@ if (is_android) {
      visibility = [ "*" ]
      sources = [
        "api/org/webrtc/AddIceObserver.java",
-+      "api/org/webrtc/AudioSink.java",
++      "api/org/webrtc/AudioTrackSink.java",
        "api/org/webrtc/AudioProcessingFactory.java",
        "api/org/webrtc/AudioSource.java",
        "api/org/webrtc/AudioTrack.java",
@@ -30,45 +30,12 @@ index dcdd999bf6..e177cc8f69 100644
    generate_jni("generated_peerconnection_jni") {
      sources = [
        "api/org/webrtc/AddIceObserver.java",
-+      "api/org/webrtc/AudioSink.java",
++      "api/org/webrtc/AudioTrackSink.java",
        "api/org/webrtc/AudioTrack.java",
        "api/org/webrtc/CallSessionFileRotatingLogSink.java",
        "api/org/webrtc/CandidatePairChangeEvent.java",
-diff --git a/sdk/android/api/org/webrtc/AudioSink.java b/sdk/android/api/org/webrtc/AudioSink.java
-new file mode 100644
-index 0000000000..46cee75692
---- /dev/null
-+++ b/sdk/android/api/org/webrtc/AudioSink.java
-@@ -0,0 +1,27 @@
-+package org.webrtc;
-+
-+import java.nio.ByteBuffer;
-+
-+/** AudioTrack から PCM オーディオを受け取るためのインターフェース。 */
-+public interface AudioSink {
-+  /**
-+   * ネイティブのオーディオスレッドから PCM16 データとともに呼び出されます。
-+   * このコールバック内の処理はバックグラウンドスレッドにオフロードするようにしてください。
-+   *
-+   * @param audioTrack 呼び出し元の AudioTrack。
-+   * @param audioData リトルエンディアンの PCM16 サンプルが格納された ByteBuffer。
-+   * @param bitsPerSample サンプル当たりのビット数 (例: 16)。
-+   * @param sampleRate サンプルレート (単位: Hz)。
-+   * @param numberOfChannels チャンネル数。
-+   * @param numberOfFrames {@code audioData} に含まれるフレーム数。
-+   */
-+  @CalledByNative
-+  void onData(AudioTrack audioTrack, ByteBuffer audioData, int bitsPerSample, int sampleRate,
-+      int numberOfChannels, int numberOfFrames);
-+
-+  /** チャンネル数。-1 は指定なしを意味します。 */
-+  @CalledByNative
-+  default int getPreferredNumberOfChannels() {
-+    return -1;
-+  }
-+}
 diff --git a/sdk/android/api/org/webrtc/AudioTrack.java b/sdk/android/api/org/webrtc/AudioTrack.java
-index ca745db634..6eecbb462d 100644
+index ca745db634..6757f0709b 100644
 --- a/sdk/android/api/org/webrtc/AudioTrack.java
 +++ b/sdk/android/api/org/webrtc/AudioTrack.java
 @@ -10,12 +10,47 @@
@@ -79,16 +46,16 @@ index ca745db634..6eecbb462d 100644
 +
  /** Java wrapper for a C++ AudioTrackInterface */
  public class AudioTrack extends MediaStreamTrack {
-+  private final IdentityHashMap<AudioSink, Long> sinks = new IdentityHashMap<>();
++  private final IdentityHashMap<AudioTrackSink, Long> sinks = new IdentityHashMap<>();
 +
    public AudioTrack(long nativeTrack) {
      super(nativeTrack);
    }
  
-+  /** この AudioTrack から PCM データを受け取るための AudioSink を追加する */
-+  public void addSink(AudioSink sink) {
++  /** この AudioTrack から PCM データを受け取るための AudioTrackSink を追加する */
++  public void addSink(AudioTrackSink sink) {
 +    if (sink == null) {
-+      throw new IllegalArgumentException("AudioSink must not be null");
++      throw new IllegalArgumentException("AudioTrackSink must not be null");
 +    }
 +    if (!sinks.containsKey(sink)) {
 +      final long nativeSink = nativeWrapSink(sink, this);
@@ -97,8 +64,8 @@ index ca745db634..6eecbb462d 100644
 +    }
 +  }
 +
-+  /** AudioSink の登録を解除する */
-+  public void removeSink(AudioSink sink) {
++  /** AudioTrackSink の登録を解除する */
++  public void removeSink(AudioTrackSink sink) {
 +    final Long nativeSink = sinks.remove(sink);
 +    if (nativeSink != null) {
 +      nativeRemoveSink(getNativeAudioTrack(), nativeSink);
@@ -124,13 +91,46 @@ index ca745db634..6eecbb462d 100644
  
    private static native void nativeSetVolume(long track, double volume);
 +  private static native void nativeAddSink(long audioTrackHandle, long sinkHandle);
-+  private static native long nativeWrapSink(AudioSink sink, Object track);
++  private static native long nativeWrapSink(AudioTrackSink sink, Object track);
 +  private static native void nativeRemoveSink(long audioTrackHandle, long sinkHandle);
 +  private static native void nativeFreeSink(long sink);
  }
+diff --git a/sdk/android/api/org/webrtc/AudioTrackSink.java b/sdk/android/api/org/webrtc/AudioTrackSink.java
+new file mode 100644
+index 0000000000..ccc3d6acb4
+--- /dev/null
++++ b/sdk/android/api/org/webrtc/AudioTrackSink.java
+@@ -0,0 +1,27 @@
++package org.webrtc;
++
++import java.nio.ByteBuffer;
++
++/** AudioTrack から PCM オーディオを受け取るためのインターフェース。 */
++public interface AudioTrackSink {
++  /**
++   * ネイティブのオーディオスレッドから PCM16 データとともに呼び出されます。
++   * このコールバック内の処理はバックグラウンドスレッドにオフロードするようにしてください。
++   *
++   * @param audioTrack 呼び出し元の AudioTrack。
++   * @param audioData リトルエンディアンの PCM16 サンプルが格納された ByteBuffer。
++   * @param bitsPerSample サンプル当たりのビット数 (例: 16)。
++   * @param sampleRate サンプルレート (単位: Hz)。
++   * @param numberOfChannels チャンネル数。
++   * @param numberOfFrames {@code audioData} に含まれるフレーム数。
++   */
++  @CalledByNative
++  void onData(AudioTrack audioTrack, ByteBuffer audioData, int bitsPerSample, int sampleRate,
++      int numberOfChannels, int numberOfFrames);
++
++  /** チャンネル数。-1 は指定なしを意味します。 */
++  @CalledByNative
++  default int getPreferredNumberOfChannels() {
++    return -1;
++  }
++}
 diff --git a/sdk/android/src/jni/pc/audio_sink.cc b/sdk/android/src/jni/pc/audio_sink.cc
 new file mode 100644
-index 0000000000..bdbc971f14
+index 0000000000..7a2ec7043f
 --- /dev/null
 +++ b/sdk/android/src/jni/pc/audio_sink.cc
 @@ -0,0 +1,109 @@
@@ -140,7 +140,7 @@ index 0000000000..bdbc971f14
 +#include <limits>
 +
 +#include "rtc_base/checks.h"
-+#include "sdk/android/generated_peerconnection_jni/AudioSink_jni.h"
++#include "sdk/android/generated_peerconnection_jni/AudioTrackSink_jni.h"
 +#include "sdk/android/native_api/jni/jvm.h"
 +
 +namespace webrtc {
@@ -189,8 +189,8 @@ index 0000000000..bdbc971f14
 +
 +}  // namespace
 +
-+// Java 側の AudioSink インターフェースと WebRTC の AudioTrack を橋渡しするブリッジ。
-+// AudioTrackSourceInterface から提供される PCM データを JNI 経由で AudioSink#onData に引き渡す。
++// Java 側の AudioTrackSink インターフェースと WebRTC の AudioTrack を橋渡しするブリッジ。
++// AudioTrackSourceInterface から提供される PCM データを JNI 経由で AudioTrackSink#onData に引き渡す。
 +AudioSinkBridge::AudioSinkBridge(JNIEnv* env,
 +                                 const JavaRef<jobject>& j_sink,
 +                                 const JavaRef<jobject>& j_track)
@@ -224,28 +224,28 @@ index 0000000000..bdbc971f14
 +
 +  // 再利用するバッファと JNI コールバックを排他制御し、Java 側が DirectByteBuffer を参照している間に別スレッドから書き換わらないよう保証する。
 +  webrtc::MutexLock lock(&mutex_);
-+  // AudioSink#onData へ渡す前に direct ByteBuffer の実体と境界を更新し、Java 側が連続した PCM データを安全に参照できるようにする。
++  // AudioTrackSink#onData へ渡す前に direct ByteBuffer の実体と境界を更新し、Java 側が連続した PCM データを安全に参照できるようにする。
 +  EnsureBufferSize(env, byte_size);
 +  ScopedJavaLocalRef<jobject> buffer(env, j_buffer_);
 +  void* direct_ptr = env->GetDirectBufferAddress(buffer.obj());
 +  RTC_CHECK(direct_ptr);
 +  std::memcpy(direct_ptr, audio_data, byte_size);
 +  ResetByteBufferBounds(env, buffer, byte_size);
-+  Java_AudioSink_onData(env, j_sink_, j_track_, buffer, bits_per_sample,
++  Java_AudioTrackSink_onData(env, j_sink_, j_track_, buffer, bits_per_sample,
 +                        sample_rate, static_cast<int>(number_of_channels),
 +                        static_cast<int>(number_of_frames));
 +}
 +
 +int AudioSinkBridge::NumPreferredChannels() const {
 +  JNIEnv* env = AttachCurrentThreadIfNeeded();
-+  return Java_AudioSink_getPreferredNumberOfChannels(env, j_sink_);
++  return Java_AudioTrackSink_getPreferredNumberOfChannels(env, j_sink_);
 +}
 +
 +}  // namespace jni
 +}  // namespace webrtc
 diff --git a/sdk/android/src/jni/pc/audio_sink.h b/sdk/android/src/jni/pc/audio_sink.h
 new file mode 100644
-index 0000000000..9ef999e588
+index 0000000000..1662573b48
 --- /dev/null
 +++ b/sdk/android/src/jni/pc/audio_sink.h
 @@ -0,0 +1,48 @@
@@ -265,7 +265,7 @@ index 0000000000..9ef999e588
 +namespace jni {
 +
 +// JNI ブリッジで AudioTrackSinkInterface のコールバックを
-+// Java 側の org.webrtc.AudioSink に転送する
++// Java 側の org.webrtc.AudioTrackSink に転送する
 +class AudioSinkBridge : public AudioTrackSinkInterface {
 + public:
 +  AudioSinkBridge(JNIEnv* env,
