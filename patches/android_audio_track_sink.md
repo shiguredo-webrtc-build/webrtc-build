@@ -21,12 +21,10 @@ Android SDK 向けに AudioTrackSink 機能を追加するパッチである、`
 - `sdk/android/src/jni/audio_track_sink.{h,cc}` を追加し、`AudioTrackSinkInterface` から Java の `AudioTrackSink` へ PCM データを転送する `AudioTrackSinkWrapper` を定義する。
 - `sdk/android/src/jni/pc/audio_track.cc` に JNI 関数を追加し、Java 側の `AudioTrack` からネイティブブリッジを作成・破棄できるようにする。
 
-### 実装のポイント
+### パッチ実装のポイント
 
-- `AudioTrackSinkWrapper` は音声スレッド上で呼ばれるため、`webrtc::Mutex` で内部バッファを保護しながら `std::unique_ptr<uint8_t[]>` を再利用する。
-  - `EnsureBufferSize()` で必要なサイズに合わせて Direct ByteBuffer を確保し直し、毎フレームの確保コストを最小化する。
-- PCM データは `JNIEnv::NewDirectByteBuffer()` で作成したダイレクトバッファ越しに Java に受け渡す。`onData()` の呼び出しはネイティブ音声スレッドから行われるため、Java 実装側では重たい処理を別スレッドへオフロードする必要がある。
-- `AudioTrackSink.getPreferredNumberOfChannels()` の戻り値は `AudioTrackInterface::AddSink()` に渡す `AudioTrackSinkInterface::NumPreferredChannels()` に接続され、サーバー側が選択可能なチャネル数を調整できる。
+- PCM データは `CreateDirectByteBuffer()` で作成したダイレクトバイトバッファ越しに Java に受け渡す。`onData()` の呼び出しはネイティブ音声スレッドから行われるため、Java 実装側では重たい処理を別スレッドへオフロードする必要がある。
+- `AudioTrackSink#getPreferredNumberOfChannels` に設定した値は、JNI ラッパー AudioTrackSinkWrapper::NumPreferredChannels() から C++ 側へ渡され 、onData に入ってくる音声データのチャンネル数の決定に使用される。
 - `AudioTrack.dispose()` は登録済みのすべてのネイティブブリッジを解放し、C++ 側の参照リークを防ぐ。
 - `IdentityHashMap` を利用することで、`equals()` をオーバーライドした `AudioTrackSink` 実装でも同一インスタンスの重複登録/解除を正しく扱える。
 
@@ -55,7 +53,6 @@ audioTrack.addSink(sink)
 audioTrack.removeSink(sink)
 ```
 
-- `onData()` のコールバック中は PCM データの所有権が JNI 側にあるため、必要であればバッファ内容を別領域へコピーしてから非同期処理に渡す。
 - `getPreferredNumberOfChannels()` が `-1` を返す場合は「制約なし」を意味し、既存のチャンネル数がそのまま渡される。
 
 ## AudioTrack と AudioTrackSink の紐づけについて
@@ -67,7 +64,7 @@ audioTrack.removeSink(sink)
 
 ### `org.webrtc.AudioTrackSink` の `onData()` 呼び出しシーケンス
 
-※ この処理シーケンスはパッチで追加されたものではなく、libwebrtc に元々実装されている AudioTrackSink の onData() 処理シーケンスを説明したもの
+AudioTrackSinkInterface (C++ 側) を実装した場合に、C++ 側から Java 側の AudioTrackSink::onData へどのような経路で音声データが渡ってくるかをメモした内容です。
 
 1. アプリ側で `AudioTrack.addSink()` を呼ぶと、Java 層から JNI を経由して `AudioTrackSinkWrapper` が生成され、C++ の `AudioTrackInterface::AddSink()` に登録される。
    - 参照: `sdk/android/api/org/webrtc/AudioTrack.java`, `sdk/android/src/jni/pc/audio_track.cc`
