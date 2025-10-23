@@ -1,6 +1,6 @@
-# android_audio_sink.patch の解説
+# android_audio_track_sink.patch の解説
 
-Android SDK 向けに AudioTrackSink 機能を追加するパッチである、`android_audio_sink.patch` についての説明です。
+Android SDK 向けに AudioTrackSink 機能を追加するパッチである、`android_audio_track_sink.patch` についての説明です。
 
 ## 目的
 

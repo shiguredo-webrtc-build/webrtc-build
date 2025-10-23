@@ -354,8 +354,8 @@ Android で録音一時停止・解除をできるようにするパッチ。
 
 パッチの詳細は [android_audio_pause_resume.patch の解説](./android_audio_pause_resume.md) を参照のこと。
 
-## android_audio_sink.patch
+## android_audio_track_sink.patch
 
-Android SDK 向けに AudioSink を提供し、AudioTrack ごとに PCM データを取得できるようにするための機能を追加するパッチ
+Android SDK 向けに AudioTrackSink を提供し、AudioTrack ごとに PCM データを取得できるようにするための機能を追加するパッチ
 
-パッチの詳細は [android_audio_sink.patch の解説](./android_audio_sink.md) を参照
+パッチの詳細は [android_audio_track_sink.patch の解説](./android_audio_track_sink.md) を参照
