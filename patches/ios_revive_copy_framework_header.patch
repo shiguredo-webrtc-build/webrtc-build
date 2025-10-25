@@ -1,0 +1,48 @@
+diff --git a/webrtc.gni b/webrtc.gni
+index 5ec51627a6..15e999ad04 100644
+--- a/webrtc.gni
++++ b/webrtc.gni
+@@ -1066,6 +1066,22 @@ if (is_mac || is_ios) {
+              ] + rebase_path(sources, root_build_dir)
+     }
+ 
++    action_foreach("create_bracket_include_headers_$target_name") {
++      script = "//tools_webrtc/apple/copy_framework_header.py"
++      sources = invoker.public_headers
++      output_name = invoker.output_name
++      outputs = [
++        "$target_gen_dir/$output_name.framework/Headers/{{source_file_part}}",
++      ]
++      args = [
++        "--input",
++        "{{source}}",
++        "--output",
++        rebase_path(target_gen_dir, root_build_dir) +
++            "/$output_name.framework/Headers/{{source_file_part}}",
++      ]
++    }
++
+     action("create_privacy_manifest_$this_target_name") {
+       script = "//tools_webrtc/apple/generate_privacy_manifest.py"
+       args = [
+@@ -1157,17 +1173,15 @@ if (is_mac || is_ios) {
+           configs += invoker.configs
+         }
+ 
+-        if (defined(invoker.public_headers)) {
+-          public_headers = invoker.public_headers
+-        } else {
+-          public_headers = []
+-        }
++        public_headers = get_target_outputs(
++                ":create_bracket_include_headers_$this_target_name")
+         public_headers +=
+             get_target_outputs(":umbrella_header_$this_target_name")
+ 
+         deps += [
+           ":create_privacy_manifest_$this_target_name",
+           ":umbrella_header_$this_target_name",
++          ":create_bracket_include_headers_$this_target_name",
+         ]
+ 
+         if (defined(invoker.bundle_deps)) {
