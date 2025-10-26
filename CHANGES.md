@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-10-25 [FIX] iOS SDK でヘッダーのインクルードでエラーが出る問題を修正
+  - @melpon
 - 2025-10-23 [RELEASE] 141.7390.3.2
   - @zztkm
 - 2025-10-22 [ADD] Android SDK 向けに AudioTrackSink 機能を追加する
