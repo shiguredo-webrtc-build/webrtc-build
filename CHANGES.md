@@ -33,6 +33,19 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - remove_crel.patch の単純なパッチ適用失敗を修正
   - revive_proxy.patch を修正
     - 修正中
+- 2025-10-25 [FIX] iOS SDK でヘッダーのインクルードでエラーが出る問題を修正
+  - @melpon
+- 2025-10-16 [RELEASE] 140.7339.2.4
+  - @t-miya
+- 2025-10-16 [RELEASE] 140.7339.2.3
+  - @t-miya
+- 2025-10-16 [ADD] Android SDK の JavaAudioDeviceModule に公開 API として pauseRecording()/resumeRecording() を追加する
+  - Android 実機のマイクインジケータが消灯状態のミュートをできるようにする
+  - 呼び出し先として録音処理を行う WebRtcAudioRecord に以下の機能を追加する
+    - 録音状態管理用に RecordingState Enum と recordingState プロパティを追加する
+    - pauseRecording()/resumeRecording() メソッドを追加する
+    - startRecording()/stopRecording() メソッド内に recordingState を更新する処理を追加する
+  - @t-miya
 - 2025-09-22 [RELEASE] 141.7390.2.0
   - @torikizi
 - 2025-09-22 [UPDATE] m141 ブランチのビルドエラーを修正する

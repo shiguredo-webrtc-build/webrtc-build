@@ -347,3 +347,19 @@ CREL は LLVM のリンカ(lld)特有の機能なので、これを有効にす�
 このコミットを revert したパッチ。
 
 siso を実行すると即座に `Error: can not detect exec_root: build/config/siso not found` というエラーが出てどうしようも無かったので revert する。
+
+## android_audio_pause_resume.md
+
+Android で録音一時停止・解除をできるようにするパッチ。
+
+パッチの詳細は [android_audio_pause_resume.patch の解説](./android_audio_pause_resume.md) を参照のこと。
+
+## ios_revive_copy_framework_header.patch
+
+iOS SDK の M141 でインクルードのコンパイルエラーが出る、以下の issue を解決するパッチ。
+
+https://issues.webrtc.org/issues/450130875
+
+元々は `#include "sdk/objc/base/RTCMacros.h"` といったヘッダーのインクルードを `#import <WebRTC/RTCMarcos.h>` に変換するスクリプト `tools_webrtc/apple/copy_framework_header.py` が適用されていたのだが、この issue に書いているコミットによってそれが削除されてしまっている。
+
+このパッチによって、`copy_framework_header.py` の適用を復活させてインクルードのコンパイルエラーを解消する。
