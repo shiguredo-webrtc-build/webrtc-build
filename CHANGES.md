@@ -29,8 +29,17 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-10-26 [RELEASE] 141.7390.3.3
+  - @melpon
 - 2025-10-25 [FIX] iOS SDK でヘッダーのインクルードでエラーが出る問題を修正
   - @melpon
+- 2025-10-23 [RELEASE] 141.7390.3.2
+  - @zztkm
+- 2025-10-22 [ADD] Android SDK 向けに AudioTrackSink 機能を追加する
+  - AudioTrackSink を利用すると AudioTrack ごとに PCM 音声データを取得することができる
+  - @zztkm
+- 2025-10-17 [RELEASE] 141.7390.3.1
+  - @t-miya
 - 2025-10-16 [RELEASE] 140.7339.2.4
   - @t-miya
 - 2025-10-16 [RELEASE] 140.7339.2.3
@@ -42,6 +51,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
     - pauseRecording()/resumeRecording() メソッドを追加する
     - startRecording()/stopRecording() メソッド内に recordingState を更新する処理を追加する
   - @t-miya
+- 2025-10-10 [RELEASE] 141.7390.3.0
+  - @torikizi
 - 2025-09-22 [RELEASE] 141.7390.2.0
   - @torikizi
 - 2025-09-22 [UPDATE] m141 ブランチのビルドエラーを修正する
