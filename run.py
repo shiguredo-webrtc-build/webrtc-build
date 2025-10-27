@@ -257,6 +257,7 @@ PATCHES = {
         "ios_add_scale_resolution_down_to.patch",
         "remove_crel.patch",
         "revert_siso.patch",
+        "ios_revive_copy_framework_header.patch",
     ],
     "android": [
         "add_deps.patch",
@@ -294,6 +295,7 @@ PATCHES = {
         "remove_crel.patch",
         "revert_siso.patch",
         "android_audio_pause_resume.patch",
+        "android_audio_track_sink.patch",
     ],
     "raspberry-pi-os_armv8": [
         "add_deps.patch",
