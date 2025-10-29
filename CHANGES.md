@@ -33,12 +33,12 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - remove_crel.patch の単純なパッチ適用失敗を修正
   - revive_proxy.patch を修正
     - 修正中
-  - `JavaParamRef<jobject>(env, obj)` ではなく `JavaRef<jobject>::CreateLeaky(env, obj)` を使うようにする
-    - https://webrtc-review.googlesource.com/c/src/+/409500
-  - `PeerConnectionFactory` の protected なコンストラクタが `env` を受け取るようになったので明示的に渡すようにする
-    - https://webrtc-review.googlesource.com/c/src/+/410140
-  - `ConnectionContext` から `env()` 関数が削除されたので `CreateEnvironment()` に置き換える
-    - https://webrtc-review.googlesource.com/c/src/+/410140
+  - https://webrtc-review.googlesource.com/c/src/+/409500 の変更に対する修正
+    - `JavaParamRef<jobject>(env, obj)` ではなく `JavaRef<jobject>::CreateLeaky(env, obj)` を使うようにする
+    - `ScopedJavaLocalRef<jobject>(env, obj)` ではなく `ScopedJavaLocalRef<jobject>::Adopt(env, obj)` を使うようにする
+  - https://webrtc-review.googlesource.com/c/src/+/410140 の変更に対する修正
+    - `PeerConnectionFactory` の protected なコンストラクタが `env` を受け取るようになったので明示的に渡すようにする
+    - `ConnectionContext` から `env()` 関数が削除されたので `CreateEnvironment()` に置き換える
 - 2025-10-26 [RELEASE] 141.7390.3.3
   - @melpon
 - 2025-10-25 [FIX] iOS SDK でヘッダーのインクルードでエラーが出る問題を修正
