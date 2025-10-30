@@ -29,10 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
-- 2025-10-xx [CHANGE] m142 ブランチのビルドエラーを修正する
+- 2025-10-30 [CHANGE] m142 ブランチのビルドエラーを修正する
   - remove_crel.patch の単純なパッチ適用失敗を修正
-  - revive_proxy.patch を修正
-    - 修正中
   - https://webrtc-review.googlesource.com/c/src/+/409500 の変更に対する修正
     - `JavaParamRef<jobject>(env, obj)` ではなく `JavaRef<jobject>::CreateLeaky(env, obj)` を使うようにする
     - `ScopedJavaLocalRef<jobject>(env, obj)` ではなく `ScopedJavaLocalRef<jobject>::Adopt(env, obj)` を使うようにする
