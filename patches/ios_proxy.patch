@@ -91,7 +91,7 @@ index 7b6b3bfc27..a67a18d3a8 100644
  @implementation RTC_OBJC_TYPE (RTCPeerConnection) {
    RTC_OBJC_TYPE(RTCPeerConnectionFactory) * _factory;
    NSMutableArray<RTC_OBJC_TYPE(RTCMediaStream) *> *_localStreams;
-@@ -506,6 +539,56 @@ void PeerConnectionDelegateAdapter::OnRemoveTrack(
+@@ -506,6 +539,54 @@ void PeerConnectionDelegateAdapter::OnRemoveTrack(
                             delegate:delegate];
  }
  
@@ -117,11 +117,9 @@ index 7b6b3bfc27..a67a18d3a8 100644
 +    std::unique_ptr<webrtc::PeerConnectionInterface::RTCConfiguration> config(
 +        [configuration createNativeConfiguration]);
 +    auto context = factory.connectionContext;
-+    webrtc::EnvironmentFactory env_factory(context->env());
-+    const webrtc::Environment env = env_factory.Create();
 +
 +    dependencies->allocator.reset(new webrtc::BasicPortAllocator(
-+        env, context->default_network_manager(), context->default_socket_factory(),
++        webrtc::CreateEnvironment(), context->default_network_manager(), context->default_socket_factory(),
 +        config->turn_customizer));
 +    dependencies->allocator->SetPortRange(
 +        config->port_allocator_config.min_port,
@@ -230,7 +228,7 @@ index 79afe271da..7e3f2e23f8 100644
 +  PeerConnectionFactoryWithContext(
 +      webrtc::scoped_refptr<webrtc::ConnectionContext> context,
 +      webrtc::PeerConnectionFactoryDependencies* dependencies)
-+      : webrtc::PeerConnectionFactory(context, dependencies),
++      : webrtc::PeerConnectionFactory(CreateEnvironment(), context, dependencies),
 +        conn_context_(context) {}
 +
 +  static webrtc::scoped_refptr<PeerConnectionFactoryWithContext> Create(
