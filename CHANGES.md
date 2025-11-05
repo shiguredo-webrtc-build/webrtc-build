@@ -29,6 +29,11 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-11-06 [UPDATE] m143 ブランチのビルドエラーを修正する
+  - revive_proxy.patch の単純なパッチ適用エラーを修正
+  - ssl_verify_callback_with_native_handle.patch の単純なパッチ適用エラーを修正
+  - android_proxy.patch の単純なパッチ適用エラーを修正
+  - @melpon
 - 2025-10-31 [RELEASE] 142.7444.2.0
   - @torikizi
 - 2025-10-30 [CHANGE] m142 ブランチのビルドエラーを修正する
