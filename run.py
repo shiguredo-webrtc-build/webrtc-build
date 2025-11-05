@@ -371,7 +371,8 @@ GIT_ADD_EXCLUDES = [
     ":!*.rej",
     ":!:__config_site",
     ":!:__assertion_handler",
-    ":!:sdk/android/api/org/webrtc/WebrtcBuildVersion.java",
+    ":!sdk/android/api/org/webrtc/WebrtcBuildVersion.java",
+    ":!*.pyc",
 ]
 
 
