@@ -32,7 +32,7 @@ index bbf1c3a753..cfc3c8b623 100644
    public boolean setNoiseSuppressorEnabled(boolean enabled) {
      Logging.d(TAG, "setNoiseSuppressorEnabled: " + enabled);
 diff --git a/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java b/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
-index ac62308aa3..a3c896710e 100644
+index ac62308aa3..05bd7e9136 100644
 --- a/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
 +++ b/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
 @@ -79,6 +79,13 @@ class WebRtcAudioRecord {
@@ -92,7 +92,7 @@ index ac62308aa3..a3c896710e 100644
      if (future != null) {
        if (!future.isDone()) {
          // Might be needed if the client calls startRecording(), stopRecording() back-to-back.
-@@ -406,14 +427,103 @@ class WebRtcAudioRecord {
+@@ -406,14 +427,104 @@ class WebRtcAudioRecord {
        }
        future = null;
      }
@@ -123,6 +123,7 @@ index ac62308aa3..a3c896710e 100644
 +    // 以下の点を除き stopRecording() での停止処理と同様にしている
 +    // - リソースの release はしない
 +    // - recordingState を PAUSED に更新する
++    // - audioThread != null 前提とする
 +    assertTrue(audioThread != null);
 +    if (future != null) {
 +      if (!future.isDone()) {
