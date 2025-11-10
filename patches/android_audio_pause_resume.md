@@ -37,6 +37,7 @@ PAUSED → STOPPED (stopRecording or エラー時)
 
 - startRecording() では録音開始成功時、RECORDING への状態の更新を行います。
 - stopRecording() ではリソース開放後、STOPPED への状態の更新を行います。
+  - PAUSED 中に実行された場合は既に audioThread が NULL となっています。 NULL チェックを行い audioThread が NULL でなければ停止処理を行います。
 - pauseRecording() では stopRecording() の処理と同様に audioThread の停止、PAUSED への状態の更新を行います。リソース解放は行いません。
 - resumeRecording() では startRecording() の処理と同様に、audioRecord.startRecording() の実行と、audioThread の生成と開始を行います。
   - audioRecord.startRecording() の失敗(IllegalStateException)、または audioRecord.getRecordingState() が意図しない値だった場合のエラーハンドリングを startRecording() と同様に行いますが、追加でリソースの解放と STOPPED への状態の更新を行います。
