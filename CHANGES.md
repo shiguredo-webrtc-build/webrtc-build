@@ -29,17 +29,19 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-11-06 [RELEASE] m143.7499.0.0
+  - @torikizi
 - 2025-11-06 [UPDATE] m143 ブランチのビルドエラーを修正する
   - revive_proxy.patch の単純なパッチ適用エラーを修正
   - ssl_verify_callback_with_native_handle.patch の単純なパッチ適用エラーを修正
   - android_proxy.patch の単純なパッチ適用エラーを修正
   - @melpon
-- 2025-11-06 [RELEASE] 142.7444.2.1
+- 2025-11-06 [RELEASE] m142.7444.2.1
   - @t-miya
 - 2025-11-05 [FIX] Android SDK の `WebRtcAudioRecord` で pause 状態時に `stopRecording()` を呼び出すとエラーが出る問題を修正する
   - WebRtcAudioRecord の pauseRecording() により audioThread が null となるため stopRecording() に audioThead の null チェックを行う分岐を追加する
   - @t-miya
-- 2025-10-31 [RELEASE] 142.7444.2.0
+- 2025-10-31 [RELEASE] m142.7444.2.0
   - @torikizi
 - 2025-10-30 [CHANGE] m142 ブランチのビルドエラーを修正する
   - remove_crel.patch の単純なパッチ適用失敗を修正
@@ -49,20 +51,20 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - https://webrtc-review.googlesource.com/c/src/+/410140 の変更に対する修正
     - `PeerConnectionFactory` の protected なコンストラクタが `env` を受け取るようになったので明示的に渡すようにする
     - `ConnectionContext` から `env()` 関数が削除されたので `CreateEnvironment()` に置き換える
-- 2025-10-26 [RELEASE] 141.7390.3.3
+- 2025-10-26 [RELEASE] m141.7390.3.3
   - @melpon
 - 2025-10-25 [FIX] iOS SDK でヘッダーのインクルードでエラーが出る問題を修正
   - @melpon
-- 2025-10-23 [RELEASE] 141.7390.3.2
+- 2025-10-23 [RELEASE] m141.7390.3.2
   - @zztkm
 - 2025-10-22 [ADD] Android SDK 向けに AudioTrackSink 機能を追加する
   - AudioTrackSink を利用すると AudioTrack ごとに PCM 音声データを取得することができる
   - @zztkm
-- 2025-10-17 [RELEASE] 141.7390.3.1
+- 2025-10-17 [RELEASE] m141.7390.3.1
   - @t-miya
-- 2025-10-16 [RELEASE] 140.7339.2.4
+- 2025-10-16 [RELEASE] m140.7339.2.4
   - @t-miya
-- 2025-10-16 [RELEASE] 140.7339.2.3
+- 2025-10-16 [RELEASE] m140.7339.2.3
   - @t-miya
 - 2025-10-16 [ADD] Android SDK の JavaAudioDeviceModule に公開 API として pauseRecording()/resumeRecording() を追加する
   - Android 実機のマイクインジケータが消灯状態のミュートをできるようにする
@@ -71,9 +73,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
     - pauseRecording()/resumeRecording() メソッドを追加する
     - startRecording()/stopRecording() メソッド内に recordingState を更新する処理を追加する
   - @t-miya
-- 2025-10-10 [RELEASE] 141.7390.3.0
+- 2025-10-10 [RELEASE] m141.7390.3.0
   - @torikizi
-- 2025-09-22 [RELEASE] 141.7390.2.0
+- 2025-09-22 [RELEASE] m141.7390.2.0
   - @torikizi
 - 2025-09-22 [UPDATE] m141 ブランチのビルドエラーを修正する
   - remove_crel.patch の単純なパッチ適用失敗を修正
@@ -91,13 +93,13 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
     - `sdk/android/src/jni/pc/rtp_parameters.cc` の単純なパッチ適用失敗を修正
   - revive_proxy.patch の単純なパッチ適用失敗を修正
   - @torikizi
-- 2025-09-16 [RELEASE] 140.7339.2.2
+- 2025-09-16 [RELEASE] m140.7339.2.2
   - @torikizi
 - 2025-09-16 [UPDATE] DEPS の MACOS_DEPLOYMENT_TARGET を 14 にアップデートする
   - @torikizi
-- 2025-09-12 [RELEASE] 140.7339.2.1
+- 2025-09-12 [RELEASE] m140.7339.2.1
   - @miosakuma
-- 2025-09-11 [RELEASE] 140.7339.2.0
+- 2025-09-11 [RELEASE] m140.7339.2.0
   - @melpon
 - 2025-09-11 [UPDATE] m140 に対応する
   - `rtc::` を `webrtc::` に変更する
