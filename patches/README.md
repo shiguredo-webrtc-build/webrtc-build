@@ -369,3 +369,27 @@ https://issues.webrtc.org/issues/450130875
 元々は `#include "sdk/objc/base/RTCMacros.h"` といったヘッダーのインクルードを `#import <WebRTC/RTCMarcos.h>` に変換するスクリプト `tools_webrtc/apple/copy_framework_header.py` が適用されていたのだが、この issue に書いているコミットによってそれが削除されてしまっている。
 
 このパッチによって、`copy_framework_header.py` の適用を復活させてインクルードのコンパイルエラーを解消する。
+
+## windows_fix_adm_device_count.patch
+
+Windows 向け ADM の RecordingDevices() と PlayoutDevices() の返す値を修正するパッチ。
+
+Windows 向け ADM の
+
+- `SetRecordingDevice()`, `SetPlayoutDevice()` といったアクティブなデバイスを選択する時に渡すインデックス
+- `RecordingDeviceName()`, `PlayoutDeviceName()` といったデバイス名を取得する時に渡すインデックス
+
+これらのインデックスは、必ず 0 が Default デバイスで、1 が Communitation デバイスとなる。
+
+そしてこれらの追加されたデバイスは **`RecordingDevices()` や `PlayoutDevices()` の戻り値には含まれていない** 。
+例えば有効なマイクデバイスが 2 個接続されている場合、`RecordingDevices()` は 2 を返すが、
+対応するインデックスは以下のようになる。
+
+ 0 - Default - マイク１
+ 1 - Communitation - マイク１
+ 2 - マイク１
+ 3 - マイク２
+
+そのためユーザー側で `for (int i = 0; i < adm->RecordingDevices(); i++) { ... }` のように実装しても、Windows では全てのデバイスを列挙できなくなっている。
+
+この問題を解決するために `RecordingDevices()` と `PlayoutDevices()` の戻り値を +2 するのがこのパッチの内容となっている。
