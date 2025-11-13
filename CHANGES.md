@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-11-13 [ADD] windows_fix_adm_device_count.patch を追加して Windows 向け ADM の RecordingDevices() と PlayoutDevices() の返す値を修正する
+  - @melpon
 - 2025-11-06 [RELEASE] m143.7499.0.0
   - @torikizi
 - 2025-11-06 [UPDATE] m143 ブランチのビルドエラーを修正する
@@ -37,6 +39,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - android_proxy.patch の単純なパッチ適用エラーを修正
   - @melpon
 - 2025-11-06 [RELEASE] m142.7444.2.1
+  - @t-miya
+- 2025-11-06 [RELEASE] 142.7444.2.1
   - @t-miya
 - 2025-11-05 [FIX] Android SDK の `WebRtcAudioRecord` で pause 状態時に `stopRecording()` を呼び出すとエラーが出る問題を修正する
   - WebRtcAudioRecord の pauseRecording() により audioThread が null となるため stopRecording() に audioThead の null チェックを行う分岐を追加する
