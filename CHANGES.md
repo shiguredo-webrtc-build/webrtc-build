@@ -29,6 +29,12 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-12-04 [CHANGE] revive_proxy.patch を修正
+  - libwebrtc 側での変更に追従して SignalConnectEvent / SignalReadEvent / SignalCloseEvent を以下のように修正
+    - NotifyConnectEvent
+    - NotifyReadEvent
+    - NotifyCloseEvent
+  - @torikizi
 - 2025-11-13 [RELEASE] m143.7499.1.0
   - @torikizi
 - 2025-11-13 [ADD] windows_fix_adm_device_count.patch を追加して Windows 向け ADM の RecordingDevices() と PlayoutDevices() の返す値を修正する
