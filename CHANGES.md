@@ -34,6 +34,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
     - NotifyConnectEvent
     - NotifyReadEvent
     - NotifyCloseEvent
+  - Windows の単純なパッチ適用エラーを修正
+    - port_allocator.h
+    - port_interface.h
   - @torikizi
 - 2025-11-13 [RELEASE] m143.7499.1.0
   - @torikizi
