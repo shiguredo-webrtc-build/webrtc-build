@@ -1,17 +1,26 @@
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index 7b8a02462c..3ddacc9364 100644
+index 7b8a02462c..43851043a3 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
 @@ -997,6 +997,9 @@ if (is_ios || is_mac) {
          "objc/api/peerconnection/RTCAudioTrack+Private.h",
          "objc/api/peerconnection/RTCAudioTrack.h",
          "objc/api/peerconnection/RTCAudioTrack.mm",
++        "objc/api/peerconnection/RTCAudioTrackSink.h",
 +        "objc/api/peerconnection/RTCAudioTrack+Sink.h",
 +        "objc/api/peerconnection/RTCAudioTrack+Sink.mm",
-+        "objc/api/peerconnection/RTCAudioTrackSink.h",
          "objc/api/peerconnection/RTCCertificate.h",
          "objc/api/peerconnection/RTCCertificate.mm",
          "objc/api/peerconnection/RTCConfiguration+Native.h",
+@@ -1389,6 +1392,8 @@ if (is_ios || is_mac) {
+           "objc/helpers/UIDevice+RTCDevice.h",
+           "objc/api/peerconnection/RTCAudioSource.h",
+           "objc/api/peerconnection/RTCAudioTrack.h",
++          "objc/api/peerconnection/RTCAudioTrackSink.h",
++          "objc/api/peerconnection/RTCAudioTrack+Sink.h",
+           "objc/api/peerconnection/RTCConfiguration.h",
+           "objc/api/peerconnection/RTCDataChannel.h",
+           "objc/api/peerconnection/RTCDataChannelConfiguration.h",
 diff --git a/sdk/objc/api/peerconnection/RTCAudioTrack+Sink.h b/sdk/objc/api/peerconnection/RTCAudioTrack+Sink.h
 new file mode 100644
 index 0000000000..902eb54341
