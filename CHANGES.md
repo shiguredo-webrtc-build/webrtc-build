@@ -29,6 +29,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-12-08 [CHANGE] ios_revive_copy_framework_header.patch を削除
+  - libwebrtc で修正されたため、パッチを削除する
+    - 参考リンク : https://source.chromium.org/chromium/_/webrtc/src/+/1d832acb82092850131c2d2395108d6779a40782
 - 2025-12-04 [CHANGE] revive_proxy.patch を修正
   - libwebrtc 側での変更に追従して SignalConnectEvent / SignalReadEvent / SignalCloseEvent を以下のように修正
     - NotifyConnectEvent
