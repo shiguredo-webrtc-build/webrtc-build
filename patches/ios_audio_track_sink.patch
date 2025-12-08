@@ -58,10 +58,10 @@ index 0000000000..902eb54341
 +
 diff --git a/sdk/objc/api/peerconnection/RTCAudioTrack+Sink.mm b/sdk/objc/api/peerconnection/RTCAudioTrack+Sink.mm
 new file mode 100644
-index 0000000000..5e0bd7ceab
+index 0000000000..338ec6cf29
 --- /dev/null
 +++ b/sdk/objc/api/peerconnection/RTCAudioTrack+Sink.mm
-@@ -0,0 +1,173 @@
+@@ -0,0 +1,177 @@
 +#import "RTCAudioTrack+Sink.h"
 +#import "RTCAudioTrack+Private.h"
 +#import "base/RTCLogging.h"
@@ -79,10 +79,10 @@ index 0000000000..5e0bd7ceab
 + * C++ wrapper for Objective-C audio sink
 + * スレッドセーフな実装でObjective-CのAudioSinkをブリッジ
 + */
-+class AudioSinkAdapter : public webrtc::AudioTrackSinkInterface {
++class RTCAudioTrackSinkAdapter : public webrtc::AudioTrackSinkInterface {
 + public:
-+  AudioSinkAdapter(id<RTC_OBJC_TYPE(RTCAudioTrackSink)> sink,
-+                   RTC_OBJC_TYPE(RTCAudioTrack)* track)
++  RTCAudioTrackSinkAdapter(id<RTC_OBJC_TYPE(RTCAudioTrackSink)> sink,
++                           RTC_OBJC_TYPE(RTCAudioTrack)* track)
 +      : sink_(sink), track_(track) {}
 +
 +  void OnData(const void* audio_data,
@@ -143,20 +143,24 @@ index 0000000000..5e0bd7ceab
 +// スレッドセーフなSinkアダプター管理
 +namespace {
 +
-+class SinkAdapterManager {
++class RTCAudioTrackSinkAdapterManager {
 + public:
-+  static SinkAdapterManager& GetInstance() {
-+    static SinkAdapterManager instance;
-+    return instance;
++  static RTCAudioTrackSinkAdapterManager& GetInstance() {
++    // ObjC 側のシングルトン（例: sdk/objc/components/audio/RTCAudioSession.mm:sharedInstance）
++    // と同様に破棄せず常駐させ、exit-time destructor の警告を回避。
++    static RTCAudioTrackSinkAdapterManager* instance =
++        new RTCAudioTrackSinkAdapterManager();
++    return *instance;
 +  }
 +
 +  void AddAdapter(id<RTC_OBJC_TYPE(RTCAudioTrackSink)> sink,
-+                  std::unique_ptr<webrtc::objc::AudioSinkAdapter> adapter) {
++                  std::unique_ptr<webrtc::objc::RTCAudioTrackSinkAdapter> adapter) {
 +    std::lock_guard<std::mutex> lock(mutex_);
 +    adapters_[sink] = std::move(adapter);
 +  }
 +
-+  webrtc::objc::AudioSinkAdapter* GetAdapter(id<RTC_OBJC_TYPE(RTCAudioTrackSink)> sink) {
++  webrtc::objc::RTCAudioTrackSinkAdapter* GetAdapter(
++      id<RTC_OBJC_TYPE(RTCAudioTrackSink)> sink) {
 +    std::lock_guard<std::mutex> lock(mutex_);
 +    auto it = adapters_.find(sink);
 +    if (it != adapters_.end()) {
@@ -165,7 +169,7 @@ index 0000000000..5e0bd7ceab
 +    return nullptr;
 +  }
 +
-+  std::unique_ptr<webrtc::objc::AudioSinkAdapter> RemoveAdapter(
++  std::unique_ptr<webrtc::objc::RTCAudioTrackSinkAdapter> RemoveAdapter(
 +      id<RTC_OBJC_TYPE(RTCAudioTrackSink)> sink) {
 +    std::lock_guard<std::mutex> lock(mutex_);
 +    auto it = adapters_.find(sink);
@@ -185,7 +189,7 @@ index 0000000000..5e0bd7ceab
 + private:
 +  std::mutex mutex_;
 +  std::map<id<RTC_OBJC_TYPE(RTCAudioTrackSink)>,
-+           std::unique_ptr<webrtc::objc::AudioSinkAdapter>> adapters_;
++           std::unique_ptr<webrtc::objc::RTCAudioTrackSinkAdapter>> adapters_;
 +};
 +
 +}  // namespace
@@ -197,7 +201,7 @@ index 0000000000..5e0bd7ceab
 +    return;
 +  }
 +
-+  auto& manager = SinkAdapterManager::GetInstance();
++  auto& manager = RTCAudioTrackSinkAdapterManager::GetInstance();
 +
 +  // 既に存在するかチェック
 +  if (manager.HasAdapter(sink)) {
@@ -206,8 +210,8 @@ index 0000000000..5e0bd7ceab
 +  }
 +
 +  // 新しいアダプターを作成
-+  auto adapter = std::make_unique<webrtc::objc::AudioSinkAdapter>(sink, self);
-+  webrtc::objc::AudioSinkAdapter* adapterPtr = adapter.get();
++  auto adapter = std::make_unique<webrtc::objc::RTCAudioTrackSinkAdapter>(sink, self);
++  webrtc::objc::RTCAudioTrackSinkAdapter* adapterPtr = adapter.get();
 +
 +  // マネージャーに登録
 +  manager.AddAdapter(sink, std::move(adapter));
@@ -221,7 +225,7 @@ index 0000000000..5e0bd7ceab
 +    return;
 +  }
 +
-+  auto& manager = SinkAdapterManager::GetInstance();
++  auto& manager = RTCAudioTrackSinkAdapterManager::GetInstance();
 +
 +  // アダプターを取得
 +  auto* adapterPtr = manager.GetAdapter(sink);
