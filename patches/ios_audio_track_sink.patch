@@ -58,12 +58,13 @@ index 0000000000..902eb54341
 +
 diff --git a/sdk/objc/api/peerconnection/RTCAudioTrack+Sink.mm b/sdk/objc/api/peerconnection/RTCAudioTrack+Sink.mm
 new file mode 100644
-index 0000000000..002cfd78b0
+index 0000000000..5e0bd7ceab
 --- /dev/null
 +++ b/sdk/objc/api/peerconnection/RTCAudioTrack+Sink.mm
-@@ -0,0 +1,171 @@
+@@ -0,0 +1,173 @@
 +#import "RTCAudioTrack+Sink.h"
 +#import "RTCAudioTrack+Private.h"
++#import "base/RTCLogging.h"
 +
 +#include <memory>
 +#include <map>
@@ -200,6 +201,7 @@ index 0000000000..002cfd78b0
 +
 +  // 既に存在するかチェック
 +  if (manager.HasAdapter(sink)) {
++    RTCLogWarning(@"RTCAudioTrack sink already added: %@", sink);
 +    return;
 +  }
 +
