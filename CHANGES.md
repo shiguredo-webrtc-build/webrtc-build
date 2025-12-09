@@ -29,7 +29,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
-- 2025-12-09 [CHANGE] revive_proxy.patch の単純なパッチ適用エラーを修正
+- 2025-12-09 [UPDATE] revive_proxy.patch の単純なパッチ適用エラーを修正
   - Windows の単純なパッチ適用エラーを修正
     - port_allocator.h
     - port_interface.h
@@ -43,6 +43,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
     - NotifyConnectEvent
     - NotifyReadEvent
     - NotifyCloseEvent
+  - 参考リンク : https://source.chromium.org/chromium/_/webrtc/src/+/f938898734b36d72a81794cecf838693a4293cf5
   - @torikizi
 - 2025-11-13 [RELEASE] m143.7499.1.0
   - @torikizi
