@@ -92,7 +92,7 @@ index d1788a3..b3d2b32 100644
    bool initialized_ RTC_GUARDED_BY(thread_);
  
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index 021f08a..690fdcd 100644
+index 021f08a..f68c494 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
 @@ -110,6 +110,7 @@ static void LogDeviceInfo() {
@@ -126,12 +126,12 @@ index 021f08a..690fdcd 100644
 +  if (!recording_.load() && !paused_recording_) {
      return 0;
    }
-+  // 一応録音ポーズフラグも解除しておく
++  // 実際の状態に関わらず録音ポーズフラグも解除しておく
 +  paused_recording_ = false;
    if (!playing_.load()) {
      ShutdownPlayOrRecord();
    }
-@@ -340,6 +351,38 @@ static void LogDeviceInfo() {
+@@ -340,6 +351,44 @@ static void LogDeviceInfo() {
    return 0;
  }
  
@@ -164,7 +164,13 @@ index 021f08a..690fdcd 100644
 +    }
 +  }
 +  paused_recording_ = false;
-+  return StartRecording();
++  int32_t result = StartRecording();
++  if (result != 0) {
++    // Start に失敗したら再度 pause 状態に戻す
++    paused_recording_ = true;
++    recording_.store(0, std::memory_order_release);
++  }
++  return result;
 +}
 +
  bool AudioDeviceIOS::Recording() const {
