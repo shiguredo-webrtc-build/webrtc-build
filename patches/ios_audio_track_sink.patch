@@ -52,7 +52,7 @@ index db8afb50fc..60ea646ec4 100644
  
  NS_ASSUME_NONNULL_END
 diff --git a/sdk/objc/api/peerconnection/RTCAudioTrack.mm b/sdk/objc/api/peerconnection/RTCAudioTrack.mm
-index 5ba53c84e9..bdec85d007 100644
+index 5ba53c84e9..803d9dfd39 100644
 --- a/sdk/objc/api/peerconnection/RTCAudioTrack.mm
 +++ b/sdk/objc/api/peerconnection/RTCAudioTrack.mm
 @@ -9,15 +9,114 @@
@@ -194,7 +194,7 @@ index 5ba53c84e9..bdec85d007 100644
  }
  
  - (RTC_OBJC_TYPE(RTCAudioSource) *)source {
-@@ -66,6 +172,67 @@
+@@ -66,6 +172,79 @@
    return _source;
  }
  
@@ -204,7 +204,7 @@ index 5ba53c84e9..bdec85d007 100644
 +  }
 +
 +  if (_workerThread && !_workerThread->IsCurrent()) {
-+    _workerThread->BlockingCall([sink, self] { [self addSink:sink]; });
++    _workerThread->PostTask([sink, self] { [self addSink:sink]; });
 +    return;
 +  }
 +
@@ -229,7 +229,7 @@ index 5ba53c84e9..bdec85d007 100644
 +  }
 +
 +  if (_workerThread && !_workerThread->IsCurrent()) {
-+    _workerThread->BlockingCall([sink, self] { [self removeSink:sink]; });
++    _workerThread->PostTask([sink, self] { [self removeSink:sink]; });
 +    return;
 +  }
 +
@@ -254,9 +254,21 @@ index 5ba53c84e9..bdec85d007 100644
 +}
 +
 +- (void)dealloc {
++  if (_workerThread && !_workerThread->IsCurrent()) {
++    // Worker スレッド側でクリーンアップを実施
++    _workerThread->BlockingCall([self] {
++      for (RTCAudioTrackSinkAdapterBox* adapterBox in self->_audioSinkAdapters) {
++        self.nativeAudioTrack->RemoveSink(adapterBox.nativeAdapter);
++      }
++      [self->_audioSinkAdapters removeAllObjects];
++    });
++    return;
++  }
++
 +  for (RTCAudioTrackSinkAdapterBox* adapterBox in _audioSinkAdapters) {
 +    self.nativeAudioTrack->RemoveSink(adapterBox.nativeAdapter);
 +  }
++  [_audioSinkAdapters removeAllObjects];
 +}
 +
  #pragma mark - Private
