@@ -106,16 +106,16 @@ index be91dae6d8..6095ef7f98 100644
 @@ -35,6 +35,8 @@
  #include "rtc_base/ssl_certificate.h"
  #include "rtc_base/system/rtc_export.h"
-
+ 
 +#include "rtc_base/proxy_info_revive.h"
 +
  namespace webrtc {
-
+ 
  class TurnCustomizer;
 @@ -531,6 +533,26 @@ class RTC_EXPORT PortAllocator {
      flags_ = flags;
    }
-
+ 
 +  const std::string& user_agent() const {
 +    CheckRunOnValidThreadIfInitialized();
 +    return agent_;
@@ -146,16 +146,16 @@ index 5182a049e6..b26cd5bb69 100644
 @@ -33,6 +33,8 @@
  #include "rtc_base/socket.h"
  #include "rtc_base/socket_address.h"
-
+ 
 +#include "rtc_base/proxy_info_revive.h"
 +
  namespace webrtc {
-
+ 
  class Connection;
 @@ -174,6 +176,9 @@ class PortInterface {
    // Called when the Connection discovers a local peer reflexive candidate.
    virtual void AddPrflxCandidate(const Candidate& local) = 0;
-
+ 
 +  virtual std::string get_user_agent() const { return ""; }
 +  virtual webrtc::revive::ProxyInfo get_proxy() const { return webrtc::revive::ProxyInfo(); }
 +
