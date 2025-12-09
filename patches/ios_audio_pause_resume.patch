@@ -92,7 +92,7 @@ index d1788a3..b3d2b32 100644
    bool initialized_ RTC_GUARDED_BY(thread_);
  
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index 021f08a..c7610e9 100644
+index 021f08a..690fdcd 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
 @@ -110,6 +110,7 @@ static void LogDeviceInfo() {
@@ -103,20 +103,18 @@ index 021f08a..c7610e9 100644
        initialized_(false),
        audio_is_initialized_(false),
        is_interrupted_(false),
-@@ -303,6 +304,12 @@ static void LogDeviceInfo() {
+@@ -302,6 +303,10 @@ static void LogDeviceInfo() {
+   LOGI() << "StartRecording";
    RTC_DCHECK_RUN_ON(thread_);
    RTC_DCHECK(audio_is_initialized_);
-   RTC_DCHECK(!recording_.load());
-+  // 録音ポーズからの復帰時は paused_recording_ フラグ更新のため直接呼ばずに resumeRecording() を経由する
++  // 録音ポーズ中であれば ResumeRecording() にフォールスルーする
 +  if (paused_recording_) {
-+    RTC_LOG(LS_WARNING) << "StartRecording not allowed while paused; "
-+                        << "call ResumeRecording instead";
-+    return -1;
++    return ResumeRecording();
 +  }
+   RTC_DCHECK(!recording_.load());
    RTC_DCHECK(audio_unit_);
    if (!audio_is_initialized_) {
-     return -1;
-@@ -330,9 +337,15 @@ static void LogDeviceInfo() {
+@@ -330,9 +335,15 @@ static void LogDeviceInfo() {
  int32_t AudioDeviceIOS::StopRecording() {
    LOGI() << "StopRecording";
    RTC_DCHECK_RUN_ON(thread_);
@@ -133,7 +131,7 @@ index 021f08a..c7610e9 100644
    if (!playing_.load()) {
      ShutdownPlayOrRecord();
    }
-@@ -340,6 +353,34 @@ static void LogDeviceInfo() {
+@@ -340,6 +351,38 @@ static void LogDeviceInfo() {
    return 0;
  }
  
@@ -157,9 +155,13 @@ index 021f08a..c7610e9 100644
 +  if (!paused_recording_) {
 +    return 0;
 +  }
-+  if (InitRecording() != 0) {
-+    RTC_LOG(LS_ERROR) << "InitRecording failed during ResumeRecording";
-+    return -1;
++  if (!audio_is_initialized_) {
++    if (InitRecording() != 0) {
++      RTC_LOG(LS_ERROR) << "InitRecording failed during ResumeRecording";
++      paused_recording_ = false;
++      recording_.store(0, std::memory_order_release);
++      return -1;
++    }
 +  }
 +  paused_recording_ = false;
 +  return StartRecording();
@@ -192,21 +194,23 @@ index 5ff5062..58338a6 100644
    int GetPlayoutAudioParameters(AudioParameters* params) const override;
    int GetRecordAudioParameters(AudioParameters* params) const override;
 diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.mm b/sdk/objc/native/src/audio/audio_device_module_ios.mm
-index e2ea360..3608f15 100644
+index e2ea360..3576ed3 100644
 --- a/sdk/objc/native/src/audio/audio_device_module_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_module_ios.mm
-@@ -42,6 +42,10 @@
+@@ -42,6 +42,12 @@
  namespace webrtc {
  namespace ios_adm {
  
 +namespace {
++// RTCAudioSession の pauseRecording/resumeRecording にて動作中の ADM を取得するために利用される。
++// 常に 1 インスタンス前提としている。複数生成した場合の動作は未定義。
 +AudioDeviceModuleIOS* g_last_audio_device_module_ios = nullptr;
 +}  // namespace
 +
  AudioDeviceModuleIOS::AudioDeviceModuleIOS(
      const Environment& env,
      bool bypass_voice_processing,
-@@ -53,6 +57,7 @@
+@@ -53,6 +59,7 @@
        error_handler_(error_handler) {
    RTC_LOG(LS_INFO) << "current platform is IOS";
    RTC_LOG(LS_INFO) << "iPhone Audio APIs will be utilized.";
@@ -214,7 +218,7 @@ index e2ea360..3608f15 100644
  }
  
  int32_t AudioDeviceModuleIOS::AttachAudioBuffer() {
-@@ -63,6 +68,9 @@
+@@ -63,6 +70,9 @@
  
  AudioDeviceModuleIOS::~AudioDeviceModuleIOS() {
    RTC_DLOG(LS_INFO) << __FUNCTION__;
@@ -224,7 +228,7 @@ index e2ea360..3608f15 100644
  }
  
  void AudioDeviceModuleIOS::ReportError(ADMError error) const {
-@@ -652,6 +660,28 @@
+@@ -652,6 +662,28 @@
    return result;
  }
  
@@ -253,7 +257,7 @@ index e2ea360..3608f15 100644
  int32_t AudioDeviceModuleIOS::StopRecording() {
    RTC_DLOG(LS_INFO) << __FUNCTION__;
    CHECKinitialized_();
-@@ -783,5 +813,11 @@
+@@ -783,5 +815,11 @@
    return r;
  }
  #endif  // WEBRTC_IOS
