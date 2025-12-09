@@ -43,7 +43,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
     - NotifyConnectEvent
     - NotifyReadEvent
     - NotifyCloseEvent
-  - 参考リンク : https://source.chromium.org/chromium/_/webrtc/src/+/f938898734b36d72a81794cecf838693a4293cf5
+  - 参考リンク : [NotifyConnectEvent と NotifyCloseEvent の変更](https://source.chromium.org/chromium/_/webrtc/src/+/f938898734b36d72a81794cecf838693a4293cf5)
+  - 参考リンク : [NotifyReadEvent への変更](https://source.chromium.org/chromium/_/webrtc/src/+/bd1d02f84b89b5136fc09cfc10e04cbe53d741f4)
   - @torikizi
 - 2025-11-13 [RELEASE] m143.7499.1.0
   - @torikizi
