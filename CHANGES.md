@@ -29,6 +29,23 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-12-09 [UPDATE] revive_proxy.patch の単純なパッチ適用エラーを修正
+  - Windows の単純なパッチ適用エラーを修正
+    - port_allocator.h
+    - port_interface.h
+  - @torikizi
+- 2025-12-08 [CHANGE] ios_revive_copy_framework_header.patch を削除
+  - libwebrtc で修正されたため、パッチを削除する
+    - 参考リンク : https://source.chromium.org/chromium/_/webrtc/src/+/1d832acb82092850131c2d2395108d6779a40782
+  - @torikizi
+- 2025-12-04 [CHANGE] revive_proxy.patch を修正
+  - libwebrtc 側での変更に追従して SignalConnectEvent / SignalReadEvent / SignalCloseEvent を以下のように修正
+    - NotifyConnectEvent
+    - NotifyReadEvent
+    - NotifyCloseEvent
+  - 参考リンク : [NotifyConnectEvent と NotifyCloseEvent の変更](https://source.chromium.org/chromium/_/webrtc/src/+/f938898734b36d72a81794cecf838693a4293cf5)
+  - 参考リンク : [NotifyReadEvent への変更](https://source.chromium.org/chromium/_/webrtc/src/+/bd1d02f84b89b5136fc09cfc10e04cbe53d741f4)
+  - @torikizi
 - 2025-11-13 [RELEASE] m143.7499.1.0
   - @torikizi
 - 2025-11-13 [ADD] windows_fix_adm_device_count.patch を追加して Windows 向け ADM の RecordingDevices() と PlayoutDevices() の返す値を修正する
