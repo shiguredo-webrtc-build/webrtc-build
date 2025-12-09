@@ -1,0 +1,304 @@
+diff --git a/sdk/objc/components/audio/RTCAudioSession.h b/sdk/objc/components/audio/RTCAudioSession.h
+index 47a6007..56f22dd 100644
+--- a/sdk/objc/components/audio/RTCAudioSession.h
++++ b/sdk/objc/components/audio/RTCAudioSession.h
+@@ -171,6 +171,16 @@ RTC_OBJC_EXPORT
+  */
+ @property(nonatomic, assign) BOOL isAudioEnabled;
+ 
++/** Audio 録音を一時停止する。startRecording() により録音開始している状態を前提とする。
++ * 一時停止成功時または既に停止状態の場合 YES を返す。
++ */
++- (BOOL)pauseRecording;
++
++/** pauseRecording() により一時停止している Audio 録音を再開する。
++ * 再開成功または既に録音中の場合 YES を返す。
++ */
++- (BOOL)resumeRecording;
++
+ // Proxy properties.
+ @property(readonly) NSString *category;
+ @property(readonly) AVAudioSessionCategoryOptions categoryOptions;
+diff --git a/sdk/objc/components/audio/RTCAudioSession.mm b/sdk/objc/components/audio/RTCAudioSession.mm
+index 60cf11e..f81381e 100644
+--- a/sdk/objc/components/audio/RTCAudioSession.mm
++++ b/sdk/objc/components/audio/RTCAudioSession.mm
+@@ -18,6 +18,7 @@
+ #include "absl/base/attributes.h"
+ #include "rtc_base/checks.h"
+ #include "rtc_base/synchronization/mutex.h"
++#include "sdk/objc/native/src/audio/audio_device_module_ios.h"
+ 
+ #import "RTCAudioSessionConfiguration.h"
+ #import "base/RTCLogging.h"
+@@ -214,6 +215,36 @@ - (BOOL)isAudioEnabled {
+   }
+ }
+ 
++- (BOOL)pauseRecording {
++  webrtc::ios_adm::AudioDeviceModuleIOS* adm =
++      webrtc::ios_adm::AudioDeviceModuleIOS::GetLastInstance();
++  if (!adm) {
++    RTCLogError(@"pauseRecording failed: AudioDeviceModuleIOS not available");
++    return NO;
++  }
++  int32_t result = adm->PauseRecording();
++  if (result != 0) {
++    RTCLogError(@"pauseRecording failed with code %d", result);
++    return NO;
++  }
++  return YES;
++}
++
++- (BOOL)resumeRecording {
++  webrtc::ios_adm::AudioDeviceModuleIOS* adm =
++      webrtc::ios_adm::AudioDeviceModuleIOS::GetLastInstance();
++  if (!adm) {
++    RTCLogError(@"resumeRecording failed: AudioDeviceModuleIOS not available");
++    return NO;
++  }
++  int32_t result = adm->ResumeRecording();
++  if (result != 0) {
++    RTCLogError(@"resumeRecording failed with code %d", result);
++    return NO;
++  }
++  return YES;
++}
++
+ - (void)setIgnoresPreferredAttributeConfigurationErrors:
+     (BOOL)ignoresPreferredAttributeConfigurationErrors {
+   @synchronized(self) {
+diff --git a/sdk/objc/native/src/audio/audio_device_ios.h b/sdk/objc/native/src/audio/audio_device_ios.h
+index d1788a3..b3d2b32 100644
+--- a/sdk/objc/native/src/audio/audio_device_ios.h
++++ b/sdk/objc/native/src/audio/audio_device_ios.h
+@@ -80,6 +80,8 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
+   bool Playing() const override;
+ 
+   int32_t StartRecording() override;
++  int32_t PauseRecording();
++  int32_t ResumeRecording();
+   int32_t StopRecording() override;
+   bool Recording() const override;
+ 
+@@ -292,6 +294,9 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
+   // Set to 1 when playout is active and 0 otherwise.
+   std::atomic<int> playing_;
+ 
++  // Set to true when recording has been paused explicitly.
++  bool paused_recording_;
++
+   // Set to true after successful call to Init(), false otherwise.
+   bool initialized_ RTC_GUARDED_BY(thread_);
+ 
+diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
+index 021f08a..cda1a76 100644
+--- a/sdk/objc/native/src/audio/audio_device_ios.mm
++++ b/sdk/objc/native/src/audio/audio_device_ios.mm
+@@ -110,6 +110,7 @@ static void LogDeviceInfo() {
+       audio_unit_(nullptr),
+       recording_(0),
+       playing_(0),
++      paused_recording_(false),
+       initialized_(false),
+       audio_is_initialized_(false),
+       is_interrupted_(false),
+@@ -303,6 +304,11 @@ static void LogDeviceInfo() {
+   RTC_DCHECK_RUN_ON(thread_);
+   RTC_DCHECK(audio_is_initialized_);
+   RTC_DCHECK(!recording_.load());
++  if (paused_recording_) {
++    RTC_LOG(LS_WARNING) << "StartRecording not allowed while paused; "
++                        << "call ResumeRecording instead";
++    return -1;
++  }
+   RTC_DCHECK(audio_unit_);
+   if (!audio_is_initialized_) {
+     return -1;
+@@ -327,6 +333,34 @@ static void LogDeviceInfo() {
+   return 0;
+ }
+ 
++int32_t AudioDeviceIOS::PauseRecording() {
++  LOGI() << "PauseRecording";
++  RTC_DCHECK_RUN_ON(thread_);
++  if (paused_recording_) {
++    return 0;
++  }
++  if (!audio_is_initialized_ || !recording_.load()) {
++    return 0;
++  }
++  recording_.store(0, std::memory_order_release);
++  paused_recording_ = true;
++  return 0;
++}
++
++int32_t AudioDeviceIOS::ResumeRecording() {
++  LOGI() << "ResumeRecording";
++  RTC_DCHECK_RUN_ON(thread_);
++  if (!paused_recording_) {
++    return 0;
++  }
++  if (InitRecording() != 0) {
++    RTC_LOG(LS_ERROR) << "InitRecording failed during ResumeRecording";
++    return -1;
++  }
++  paused_recording_ = false;
++  return StartRecording();
++}
++
+ int32_t AudioDeviceIOS::StopRecording() {
+   LOGI() << "StopRecording";
+   RTC_DCHECK_RUN_ON(thread_);
+diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.h b/sdk/objc/native/src/audio/audio_device_module_ios.h
+index 5ff5062..58338a6 100644
+--- a/sdk/objc/native/src/audio/audio_device_module_ios.h
++++ b/sdk/objc/native/src/audio/audio_device_module_ios.h
+@@ -76,6 +76,8 @@ class AudioDeviceModuleIOS : public AudioDeviceModule {
+   int32_t StopPlayout() override;
+   bool Playing() const override;
+   int32_t StartRecording() override;
++  int32_t PauseRecording();
++  int32_t ResumeRecording();
+   int32_t StopRecording() override;
+   bool Recording() const override;
+ 
+@@ -131,6 +133,9 @@ class AudioDeviceModuleIOS : public AudioDeviceModule {
+ 
+   std::optional<Stats> GetStats() const override;
+ 
++  // RTCAudioSession の pauseRecording/resumeRecording にて動作中の ADM を取得するために利用される
++  static AudioDeviceModuleIOS* GetLastInstance();
++
+ #if defined(WEBRTC_IOS)
+   int GetPlayoutAudioParameters(AudioParameters* params) const override;
+   int GetRecordAudioParameters(AudioParameters* params) const override;
+diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.mm b/sdk/objc/native/src/audio/audio_device_module_ios.mm
+index e2ea360..3608f15 100644
+--- a/sdk/objc/native/src/audio/audio_device_module_ios.mm
++++ b/sdk/objc/native/src/audio/audio_device_module_ios.mm
+@@ -42,6 +42,10 @@
+ namespace webrtc {
+ namespace ios_adm {
+ 
++namespace {
++AudioDeviceModuleIOS* g_last_audio_device_module_ios = nullptr;
++}  // namespace
++
+ AudioDeviceModuleIOS::AudioDeviceModuleIOS(
+     const Environment& env,
+     bool bypass_voice_processing,
+@@ -53,6 +57,7 @@
+       error_handler_(error_handler) {
+   RTC_LOG(LS_INFO) << "current platform is IOS";
+   RTC_LOG(LS_INFO) << "iPhone Audio APIs will be utilized.";
++  g_last_audio_device_module_ios = this;
+ }
+ 
+ int32_t AudioDeviceModuleIOS::AttachAudioBuffer() {
+@@ -63,6 +68,9 @@
+ 
+ AudioDeviceModuleIOS::~AudioDeviceModuleIOS() {
+   RTC_DLOG(LS_INFO) << __FUNCTION__;
++  if (g_last_audio_device_module_ios == this) {
++    g_last_audio_device_module_ios = nullptr;
++  }
+ }
+ 
+ void AudioDeviceModuleIOS::ReportError(ADMError error) const {
+@@ -652,6 +660,28 @@
+   return result;
+ }
+ 
++int32_t AudioDeviceModuleIOS::PauseRecording() {
++  RTC_DLOG(LS_INFO) << __FUNCTION__;
++  CHECKinitialized_();
++  int32_t result = audio_device_->PauseRecording();
++  if (result < 0) {
++    ReportError(kRecordingFailed);
++  }
++  RTC_DLOG(LS_INFO) << "output: " << result;
++  return result;
++}
++
++int32_t AudioDeviceModuleIOS::ResumeRecording() {
++  RTC_DLOG(LS_INFO) << __FUNCTION__;
++  CHECKinitialized_();
++  int32_t result = audio_device_->ResumeRecording();
++  if (result < 0) {
++    ReportError(kRecordingFailed);
++  }
++  RTC_DLOG(LS_INFO) << "output: " << result;
++  return result;
++}
++
+ int32_t AudioDeviceModuleIOS::StopRecording() {
+   RTC_DLOG(LS_INFO) << __FUNCTION__;
+   CHECKinitialized_();
+@@ -783,5 +813,11 @@
+   return r;
+ }
+ #endif  // WEBRTC_IOS
++
++// RTCAudioSession の pauseRecording/resumeRecording にて動作中の ADM を取得するために利用される
++AudioDeviceModuleIOS* AudioDeviceModuleIOS::GetLastInstance() {
++  return g_last_audio_device_module_ios;
++}
++
+ }  // namespace ios_adm
+ }  // namespace webrtc
+diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.h b/sdk/objc/native/src/audio/voice_processing_audio_unit.h
+index cad6fe5..694cee1 100644
+--- a/sdk/objc/native/src/audio/voice_processing_audio_unit.h
++++ b/sdk/objc/native/src/audio/voice_processing_audio_unit.h
+@@ -144,6 +144,8 @@ class VoiceProcessingAudioUnit {
+   VoiceProcessingAudioUnitObserver* observer_;
+   AudioUnit vpio_unit_;
+   VoiceProcessingAudioUnit::State state_;
++  // 二重解放を防ぐためのフラグ
++  bool disposed_;
+ };
+ }  // namespace ios_adm
+ }  // namespace webrtc
+diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.mm b/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
+index 1bd8956..ace3936 100644
+--- a/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
++++ b/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
+@@ -82,7 +82,8 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
+       detect_mute_speech_(detect_mute_speech),
+       observer_(observer),
+       vpio_unit_(nullptr),
+-      state_(kInitRequired) {
++      state_(kInitRequired),
++      disposed_(false) {
+   RTC_DCHECK(observer);
+ }
+ 
+@@ -404,6 +405,9 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
+ }
+ 
+ bool VoiceProcessingAudioUnit::Stop() {
++  if (!vpio_unit_ || disposed_) {
++    return true;
++  }
+   RTC_DCHECK_GE(state_, kUninitialized);
+   RTCLog(@"Stopping audio unit.");
+ 
+@@ -423,6 +427,9 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
+ }
+ 
+ bool VoiceProcessingAudioUnit::Uninitialize() {
++  if (!vpio_unit_ || disposed_) {
++    return true;
++  }
+   RTC_DCHECK_GE(state_, kUninitialized);
+   RTCLog(@"Unintializing audio unit.");
+ 
+@@ -575,6 +582,7 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
+       RTCLogError(@"AudioComponentInstanceDispose failed. Error=%ld.",
+                   (long)result);
+     }
++    disposed_ = true;
+     vpio_unit_ = nullptr;
+   }
+ }
