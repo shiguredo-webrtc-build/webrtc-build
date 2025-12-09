@@ -92,7 +92,7 @@ index d1788a3..b3d2b32 100644
    bool initialized_ RTC_GUARDED_BY(thread_);
  
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index 021f08a..cda1a76 100644
+index 021f08a..3777abe 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
 @@ -110,6 +110,7 @@ static void LogDeviceInfo() {
@@ -103,10 +103,11 @@ index 021f08a..cda1a76 100644
        initialized_(false),
        audio_is_initialized_(false),
        is_interrupted_(false),
-@@ -303,6 +304,11 @@ static void LogDeviceInfo() {
+@@ -303,6 +304,12 @@ static void LogDeviceInfo() {
    RTC_DCHECK_RUN_ON(thread_);
    RTC_DCHECK(audio_is_initialized_);
    RTC_DCHECK(!recording_.load());
++  // 録音ポーズからの復帰時は paused_recording_ フラグ更新のため直接呼ばずに resumeRecording() を経由する
 +  if (paused_recording_) {
 +    RTC_LOG(LS_WARNING) << "StartRecording not allowed while paused; "
 +                        << "call ResumeRecording instead";
@@ -115,7 +116,24 @@ index 021f08a..cda1a76 100644
    RTC_DCHECK(audio_unit_);
    if (!audio_is_initialized_) {
      return -1;
-@@ -327,6 +333,34 @@ static void LogDeviceInfo() {
+@@ -330,9 +337,15 @@ static void LogDeviceInfo() {
+ int32_t AudioDeviceIOS::StopRecording() {
+   LOGI() << "StopRecording";
+   RTC_DCHECK_RUN_ON(thread_);
+-  if (!audio_is_initialized_ || !recording_.load()) {
++  if (!audio_is_initialized_)
++    return 0;
++  // 録音ポーズ中でも解放処理を実行するためのチェック
++  // 録音フラグが立っていない、かつ、録音ポーズ中でない -> 解放済みである、としてリターン
++  if (!recording_.load(std::memory_order_acquire) && !paused_recording_) {
+     return 0;
+   }
++  // 一応録音ポーズフラグも解除しておく
++  paused_recording_ = false;
+   if (!playing_.load()) {
+     ShutdownPlayOrRecord();
+   }
+@@ -340,6 +353,34 @@ static void LogDeviceInfo() {
    return 0;
  }
  
@@ -147,9 +165,9 @@ index 021f08a..cda1a76 100644
 +  return StartRecording();
 +}
 +
- int32_t AudioDeviceIOS::StopRecording() {
-   LOGI() << "StopRecording";
-   RTC_DCHECK_RUN_ON(thread_);
+ bool AudioDeviceIOS::Recording() const {
+   return recording_.load();
+ }
 diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.h b/sdk/objc/native/src/audio/audio_device_module_ios.h
 index 5ff5062..58338a6 100644
 --- a/sdk/objc/native/src/audio/audio_device_module_ios.h
@@ -247,58 +265,3 @@ index e2ea360..3608f15 100644
 +
  }  // namespace ios_adm
  }  // namespace webrtc
-diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.h b/sdk/objc/native/src/audio/voice_processing_audio_unit.h
-index cad6fe5..694cee1 100644
---- a/sdk/objc/native/src/audio/voice_processing_audio_unit.h
-+++ b/sdk/objc/native/src/audio/voice_processing_audio_unit.h
-@@ -144,6 +144,8 @@ class VoiceProcessingAudioUnit {
-   VoiceProcessingAudioUnitObserver* observer_;
-   AudioUnit vpio_unit_;
-   VoiceProcessingAudioUnit::State state_;
-+  // 二重解放を防ぐためのフラグ
-+  bool disposed_;
- };
- }  // namespace ios_adm
- }  // namespace webrtc
-diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.mm b/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
-index 1bd8956..ace3936 100644
---- a/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
-+++ b/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
-@@ -82,7 +82,8 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
-       detect_mute_speech_(detect_mute_speech),
-       observer_(observer),
-       vpio_unit_(nullptr),
--      state_(kInitRequired) {
-+      state_(kInitRequired),
-+      disposed_(false) {
-   RTC_DCHECK(observer);
- }
- 
-@@ -404,6 +405,9 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
- }
- 
- bool VoiceProcessingAudioUnit::Stop() {
-+  if (!vpio_unit_ || disposed_) {
-+    return true;
-+  }
-   RTC_DCHECK_GE(state_, kUninitialized);
-   RTCLog(@"Stopping audio unit.");
- 
-@@ -423,6 +427,9 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
- }
- 
- bool VoiceProcessingAudioUnit::Uninitialize() {
-+  if (!vpio_unit_ || disposed_) {
-+    return true;
-+  }
-   RTC_DCHECK_GE(state_, kUninitialized);
-   RTCLog(@"Unintializing audio unit.");
- 
-@@ -575,6 +582,7 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
-       RTCLogError(@"AudioComponentInstanceDispose failed. Error=%ld.",
-                   (long)result);
-     }
-+    disposed_ = true;
-     vpio_unit_ = nullptr;
-   }
- }
