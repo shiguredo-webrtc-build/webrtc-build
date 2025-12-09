@@ -92,7 +92,7 @@ index d1788a3..b3d2b32 100644
    bool initialized_ RTC_GUARDED_BY(thread_);
  
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index 021f08a..3777abe 100644
+index 021f08a..c7610e9 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
 @@ -110,6 +110,7 @@ static void LogDeviceInfo() {
@@ -125,7 +125,7 @@ index 021f08a..3777abe 100644
 +    return 0;
 +  // 録音ポーズ中でも解放処理を実行するためのチェック
 +  // 録音フラグが立っていない、かつ、録音ポーズ中でない -> 解放済みである、としてリターン
-+  if (!recording_.load(std::memory_order_acquire) && !paused_recording_) {
++  if (!recording_.load() && !paused_recording_) {
      return 0;
    }
 +  // 一応録音ポーズフラグも解除しておく
