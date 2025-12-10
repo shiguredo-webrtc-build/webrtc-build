@@ -1,73 +1,125 @@
-diff --git a/sdk/objc/components/audio/RTCAudioSession.h b/sdk/objc/components/audio/RTCAudioSession.h
-index 47a6007..56f22dd 100644
---- a/sdk/objc/components/audio/RTCAudioSession.h
-+++ b/sdk/objc/components/audio/RTCAudioSession.h
-@@ -171,6 +171,16 @@ RTC_OBJC_EXPORT
-  */
- @property(nonatomic, assign) BOOL isAudioEnabled;
+diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
+index 7b8a024..e2f6c7a 100644
+--- a/sdk/BUILD.gn
++++ b/sdk/BUILD.gn
+@@ -172,6 +172,7 @@ if (is_ios || is_mac) {
+       sources += [
+         "objc/helpers/UIDevice+RTCDevice.h",
+         "objc/helpers/UIDevice+RTCDevice.mm",
++        "objc/components/audio/RTCAudioDeviceModule.mm",
+       ]
  
-+/** Audio 録音を一時停止する。startRecording() により録音開始している状態を前提とする。
-+ * 一時停止成功時または既に停止状態の場合 YES を返す。
-+ */
-+- (BOOL)pauseRecording;
+       if (target_platform != "tvos") {
+@@ -185,7 +186,7 @@ if (is_ios || is_mac) {
+     }
+   }
+ 
+-  rtc_library("core_audio_helpers_objc") {
++rtc_library("core_audio_helpers_objc") {
+     sources = [
+       "objc/helpers/AudioTimeStamp+Nanoseconds.h",
+       "objc/helpers/AudioTimeStamp+Nanoseconds.mm",
+@@ -1366,6 +1367,7 @@ if (is_ios || is_mac) {
+           "objc/base/RTCVideoRenderer.h",
+           "objc/base/RTCYUVPlanarBuffer.h",
+           "objc/components/audio/RTCAudioDevice.h",
++          "objc/components/audio/RTCAudioDeviceModule.h",
+           "objc/components/audio/RTCAudioSession.h",
+           "objc/components/audio/RTCAudioSessionConfiguration.h",
+           "objc/components/capturer/RTCCameraVideoCapturer.h",
+diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.h b/sdk/objc/components/audio/RTCAudioDeviceModule.h
+new file mode 100644
+index 0000000..1937cd0
+--- /dev/null
++++ b/sdk/objc/components/audio/RTCAudioDeviceModule.h
+@@ -0,0 +1,24 @@
++// 音声の録音ポーズ・復帰用の公開 API を提供するためのモジュールです
 +
-+/** pauseRecording() により一時停止している Audio 録音を再開する。
-+ * 再開成功または既に録音中の場合 YES を返す。
-+ */
++#import <Foundation/Foundation.h>
++
++#import "sdk/objc/base/RTCMacros.h"
++
++RTC_OBJC_EXPORT
++@interface RTC_OBJC_TYPE(RTCAudioDeviceModule) : NSObject
++
++// 現状は単一の ADM のみを扱う想定として、シングルトンインスタンスを取得する
+++ (instancetype)sharedInstance;
++
++// 登録中の AudioDeviceModuleIOS を弱参照で保持し、録音制御を委譲する
++//
++// 引数の型は AudioDeviceModuleIOS* を想定しているが、C++ 側定義の型であり
++// この ObjC 公開ヘッダでの露出はビルドエラーとなるため void* としている
++// 実装側で AudioDeviceModuleIOS* に static_cast する
++- (void)setAudioDeviceModule:(void *)adm;
++- (void)clearAudioDeviceModule:(void *)adm;
++
++- (BOOL)pauseRecording;
 +- (BOOL)resumeRecording;
 +
- // Proxy properties.
- @property(readonly) NSString *category;
- @property(readonly) AVAudioSessionCategoryOptions categoryOptions;
-diff --git a/sdk/objc/components/audio/RTCAudioSession.mm b/sdk/objc/components/audio/RTCAudioSession.mm
-index 60cf11e..f81381e 100644
---- a/sdk/objc/components/audio/RTCAudioSession.mm
-+++ b/sdk/objc/components/audio/RTCAudioSession.mm
-@@ -18,6 +18,7 @@
- #include "absl/base/attributes.h"
- #include "rtc_base/checks.h"
- #include "rtc_base/synchronization/mutex.h"
++@end
+diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.mm b/sdk/objc/components/audio/RTCAudioDeviceModule.mm
+new file mode 100644
+index 0000000..b6b9f29
+--- /dev/null
++++ b/sdk/objc/components/audio/RTCAudioDeviceModule.mm
+@@ -0,0 +1,57 @@
++// 音声の録音ポーズ・復帰用の公開 API を提供するためのモジュールです
++
++#import "RTCAudioDeviceModule.h"
++
 +#include "sdk/objc/native/src/audio/audio_device_module_ios.h"
- 
- #import "RTCAudioSessionConfiguration.h"
- #import "base/RTCLogging.h"
-@@ -214,6 +215,36 @@ - (BOOL)isAudioEnabled {
-   }
- }
- 
-+- (BOOL)pauseRecording {
++
++@interface RTC_OBJC_TYPE(RTCAudioDeviceModule) () {
++  webrtc::ios_adm::AudioDeviceModuleIOS* _adm;
++}
++@end
++
++@implementation RTC_OBJC_TYPE(RTCAudioDeviceModule)
++
+++ (instancetype)sharedInstance {
++  static RTC_OBJC_TYPE(RTCAudioDeviceModule) *instance = nil;
++  static dispatch_once_t onceToken;
++  dispatch_once(&onceToken, ^{
++    instance = [[self alloc] init];
++  });
++  return instance;
++}
++
++- (void)setAudioDeviceModule:(void *)adm_void {
 +  webrtc::ios_adm::AudioDeviceModuleIOS* adm =
-+      webrtc::ios_adm::AudioDeviceModuleIOS::GetLastInstance();
-+  if (!adm) {
-+    RTCLogError(@"pauseRecording failed: AudioDeviceModuleIOS not available");
++      static_cast<webrtc::ios_adm::AudioDeviceModuleIOS*>(adm_void);
++  if (adm) {
++    _adm = adm;
++  } else {
++    _adm = nullptr;
++  }
++}
++
++- (void)clearAudioDeviceModule:(void *)adm_void {
++  webrtc::ios_adm::AudioDeviceModuleIOS* adm =
++      static_cast<webrtc::ios_adm::AudioDeviceModuleIOS*>(adm_void);
++  if (_adm == adm) {
++    _adm = nullptr;
++  }
++}
++
++- (BOOL)pauseRecording {
++  webrtc::ios_adm::AudioDeviceModuleIOS* ptr = _adm;
++  if (!ptr) {
 +    return NO;
 +  }
-+  int32_t result = adm->PauseRecording();
-+  if (result != 0) {
-+    RTCLogError(@"pauseRecording failed with code %d", result);
-+    return NO;
-+  }
-+  return YES;
++  return ptr->PauseRecording() == 0;
 +}
 +
 +- (BOOL)resumeRecording {
-+  webrtc::ios_adm::AudioDeviceModuleIOS* adm =
-+      webrtc::ios_adm::AudioDeviceModuleIOS::GetLastInstance();
-+  if (!adm) {
-+    RTCLogError(@"resumeRecording failed: AudioDeviceModuleIOS not available");
++  webrtc::ios_adm::AudioDeviceModuleIOS* ptr = _adm;
++  if (!ptr) {
 +    return NO;
 +  }
-+  int32_t result = adm->ResumeRecording();
-+  if (result != 0) {
-+    RTCLogError(@"resumeRecording failed with code %d", result);
-+    return NO;
-+  }
-+  return YES;
++  return ptr->ResumeRecording() == 0;
 +}
 +
- - (void)setIgnoresPreferredAttributeConfigurationErrors:
-     (BOOL)ignoresPreferredAttributeConfigurationErrors {
-   @synchronized(self) {
++@end
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.h b/sdk/objc/native/src/audio/audio_device_ios.h
 index d1788a3..b3d2b32 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.h
@@ -92,7 +144,7 @@ index d1788a3..b3d2b32 100644
    bool initialized_ RTC_GUARDED_BY(thread_);
  
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index 021f08a..f68c494 100644
+index 021f08a..df215c1 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
 @@ -110,6 +110,7 @@ static void LogDeviceInfo() {
@@ -131,7 +183,7 @@ index 021f08a..f68c494 100644
    if (!playing_.load()) {
      ShutdownPlayOrRecord();
    }
-@@ -340,6 +351,44 @@ static void LogDeviceInfo() {
+@@ -340,6 +351,46 @@ static void LogDeviceInfo() {
    return 0;
  }
  
@@ -155,6 +207,8 @@ index 021f08a..f68c494 100644
 +  if (!paused_recording_) {
 +    return 0;
 +  }
++  // 通常の pauseRecording() から来る場合は不要であるはずだが
++  // 初期化状態をチェックして必要であれば InitRecording() を実行
 +  if (!audio_is_initialized_) {
 +    if (InitRecording() != 0) {
 +      RTC_LOG(LS_ERROR) << "InitRecording failed during ResumeRecording";
@@ -177,7 +231,7 @@ index 021f08a..f68c494 100644
    return recording_.load();
  }
 diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.h b/sdk/objc/native/src/audio/audio_device_module_ios.h
-index 5ff5062..58338a6 100644
+index 5ff5062..987deb8 100644
 --- a/sdk/objc/native/src/audio/audio_device_module_ios.h
 +++ b/sdk/objc/native/src/audio/audio_device_module_ios.h
 @@ -76,6 +76,8 @@ class AudioDeviceModuleIOS : public AudioDeviceModule {
@@ -189,52 +243,41 @@ index 5ff5062..58338a6 100644
    int32_t StopRecording() override;
    bool Recording() const override;
  
-@@ -131,6 +133,9 @@ class AudioDeviceModuleIOS : public AudioDeviceModule {
- 
-   std::optional<Stats> GetStats() const override;
- 
-+  // RTCAudioSession の pauseRecording/resumeRecording にて動作中の ADM を取得するために利用される
-+  static AudioDeviceModuleIOS* GetLastInstance();
-+
- #if defined(WEBRTC_IOS)
-   int GetPlayoutAudioParameters(AudioParameters* params) const override;
-   int GetRecordAudioParameters(AudioParameters* params) const override;
 diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.mm b/sdk/objc/native/src/audio/audio_device_module_ios.mm
-index e2ea360..3576ed3 100644
+index e2ea360..137277a 100644
 --- a/sdk/objc/native/src/audio/audio_device_module_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_module_ios.mm
-@@ -42,6 +42,12 @@
- namespace webrtc {
- namespace ios_adm {
+@@ -18,6 +18,7 @@
+ #include "rtc_base/logging.h"
+ #include "rtc_base/ref_count.h"
+ #include "system_wrappers/include/metrics.h"
++#include "sdk/objc/components/audio/RTCAudioDeviceModule.h"
  
-+namespace {
-+// RTCAudioSession の pauseRecording/resumeRecording にて動作中の ADM を取得するために利用される。
-+// 常に 1 インスタンス前提としている。複数生成した場合の動作は未定義。
-+AudioDeviceModuleIOS* g_last_audio_device_module_ios = nullptr;
-+}  // namespace
-+
- AudioDeviceModuleIOS::AudioDeviceModuleIOS(
-     const Environment& env,
-     bool bypass_voice_processing,
-@@ -53,6 +59,7 @@
+ #if defined(WEBRTC_IOS)
+ #include "audio_device_ios.h"
+@@ -53,6 +54,10 @@
        error_handler_(error_handler) {
    RTC_LOG(LS_INFO) << "current platform is IOS";
    RTC_LOG(LS_INFO) << "iPhone Audio APIs will be utilized.";
-+  g_last_audio_device_module_ios = this;
++  // RTCAudioDeviceModule のシングルトンインスタンスにポインタ参照をセット
++  RTC_OBJC_TYPE(RTCAudioDeviceModule)* adm_module =
++      [RTC_OBJC_TYPE(RTCAudioDeviceModule) sharedInstance];
++  [adm_module setAudioDeviceModule:this];
  }
  
  int32_t AudioDeviceModuleIOS::AttachAudioBuffer() {
-@@ -63,6 +70,9 @@
+@@ -63,6 +68,10 @@
  
  AudioDeviceModuleIOS::~AudioDeviceModuleIOS() {
    RTC_DLOG(LS_INFO) << __FUNCTION__;
-+  if (g_last_audio_device_module_ios == this) {
-+    g_last_audio_device_module_ios = nullptr;
-+  }
++  // RTCAudioDeviceModule のシングルトンインスタンスで保持しているポインタ参照を破棄する
++  RTC_OBJC_TYPE(RTCAudioDeviceModule)* adm_module =
++      [RTC_OBJC_TYPE(RTCAudioDeviceModule) sharedInstance];
++  [adm_module clearAudioDeviceModule:this];
  }
  
  void AudioDeviceModuleIOS::ReportError(ADMError error) const {
-@@ -652,6 +662,28 @@
+@@ -652,6 +661,30 @@
    return result;
  }
  
@@ -242,6 +285,7 @@ index e2ea360..3576ed3 100644
 +  RTC_DLOG(LS_INFO) << __FUNCTION__;
 +  CHECKinitialized_();
 +  int32_t result = audio_device_->PauseRecording();
++  audio_device_buffer_.get()->StopRecording();
 +  if (result < 0) {
 +    ReportError(kRecordingFailed);
 +  }
@@ -252,6 +296,7 @@ index e2ea360..3576ed3 100644
 +int32_t AudioDeviceModuleIOS::ResumeRecording() {
 +  RTC_DLOG(LS_INFO) << __FUNCTION__;
 +  CHECKinitialized_();
++  audio_device_buffer_.get()->StartRecording();
 +  int32_t result = audio_device_->ResumeRecording();
 +  if (result < 0) {
 +    ReportError(kRecordingFailed);
@@ -263,15 +308,3 @@ index e2ea360..3576ed3 100644
  int32_t AudioDeviceModuleIOS::StopRecording() {
    RTC_DLOG(LS_INFO) << __FUNCTION__;
    CHECKinitialized_();
-@@ -783,5 +815,11 @@
-   return r;
- }
- #endif  // WEBRTC_IOS
-+
-+// RTCAudioSession の pauseRecording/resumeRecording にて動作中の ADM を取得するために利用される
-+AudioDeviceModuleIOS* AudioDeviceModuleIOS::GetLastInstance() {
-+  return g_last_audio_device_module_ios;
-+}
-+
- }  // namespace ios_adm
- }  // namespace webrtc
