@@ -1,19 +1,18 @@
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index 7b8a02462c..99abbed7b9 100644
+index 7b8a02462c..23661487a1 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
-@@ -997,6 +997,10 @@ if (is_ios || is_mac) {
+@@ -997,6 +997,9 @@ if (is_ios || is_mac) {
          "objc/api/peerconnection/RTCAudioTrack+Private.h",
          "objc/api/peerconnection/RTCAudioTrack.h",
          "objc/api/peerconnection/RTCAudioTrack.mm",
 +        "objc/api/peerconnection/RTCAudioTrackSink.h",
-+        "objc/api/RTCAudioTrackSinkAdapter.h",
 +        "objc/api/RTCAudioTrackSinkAdapter+Private.h",
 +        "objc/api/RTCAudioTrackSinkAdapter.mm",
          "objc/api/peerconnection/RTCCertificate.h",
          "objc/api/peerconnection/RTCCertificate.mm",
          "objc/api/peerconnection/RTCConfiguration+Native.h",
-@@ -1389,6 +1393,7 @@ if (is_ios || is_mac) {
+@@ -1389,6 +1392,7 @@ if (is_ios || is_mac) {
            "objc/helpers/UIDevice+RTCDevice.h",
            "objc/api/peerconnection/RTCAudioSource.h",
            "objc/api/peerconnection/RTCAudioTrack.h",
@@ -23,33 +22,26 @@ index 7b8a02462c..99abbed7b9 100644
            "objc/api/peerconnection/RTCDataChannelConfiguration.h",
 diff --git a/sdk/objc/api/RTCAudioTrackSinkAdapter+Private.h b/sdk/objc/api/RTCAudioTrackSinkAdapter+Private.h
 new file mode 100644
-index 0000000000..57b0362fec
+index 0000000000..e70dd046f0
 --- /dev/null
 +++ b/sdk/objc/api/RTCAudioTrackSinkAdapter+Private.h
-@@ -0,0 +1,30 @@
-+#import "RTCAudioTrackSinkAdapter.h"
+@@ -0,0 +1,23 @@
++#import <Foundation/Foundation.h>
 +#import "peerconnection/RTCAudioTrackSink.h"
 +
 +#include "api/media_stream_interface.h"
 +
 +NS_ASSUME_NONNULL_BEGIN
 +
-+@interface RTCAudioTrackSinkAdapter ()
++@interface RTCAudioTrackSinkAdapter : NSObject
 +
-+/**
-+ * このアダプター生成時に渡された Objective-C の音声トラックシンク。
-+ * webrtc::AudioTrackSinkInterface への呼び出しはここへ変換されて渡されます。
-+ */
++- (instancetype)init NS_UNAVAILABLE;
++
 +@property(nonatomic, readonly) id<RTC_OBJC_TYPE(RTCAudioTrackSink)> audioTrackSink;
 +
-+/**
-+ * このアダプターが公開するネイティブの AudioTrackSinkInterface。呼び出しは生成時に
-+ * 渡された RTCAudioTrackSink へ変換されます。このポインタは非安全で、このクラスが所有します。
-+ */
 +@property(nonatomic, readonly)
 +    webrtc::AudioTrackSinkInterface* nativeAudioSink;
 +
-+/** RTCAudioTrackSink を受け取って RTCAudioTrackSinkAdapter を初期化します。 */
 +- (instancetype)initWithAudioTrackSink:
 +    (id<RTC_OBJC_TYPE(RTCAudioTrackSink)>)audioTrackSink
 +    NS_DESIGNATED_INITIALIZER;
@@ -57,31 +49,9 @@ index 0000000000..57b0362fec
 +@end
 +
 +NS_ASSUME_NONNULL_END
-diff --git a/sdk/objc/api/RTCAudioTrackSinkAdapter.h b/sdk/objc/api/RTCAudioTrackSinkAdapter.h
-new file mode 100644
-index 0000000000..48d5bd86ea
---- /dev/null
-+++ b/sdk/objc/api/RTCAudioTrackSinkAdapter.h
-@@ -0,0 +1,16 @@
-+#import <Foundation/Foundation.h>
-+
-+NS_ASSUME_NONNULL_BEGIN
-+
-+/*
-+ * RTCAudioTrackSink 向けの webrtc::AudioTrackSinkInterface を作成します。
-+ * webrtc::AudioTrackSinkInterface は WebRTC の音声処理で使われ、このアダプターが
-+ * その呼び出しを生成時に渡された RTCAudioTrackSink へ橋渡しします。
-+ */
-+@interface RTCAudioTrackSinkAdapter : NSObject
-+
-+- (instancetype)init NS_UNAVAILABLE;
-+
-+@end
-+
-+NS_ASSUME_NONNULL_END
 diff --git a/sdk/objc/api/RTCAudioTrackSinkAdapter.mm b/sdk/objc/api/RTCAudioTrackSinkAdapter.mm
 new file mode 100644
-index 0000000000..18ca9ed712
+index 0000000000..2fbb886716
 --- /dev/null
 +++ b/sdk/objc/api/RTCAudioTrackSinkAdapter.mm
 @@ -0,0 +1,77 @@
@@ -131,7 +101,7 @@ index 0000000000..18ca9ed712
 +        return static_cast<int>([sink preferredNumberOfChannels]);
 +      }
 +      return -1;
-+    }
++  }
 +
 +
 + private:
@@ -163,10 +133,10 @@ index 0000000000..18ca9ed712
 +
 +@end
 diff --git a/sdk/objc/api/peerconnection/RTCAudioTrack.h b/sdk/objc/api/peerconnection/RTCAudioTrack.h
-index db8afb50fc..b72addfc9e 100644
+index db8afb50fc..93d12bd284 100644
 --- a/sdk/objc/api/peerconnection/RTCAudioTrack.h
 +++ b/sdk/objc/api/peerconnection/RTCAudioTrack.h
-@@ -14,15 +14,23 @@
+@@ -14,6 +14,7 @@
  NS_ASSUME_NONNULL_BEGIN
  
  @class RTC_OBJC_TYPE(RTCAudioSource);
@@ -174,11 +144,8 @@ index db8afb50fc..b72addfc9e 100644
  
  RTC_OBJC_EXPORT
  @interface RTC_OBJC_TYPE (RTCAudioTrack) : RTC_OBJC_TYPE(RTCMediaStreamTrack)
- 
- - (instancetype)init NS_UNAVAILABLE;
- 
--/** The audio source for this audio track. */
-+/** このオーディオトラックの音声ソース。 */
+@@ -23,6 +24,13 @@ RTC_OBJC_EXPORT
+ /** The audio source for this audio track. */
  @property(nonatomic, readonly) RTC_OBJC_TYPE(RTCAudioSource) * source;
  
 +

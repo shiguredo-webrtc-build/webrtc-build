@@ -20,7 +20,7 @@ iOS SDK 向けに AudioTrackSink 機能を追加するパッチである `ios_au
 
 ### パッチ実装のポイント
 
-- `RTCAudioTrackSinkAdapter` は `AudioTrackSinkInterface` を実装し、`OnData` で受け取った PCM を `NSData` にコピーして `RTCAudioTrackSink#onData` に渡す。コールバックはネイティブ音声スレッドで呼ばれるため、重い処理は別スレッドへ委譲する必要があることに注意。
+- `AudioTrackSinkAdapter` は `AudioTrackSinkInterface` を実装し、`OnData` で受け取った PCM を `NSData` にコピーして RTCAudioTrackSin の `onData:bitsPerSample:sampleRate:numberOfChannels:numberOfFrames:` に渡す。
 - `RTCAudioTrackSink` に `preferredNumberOfChannels` が実装されていれば `AudioTrackSinkAdapter::NumPreferredChannels()` でその値を返す、実装されていない場合は「指定なし」として `-1` をデフォルトで返す。
 - RTCAudioTrack の `addSink:` は同一の RTCAudioTrackSink インスタンスの重複登録を防ぎ、`removeSink:` は登録済みシンクのみを解除して `AudioTrackSinkInterface` との紐づけを適切に管理する。`dealloc` では残存シンクをすべて解除し、ネイティブ側の参照リークを防ぐ。
 
@@ -50,5 +50,8 @@ track.addSink(sink)
 track.removeSink(sink)
 ```
 
+### RTCAudioTrackSink 利用時の注意点
+
 - `RTCAudioTrackSink` と `RTCAudioTrack` は 1:1 で紐づける運用を推奨。`onData` にトラック識別子が含まれないため、1:N で共有すると呼び出し元トラックを判別できなくなる。
+- コールバックはネイティブ音声スレッドで呼ばれるため、重い処理は別スレッドへ委譲する必要がある。
 
