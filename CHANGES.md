@@ -29,6 +29,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-12-10 [ADD] iOS SDK 向けに RTCAudioTrackSink を追加する
+  - RTCAudioTrackSink を実装して、RTCAudioTrack に関連付けると音声トラックごとに PCM 音声データを取得することができる
+  - @zztkm
 - 2025-11-13 [RELEASE] m143.7499.1.0
   - @torikizi
 - 2025-11-13 [ADD] windows_fix_adm_device_count.patch を追加して Windows 向け ADM の RecordingDevices() と PlayoutDevices() の返す値を修正する
