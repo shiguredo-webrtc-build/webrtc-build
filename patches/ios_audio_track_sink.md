@@ -5,7 +5,7 @@ iOS SDK 向けに AudioTrackSink 機能を追加するパッチである `ios_au
 ## 目的
 
 - iOS 向け libwebrtc で `RTCAudioTrack` から PCM データを取得できる API を追加する
-- 既存の C++ `AudioTrackInterface::AddSink()` と同等の機構を Objc API として提供し、トラックごとの録音・音量可視化などの用途に活用できるようにする
+- 既存の C++ `AudioTrackInterface::AddSink()` と同等の機構を ObjC API として提供し、トラックごとの録音・音量可視化などの用途に活用できるようにする
 
 ## 背景
 
