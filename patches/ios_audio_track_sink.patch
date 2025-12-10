@@ -81,10 +81,10 @@ index 0000000000..48d5bd86ea
 +NS_ASSUME_NONNULL_END
 diff --git a/sdk/objc/api/RTCAudioTrackSinkAdapter.mm b/sdk/objc/api/RTCAudioTrackSinkAdapter.mm
 new file mode 100644
-index 0000000000..92be925020
+index 0000000000..18ca9ed712
 --- /dev/null
 +++ b/sdk/objc/api/RTCAudioTrackSinkAdapter.mm
-@@ -0,0 +1,76 @@
+@@ -0,0 +1,77 @@
 +#import "RTCAudioTrackSinkAdapter+Private.h"
 +
 +#include <memory>
@@ -110,6 +110,8 @@ index 0000000000..92be925020
 +      const size_t data_size =
 +          number_of_channels * number_of_frames * bytes_per_sample;
 +
++      // WebRTC 側が所有するバッファはこのコールバック中しか有効でないため、
++      // 安全に使うため毎回 NSData にコピーして渡す。
 +      NSData* audioData = [NSData dataWithBytes:audio_data length:data_size];
 +
 +      [sink onData:audioData
@@ -160,7 +162,6 @@ index 0000000000..92be925020
 +}
 +
 +@end
-+
 diff --git a/sdk/objc/api/peerconnection/RTCAudioTrack.h b/sdk/objc/api/peerconnection/RTCAudioTrack.h
 index db8afb50fc..b72addfc9e 100644
 --- a/sdk/objc/api/peerconnection/RTCAudioTrack.h
