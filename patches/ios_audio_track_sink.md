@@ -9,9 +9,7 @@ iOS SDK 向けに AudioTrackSink 機能を追加するパッチである `ios_au
 
 ## 背景
 
-- 標準の iOS SDK には、`RTCAudioTrack` の PCM データを直接受け取る手段がない。
-- C++ では `AudioTrackInterface` に `AddSink()` / `RemoveSink()` が用意され、`AudioTrackSinkInterface` 実装を介して PCM を取得できる。
-- このパッチでは Objective-C で `AudioTrackSinkInterface` と同等の役割を担う `RTCAudioTrackSink` プロトコルと、そのブリッジ実装を追加している。
+標準の Objective-C SDK では RTCAudioTrack から PCM データを直接取得する手段が用意されていない。一方、C++ では AudioTrackInterface に AddSink() / RemoveSink() が定義されており、AudioTrackSinkInterface を実装することで PCM データを受け取ることができる。そこでこのパッチでは、Objective-C 向けに AudioTrackSinkInterface と同等の役割を果たす RTCAudioTrackSink プロトコルと、C++ とのブリッジ実装を追加する。
 
 ## 変更点の概要
 
@@ -22,9 +20,9 @@ iOS SDK 向けに AudioTrackSink 機能を追加するパッチである `ios_au
 
 ### パッチ実装のポイント
 
-- `RTCAudioTrackSinkAdapter` は `AudioTrackSinkInterface` を実装し、`OnData` で受け取った PCM を `NSData` にコピーして `RTCAudioTrackSink#onData` に渡す。コールバックはネイティブ音声スレッドで呼ばれるため、重い処理は別スレッドへ委譲する必要がある。
-- `preferredNumberOfChannels` が実装されていれば `NumPreferredChannels` で値を返し、`-1` の場合は「指定なし」として既定のチャンネル数が渡される。
-- RTCAudioTrack の `addSink:` は同一インスタンスの重複登録を防ぎ、`removeSink:` は登録済みシンクのみを解除して `AudioTrackSinkInterface` との紐づけを適切に管理する。`dealloc` では残存シンクをすべて解除し、ネイティブ側の参照リークを防ぐ。
+- `RTCAudioTrackSinkAdapter` は `AudioTrackSinkInterface` を実装し、`OnData` で受け取った PCM を `NSData` にコピーして `RTCAudioTrackSink#onData` に渡す。コールバックはネイティブ音声スレッドで呼ばれるため、重い処理は別スレッドへ委譲する必要があることに注意。
+- `preferredNumberOfChannels` が実装されていれば `AudioTrackSinkAdapter.NumPreferredChannels` でその値を返す、実装されていない場合は「指定なし」として `-1` をデフォルトで返す。
+- RTCAudioTrack の `addSink:` は同一の RTCAudioTrackSink インスタンスの重複登録を防ぎ、`removeSink:` は登録済みシンクのみを解除して `AudioTrackSinkInterface` との紐づけを適切に管理する。`dealloc` では残存シンクをすべて解除し、ネイティブ側の参照リークを防ぐ。
 
 ## RTCAudioTrackSink の利用例
 
