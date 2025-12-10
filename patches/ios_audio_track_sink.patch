@@ -23,10 +23,10 @@ index 7b8a02462c..99abbed7b9 100644
            "objc/api/peerconnection/RTCDataChannelConfiguration.h",
 diff --git a/sdk/objc/api/RTCAudioTrackSinkAdapter+Private.h b/sdk/objc/api/RTCAudioTrackSinkAdapter+Private.h
 new file mode 100644
-index 0000000000..7266302887
+index 0000000000..57b0362fec
 --- /dev/null
 +++ b/sdk/objc/api/RTCAudioTrackSinkAdapter+Private.h
-@@ -0,0 +1,33 @@
+@@ -0,0 +1,30 @@
 +#import "RTCAudioTrackSinkAdapter.h"
 +#import "peerconnection/RTCAudioTrackSink.h"
 +
@@ -37,22 +37,19 @@ index 0000000000..7266302887
 +@interface RTCAudioTrackSinkAdapter ()
 +
 +/**
-+ * The Objective-C audio track sink passed to this adapter during construction.
-+ * Calls made to the webrtc::AudioTrackSinkInterface will be adapted and passed
-+ * to this sink.
++ * このアダプター生成時に渡された Objective-C の音声トラックシンク。
++ * webrtc::AudioTrackSinkInterface への呼び出しはここへ変換されて渡されます。
 + */
 +@property(nonatomic, readonly) id<RTC_OBJC_TYPE(RTCAudioTrackSink)> audioTrackSink;
 +
 +/**
-+ * The native AudioTrackSinkInterface surface exposed by this adapter. Calls
-+ * made to this interface will be adapted and passed to the
-+ * RTCAudioTrackSink supplied during construction. This pointer is unsafe and
-+ * owned by this class.
++ * このアダプターが公開するネイティブの AudioTrackSinkInterface。呼び出しは生成時に
++ * 渡された RTCAudioTrackSink へ変換されます。このポインタは非安全で、このクラスが所有します。
 + */
 +@property(nonatomic, readonly)
 +    webrtc::AudioTrackSinkInterface* nativeAudioSink;
 +
-+/** Initialize an RTCAudioTrackSinkAdapter with an RTCAudioTrackSink. */
++/** RTCAudioTrackSink を受け取って RTCAudioTrackSinkAdapter を初期化します。 */
 +- (instancetype)initWithAudioTrackSink:
 +    (id<RTC_OBJC_TYPE(RTCAudioTrackSink)>)audioTrackSink
 +    NS_DESIGNATED_INITIALIZER;
@@ -62,19 +59,18 @@ index 0000000000..7266302887
 +NS_ASSUME_NONNULL_END
 diff --git a/sdk/objc/api/RTCAudioTrackSinkAdapter.h b/sdk/objc/api/RTCAudioTrackSinkAdapter.h
 new file mode 100644
-index 0000000000..d50a436e51
+index 0000000000..48d5bd86ea
 --- /dev/null
 +++ b/sdk/objc/api/RTCAudioTrackSinkAdapter.h
-@@ -0,0 +1,18 @@
+@@ -0,0 +1,16 @@
 +#import <Foundation/Foundation.h>
 +
 +NS_ASSUME_NONNULL_BEGIN
 +
 +/*
-+ * Creates a webrtc::AudioTrackSinkInterface surface for an RTCAudioTrackSink.
-+ * The webrtc::AudioTrackSinkInterface is used by WebRTC audio code - this
-+ * adapter adapts calls made to that interface to the RTCAudioTrackSink
-+ * supplied during construction.
++ * RTCAudioTrackSink 向けの webrtc::AudioTrackSinkInterface を作成します。
++ * webrtc::AudioTrackSinkInterface は WebRTC の音声処理で使われ、このアダプターが
++ * その呼び出しを生成時に渡された RTCAudioTrackSink へ橋渡しします。
 + */
 +@interface RTCAudioTrackSinkAdapter : NSObject
 +
@@ -83,7 +79,6 @@ index 0000000000..d50a436e51
 +@end
 +
 +NS_ASSUME_NONNULL_END
-+
 diff --git a/sdk/objc/api/RTCAudioTrackSinkAdapter.mm b/sdk/objc/api/RTCAudioTrackSinkAdapter.mm
 new file mode 100644
 index 0000000000..92be925020
@@ -167,10 +162,10 @@ index 0000000000..92be925020
 +@end
 +
 diff --git a/sdk/objc/api/peerconnection/RTCAudioTrack.h b/sdk/objc/api/peerconnection/RTCAudioTrack.h
-index db8afb50fc..b935dc0231 100644
+index db8afb50fc..b72addfc9e 100644
 --- a/sdk/objc/api/peerconnection/RTCAudioTrack.h
 +++ b/sdk/objc/api/peerconnection/RTCAudioTrack.h
-@@ -14,6 +14,7 @@
+@@ -14,15 +14,23 @@
  NS_ASSUME_NONNULL_BEGIN
  
  @class RTC_OBJC_TYPE(RTCAudioSource);
@@ -178,15 +173,18 @@ index db8afb50fc..b935dc0231 100644
  
  RTC_OBJC_EXPORT
  @interface RTC_OBJC_TYPE (RTCAudioTrack) : RTC_OBJC_TYPE(RTCMediaStreamTrack)
-@@ -23,6 +24,13 @@ RTC_OBJC_EXPORT
- /** The audio source for this audio track. */
+ 
+ - (instancetype)init NS_UNAVAILABLE;
+ 
+-/** The audio source for this audio track. */
++/** このオーディオトラックの音声ソース。 */
  @property(nonatomic, readonly) RTC_OBJC_TYPE(RTCAudioSource) * source;
  
 +
-+/** Register a sink that will receive all audio data on this track. */
++/** このトラックの音声データを受け取るシンクを登録します。 */
 +- (void)addSink:(id<RTC_OBJC_TYPE(RTCAudioTrackSink)>)sink;
 +
-+/** Deregister a sink. */
++/** シンクの登録を解除します。 */
 +- (void)removeSink:(id<RTC_OBJC_TYPE(RTCAudioTrackSink)>)sink;
 +
  @end
