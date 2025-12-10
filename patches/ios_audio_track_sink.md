@@ -37,7 +37,8 @@ final class AudioLogger: NSObject, RTCAudioTrackSink {
   }
 
   func preferredNumberOfChannels() -> Int {
-    return 1 // 例: モノラルで受けたい場合。指定しなければ -1 を返す。
+    // 例: モノラルで受けたい場合。実装しなければ -1 を返すデフォルト実装が使われる。
+    return 1
   }
 }
 
