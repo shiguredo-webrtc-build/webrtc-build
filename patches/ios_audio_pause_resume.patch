@@ -27,12 +27,178 @@ index 7b8a024..e2f6c7a 100644
            "objc/components/audio/RTCAudioSession.h",
            "objc/components/audio/RTCAudioSessionConfiguration.h",
            "objc/components/capturer/RTCCameraVideoCapturer.h",
+diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h
+index 8287bcf..82a7866 100644
+--- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h
++++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h
+@@ -11,6 +11,7 @@
+ #import <Foundation/Foundation.h>
+ 
+ #import "sdk/objc/base/RTCMacros.h"
++#import "sdk/objc/components/audio/RTCAudioDeviceModule.h"
+ 
+ NS_ASSUME_NONNULL_BEGIN
+ 
+@@ -34,6 +35,7 @@ NS_ASSUME_NONNULL_BEGIN
+ (RTCSSLCertificateVerifier);
+ @protocol RTC_OBJC_TYPE
+ (RTCAudioDevice);
++@class RTC_OBJC_TYPE(RTCAudioDeviceModule);
+ 
+ typedef NS_ENUM(NSInteger, RTCProxyType);
+ 
+@@ -52,7 +54,7 @@ RTC_OBJC_EXPORT
+                                decoderFactory;
+ 
+ /* Initialize object with injectable video encoder/decoder factories and
+- * injectable ADM */
++ * injectable ADM (RTCAudioDevice) */
+ - (instancetype)
+     initWithEncoderFactory:
+         (nullable id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)encoderFactory
+@@ -61,6 +63,27 @@ RTC_OBJC_EXPORT
+                audioDevice:
+                    (nullable id<RTC_OBJC_TYPE(RTCAudioDevice)>)audioDevice;
+ 
++/* Initialize object with injectable video encoder/decoder factories and
++ * RTCAudioDeviceModule (pause/resume 用) */
++- (instancetype)
++    initWithEncoderFactory:
++        (nullable id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)encoderFactory
++            decoderFactory:(nullable id<RTC_OBJC_TYPE(RTCVideoDecoderFactory)>)
++                               decoderFactory
++          audioDeviceModule:
++              (nullable RTC_OBJC_TYPE(RTCAudioDeviceModule)*)audioDeviceModule;
++
++/* Initialize object with injectable video encoder/decoder factories and
++ * both RTCAudioDevice (objC) and RTCAudioDeviceModule (pause/resume 用) */
++- (instancetype)
++    initWithEncoderFactory:
++        (nullable id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)encoderFactory
++            decoderFactory:(nullable id<RTC_OBJC_TYPE(RTCVideoDecoderFactory)>)
++                               decoderFactory
++               audioDevice:(nullable id<RTC_OBJC_TYPE(RTCAudioDevice)>)audioDevice
++          audioDeviceModule:
++              (nullable RTC_OBJC_TYPE(RTCAudioDeviceModule)*)audioDeviceModule;
++
+ /**
+  * Valid kind values are kRTCMediaStreamTrackKindAudio and
+  * kRTCMediaStreamTrackKindVideo.
+diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
+index 233cf25..dce583f 100644
+--- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
++++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
+@@ -121,6 +121,11 @@ @implementation RTC_OBJC_TYPE (RTCPeerConnectionFactory) {
+   std::unique_ptr<webrtc::Thread> _workerThread;
+   std::unique_ptr<webrtc::Thread> _signalingThread;
+   BOOL _hasStartedAecDump;
++  // RTCAudioDeviceModule は内部でネイティブ ADM を生成・保持する(scoped_refptr による所有)
++  // RTCPeerConnectionFactory は初期化時に RTCAudioDeviceModule から生ポインタを受け取り、使用中は弱参照のみ保持する
++  // RTCPeerConnectionFactory は破棄時に clearAudioDeviceModule を呼んで弱参照を解放する
++  // RTCAudioDeviceModule が破棄されると内部 ADM も破棄されるため、factory 側は常に弱参照の生存をチェックしてから操作する
++  __weak RTC_OBJC_TYPE(RTCAudioDeviceModule)* _objcAudioDeviceModule;
+ }
+ 
+ @synthesize nativeFactory = _nativeFactory;
+@@ -137,9 +142,6 @@ - (instancetype)init {
+   dependencies.video_decoder_factory = webrtc::ObjCToNativeVideoDecoderFactory(
+       [[RTC_OBJC_TYPE(RTCVideoDecoderFactoryH264) alloc] init]);
+   dependencies.env = webrtc::CreateEnvironment();
+-#ifdef WEBRTC_IOS
+-  dependencies.adm = webrtc::CreateAudioDeviceModule(*dependencies.env);
+-#endif
+   return [self initWithMediaAndDependencies:dependencies];
+ }
+ 
+@@ -150,7 +152,8 @@ - (instancetype)init {
+                                decoderFactory {
+   return [self initWithEncoderFactory:encoderFactory
+                        decoderFactory:decoderFactory
+-                          audioDevice:nil];
++                          audioDevice:nil
++                     audioDeviceModule:nil];
+ }
+ 
+ - (instancetype)
+@@ -158,8 +161,42 @@ - (instancetype)init {
+         (nullable id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)encoderFactory
+             decoderFactory:(nullable id<RTC_OBJC_TYPE(RTCVideoDecoderFactory)>)
+                                decoderFactory
+-               audioDevice:
+-                   (nullable id<RTC_OBJC_TYPE(RTCAudioDevice)>)audioDevice {
++                audioDevice:(nullable id<RTC_OBJC_TYPE(RTCAudioDevice)>)audioDevice {
++#ifdef HAVE_NO_MEDIA
++  return [self initWithNoMedia];
++#else
++  return [self initWithEncoderFactory:encoderFactory
++                       decoderFactory:decoderFactory
++                          audioDevice:audioDevice
++                     audioDeviceModule:nil];
++#endif
++}
++
++- (instancetype)
++    initWithEncoderFactory:
++        (nullable id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)encoderFactory
++            decoderFactory:(nullable id<RTC_OBJC_TYPE(RTCVideoDecoderFactory)>)
++                               decoderFactory
++          audioDeviceModule:
++              (nullable RTC_OBJC_TYPE(RTCAudioDeviceModule)*)audioDeviceModule {
++#ifdef HAVE_NO_MEDIA
++  return [self initWithNoMedia];
++#else
++  return [self initWithEncoderFactory:encoderFactory
++                       decoderFactory:decoderFactory
++                          audioDevice:nil
++                     audioDeviceModule:audioDeviceModule];
++#endif
++}
++
++- (instancetype)
++    initWithEncoderFactory:
++        (nullable id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)encoderFactory
++            decoderFactory:(nullable id<RTC_OBJC_TYPE(RTCVideoDecoderFactory)>)
++                               decoderFactory
++               audioDevice:(nullable id<RTC_OBJC_TYPE(RTCAudioDevice)>)audioDevice
++          audioDeviceModule:
++              (nullable RTC_OBJC_TYPE(RTCAudioDeviceModule)*)audioDeviceModule {
+ #ifdef HAVE_NO_MEDIA
+   return [self initWithNoMedia];
+ #else
+@@ -177,14 +214,25 @@ - (instancetype)init {
+     dependencies.video_decoder_factory =
+         webrtc::ObjCToNativeVideoDecoderFactory(decoderFactory);
+   }
++#ifdef WEBRTC_IOS
++  // audioDevice と audioDeviceModule が両方指定されている場合、
++  // 元々の互換性を優先して audioDevice が指定されているものとする
+   if (audioDevice) {
+     dependencies.adm =
+         webrtc::CreateAudioDeviceModule(*dependencies.env, audioDevice);
+-#ifdef WEBRTC_IOS
++  } else if (audioDeviceModule) {
++    void* native_adm = [audioDeviceModule getNativeAudioDeviceModule];
++    auto adm_ptr = static_cast<webrtc::AudioDeviceModule*>(native_adm);
++    if (adm_ptr) {
++      dependencies.adm = adm_ptr;
++      _objcAudioDeviceModule = audioDeviceModule;
++    } else {
++      dependencies.adm = webrtc::CreateAudioDeviceModule(*dependencies.env);
++    }
+   } else {
+     dependencies.adm = webrtc::CreateAudioDeviceModule(*dependencies.env);
+-#endif
+   }
++#endif
+   return [self initWithMediaAndDependencies:dependencies];
+ #endif
+ }
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.h b/sdk/objc/components/audio/RTCAudioDeviceModule.h
 new file mode 100644
-index 0000000..1937cd0
+index 0000000..fb2cc4e
 --- /dev/null
 +++ b/sdk/objc/components/audio/RTCAudioDeviceModule.h
-@@ -0,0 +1,24 @@
+@@ -0,0 +1,22 @@
 +// 音声の録音ポーズ・復帰用の公開 API を提供するためのモジュールです
 +
 +#import <Foundation/Foundation.h>
@@ -42,15 +208,13 @@ index 0000000..1937cd0
 +RTC_OBJC_EXPORT
 +@interface RTC_OBJC_TYPE(RTCAudioDeviceModule) : NSObject
 +
-+// 現状は単一の ADM のみを扱う想定として、シングルトンインスタンスを取得する
-++ (instancetype)sharedInstance;
++// 内部で AudioDeviceModuleIOS を生成し、弱参照で保持します
++// 所有権はネイティブ側となります
++- (instancetype)init;
 +
-+// 登録中の AudioDeviceModuleIOS を弱参照で保持し、録音制御を委譲する
-+//
-+// 引数の型は AudioDeviceModuleIOS* を想定しているが、C++ 側定義の型であり
-+// この ObjC 公開ヘッダでの露出はビルドエラーとなるため void* としている
-+// 実装側で AudioDeviceModuleIOS* に static_cast する
-+- (void)setAudioDeviceModule:(void *)adm;
++// ネイティブ ADM を取得します(所有権移動なし、未初期化なら nullptr)
++- (void *)getNativeAudioDeviceModule;
++// 保持中の ADM 参照をクリアします(弱参照を破棄するだけで所有権は移動しません)
 +- (void)clearAudioDeviceModule:(void *)adm;
 +
 +- (BOOL)pauseRecording;
@@ -59,52 +223,59 @@ index 0000000..1937cd0
 +@end
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.mm b/sdk/objc/components/audio/RTCAudioDeviceModule.mm
 new file mode 100644
-index 0000000..b6b9f29
+index 0000000..8cc38c5
 --- /dev/null
 +++ b/sdk/objc/components/audio/RTCAudioDeviceModule.mm
-@@ -0,0 +1,57 @@
-+// 音声の録音ポーズ・復帰用の公開 API を提供するためのモジュールです
-+
+@@ -0,0 +1,64 @@
 +#import "RTCAudioDeviceModule.h"
 +
++#include <arm_acle.h>
++
++#include "api/environment/environment_factory.h"
++#include "api/scoped_refptr.h"
++#include "sdk/objc/native/api/audio_device_module.h"
 +#include "sdk/objc/native/src/audio/audio_device_module_ios.h"
++#include "rtc_base/weak_ptr.h"
 +
 +@interface RTC_OBJC_TYPE(RTCAudioDeviceModule) () {
-+  webrtc::ios_adm::AudioDeviceModuleIOS* _adm;
++  // 所有権とライフサイクル管理対象のネイティブADM
++  webrtc::scoped_refptr<webrtc::AudioDeviceModule> _adm_owner;
++  // 実装クラス AudioDeviceModuleIOS の弱参照
++  webrtc::WeakPtr<webrtc::ios_adm::AudioDeviceModuleIOS> _adm;
 +}
 +@end
 +
 +@implementation RTC_OBJC_TYPE(RTCAudioDeviceModule)
 +
-++ (instancetype)sharedInstance {
-+  static RTC_OBJC_TYPE(RTCAudioDeviceModule) *instance = nil;
-+  static dispatch_once_t onceToken;
-+  dispatch_once(&onceToken, ^{
-+    instance = [[self alloc] init];
-+  });
-+  return instance;
-+}
-+
-+- (void)setAudioDeviceModule:(void *)adm_void {
-+  webrtc::ios_adm::AudioDeviceModuleIOS* adm =
-+      static_cast<webrtc::ios_adm::AudioDeviceModuleIOS*>(adm_void);
-+  if (adm) {
-+    _adm = adm;
-+  } else {
-+    _adm = nullptr;
++- (instancetype)init {
++  self = [super init];
++  if (self) {
++    auto env = webrtc::CreateEnvironment();
++    _adm_owner = webrtc::CreateAudioDeviceModule(env);
++    if (_adm_owner) {
++      auto ios_adm =
++          static_cast<webrtc::ios_adm::AudioDeviceModuleIOS*>(_adm_owner.get());
++      _adm = ios_adm->GetWeakPtr();
++    }
 +  }
++  return self;
 +}
 +
-+- (void)clearAudioDeviceModule:(void *)adm_void {
-+  webrtc::ios_adm::AudioDeviceModuleIOS* adm =
-+      static_cast<webrtc::ios_adm::AudioDeviceModuleIOS*>(adm_void);
-+  if (_adm == adm) {
-+    _adm = nullptr;
++- (void *)getNativeAudioDeviceModule {
++  return _adm_owner.get();
++}
++
++- (void)clearAudioDeviceModule:(void *)adm {
++  webrtc::AudioDeviceModule* adm_ptr =
++      static_cast<webrtc::AudioDeviceModule*>(adm);
++  if (_adm_owner.get() == adm_ptr) {
++    _adm.reset();
++    _adm_owner = nullptr;
 +  }
 +}
 +
 +- (BOOL)pauseRecording {
-+  webrtc::ios_adm::AudioDeviceModuleIOS* ptr = _adm;
++  auto ptr = _adm.get();
 +  if (!ptr) {
 +    return NO;
 +  }
@@ -112,7 +283,7 @@ index 0000000..b6b9f29
 +}
 +
 +- (BOOL)resumeRecording {
-+  webrtc::ios_adm::AudioDeviceModuleIOS* ptr = _adm;
++  auto ptr = _adm.get();
 +  if (!ptr) {
 +    return NO;
 +  }
@@ -231,10 +402,18 @@ index 021f08a..df215c1 100644
    return recording_.load();
  }
 diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.h b/sdk/objc/native/src/audio/audio_device_module_ios.h
-index 5ff5062..987deb8 100644
+index 5ff5062..d31e979 100644
 --- a/sdk/objc/native/src/audio/audio_device_module_ios.h
 +++ b/sdk/objc/native/src/audio/audio_device_module_ios.h
-@@ -76,6 +76,8 @@ class AudioDeviceModuleIOS : public AudioDeviceModule {
+@@ -17,6 +17,7 @@
+ #include "audio_device_ios.h"
+ #include "modules/audio_device/audio_device_buffer.h"
+ #include "rtc_base/checks.h"
++#include "rtc_base/weak_ptr.h"
+ #include "sdk/objc/native/api/audio_device_module_error_handler.h"
+ 
+ namespace webrtc {
+@@ -76,6 +77,8 @@ class AudioDeviceModuleIOS : public AudioDeviceModule {
    int32_t StopPlayout() override;
    bool Playing() const override;
    int32_t StartRecording() override;
@@ -243,41 +422,39 @@ index 5ff5062..987deb8 100644
    int32_t StopRecording() override;
    bool Recording() const override;
  
+@@ -135,6 +138,8 @@ class AudioDeviceModuleIOS : public AudioDeviceModule {
+   int GetPlayoutAudioParameters(AudioParameters* params) const override;
+   int GetRecordAudioParameters(AudioParameters* params) const override;
+ #endif  // WEBRTC_IOS
++
++  webrtc::WeakPtr<AudioDeviceModuleIOS> GetWeakPtr();
+  private:
+   void ReportError(ADMError error) const;
+ 
+@@ -145,6 +150,7 @@ class AudioDeviceModuleIOS : public AudioDeviceModule {
+   bool initialized_ = false;
+   std::unique_ptr<AudioDeviceIOS> audio_device_;
+   std::unique_ptr<AudioDeviceBuffer> audio_device_buffer_;
++  webrtc::WeakPtrFactory<AudioDeviceModuleIOS> weak_factory_{this};
+ };
+ }  // namespace ios_adm
+ }  // namespace webrtc
 diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.mm b/sdk/objc/native/src/audio/audio_device_module_ios.mm
-index e2ea360..137277a 100644
+index e2ea360..72eaaa9 100644
 --- a/sdk/objc/native/src/audio/audio_device_module_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_module_ios.mm
-@@ -18,6 +18,7 @@
- #include "rtc_base/logging.h"
- #include "rtc_base/ref_count.h"
- #include "system_wrappers/include/metrics.h"
-+#include "sdk/objc/components/audio/RTCAudioDeviceModule.h"
- 
- #if defined(WEBRTC_IOS)
- #include "audio_device_ios.h"
-@@ -53,6 +54,10 @@
-       error_handler_(error_handler) {
-   RTC_LOG(LS_INFO) << "current platform is IOS";
-   RTC_LOG(LS_INFO) << "iPhone Audio APIs will be utilized.";
-+  // RTCAudioDeviceModule のシングルトンインスタンスにポインタ参照をセット
-+  RTC_OBJC_TYPE(RTCAudioDeviceModule)* adm_module =
-+      [RTC_OBJC_TYPE(RTCAudioDeviceModule) sharedInstance];
-+  [adm_module setAudioDeviceModule:this];
- }
- 
- int32_t AudioDeviceModuleIOS::AttachAudioBuffer() {
-@@ -63,6 +68,10 @@
- 
- AudioDeviceModuleIOS::~AudioDeviceModuleIOS() {
+@@ -65,6 +65,10 @@
    RTC_DLOG(LS_INFO) << __FUNCTION__;
-+  // RTCAudioDeviceModule のシングルトンインスタンスで保持しているポインタ参照を破棄する
-+  RTC_OBJC_TYPE(RTCAudioDeviceModule)* adm_module =
-+      [RTC_OBJC_TYPE(RTCAudioDeviceModule) sharedInstance];
-+  [adm_module clearAudioDeviceModule:this];
  }
  
++webrtc::WeakPtr<AudioDeviceModuleIOS> AudioDeviceModuleIOS::GetWeakPtr() {
++  return weak_factory_.GetWeakPtr();
++}
++
  void AudioDeviceModuleIOS::ReportError(ADMError error) const {
-@@ -652,6 +661,30 @@
+   if (error_handler_) {
+     error_handler_(error);
+@@ -652,6 +656,30 @@
    return result;
  }
  
