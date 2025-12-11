@@ -1,14 +1,20 @@
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index 7b8a02462c..23661487a1 100644
+index 7b8a02462c..f61cf30a95 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
-@@ -997,6 +997,9 @@ if (is_ios || is_mac) {
+@@ -991,12 +991,15 @@ if (is_ios || is_mac) {
+       ]
+       configs += [ "..:no_global_constructors" ]
+       sources = [
++        "objc/api/RTCAudioTrackSinkAdapter+Private.h",
++        "objc/api/RTCAudioTrackSinkAdapter.mm",
+         "objc/api/peerconnection/RTCAudioSource+Private.h",
+         "objc/api/peerconnection/RTCAudioSource.h",
+         "objc/api/peerconnection/RTCAudioSource.mm",
          "objc/api/peerconnection/RTCAudioTrack+Private.h",
          "objc/api/peerconnection/RTCAudioTrack.h",
          "objc/api/peerconnection/RTCAudioTrack.mm",
 +        "objc/api/peerconnection/RTCAudioTrackSink.h",
-+        "objc/api/RTCAudioTrackSinkAdapter+Private.h",
-+        "objc/api/RTCAudioTrackSinkAdapter.mm",
          "objc/api/peerconnection/RTCCertificate.h",
          "objc/api/peerconnection/RTCCertificate.mm",
          "objc/api/peerconnection/RTCConfiguration+Native.h",
@@ -22,7 +28,7 @@ index 7b8a02462c..23661487a1 100644
            "objc/api/peerconnection/RTCDataChannelConfiguration.h",
 diff --git a/sdk/objc/api/RTCAudioTrackSinkAdapter+Private.h b/sdk/objc/api/RTCAudioTrackSinkAdapter+Private.h
 new file mode 100644
-index 0000000000..e70dd046f0
+index 0000000000..13d7f49679
 --- /dev/null
 +++ b/sdk/objc/api/RTCAudioTrackSinkAdapter+Private.h
 @@ -0,0 +1,23 @@
@@ -37,10 +43,10 @@ index 0000000000..e70dd046f0
 +
 +- (instancetype)init NS_UNAVAILABLE;
 +
-+@property(nonatomic, readonly) id<RTC_OBJC_TYPE(RTCAudioTrackSink)> audioTrackSink;
++@property(nonatomic, readonly) id<RTC_OBJC_TYPE(RTCAudioTrackSink)>
++    audioTrackSink;
 +
-+@property(nonatomic, readonly)
-+    webrtc::AudioTrackSinkInterface* nativeAudioSink;
++@property(nonatomic, readonly) webrtc::AudioTrackSinkInterface* nativeAudioSink;
 +
 +- (instancetype)initWithAudioTrackSink:
 +    (id<RTC_OBJC_TYPE(RTCAudioTrackSink)>)audioTrackSink
@@ -51,10 +57,10 @@ index 0000000000..e70dd046f0
 +NS_ASSUME_NONNULL_END
 diff --git a/sdk/objc/api/RTCAudioTrackSinkAdapter.mm b/sdk/objc/api/RTCAudioTrackSinkAdapter.mm
 new file mode 100644
-index 0000000000..2fbb886716
+index 0000000000..2c22ffe71b
 --- /dev/null
 +++ b/sdk/objc/api/RTCAudioTrackSinkAdapter.mm
-@@ -0,0 +1,77 @@
+@@ -0,0 +1,76 @@
 +#import "RTCAudioTrackSinkAdapter+Private.h"
 +
 +#include <memory>
@@ -85,24 +91,23 @@ index 0000000000..2fbb886716
 +      NSData* audioData = [NSData dataWithBytes:audio_data length:data_size];
 +
 +      [sink onData:audioData
-+            bitsPerSample:bits_per_sample
-+            sampleRate:sample_rate
-+            numberOfChannels:number_of_channels
++             bitsPerSample:bits_per_sample
++                sampleRate:sample_rate
++          numberOfChannels:number_of_channels
 +            numberOfFrames:number_of_frames];
 +    }
 +  }
 +
 +  int NumPreferredChannels() const override {
-+      id<RTC_OBJC_TYPE(RTCAudioTrackSink)> sink = adapter_.audioTrackSink;
-+      if (!sink) {
-+        return -1;
-+      }
-+      if ([sink respondsToSelector:@selector(preferredNumberOfChannels)]) {
-+        return static_cast<int>([sink preferredNumberOfChannels]);
-+      }
++    id<RTC_OBJC_TYPE(RTCAudioTrackSink)> sink = adapter_.audioTrackSink;
++    if (!sink) {
 +      return -1;
++    }
++    if ([sink respondsToSelector:@selector(preferredNumberOfChannels)]) {
++      return static_cast<int>([sink preferredNumberOfChannels]);
++    }
++    return -1;
 +  }
-+
 +
 + private:
 +  __weak RTCAudioTrackSinkAdapter* adapter_;
@@ -133,22 +138,22 @@ index 0000000000..2fbb886716
 +
 +@end
 diff --git a/sdk/objc/api/peerconnection/RTCAudioTrack.h b/sdk/objc/api/peerconnection/RTCAudioTrack.h
-index db8afb50fc..93d12bd284 100644
+index db8afb50fc..bc0a296156 100644
 --- a/sdk/objc/api/peerconnection/RTCAudioTrack.h
 +++ b/sdk/objc/api/peerconnection/RTCAudioTrack.h
-@@ -14,6 +14,7 @@
+@@ -14,6 +14,8 @@
  NS_ASSUME_NONNULL_BEGIN
  
  @class RTC_OBJC_TYPE(RTCAudioSource);
-+@protocol RTC_OBJC_TYPE(RTCAudioTrackSink);
++@protocol RTC_OBJC_TYPE
++(RTCAudioTrackSink);
  
  RTC_OBJC_EXPORT
  @interface RTC_OBJC_TYPE (RTCAudioTrack) : RTC_OBJC_TYPE(RTCMediaStreamTrack)
-@@ -23,6 +24,13 @@ RTC_OBJC_EXPORT
+@@ -23,6 +25,12 @@ RTC_OBJC_EXPORT
  /** The audio source for this audio track. */
  @property(nonatomic, readonly) RTC_OBJC_TYPE(RTCAudioSource) * source;
  
-+
 +/** このトラックの音声データを受け取るシンクを登録します。 */
 +- (void)addSink:(id<RTC_OBJC_TYPE(RTCAudioTrackSink)>)sink;
 +
@@ -159,7 +164,7 @@ index db8afb50fc..93d12bd284 100644
  
  NS_ASSUME_NONNULL_END
 diff --git a/sdk/objc/api/peerconnection/RTCAudioTrack.mm b/sdk/objc/api/peerconnection/RTCAudioTrack.mm
-index 5ba53c84e9..be9be75cf5 100644
+index 5ba53c84e9..a0830cc789 100644
 --- a/sdk/objc/api/peerconnection/RTCAudioTrack.mm
 +++ b/sdk/objc/api/peerconnection/RTCAudioTrack.mm
 @@ -13,11 +13,14 @@
@@ -212,13 +217,14 @@ index 5ba53c84e9..be9be75cf5 100644
 +  }
 +
 +  __block NSUInteger indexToRemove = NSNotFound;
-+  [_adapters enumerateObjectsUsingBlock:^(
-+                 RTCAudioTrackSinkAdapter *adapter, NSUInteger idx, BOOL *stop) {
-+    if (adapter.audioTrackSink == sink) {
-+      indexToRemove = idx;
-+      *stop = YES;
-+    }
-+  }];
++  [_adapters
++      enumerateObjectsUsingBlock:^(
++          RTCAudioTrackSinkAdapter *adapter, NSUInteger idx, BOOL *stop) {
++        if (adapter.audioTrackSink == sink) {
++          indexToRemove = idx;
++          *stop = YES;
++        }
++      }];
 +  if (indexToRemove == NSNotFound) {
 +    RTC_LOG(LS_INFO)
 +        << "removeSink called with a sink that has not been previously added";
@@ -230,16 +236,15 @@ index 5ba53c84e9..be9be75cf5 100644
 +  [_adapters removeObjectAtIndex:indexToRemove];
 +}
 +
-+
  #pragma mark - Private
  
  - (webrtc::scoped_refptr<webrtc::AudioTrackInterface>)nativeAudioTrack {
 diff --git a/sdk/objc/api/peerconnection/RTCAudioTrackSink.h b/sdk/objc/api/peerconnection/RTCAudioTrackSink.h
 new file mode 100644
-index 0000000000..39a047c97c
+index 0000000000..51e754e600
 --- /dev/null
 +++ b/sdk/objc/api/peerconnection/RTCAudioTrackSink.h
-@@ -0,0 +1,40 @@
+@@ -0,0 +1,38 @@
 +#import <Foundation/Foundation.h>
 +
 +#import "sdk/objc/base/RTCMacros.h"
@@ -247,24 +252,24 @@ index 0000000000..39a047c97c
 +NS_ASSUME_NONNULL_BEGIN
 +
 +RTC_OBJC_EXPORT
-+@protocol RTC_OBJC_TYPE(RTCAudioTrackSink) <NSObject>
-+
-+/**
-+ * 音声データ受信コールバック
-+ *
-+ * @param audioData PCM 形式の音声データ。
-+ * @param bitsPerSample 1 サンプルあたりのビット数。
-+ *                      libwebrtc では PCM 形式の音声データは 16 bit 固定のため、常に 16 が渡されます。
-+ * @param sampleRate サンプルレート (単位: Hz)
-+ * @param numberOfChannels 音声データのチャンネル数。
-+ *                         モノラルなら 1、ステレオなら 2 が渡されます。
-+ * @param numberOfFrames audioData に含まれるフレーム数。
-+ */
-+- (void)onData:(NSData *)audioData
-+  bitsPerSample:(NSInteger)bitsPerSample
-+  sampleRate:(NSInteger)sampleRate
-+  numberOfChannels:(NSInteger)numberOfChannels
-+  numberOfFrames:(NSInteger)numberOfFrames;
++@protocol RTC_OBJC_TYPE
++(RTCAudioTrackSink)<NSObject>
++    /**
++     * 音声データ受信コールバック
++     *
++     * @param audioData PCM 形式の音声データ。
++     * @param bitsPerSample 1 サンプルあたりのビット数。
++     *                      libwebrtc では PCM 形式の音声データは 16 bit
++     * 固定のため、常に 16 が渡されます。
++     * @param sampleRate サンプルレート (単位: Hz)
++     * @param numberOfChannels 音声データのチャンネル数。
++     *                         モノラルなら 1、ステレオなら 2 が渡されます。
++     * @param numberOfFrames audioData に含まれるフレーム数。
++     */
++    - (void)onData : (NSData *)audioData bitsPerSample
++    : (NSInteger)bitsPerSample sampleRate
++    : (NSInteger)sampleRate numberOfChannels
++    : (NSInteger)numberOfChannels numberOfFrames : (NSInteger)numberOfFrames;
 +
 +@optional
 +/**
@@ -275,8 +280,6 @@ index 0000000000..39a047c97c
 + */
 +- (NSInteger)preferredNumberOfChannels;
 +
-+
 +@end
 +
 +NS_ASSUME_NONNULL_END
-+
