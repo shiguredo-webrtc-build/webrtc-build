@@ -259,6 +259,7 @@ PATCHES = {
         "remove_crel.patch",
         "revert_siso.patch",
         "ios_revive_copy_framework_header.patch",
+        "ios_audio_track_sink.patch",
     ],
     "android": [
         "add_deps.patch",
