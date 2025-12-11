@@ -14,7 +14,7 @@ iOS SDK 向けに AudioTrackSink 機能を追加するパッチである `ios_au
 ## 変更点の概要
 
 - `sdk/objc/api/peerconnection/RTCAudioTrackSink.h` を新規追加し、`onData()` と任意の `preferredNumberOfChannels()` を公開する `RTCAudioTrackSink` プロトコルを定義。
-- `sdk/objc/api/RTCAudioTrackSinkAdapter.{h,mm}` と `RTCAudioTrackSinkAdapter+Private.h` を追加し、ObjC の `RTCAudioTrackSink` と C++ の `AudioTrackSinkInterface` を橋渡しするアダプターを実装。
+- `sdk/objc/api/RTCAudioTrackSinkAdapter.mm` と `RTCAudioTrackSinkAdapter+Private.h` を追加し、ObjC の `RTCAudioTrackSink` と C++ の `AudioTrackSinkInterface` を橋渡しするアダプターを実装。
 - `sdk/objc/api/peerconnection/RTCAudioTrack.h/mm` に `addSink:` / `removeSink:` を追加し、トラックごとに複数のシンクを登録・解除できるように変更。`dealloc` で全シンクをネイティブ側から解除する処理を追加。
 - `sdk/BUILD.gn` に上記ファイルを登録。
 
