@@ -1,5 +1,5 @@
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index 7b8a024..e2f6c7a 100644
+index f61cf30..3849c09 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
 @@ -172,6 +172,7 @@ if (is_ios || is_mac) {
@@ -19,7 +19,7 @@ index 7b8a024..e2f6c7a 100644
      sources = [
        "objc/helpers/AudioTimeStamp+Nanoseconds.h",
        "objc/helpers/AudioTimeStamp+Nanoseconds.mm",
-@@ -1366,6 +1367,7 @@ if (is_ios || is_mac) {
+@@ -1369,6 +1370,7 @@ if (is_ios || is_mac) {
            "objc/base/RTCVideoRenderer.h",
            "objc/base/RTCYUVPlanarBuffer.h",
            "objc/components/audio/RTCAudioDevice.h",
@@ -275,7 +275,7 @@ index 0000000..b20c4a6
 +
 +@end
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.h b/sdk/objc/native/src/audio/audio_device_ios.h
-index d1788a3..b3d2b32 100644
+index d1788a3..e8b4666 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.h
 +++ b/sdk/objc/native/src/audio/audio_device_ios.h
 @@ -80,6 +80,8 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
@@ -287,67 +287,32 @@ index d1788a3..b3d2b32 100644
    int32_t StopRecording() override;
    bool Recording() const override;
  
-@@ -292,6 +294,9 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
-   // Set to 1 when playout is active and 0 otherwise.
-   std::atomic<int> playing_;
- 
-+  // Set to true when recording has been paused explicitly.
-+  bool paused_recording_;
-+
-   // Set to true after successful call to Init(), false otherwise.
-   bool initialized_ RTC_GUARDED_BY(thread_);
- 
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index 021f08a..b60ca3c 100644
+index 021f08a..44404da 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
-@@ -110,6 +110,7 @@ static void LogDeviceInfo() {
-       audio_unit_(nullptr),
-       recording_(0),
-       playing_(0),
-+      paused_recording_(false),
-       initialized_(false),
-       audio_is_initialized_(false),
-       is_interrupted_(false),
-@@ -302,6 +303,10 @@ static void LogDeviceInfo() {
-   LOGI() << "StartRecording";
-   RTC_DCHECK_RUN_ON(thread_);
-   RTC_DCHECK(audio_is_initialized_);
-+  // 録音ポーズ中であれば ResumeRecording() にフォールスルーする
-+  if (paused_recording_) {
-+    return ResumeRecording();
-+  }
-   RTC_DCHECK(!recording_.load());
-   RTC_DCHECK(audio_unit_);
-   if (!audio_is_initialized_) {
-@@ -330,9 +335,15 @@ static void LogDeviceInfo() {
+@@ -330,16 +330,50 @@ static void LogDeviceInfo() {
  int32_t AudioDeviceIOS::StopRecording() {
    LOGI() << "StopRecording";
    RTC_DCHECK_RUN_ON(thread_);
 -  if (!audio_is_initialized_ || !recording_.load()) {
-+  if (!audio_is_initialized_)
-+    return 0;
-+  // 録音ポーズ中でも解放処理を実行するためのチェック
-+  // 録音フラグが立っていない、かつ、録音ポーズ中でない -> 解放済みである、としてリターン
-+  if (!recording_.load() && !paused_recording_) {
++  // 元々は !recording_.load() との OR 判定だったが、PauseRecording() 追加により
++  // StopRecording() 前に recording_ が 0 となることがあるため分岐を修正している
++  if (!audio_is_initialized_) {
      return 0;
    }
-+  // 実際の状態に関わらず録音ポーズフラグも解除しておく
-+  paused_recording_ = false;
    if (!playing_.load()) {
      ShutdownPlayOrRecord();
    }
-@@ -340,6 +351,52 @@ static void LogDeviceInfo() {
-   return 0;
- }
- 
++  if (recording_.load()) {
++    recording_.store(0, std::memory_order_release);
++  }
++  return 0;
++}
++
 +int32_t AudioDeviceIOS::PauseRecording() {
 +  LOGI() << "PauseRecording";
 +  RTC_DCHECK_RUN_ON(thread_);
-+  if (paused_recording_) {
-+    RTC_LOG(LS_VERBOSE) << "PauseRecording called while already paused";
-+    return 0;
-+  }
 +  if (!audio_is_initialized_) {
 +    RTC_LOG(LS_WARNING) << "PauseRecording called before audio is initialized";
 +    return 0;
@@ -356,35 +321,23 @@ index 021f08a..b60ca3c 100644
 +    RTC_LOG(LS_WARNING) << "PauseRecording called while not recording";
 +    return 0;
 +  }
-+  recording_.store(0, std::memory_order_release);
-+  paused_recording_ = true;
-+  return 0;
-+}
-+
+   recording_.store(0, std::memory_order_release);
+   return 0;
+ }
+ 
 +int32_t AudioDeviceIOS::ResumeRecording() {
 +  LOGI() << "ResumeRecording";
 +  RTC_DCHECK_RUN_ON(thread_);
-+  if (!paused_recording_) {
++  if (!audio_is_initialized_) {
++    RTC_LOG(LS_WARNING) << "PauseRecording called before audio is initialized";
 +    return 0;
 +  }
-+  // InitRecording に失敗した場合は pause 状態の解除も recording_ の再立て直しも行えないため
-+  // 上位にエラーを返す
-+  if (!audio_is_initialized_) {
-+    if (InitRecording() != 0) {
-+      RTC_LOG(LS_ERROR) << "InitRecording failed during ResumeRecording";
-+      paused_recording_ = false;
-+      recording_.store(0, std::memory_order_release);
-+      return -1;
-+    }
++  if (recording_.load()) {
++    RTC_LOG(LS_WARNING) << "ResumeRecording called while recording";
++    return 0;
 +  }
-+  paused_recording_ = false;
-+  int32_t result = StartRecording();
-+  if (result != 0) {
-+    // Start に失敗したら再度 pause 状態に戻す
-+    paused_recording_ = true;
-+    recording_.store(0, std::memory_order_release);
-+  }
-+  return result;
++  recording_.store(1, std::memory_order_release);
++  return 0;
 +}
 +
  bool AudioDeviceIOS::Recording() const {
