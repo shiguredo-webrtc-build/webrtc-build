@@ -29,6 +29,11 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-12-12 [RELEASE] m143.7499.2.1
+  - @zztkm
+- 2025-12-10 [ADD] iOS SDK 向けに RTCAudioTrackSink を追加する
+  - RTCAudioTrackSink を実装して、RTCAudioTrack に関連付けると音声トラックごとに PCM 音声データを取得することができる
+  - @zztkm
 - 2025-12-09 [UPDATE] revive_proxy.patch の単純なパッチ適用エラーを修正
   - Windows の単純なパッチ適用エラーを修正
     - port_allocator.h

@@ -258,6 +258,7 @@ PATCHES = {
         "ios_add_scale_resolution_down_to.patch",
         "remove_crel.patch",
         "revert_siso.patch",
+        "ios_audio_track_sink.patch",
     ],
     "android": [
         "add_deps.patch",
