@@ -28,7 +28,7 @@ index f61cf30..3849c09 100644
            "objc/components/audio/RTCAudioSessionConfiguration.h",
            "objc/components/capturer/RTCCameraVideoCapturer.h",
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h
-index 8287bcf..82a7866 100644
+index 8287bcf..28420d7 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h
 @@ -11,6 +11,7 @@
@@ -47,16 +47,7 @@ index 8287bcf..82a7866 100644
  
  typedef NS_ENUM(NSInteger, RTCProxyType);
  
-@@ -52,7 +54,7 @@ RTC_OBJC_EXPORT
-                                decoderFactory;
- 
- /* Initialize object with injectable video encoder/decoder factories and
-- * injectable ADM */
-+ * injectable ADM (RTCAudioDevice) */
- - (instancetype)
-     initWithEncoderFactory:
-         (nullable id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)encoderFactory
-@@ -61,6 +63,27 @@ RTC_OBJC_EXPORT
+@@ -61,6 +63,16 @@ RTC_OBJC_EXPORT
                 audioDevice:
                     (nullable id<RTC_OBJC_TYPE(RTCAudioDevice)>)audioDevice;
  
@@ -70,36 +61,14 @@ index 8287bcf..82a7866 100644
 +          audioDeviceModule:
 +              (nullable RTC_OBJC_TYPE(RTCAudioDeviceModule)*)audioDeviceModule;
 +
-+/* Initialize object with injectable video encoder/decoder factories and
-+ * both RTCAudioDevice (objC) and RTCAudioDeviceModule (pause/resume 用) */
-+- (instancetype)
-+    initWithEncoderFactory:
-+        (nullable id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)encoderFactory
-+            decoderFactory:(nullable id<RTC_OBJC_TYPE(RTCVideoDecoderFactory)>)
-+                               decoderFactory
-+               audioDevice:(nullable id<RTC_OBJC_TYPE(RTCAudioDevice)>)audioDevice
-+          audioDeviceModule:
-+              (nullable RTC_OBJC_TYPE(RTCAudioDeviceModule)*)audioDeviceModule;
-+
  /**
   * Valid kind values are kRTCMediaStreamTrackKindAudio and
   * kRTCMediaStreamTrackKindVideo.
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
-index 233cf25..1e2c0fa 100644
+index 233cf25..5801167 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
-@@ -121,6 +121,10 @@ @implementation RTC_OBJC_TYPE (RTCPeerConnectionFactory) {
-   std::unique_ptr<webrtc::Thread> _workerThread;
-   std::unique_ptr<webrtc::Thread> _signalingThread;
-   BOOL _hasStartedAecDump;
-+  // RTCAudioDeviceModule は内部でネイティブ ADM を生成・保持する(scoped_refptr による所有)
-+  // RTCPeerConnectionFactory は初期化時に RTCAudioDeviceModule から生ポインタを受け取る
-+  // RTCAudioDeviceModule が破棄されると内部 ADM も破棄される
-+  __weak RTC_OBJC_TYPE(RTCAudioDeviceModule)* _objcAudioDeviceModule;
- }
- 
- @synthesize nativeFactory = _nativeFactory;
-@@ -137,9 +141,6 @@ - (instancetype)init {
+@@ -137,9 +137,6 @@ - (instancetype)init {
    dependencies.video_decoder_factory = webrtc::ObjCToNativeVideoDecoderFactory(
        [[RTC_OBJC_TYPE(RTCVideoDecoderFactoryH264) alloc] init]);
    dependencies.env = webrtc::CreateEnvironment();
@@ -109,33 +78,13 @@ index 233cf25..1e2c0fa 100644
    return [self initWithMediaAndDependencies:dependencies];
  }
  
-@@ -150,7 +151,8 @@ - (instancetype)init {
-                                decoderFactory {
-   return [self initWithEncoderFactory:encoderFactory
-                        decoderFactory:decoderFactory
--                          audioDevice:nil];
-+                          audioDevice:nil
-+                     audioDeviceModule:nil];
+@@ -189,6 +186,50 @@ - (instancetype)init {
+ #endif
  }
  
- - (instancetype)
-@@ -158,8 +160,42 @@ - (instancetype)init {
-         (nullable id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)encoderFactory
-             decoderFactory:(nullable id<RTC_OBJC_TYPE(RTCVideoDecoderFactory)>)
-                                decoderFactory
--               audioDevice:
--                   (nullable id<RTC_OBJC_TYPE(RTCAudioDevice)>)audioDevice {
-+                audioDevice:(nullable id<RTC_OBJC_TYPE(RTCAudioDevice)>)audioDevice {
-+#ifdef HAVE_NO_MEDIA
-+  return [self initWithNoMedia];
-+#else
-+  return [self initWithEncoderFactory:encoderFactory
-+                       decoderFactory:decoderFactory
-+                          audioDevice:audioDevice
-+                     audioDeviceModule:nil];
-+#endif
-+}
-+
++// audioDeviceModule を引数に取る initWithEncoderFactory
++// audioDeviceModule から Native ADM を取得して dependencies.adm にセットする処理以外は
++// audioDevice 版と同様の実装
 +- (instancetype)
 +    initWithEncoderFactory:
 +        (nullable id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)encoderFactory
@@ -146,52 +95,40 @@ index 233cf25..1e2c0fa 100644
 +#ifdef HAVE_NO_MEDIA
 +  return [self initWithNoMedia];
 +#else
-+  return [self initWithEncoderFactory:encoderFactory
-+                       decoderFactory:decoderFactory
-+                          audioDevice:nil
-+                     audioDeviceModule:audioDeviceModule];
-+#endif
-+}
-+
-+- (instancetype)
-+    initWithEncoderFactory:
-+        (nullable id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)encoderFactory
-+            decoderFactory:(nullable id<RTC_OBJC_TYPE(RTCVideoDecoderFactory)>)
-+                               decoderFactory
-+               audioDevice:(nullable id<RTC_OBJC_TYPE(RTCAudioDevice)>)audioDevice
-+          audioDeviceModule:
-+              (nullable RTC_OBJC_TYPE(RTCAudioDeviceModule)*)audioDeviceModule {
- #ifdef HAVE_NO_MEDIA
-   return [self initWithNoMedia];
- #else
-@@ -177,14 +213,25 @@ - (instancetype)init {
-     dependencies.video_decoder_factory =
-         webrtc::ObjCToNativeVideoDecoderFactory(decoderFactory);
-   }
++  webrtc::PeerConnectionFactoryDependencies dependencies;
++  dependencies.env = webrtc::CreateEnvironment();
++  dependencies.audio_encoder_factory =
++      webrtc::CreateBuiltinAudioEncoderFactory();
++  dependencies.audio_decoder_factory =
++      webrtc::CreateBuiltinAudioDecoderFactory();
++  if (encoderFactory) {
++    dependencies.video_encoder_factory =
++        webrtc::ObjCToNativeVideoEncoderFactory(encoderFactory);
++  }
++  if (decoderFactory) {
++    dependencies.video_decoder_factory =
++        webrtc::ObjCToNativeVideoDecoderFactory(decoderFactory);
++  }
 +#ifdef WEBRTC_IOS
-+  // audioDevice と audioDeviceModule が両方指定されている場合、
-+  // 元々の互換性を優先して audioDevice が指定されているものとする
-   if (audioDevice) {
-     dependencies.adm =
-         webrtc::CreateAudioDeviceModule(*dependencies.env, audioDevice);
--#ifdef WEBRTC_IOS
-+  } else if (audioDeviceModule) {
++  if (audioDeviceModule) {
 +    void* native_adm = [audioDeviceModule getNativeAudioDeviceModule];
 +    auto adm_ptr = static_cast<webrtc::AudioDeviceModule*>(native_adm);
 +    if (adm_ptr) {
 +      dependencies.adm = adm_ptr;
-+      _objcAudioDeviceModule = audioDeviceModule;
 +    } else {
 +      dependencies.adm = webrtc::CreateAudioDeviceModule(*dependencies.env);
 +    }
-   } else {
-     dependencies.adm = webrtc::CreateAudioDeviceModule(*dependencies.env);
--#endif
-   }
++  } else {
++    dependencies.adm = webrtc::CreateAudioDeviceModule(*dependencies.env);
++  }
 +#endif
-   return [self initWithMediaAndDependencies:dependencies];
- #endif
- }
++  return [self initWithMediaAndDependencies:dependencies];
++#endif
++}
++
+ - (instancetype)initWithNativeDependencies:
+     (webrtc::PeerConnectionFactoryDependencies &)dependencies {
+   self = [super init];
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.h b/sdk/objc/components/audio/RTCAudioDeviceModule.h
 new file mode 100644
 index 0000000..0823504
