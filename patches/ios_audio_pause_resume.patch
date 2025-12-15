@@ -138,10 +138,10 @@ index 233cf25..0195f2d 100644
    self = [super init];
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule+Private.h b/sdk/objc/components/audio/RTCAudioDeviceModule+Private.h
 new file mode 100644
-index 0000000..4e2bb60
+index 0000000..cf2f92d
 --- /dev/null
 +++ b/sdk/objc/components/audio/RTCAudioDeviceModule+Private.h
-@@ -0,0 +1,16 @@
+@@ -0,0 +1,15 @@
 +// 公開APIで隠している C++ 型のネイティブ ADM ポインタ webrtc::AudioDeviceModule* を安全に取得するためのヘッダ
 +// C++ 用の型 webrtc::AudioDeviceModule を扱うため ObjC++ からのみインクルードされる想定
 +#import "RTCAudioDeviceModule.h"
@@ -153,7 +153,6 @@ index 0000000..4e2bb60
 +@interface RTC_OBJC_TYPE(RTCAudioDeviceModule) (Private)
 +
 +#ifdef __cplusplus
-+// ネイティブ ADM を取得する。所有権移動なし
 +- (webrtc::AudioDeviceModule*)nativeAudioDeviceModule;
 +#endif
 +
