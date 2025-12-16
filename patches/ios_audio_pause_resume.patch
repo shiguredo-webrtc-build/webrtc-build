@@ -264,7 +264,7 @@ index 021f08a..17a759a 100644
    return recording_.load();
  }
 diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.h b/sdk/objc/native/src/audio/audio_device_module_ios.h
-index 5ff5062..40626ae 100644
+index 5ff5062..987deb8 100644
 --- a/sdk/objc/native/src/audio/audio_device_module_ios.h
 +++ b/sdk/objc/native/src/audio/audio_device_module_ios.h
 @@ -76,6 +76,8 @@ class AudioDeviceModuleIOS : public AudioDeviceModule {
@@ -275,14 +275,6 @@ index 5ff5062..40626ae 100644
 +  int32_t ResumeRecording();
    int32_t StopRecording() override;
    bool Recording() const override;
- 
-@@ -135,6 +137,7 @@ class AudioDeviceModuleIOS : public AudioDeviceModule {
-   int GetPlayoutAudioParameters(AudioParameters* params) const override;
-   int GetRecordAudioParameters(AudioParameters* params) const override;
- #endif  // WEBRTC_IOS
-+
-  private:
-   void ReportError(ADMError error) const;
  
 diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.mm b/sdk/objc/native/src/audio/audio_device_module_ios.mm
 index e2ea360..9ac6904 100644
