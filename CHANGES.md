@@ -38,9 +38,12 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - AudioDeviceModuleIOS に pauseRecording/resumeRecording を追加する
   - AudioDeviceIOS に pauseRecording/resumeRecording を追加する
   - @t-miya
+- 2025-12-16 [RELEASE] m144.7559.1.0
+  - @torikizi
 - 2025-12-16 [RELEASE] m143.7499.3.0
   - @torikizi
 - 2025-12-12 [RELEASE] m144.7559.0.1
+  - @zztkm
 - 2025-12-12 [RELEASE] m143.7499.2.1
   - @zztkm
 - 2025-12-10 [ADD] iOS SDK 向けに RTCAudioTrackSink を追加する
