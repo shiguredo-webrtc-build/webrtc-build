@@ -260,6 +260,7 @@ PATCHES = {
         "revert_siso.patch",
         "ios_revive_copy_framework_header.patch",
         "ios_audio_track_sink.patch",
+        "ios_audio_pause_resume.patch",
     ],
     "android": [
         "add_deps.patch",

@@ -29,6 +29,13 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-12-12 [ADD] iOS SDK に RTCAudioDeviceModule を追加する
+  - iOS 実機のマイクインジケータが消灯状態のミュートをできるようにする
+  - RTCPeerConnectionFactory に RTCAudioDeviceModule を引数とする initWithEncoderFactory:decoderFactory:audioDeviceModule: を追加する
+  - RTCAudioDeviceModule は公開 API として pauseRecording/resumeRecording を持つ
+  - AudioDeviceModuleIOS に pauseRecording/resumeRecording を追加する
+  - AudioDeviceIOS に pauseRecording/resumeRecording を追加する
+  - @t-miya
 - 2025-12-12 [RELEASE] m143.7499.2.1
   - @zztkm
 - 2025-12-10 [ADD] iOS SDK 向けに RTCAudioTrackSink を追加する
