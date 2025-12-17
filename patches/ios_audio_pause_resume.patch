@@ -57,7 +57,7 @@ index 8287bcf..7090921 100644
   * Valid kind values are kRTCMediaStreamTrackKindAudio and
   * kRTCMediaStreamTrackKindVideo.
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
-index 233cf25..b2b063e 100644
+index 233cf25..e94ab00 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
 @@ -14,6 +14,7 @@
@@ -72,9 +72,9 @@ index 233cf25..b2b063e 100644
  #endif
  }
  
-+// audioDeviceModule を引数に取る initWithEncoderFactory
++// RTCAudioDeviceModule* により ADM を初期化する
 +// audioDeviceModule から Native ADM を取得して dependencies.adm にセットする処理以外は
-+// audioDevice 版と同様の実装
++// initWithEncoderFactory:decoderFactory:audioDevice と同様の実装
 +- (instancetype)
 +    initWithEncoderFactory:
 +        (nullable id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)encoderFactory
