@@ -212,7 +212,7 @@ index d1788a3..e8b4666 100644
    bool Recording() const override;
  
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index 021f08a..17a759a 100644
+index 021f08a..05a7f2a 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
 @@ -330,7 +330,9 @@ static void LogDeviceInfo() {
@@ -249,7 +249,7 @@ index 021f08a..17a759a 100644
 +  LOGI() << "ResumeRecording";
 +  RTC_DCHECK_RUN_ON(thread_);
 +  if (!audio_is_initialized_) {
-+    RTC_LOG(LS_WARNING) << "PauseRecording called before audio is initialized";
++    RTC_LOG(LS_WARNING) << "ResumeRecording called before audio is initialized";
 +    return 0;
 +  }
 +  if (recording_.load()) {
