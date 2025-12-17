@@ -57,7 +57,7 @@ index 8287bcf..7090921 100644
   * Valid kind values are kRTCMediaStreamTrackKindAudio and
   * kRTCMediaStreamTrackKindVideo.
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
-index 233cf25..e94ab00 100644
+index 233cf25..0c20512 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
 @@ -14,6 +14,7 @@
@@ -74,7 +74,7 @@ index 233cf25..e94ab00 100644
  
 +// RTCAudioDeviceModule* により ADM を初期化する
 +// audioDeviceModule から Native ADM を取得して dependencies.adm にセットする処理以外は
-+// initWithEncoderFactory:decoderFactory:audioDevice と同様の実装
++// initWithEncoderFactory:decoderFactory:audioDevice: と同様の実装
 +- (instancetype)
 +    initWithEncoderFactory:
 +        (nullable id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)encoderFactory
@@ -131,7 +131,7 @@ index 0000000..3e67c85
 +@end
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.h b/sdk/objc/components/audio/RTCAudioDeviceModule.h
 new file mode 100644
-index 0000000..84034ef
+index 0000000..bd3c425
 --- /dev/null
 +++ b/sdk/objc/components/audio/RTCAudioDeviceModule.h
 @@ -0,0 +1,17 @@
@@ -146,9 +146,9 @@ index 0000000..84034ef
 +// 内部で AudioDeviceModuleIOS を生成する
 +- (instancetype)init;
 +
-+// 録音を一時停止する。内部で AudioDeviceModuleIOS::pauseRecording() を呼ぶ
++// 録音を一時停止する。内部で AudioDeviceModuleIOS::pauseRecording を呼ぶ
 +- (NSInteger)pauseRecording;
-+// 録音を再開する。内部で AudioDeviceModuleIOS::resumeRecording() を呼ぶ
++// 録音を再開する。内部で AudioDeviceModuleIOS::resumeRecording を呼ぶ
 +- (NSInteger)resumeRecording;
 +
 +@end
@@ -212,7 +212,7 @@ index d1788a3..e8b4666 100644
    bool Recording() const override;
  
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index 021f08a..05a7f2a 100644
+index 021f08a..5d2b8b2 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
 @@ -330,7 +330,9 @@ static void LogDeviceInfo() {
@@ -220,8 +220,8 @@ index 021f08a..05a7f2a 100644
    LOGI() << "StopRecording";
    RTC_DCHECK_RUN_ON(thread_);
 -  if (!audio_is_initialized_ || !recording_.load()) {
-+  // 元々は !recording_.load() との OR 判定だったが、PauseRecording() 追加により
-+  // StopRecording() 前に recording_ が 0 となることがあるため分岐を修正している
++  // 元々は !recording_.load() との OR 判定だったが、PauseRecording 追加により
++  // StopRecording 実行前に recording_ が 0 となることがあるため分岐を修正している
 +  if (!audio_is_initialized_) {
      return 0;
    }
