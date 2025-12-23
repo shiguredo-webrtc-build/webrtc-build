@@ -29,6 +29,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-12-23 [ADD] iOS SDK 向けの AudioDeviceIOS に pauseRecording/resumeRecording を修正する
+  - `AudioUnit` の `SetInputEnabled` 切り替え処理を追加する
+  - @t-miya
 - 2025-12-17 [RELEASE] m143.7499.3.1
   - @t-miya
 - 2025-12-17 [ADD] iOS SDK に RTCAudioDeviceModule を追加する

@@ -212,7 +212,7 @@ index d1788a3..e8b4666 100644
    bool Recording() const override;
  
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index 021f08a..5d2b8b2 100644
+index 021f08a..566e8bf 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
 @@ -330,7 +330,9 @@ static void LogDeviceInfo() {
@@ -226,7 +226,7 @@ index 021f08a..5d2b8b2 100644
      return 0;
    }
    if (!playing_.load()) {
-@@ -340,6 +342,36 @@ static void LogDeviceInfo() {
+@@ -340,6 +342,112 @@ static void LogDeviceInfo() {
    return 0;
  }
  
@@ -241,7 +241,45 @@ index 021f08a..5d2b8b2 100644
 +    RTC_LOG(LS_WARNING) << "PauseRecording called while not recording";
 +    return 0;
 +  }
++  // 録音を停止します
 +  recording_.store(0, std::memory_order_release);
++  // audio_unit_->SetInputEnabled(false) 実行のため AudioUnit を一度初期化解除します
++  // SetInputEnabled(false) 実行後に再度 AudioUnit の初期化を行います
++  if (audio_unit_ && audio_unit_->GetState() >= VoiceProcessingAudioUnit::kUninitialized) {
++    // AudioUnit を停止します
++    if (audio_unit_->GetState() == VoiceProcessingAudioUnit::kStarted) {
++      if (!audio_unit_->Stop()) {
++        RTC_LOG(LS_WARNING) << "PauseRecording failed to stop audio unit";
++        return 0;
++      }
++      PrepareForNewStart();
++    }
++    // AudioUnit の初期化を解除します。SetInputEnabled 実行に必要です
++    if (!audio_unit_->Uninitialize()) {
++      RTC_LOG(LS_WARNING) << "PauseRecording failed to uninitialize audio unit";
++      return 0;
++    }
++    // AudioUnit の入力を無効化します。マイクインジケータ消灯のために必要です
++    if (!audio_unit_->SetInputEnabled(false)) {
++      RTC_LOG(LS_WARNING) << "PauseRecording failed to audio_unit_->SetInputEnabled(false)";
++      return 0;
++    }
++    // 音声パラメータとバッファを作り直します。AudioUnit 再初期化後の想定フレームずれを防ぎます
++    SetupAudioBuffersForActiveAudioSession();
++    // AudioUnit を再度初期化します
++    if (!audio_unit_->Initialize(playout_parameters_.sample_rate())) {
++      RTC_LOG(LS_WARNING) << "PauseRecording failed to reinitialize audio unit";
++      return 0;
++    }
++    // AudioUnit を再開して出力を戻します
++    OSStatus result = audio_unit_->Start();
++    if (result != noErr) {
++      RTC_OBJC_TYPE(RTCAudioSession)* session =
++          [RTC_OBJC_TYPE(RTCAudioSession) sharedInstance];
++      [session notifyAudioUnitStartFailedWithError:result];
++      RTC_LOG(LS_WARNING) << "PauseRecording failed to restart audio unit";
++    }
++  }
 +  return 0;
 +}
 +
@@ -256,6 +294,44 @@ index 021f08a..5d2b8b2 100644
 +    RTC_LOG(LS_WARNING) << "ResumeRecording called while recording";
 +    return 0;
 +  }
++  // audio_unit_->SetInputEnabled(true) 実行のため AudioUnit を一度初期化解除します
++  // SetInputEnabled(true) 実行後に再度 AudioUnit の初期化を行います
++  if (audio_unit_ && audio_unit_->GetState() >= VoiceProcessingAudioUnit::kUninitialized) {
++    // AudioUnit を停止します
++    if (audio_unit_->GetState() == VoiceProcessingAudioUnit::kStarted) {
++      if (!audio_unit_->Stop()) {
++        RTC_LOG(LS_WARNING) << "PauseRecording failed to stop audio unit";
++        return 0;
++      }
++      PrepareForNewStart();
++    }
++    // AudioUnit の初期化を解除します。SetInputEnabled 実行に必要です
++    if (!audio_unit_->Uninitialize()) {
++      RTC_LOG(LS_WARNING) << "PauseRecording failed to uninitialize audio unit";
++      return 0;
++    }
++    // AudioUnit の入力を有効化します。マイクインジケータ点灯のために必要です
++    if (!audio_unit_->SetInputEnabled(true)) {
++      RTC_LOG(LS_WARNING) << "PauseRecording failed to audio_unit_->SetInputEnabled(false)";
++      return 0;
++    }
++    // 音声パラメータとバッファを作り直します。AudioUnit 再初期化後の想定フレームずれを防ぎます
++    SetupAudioBuffersForActiveAudioSession();
++    // AudioUnit を再度初期化します
++    if (!audio_unit_->Initialize(playout_parameters_.sample_rate())) {
++      RTC_LOG(LS_WARNING) << "PauseRecording failed to reinitialize audio unit";
++      return 0;
++    }
++    // AudioUnit を再開して出力を戻します
++    OSStatus result = audio_unit_->Start();
++    if (result != noErr) {
++      RTC_OBJC_TYPE(RTCAudioSession)* session =
++          [RTC_OBJC_TYPE(RTCAudioSession) sharedInstance];
++      [session notifyAudioUnitStartFailedWithError:result];
++      RTC_LOG(LS_WARNING) << "PauseRecording failed to restart audio unit";
++    }
++  }
++  // 録音を再開します
 +  recording_.store(1, std::memory_order_release);
 +  return 0;
 +}
