@@ -212,7 +212,7 @@ index d1788a3..e8b4666 100644
    bool Recording() const override;
  
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index 021f08a..d886813 100644
+index 021f08a..d2ebf84 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
 @@ -330,7 +330,9 @@ static void LogDeviceInfo() {
@@ -241,8 +241,8 @@ index 021f08a..d886813 100644
 +    RTC_LOG(LS_WARNING) << "PauseRecording called while not recording";
 +    return 0;
 +  }
-+  // audio_unit_->SetInputEnabled(false) 実行のため AudioUnit を一度初期化解除します
-+  // SetInputEnabled(false) 実行後に再度 AudioUnit の初期化を行います
++  // audio_unit_->SetMicrophoneMute 実行のため AudioUnit を一度初期化解除します
++  // SetMicrophoneMute(true) 実行後に再度 AudioUnit の初期化を行います
 +  if (audio_unit_ && audio_unit_->GetState() >= VoiceProcessingAudioUnit::kUninitialized) {
 +    // AudioUnit を停止します
 +    if (audio_unit_->GetState() == VoiceProcessingAudioUnit::kStarted) {
@@ -258,7 +258,7 @@ index 021f08a..d886813 100644
 +      return -1;
 +    }
 +    // AudioUnit の入力を無効化します。マイクインジケータ消灯のために必要です
-+    if (!audio_unit_->SetInputEnabled(false)) {
++    if (!audio_unit_->SetMicrophoneMute(true)) {
 +      RTC_LOG(LS_ERROR) << "PauseRecording failed to disable microphone input";
 +      return -1;
 +    }
@@ -295,8 +295,8 @@ index 021f08a..d886813 100644
 +    RTC_LOG(LS_WARNING) << "ResumeRecording called while recording";
 +    return 0;
 +  }
-+  // audio_unit_->SetInputEnabled(true) 実行のため AudioUnit を一度初期化解除します
-+  // SetInputEnabled(true) 実行後に再度 AudioUnit の初期化を行います
++  // audio_unit_->SetMicrophoneMute 実行のため AudioUnit を一度初期化解除します
++  // SetMicrophoneMute(false) 実行後に再度 AudioUnit の初期化を行います
 +  if (audio_unit_ && audio_unit_->GetState() >= VoiceProcessingAudioUnit::kUninitialized) {
 +    // AudioUnit を停止します
 +    if (audio_unit_->GetState() == VoiceProcessingAudioUnit::kStarted) {
@@ -312,7 +312,7 @@ index 021f08a..d886813 100644
 +      return -1;
 +    }
 +    // AudioUnit の入力を有効化します。マイクインジケータ点灯のために必要です
-+    if (!audio_unit_->SetInputEnabled(true)) {
++    if (!audio_unit_->SetMicrophoneMute(false)) {
 +      RTC_LOG(LS_ERROR) << "PauseRecording failed to enable microphone input";
 +      return -1;
 +    }
@@ -389,53 +389,3 @@ index e2ea360..9ac6904 100644
  int32_t AudioDeviceModuleIOS::StopRecording() {
    RTC_DLOG(LS_INFO) << __FUNCTION__;
    CHECKinitialized_();
-diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.h b/sdk/objc/native/src/audio/voice_processing_audio_unit.h
-index cad6fe5..120249d 100644
---- a/sdk/objc/native/src/audio/voice_processing_audio_unit.h
-+++ b/sdk/objc/native/src/audio/voice_processing_audio_unit.h
-@@ -95,6 +95,11 @@ class VoiceProcessingAudioUnit {
-   // Mutes the microphone.
-   bool SetMicrophoneMute(bool enable);
- 
-+  // Enables/disables input I/O (microphone path) on the underlying audio unit.
-+  // Unlike SetMicrophoneMute(), this always toggles input I/O enablement even
-+  // when muted-speech detection is enabled.
-+  bool SetInputEnabled(bool enable);
-+
-   // Calls render on the underlying audio unit.
-   OSStatus Render(AudioUnitRenderActionFlags* flags,
-                   const AudioTimeStamp* time_stamp,
-diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.mm b/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
-index 1bd8956..86709cc 100644
---- a/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
-+++ b/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
-@@ -473,6 +473,29 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
-   return true;
- }
- 
-+bool VoiceProcessingAudioUnit::SetInputEnabled(bool enable) {
-+  RTC_DCHECK_GE(state_, kUninitialized);
-+
-+  RTCLog(@"Setting microphone input %s.", enable ? "enabled" : "disabled");
-+
-+  UInt32 enableInput = enable ? 1 : 0;
-+  OSStatus result = AudioUnitSetProperty(vpio_unit_,
-+                                        kAudioOutputUnitProperty_EnableIO,
-+                                        kAudioUnitScope_Input,
-+                                        kInputBus,
-+                                        &enableInput,
-+                                        sizeof(enableInput));
-+  if (result != noErr) {
-+    RTCLogError(@"Failed to %s microphone input. Error=%ld",
-+                (enable ? "enable" : "disable"),
-+                (long)result);
-+    return false;
-+  }
-+
-+  RTCLog(@"Set microphone input %s.", enable ? "enabled" : "disabled");
-+  return true;
-+}
-+
- OSStatus VoiceProcessingAudioUnit::Render(AudioUnitRenderActionFlags* flags,
-                                           const AudioTimeStamp* time_stamp,
-                                           UInt32 output_bus_number,
