@@ -41,6 +41,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - RTCAudioDeviceModule は公開 API として pauseRecording/resumeRecording を持つ
   - AudioDeviceModuleIOS に PauseRecording/ResumeRecording を追加する
   - AudioDeviceIOS に PauseRecording/ResumeRecording を追加する
+  - PauseRecording による録音停止の状態から ResumeRecording 実行なしに StopRecording を呼ぶことができる
   - @t-miya
 - 2025-12-16 [RELEASE] m143.7499.3.0
   - @torikizi
