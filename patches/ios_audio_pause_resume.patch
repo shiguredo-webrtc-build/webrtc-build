@@ -226,7 +226,7 @@ index d1788a3..a3355a0 100644
  
    // Determines whether voice processing should be enabled or disabled.
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index 021f08a..18fca3b 100644
+index 021f08a..8f744ef 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
 @@ -330,7 +330,9 @@ static void LogDeviceInfo() {
@@ -240,7 +240,7 @@ index 021f08a..18fca3b 100644
      return 0;
    }
    if (!playing_.load()) {
-@@ -340,6 +342,105 @@ static void LogDeviceInfo() {
+@@ -340,6 +342,107 @@ static void LogDeviceInfo() {
    return 0;
  }
  
@@ -336,7 +336,9 @@ index 021f08a..18fca3b 100644
 +    RTC_OBJC_TYPE(RTCAudioSession)* session =
 +        [RTC_OBJC_TYPE(RTCAudioSession) sharedInstance];
 +    [session notifyAudioUnitStartFailedWithError:result];
-+    RTC_LOG(LS_ERROR) << "ReinitAudioUnitForMicrophoneMute failed to restart audio unit";
++    RTC_LOG(LS_ERROR)
++        << "ReinitAudioUnitForMicrophoneMute failed to restart audio unit, OSStatus="
++        << result;
 +    return -1;
 +  }
 +
@@ -360,10 +362,10 @@ index 5ff5062..987deb8 100644
    bool Recording() const override;
  
 diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.mm b/sdk/objc/native/src/audio/audio_device_module_ios.mm
-index e2ea360..d1627bb 100644
+index e2ea360..db0a478 100644
 --- a/sdk/objc/native/src/audio/audio_device_module_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_module_ios.mm
-@@ -652,6 +652,36 @@
+@@ -652,6 +652,38 @@
    return result;
  }
  
@@ -374,6 +376,7 @@ index e2ea360..d1627bb 100644
 +    return 0;
 +  }
 +  int32_t result = audio_device_->PauseRecording();
++  // StopRecording() での停止順序と同様にします
 +  audio_device_buffer_.get()->StopRecording();
 +  if (result < 0) {
 +    ReportError(kRecordingFailed);
@@ -388,6 +391,7 @@ index e2ea360..d1627bb 100644
 +  if (Recording()) {
 +    return 0;
 +  }
++  // StartRecording() での開始順序と同様にします
 +  audio_device_buffer_.get()->StartRecording();
 +  int32_t result = audio_device_->ResumeRecording();
 +  if (result < 0) {
