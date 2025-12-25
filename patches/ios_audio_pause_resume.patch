@@ -131,7 +131,7 @@ index 0000000..3e67c85
 +@end
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.h b/sdk/objc/components/audio/RTCAudioDeviceModule.h
 new file mode 100644
-index 0000000..bd3c425
+index 0000000..60c4eb6
 --- /dev/null
 +++ b/sdk/objc/components/audio/RTCAudioDeviceModule.h
 @@ -0,0 +1,17 @@
@@ -146,9 +146,9 @@ index 0000000..bd3c425
 +// 内部で AudioDeviceModuleIOS を生成する
 +- (instancetype)init;
 +
-+// 録音を一時停止する。内部で AudioDeviceModuleIOS::pauseRecording を呼ぶ
++// 録音を一時停止する。内部で AudioDeviceModuleIOS::PauseRecording() を呼ぶ
 +- (NSInteger)pauseRecording;
-+// 録音を再開する。内部で AudioDeviceModuleIOS::resumeRecording を呼ぶ
++// 録音を再開する。内部で AudioDeviceModuleIOS::ResumeRecording() を呼ぶ
 +- (NSInteger)resumeRecording;
 +
 +@end
@@ -199,7 +199,7 @@ index 0000000..d1e495f
 +
 +@end
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.h b/sdk/objc/native/src/audio/audio_device_ios.h
-index d1788a3..e8b4666 100644
+index d1788a3..a3355a0 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.h
 +++ b/sdk/objc/native/src/audio/audio_device_ios.h
 @@ -80,6 +80,8 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
@@ -211,8 +211,22 @@ index d1788a3..e8b4666 100644
    int32_t StopRecording() override;
    bool Recording() const override;
  
+@@ -222,6 +224,13 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
+   // Resets thread-checkers before a call is restarted.
+   void PrepareForNewStart();
+ 
++  // AudioUnit の SetMicrophoneMute() 実行によりマイクミュートの有効無効を切り替えます。
++  // AudioUnit の state が Uninitialized になっている必要があるため
++  // AudioUnit に対して、Stop -> Uninitialize -> SetMicrophoneMute -> Initialize -> Start
++  // のフローで処理を行います。
++  // この関数は PauseRecording()/ResumeRecording() から呼ばれることを想定しています。
++  int32_t ReinitAudioUnitForMicrophoneMute(bool mute);
++
+   const Environment env_;
+ 
+   // Determines whether voice processing should be enabled or disabled.
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index 021f08a..d2ebf84 100644
+index 021f08a..18fca3b 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
 @@ -330,7 +330,9 @@ static void LogDeviceInfo() {
@@ -226,7 +240,7 @@ index 021f08a..d2ebf84 100644
      return 0;
    }
    if (!playing_.load()) {
-@@ -340,6 +342,114 @@ static void LogDeviceInfo() {
+@@ -340,6 +342,105 @@ static void LogDeviceInfo() {
    return 0;
  }
  
@@ -241,43 +255,10 @@ index 021f08a..d2ebf84 100644
 +    RTC_LOG(LS_WARNING) << "PauseRecording called while not recording";
 +    return 0;
 +  }
-+  // audio_unit_->SetMicrophoneMute 実行のため AudioUnit を一度初期化解除します
-+  // SetMicrophoneMute(true) 実行後に再度 AudioUnit の初期化を行います
-+  if (audio_unit_ && audio_unit_->GetState() >= VoiceProcessingAudioUnit::kUninitialized) {
-+    // AudioUnit を停止します
-+    if (audio_unit_->GetState() == VoiceProcessingAudioUnit::kStarted) {
-+      if (!audio_unit_->Stop()) {
-+        RTC_LOG(LS_WARNING) << "PauseRecording failed to stop audio unit";
-+        return 0;
-+      }
-+      PrepareForNewStart();
-+    }
-+    // AudioUnit の初期化を解除します。SetInputEnabled 実行に必要です
-+    if (!audio_unit_->Uninitialize()) {
-+      RTC_LOG(LS_ERROR) << "PauseRecording failed to uninitialize audio unit";
-+      return -1;
-+    }
-+    // AudioUnit の入力を無効化します。マイクインジケータ消灯のために必要です
-+    if (!audio_unit_->SetMicrophoneMute(true)) {
-+      RTC_LOG(LS_ERROR) << "PauseRecording failed to disable microphone input";
-+      return -1;
-+    }
-+    // 音声パラメータとバッファを作り直します。AudioUnit 再初期化後の想定フレームずれを防ぎます
-+    SetupAudioBuffersForActiveAudioSession();
-+    // AudioUnit を再度初期化します
-+    if (!audio_unit_->Initialize(playout_parameters_.sample_rate())) {
-+      RTC_LOG(LS_ERROR) << "PauseRecording failed to reinitialize audio unit";
-+      return -1;
-+    }
-+    // AudioUnit を再開して出力を戻します
-+    OSStatus result = audio_unit_->Start();
-+    if (result != noErr) {
-+      RTC_OBJC_TYPE(RTCAudioSession)* session =
-+          [RTC_OBJC_TYPE(RTCAudioSession) sharedInstance];
-+      [session notifyAudioUnitStartFailedWithError:result];
-+      RTC_LOG(LS_ERROR) << "PauseRecording failed to restart audio unit";
-+      return -1;
-+    }
++  // マイクミュートを有効化します
++  int32_t result = ReinitAudioUnitForMicrophoneMute(true);
++  if (result != 0) {
++    return result;
 +  }
 +  // 録音フラグをOFFにします
 +  recording_.store(0, std::memory_order_release);
@@ -295,46 +276,70 @@ index 021f08a..d2ebf84 100644
 +    RTC_LOG(LS_WARNING) << "ResumeRecording called while recording";
 +    return 0;
 +  }
-+  // audio_unit_->SetMicrophoneMute 実行のため AudioUnit を一度初期化解除します
-+  // SetMicrophoneMute(false) 実行後に再度 AudioUnit の初期化を行います
-+  if (audio_unit_ && audio_unit_->GetState() >= VoiceProcessingAudioUnit::kUninitialized) {
-+    // AudioUnit を停止します
-+    if (audio_unit_->GetState() == VoiceProcessingAudioUnit::kStarted) {
-+      if (!audio_unit_->Stop()) {
-+        RTC_LOG(LS_WARNING) << "PauseRecording failed to stop audio unit";
-+        return 0;
-+      }
-+      PrepareForNewStart();
-+    }
-+    // AudioUnit の初期化を解除します。SetInputEnabled 実行に必要です
-+    if (!audio_unit_->Uninitialize()) {
-+      RTC_LOG(LS_ERROR) << "PauseRecording failed to uninitialize audio unit";
-+      return -1;
-+    }
-+    // AudioUnit の入力を有効化します。マイクインジケータ点灯のために必要です
-+    if (!audio_unit_->SetMicrophoneMute(false)) {
-+      RTC_LOG(LS_ERROR) << "PauseRecording failed to enable microphone input";
-+      return -1;
-+    }
-+    // 音声パラメータとバッファを作り直します。AudioUnit 再初期化後の想定フレームずれを防ぎます
-+    SetupAudioBuffersForActiveAudioSession();
-+    // AudioUnit を再度初期化します
-+    if (!audio_unit_->Initialize(playout_parameters_.sample_rate())) {
-+      RTC_LOG(LS_ERROR) << "PauseRecording failed to reinitialize audio unit";
-+      return -1;
-+    }
-+    // AudioUnit を再開して出力を戻します
-+    OSStatus result = audio_unit_->Start();
-+    if (result != noErr) {
-+      RTC_OBJC_TYPE(RTCAudioSession)* session =
-+          [RTC_OBJC_TYPE(RTCAudioSession) sharedInstance];
-+      [session notifyAudioUnitStartFailedWithError:result];
-+      RTC_LOG(LS_ERROR) << "PauseRecording failed to restart audio unit";
-+      return -1;
-+    }
++  // マイクミュートを無効化します
++  int32_t result = ReinitAudioUnitForMicrophoneMute(false);
++  if (result != 0) {
++    return result;
 +  }
 +  // 録音フラグをONにします
 +  recording_.store(1, std::memory_order_release);
++  return 0;
++}
++
++int32_t AudioDeviceIOS::ReinitAudioUnitForMicrophoneMute(bool mute) {
++  LOGI() << "ReinitAudioUnitForMicrophoneMute mute=" << mute;
++  RTC_DCHECK_RUN_ON(thread_);
++  if (!audio_unit_) {
++    RTC_LOG(LS_ERROR) << "ReinitAudioUnitForMicrophoneMute called with null audio unit";
++    return -1;
++  }
++  if (audio_unit_->GetState() < VoiceProcessingAudioUnit::kUninitialized) {
++    RTC_LOG(LS_ERROR) << "ReinitAudioUnitForMicrophoneMute called in invalid audio unit state="
++                      << audio_unit_->GetState();
++    return -1;
++  }
++
++  // AudioUnit を停止します
++  if (audio_unit_->GetState() == VoiceProcessingAudioUnit::kStarted) {
++    if (!audio_unit_->Stop()) {
++      RTC_LOG(LS_ERROR) << "ReinitAudioUnitForMicrophoneMute failed to stop audio unit";
++      return -1;
++    }
++    PrepareForNewStart();
++  }
++
++  // AudioUnit の初期化を解除します。SetMicrophoneMute 実行に必要です
++  if (!audio_unit_->Uninitialize()) {
++    RTC_LOG(LS_ERROR)
++        << "ReinitAudioUnitForMicrophoneMute failed to uninitialize audio unit";
++    return -1;
++  }
++
++  // AudioUnit の入力を無効化/有効化します。マイクインジケータ消灯/点灯のために必要です
++  if (!audio_unit_->SetMicrophoneMute(mute)) {
++    RTC_LOG(LS_ERROR) << "ReinitAudioUnitForMicrophoneMute failed to set microphone mute=" << mute;
++    return -1;
++  }
++
++  // 音声パラメータとバッファを作り直します。AudioUnit 再初期化後の想定フレームずれを防ぎます
++  SetupAudioBuffersForActiveAudioSession();
++
++  // AudioUnit を再度初期化します
++  if (!audio_unit_->Initialize(playout_parameters_.sample_rate())) {
++    RTC_LOG(LS_ERROR) << "ReinitAudioUnitForMicrophoneMute failed to reinitialize audio unit";
++    return -1;
++  }
++
++  // AudioUnit を再開して出力を戻します
++  OSStatus result = audio_unit_->Start();
++  if (result != noErr) {
++    RTC_OBJC_TYPE(RTCAudioSession)* session =
++        [RTC_OBJC_TYPE(RTCAudioSession) sharedInstance];
++    [session notifyAudioUnitStartFailedWithError:result];
++    RTC_LOG(LS_ERROR) << "ReinitAudioUnitForMicrophoneMute failed to restart audio unit";
++    return -1;
++  }
++
 +  return 0;
 +}
 +
@@ -355,16 +360,19 @@ index 5ff5062..987deb8 100644
    bool Recording() const override;
  
 diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.mm b/sdk/objc/native/src/audio/audio_device_module_ios.mm
-index e2ea360..9ac6904 100644
+index e2ea360..d1627bb 100644
 --- a/sdk/objc/native/src/audio/audio_device_module_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_module_ios.mm
-@@ -652,6 +652,30 @@
+@@ -652,6 +652,36 @@
    return result;
  }
  
 +int32_t AudioDeviceModuleIOS::PauseRecording() {
 +  RTC_DLOG(LS_INFO) << __FUNCTION__;
 +  CHECKinitialized_();
++  if (!Recording()) {
++    return 0;
++  }
 +  int32_t result = audio_device_->PauseRecording();
 +  audio_device_buffer_.get()->StopRecording();
 +  if (result < 0) {
@@ -377,8 +385,11 @@ index e2ea360..9ac6904 100644
 +int32_t AudioDeviceModuleIOS::ResumeRecording() {
 +  RTC_DLOG(LS_INFO) << __FUNCTION__;
 +  CHECKinitialized_();
-+  int32_t result = audio_device_->ResumeRecording();
++  if (Recording()) {
++    return 0;
++  }
 +  audio_device_buffer_.get()->StartRecording();
++  int32_t result = audio_device_->ResumeRecording();
 +  if (result < 0) {
 +    ReportError(kRecordingFailed);
 +  }
