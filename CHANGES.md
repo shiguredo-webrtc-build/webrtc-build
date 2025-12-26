@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-12-26 [RELEASE] m143.7499.3.2
+  - @t-miya
 - 2025-12-25 [ADD] iOS SDK 向けの AudioDeviceIOS の PauseRecording/ResumeRecording を修正する
   - 内部で `VoiceProcessingAudioUnit::SetMicrophoneMute` を呼び出す `AudioDeviceIOS::ReinitAudioUnitForMicrophoneMute(bool)` を追加する
     - PauseRecording/ResumeRecording から呼び出す
