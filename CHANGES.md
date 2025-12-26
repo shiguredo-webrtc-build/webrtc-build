@@ -29,6 +29,16 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-12-26 [RELEASE] m144.7559.2.1
+  - @t-miya
+- 2025-12-26 [RELEASE] m143.7499.3.2
+  - @t-miya
+- 2025-12-25 [ADD] iOS SDK 向けの AudioDeviceIOS の PauseRecording/ResumeRecording を修正する
+  - 内部で `VoiceProcessingAudioUnit::SetMicrophoneMute` を呼び出す `AudioDeviceIOS::ReinitAudioUnitForMicrophoneMute(bool)` を追加する
+    - PauseRecording/ResumeRecording から呼び出す
+  - @t-miya
+- 2025-12-24 [RELEASE] m144.7559.2.0
+  - @torikizi
 - 2025-12-17 [RELEASE] m144.7559.1.1
   - @torikizi
 - 2025-12-17 [RELEASE] m143.7499.3.1
@@ -37,8 +47,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - iOS 実機のマイクインジケータが消灯状態のミュートをできるようにする
   - RTCPeerConnectionFactory に RTCAudioDeviceModule を引数とする initWithEncoderFactory:decoderFactory:audioDeviceModule: を追加する
   - RTCAudioDeviceModule は公開 API として pauseRecording/resumeRecording を持つ
-  - AudioDeviceModuleIOS に pauseRecording/resumeRecording を追加する
-  - AudioDeviceIOS に pauseRecording/resumeRecording を追加する
+  - AudioDeviceModuleIOS に PauseRecording/ResumeRecording を追加する
+  - AudioDeviceIOS に PauseRecording/ResumeRecording を追加する
+  - PauseRecording による録音停止の状態から ResumeRecording 実行なしに StopRecording を呼ぶことができる
   - @t-miya
 - 2025-12-16 [RELEASE] m144.7559.1.0
   - @torikizi
