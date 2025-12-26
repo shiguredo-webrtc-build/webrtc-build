@@ -362,19 +362,16 @@ index 5ff5062..987deb8 100644
    bool Recording() const override;
  
 diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.mm b/sdk/objc/native/src/audio/audio_device_module_ios.mm
-index e2ea360..db0a478 100644
+index e2ea360..a1cd5ca 100644
 --- a/sdk/objc/native/src/audio/audio_device_module_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_module_ios.mm
-@@ -652,6 +652,38 @@
+@@ -652,6 +652,32 @@
    return result;
  }
  
 +int32_t AudioDeviceModuleIOS::PauseRecording() {
 +  RTC_DLOG(LS_INFO) << __FUNCTION__;
 +  CHECKinitialized_();
-+  if (!Recording()) {
-+    return 0;
-+  }
 +  int32_t result = audio_device_->PauseRecording();
 +  // StopRecording() での停止順序と同様にします
 +  audio_device_buffer_.get()->StopRecording();
@@ -388,9 +385,6 @@ index e2ea360..db0a478 100644
 +int32_t AudioDeviceModuleIOS::ResumeRecording() {
 +  RTC_DLOG(LS_INFO) << __FUNCTION__;
 +  CHECKinitialized_();
-+  if (Recording()) {
-+    return 0;
-+  }
 +  // StartRecording() での開始順序と同様にします
 +  audio_device_buffer_.get()->StartRecording();
 +  int32_t result = audio_device_->ResumeRecording();
