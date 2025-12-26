@@ -226,7 +226,7 @@ index d1788a3..a3355a0 100644
  
    // Determines whether voice processing should be enabled or disabled.
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index 021f08a..8f744ef 100644
+index 021f08a..11c9286 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
 @@ -330,7 +330,9 @@ static void LogDeviceInfo() {
@@ -255,7 +255,7 @@ index 021f08a..8f744ef 100644
 +    RTC_LOG(LS_WARNING) << "PauseRecording called while not recording";
 +    return 0;
 +  }
-+  // マイクミュートを有効化します
++  // マイクミュートします
 +  int32_t result = ReinitAudioUnitForMicrophoneMute(true);
 +  if (result != 0) {
 +    return result;
@@ -276,7 +276,7 @@ index 021f08a..8f744ef 100644
 +    RTC_LOG(LS_WARNING) << "ResumeRecording called while recording";
 +    return 0;
 +  }
-+  // マイクミュートを無効化します
++  // マイクミュートを解除します
 +  int32_t result = ReinitAudioUnitForMicrophoneMute(false);
 +  if (result != 0) {
 +    return result;
