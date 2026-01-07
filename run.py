@@ -1483,6 +1483,7 @@ def package_webrtc(
     webrtc_source_dir=None,
     webrtc_build_dir=None,
     webrtc_package_dir=None,
+    overlap_ios_build_dir=False,
 ):
     if webrtc_source_dir is None:
         webrtc_source_dir = os.path.join(source_dir, "webrtc")
@@ -2089,6 +2090,7 @@ def main():
                 webrtc_source_dir=webrtc_source_dir,
                 webrtc_build_dir=webrtc_build_dir,
                 webrtc_package_dir=webrtc_package_dir,
+                overlap_ios_build_dir=args.webrtc_overlap_ios_build_dir,
             )
 
 
