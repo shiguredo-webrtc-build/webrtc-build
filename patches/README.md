@@ -40,17 +40,6 @@ Android にて映像フレームの処理時にクラッシュするいくつか
 
 同等の機能が本家に実装されるか、 PR を出して取り込まれたら削除する。
 
-## android_simulcast.patch
-
-Android でのサイマルキャストのサポートを追加するパッチ。この実装は C++ の `SimulcastEncoderAdapter` の簡単なラッパーであり、既存の仕様に破壊的変更も行わない。
-
-以下の API を追加する。
-
-- `SimulcastVideoEncoder`
-- `SimulcastVideoEncoderFactory`
-
-同等の機能が本家に実装されるか、 PR を出して取り込まれたら削除する。
-
 ## android_webrtc_version.patch
 
 Android API に libwebrtc のビルド時のバージョンを取得する API を追加する。
@@ -261,10 +250,6 @@ Objective-C では以下のように利用する。
 WebRTC が用意している clang でビルドすると、M1 Mac で実行時エラーが発生してしまう。
 なので Xcode clang を利用してビルドするように修正する。
 
-## nacl_armv6_2.patch
-
-current_cpu の条件に armv6 以前は false に armv7 以降は true になるよう追加するパッチ。
-
 ## windows_build_gn.patch
 
 C++17 で deprecated されているコードを多数含むために \_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS を追加している。
@@ -349,6 +334,12 @@ iOS でのサイマルキャストのサポートを追加するパッチ。こ�
 [libwebrtcの変更](https://webrtc-review.googlesource.com/c/src/+/358866)を取り込んだため、従来の ios_simulcast.patch とは異なる。
 
 特に scalabilityMode は libwebrtc 側で NSString 記述となったため RTCScalabilityMode ENUM を削除した。変数名は同じだが NSNumber から NSString に型が変更になっているので注意すること。
+
+## android_simulcast.patch
+
+Android でサイマルキャストを実現するためのパッチ。
+
+パッチの詳細は [android_simulcast.patch の解説](./android_simulcast.md) を参照のこと。
 
 ## remove_crel.patch
 

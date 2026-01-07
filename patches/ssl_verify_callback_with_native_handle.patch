@@ -1,9 +1,9 @@
 Updating depot_tools...
 diff --git a/rtc_base/boringssl_certificate.cc b/rtc_base/boringssl_certificate.cc
-index 016b4dabba..ccc8dc95bd 100644
+index a4f919fbbe..fe3beeaed9 100644
 --- a/rtc_base/boringssl_certificate.cc
 +++ b/rtc_base/boringssl_certificate.cc
-@@ -259,6 +259,12 @@ BoringSSLCertificate::BoringSSLCertificate(
+@@ -252,6 +252,12 @@ BoringSSLCertificate::BoringSSLCertificate(
    RTC_DCHECK(cert_buffer_ != nullptr);
  }
  
@@ -41,10 +41,10 @@ index 926dd332ec..01c887c6be 100644
  
  }  //  namespace webrtc
 diff --git a/rtc_base/openssl_adapter.cc b/rtc_base/openssl_adapter.cc
-index cb5dfc6a85..a2de51ee74 100644
+index 4a74944be9..dc729a4baf 100644
 --- a/rtc_base/openssl_adapter.cc
 +++ b/rtc_base/openssl_adapter.cc
-@@ -840,7 +840,7 @@ enum ssl_verify_result_t OpenSSLAdapter::SSLVerifyInternal(SSL* ssl,
+@@ -834,7 +834,7 @@ enum ssl_verify_result_t OpenSSLAdapter::SSLVerifyInternal(SSL* ssl,
      return ssl_verify_invalid;
    }
  
@@ -53,20 +53,20 @@ index cb5dfc6a85..a2de51ee74 100644
    if (!ssl_cert_verifier_->Verify(cert)) {
      RTC_LOG(LS_WARNING) << "Failed to verify certificate using custom callback";
      return ssl_verify_invalid;
-@@ -912,7 +912,7 @@ int OpenSSLAdapter::SSLVerifyInternal(int previous_status,
+@@ -906,7 +906,7 @@ int OpenSSLAdapter::SSLVerifyInternal(int previous_status,
      RTC_LOG(LS_ERROR) << "Failed to allocate CRYPTO_BUFFER.";
      return previous_status;
    }
 -  const BoringSSLCertificate cert(std::move(crypto_buffer));
 +  const BoringSSLCertificate cert(std::move(crypto_buffer), ssl);
  #else
-   const webrtc::OpenSSLCertificate cert(X509_STORE_CTX_get_current_cert(store));
+   const OpenSSLCertificate cert(X509_STORE_CTX_get_current_cert(store));
  #endif
 diff --git a/rtc_base/openssl_stream_adapter.cc b/rtc_base/openssl_stream_adapter.cc
-index b46faff911..868d473860 100644
+index 604a9465c7..dccdc0060c 100644
 --- a/rtc_base/openssl_stream_adapter.cc
 +++ b/rtc_base/openssl_stream_adapter.cc
-@@ -1181,7 +1181,7 @@ enum ssl_verify_result_t OpenSSLStreamAdapter::SSLVerifyCallback(
+@@ -1176,7 +1176,7 @@ enum ssl_verify_result_t OpenSSLStreamAdapter::SSLVerifyCallback(
    // Creates certificate chain.
    std::vector<std::unique_ptr<SSLCertificate>> cert_chain;
    for (CRYPTO_BUFFER* cert : chain) {

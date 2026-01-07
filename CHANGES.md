@@ -29,6 +29,33 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-09-12 [RELEASE] m139.7528.3.1
+  - @miosakuma
+- 2025-09-11 [CHANGE] android_sdk ビルドから armeabi-v7a 向けのバイナリを削除する
+  - @melpon
+- 2025-09-10 [RELEASE] m138.7204.0.5
+  - @miosakuma
+- 2025-09-05 [FIX] Android の Pixel 8, Pixel 9 について、VP9 と AV1 のサイマルキャストが行えない不具合を修正する
+  - AV1, VP9 ともハードウェアエンコーダーを持っている端末で不具合が発生する
+  - m136 で利用可能コーデック情報のリストを作成する際に重複を除外する処理が追加された結果、 `scalabilityMode` を保持しているコーデック情報が重複により除外され、サイマルキャストが行えなくなった
+    - https://source.chromium.org/chromium/_/webrtc/src/+/a22e244a8d22db2291cc51dcc4bdb0a54488c488:media/engine/webrtc_video_engine.cc;dlc=c2f1bc703d24f105ff3612f8e4ff7bea21a0aadf
+  - `HardwareVideoEncoderFactory` の `getSupportedCodecs()` に `scalabilityMode` を追加することで対応した
+  - @voluntas @melpon
+- 2025-09-05 [CHANGE] Android のサイマルキャストの利用可能コーデック情報リスト作成時に、エンコーダーから取得した情報のみを利用するように変更する
+  - SimulcastVideoEncoder でソフトウェアエンコーダーで利用可能なコーデック情報を常に取得していたが、指定したエンコーダーのコーデック情報のみを使用するようにする
+  - @voluntas @melpon
+- 2025-09-05 [UPDATE] Android Simulcast 用のパッチを整理
+  - パッチ構成の変更とリファクタリング: `android_add_scale_resolution_down_to.patch` を `android_simulcast.patch` に統合し、処理の見直しを行った
+  - @voluntas
+- 2025-09-05 [CHANGE] raspberry-pi-os_armv6 と raspberry-pi-os_armv7 を削除する
+  - @torikizi
+- 2025-09-02 [UPDATE] macOS GitHub Actions の `build-macos` から Ninja をインストールするステップを削除する
+  - 現在利用している `macos-14` には Ninja がインストール済みであるため本変更を行った
+  - @zztkm
+- 2025-08-14 [UPDATE] GitHub Actions の依存ライブラリをアップデート
+  - actions/download-artifact@v4 から actions/download-artifact@v5 にアップデート
+  - actions/checkout@v4 から actions/checkout@v5 にアップデート
+  - softprops/action-gh-release@v1 から softprops/action-gh-release@v2 にアップデート
 - 2025-08-06 [RELEASE] m138.7204.0.4-apple-vision-pro.0
   - @torikizi
 - 2025-08-06 [ADD] visionOS 対応を追加
@@ -37,6 +64,19 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - WebRTC.xcframework は現在利用していないため作成していません
 - 2025-08-06 [RELEASE] m138.7204.0.4
   - @torikizi
+- 2025-08-05 [CHANGE] `ios` ビルドを `ios` と `ios_sdk` に、`android` ビルドを `android` と `android_sdk` に分ける
+  - 提供するバイナリやディレクトリ構成、ダウンロード URL が変わるため破壊的変更となります
+  - @melpon
+- 2025-08-01 [RELEASE] m139.7258.3.0
+  - @miosakuma
+- 2025-07-30 [UPDATE] m139 ブランチのビルドエラーに対する対応
+  - `h265_ios.patch` の単純なパッチ適用失敗を修正
+  - `ios_proxy.patch` の単純なパッチ適用失敗を修正
+  - `h265_ios.patch` の AnnexBBufferReader のパラメータ変更に対応
+    - https://source.chromium.org/chromium/_/webrtc/src/+/eddc465338ebef0993ffc71f607a1b6e6d6f070e
+  - @torikizi @miosakuma
+- 2025-07-22 [ADD] run.py に --no-history フラグを追加
+  - @melpon
 - 2025-07-14 [UPDATE] Raspberry Pi OS (armv8) のビルドを buster から bookworm にアップデートする
   - multistrap の suite を buster から bookworm に修正
   - libstdc++-8-dev を libstdc++-11-dev に変更

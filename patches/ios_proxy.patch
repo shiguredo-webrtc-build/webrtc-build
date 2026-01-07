@@ -41,7 +41,7 @@ index fb5c414815..a1fd77a74d 100644
      RTC_OBJC_TYPE(RTCSessionDescription) *_Nullable sdp,
      NSError *_Nullable error);
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnection.mm b/sdk/objc/api/peerconnection/RTCPeerConnection.mm
-index cc92c6b51f..360ce6931f 100644
+index 7b6b3bfc27..a67a18d3a8 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnection.mm
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnection.mm
 @@ -28,6 +28,8 @@
@@ -50,10 +50,10 @@ index cc92c6b51f..360ce6931f 100644
  
 +#include "api/environment/environment.h"
 +#include "api/environment/environment_factory.h"
- #include "api/jsep_ice_candidate.h"
+ #include "api/jsep.h"
  #include "api/rtc_event_log_output_file.h"
  #include "api/set_local_description_observer_interface.h"
-@@ -474,6 +476,37 @@ JsepIceCandidate remote_candidate_wrapper(
+@@ -473,6 +475,37 @@ void PeerConnectionDelegateAdapter::OnRemoveTrack(
  
  }  // namespace webrtc
  
@@ -91,7 +91,7 @@ index cc92c6b51f..360ce6931f 100644
  @implementation RTC_OBJC_TYPE (RTCPeerConnection) {
    RTC_OBJC_TYPE(RTCPeerConnectionFactory) * _factory;
    NSMutableArray<RTC_OBJC_TYPE(RTCMediaStream) *> *_localStreams;
-@@ -507,6 +540,56 @@ @implementation RTC_OBJC_TYPE (RTCPeerConnection) {
+@@ -506,6 +539,56 @@ void PeerConnectionDelegateAdapter::OnRemoveTrack(
                             delegate:delegate];
  }
  

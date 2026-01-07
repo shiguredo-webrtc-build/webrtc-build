@@ -21,7 +21,7 @@ jobs:
           - name: windows_arm64
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -56,7 +56,7 @@ jobs:
           # リポジトリの下に置きたいが、GitHub Actions の D:\ の容量が少なくてビルド出来ない問題があるので
           # このパスにソースを配置する。
           # また、WebRTC のビルドしたファイルは同じドライブに無いといけないっぽいのでこちらも設定する。
-          python3 run.py build ${{ matrix.platform.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build'
+          python3 run.py build ${{ matrix.platform.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build' --no-history
           python3 run.py package ${{ matrix.platform.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build'
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -70,13 +70,13 @@ jobs:
         platform:
           - name: macos_arm64
           - name: ios
+          - name: ios_sdk
           - name: visionos
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Select Xcode 16.1
         run: sudo xcode-select --switch /Applications/Xcode_16.1.app/Contents/Developer
-      - run: brew install ninja
       - name: Setup Git User
         run: |
           git config --global user.name  "${{ github.actor }}"
@@ -84,10 +84,10 @@ jobs:
       - name: Build ${{ matrix.platform.name }} for macos
         if: matrix.platform.name == 'macos_arm64'
         run: |
-          python3 run.py build ${{ matrix.platform.name }}
+          python3 run.py build ${{ matrix.platform.name }} --no-history
           python3 run.py package ${{ matrix.platform.name }}
-      - name: Build ${{ matrix.platform.name }} for ios
-        if: matrix.platform.name == 'ios'
+      - name: Build ${{ matrix.platform.name }} for ios/ios_sdk
+        if: matrix.platform.name == 'ios' || matrix.platform.name == 'ios_sdk'
         run: |
           python3 run.py build ${{ matrix.platform.name }} --webrtc-overlap-ios-build-dir
           python3 run.py package ${{ matrix.platform.name }} --webrtc-overlap-ios-build-dir
@@ -102,9 +102,9 @@ jobs:
           name: webrtc.${{ matrix.platform.name }}.tar.gz
           path: _package/${{ matrix.platform.name }}/webrtc.${{ matrix.platform.name }}.tar.gz
       # Sora iOS SDK 用に WebRTC.xcframework.zip をアップロードする
-      # ios のみ webrtc.${{ matrix.platform.name }}.tar.gz だけでなく、WebRTC.xcframework.zip もアップロードする
-      - name: Upload Artifact for ios (WebRTC.xcframework.zip)
-        if: matrix.platform.name == 'ios'
+      # ios_sdk のみ webrtc.${{ matrix.platform.name }}.tar.gz だけでなく、WebRTC.xcframework.zip もアップロードする
+      - name: Upload Artifact for ios_sdk (WebRTC.xcframework.zip)
+        if: matrix.platform.name == 'ios_sdk'
         uses: actions/upload-artifact@v4
         with:
           name: WebRTC.xcframework.zip
@@ -114,10 +114,6 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - name: raspberry-pi-os_armv6
-            runs-on: ubuntu-24.04
-          - name: raspberry-pi-os_armv7
-            runs-on: ubuntu-24.04
           - name: raspberry-pi-os_armv8
             runs-on: ubuntu-24.04
           - name: ubuntu-20.04_armv8
@@ -131,10 +127,12 @@ jobs:
           - name: ubuntu-24.04_x86_64
             runs-on: ubuntu-24.04
           - name: android
-            runs-on: ubuntu-22.04
+            runs-on: ubuntu-24.04
+          - name: android_sdk
+            runs-on: ubuntu-24.04
     runs-on: ${{ matrix.platform.runs-on }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Disk Cleanup
         run: |
           set -x
@@ -170,7 +168,7 @@ jobs:
         if: contains(matrix.platform.name, '_armv')
         run: sudo scripts/apt_install_arm.sh
       - name: Setup ${{ matrix.platform.name }} for android
-        if: matrix.platform.name == 'android'
+        if: matrix.platform.name == 'android' || matrix.platform.name == 'android_sdk'
         run: sudo scripts/apt_install_x86_64.sh && sudo apt-get install -y openjdk-11-jdk
       - name: Setup Git User
         run: |
@@ -178,7 +176,7 @@ jobs:
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
       - name: Build ${{ matrix.platform.name }}
         run: |
-          python3 run.py build ${{ matrix.platform.name }}
+          python3 run.py build ${{ matrix.platform.name }} --no-history
           python3 run.py package ${{ matrix.platform.name }}
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -194,7 +192,7 @@ jobs:
       - build-linux
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/download
         with:
           platform: windows_x86_64
@@ -207,6 +205,9 @@ jobs:
       - uses: ./.github/actions/download
         with:
           platform: ios
+      - uses: ./.github/actions/download
+        with:
+          platform: ios_sdk
       - uses: ./.github/actions/download
         with:
           platform: visionos
@@ -237,13 +238,16 @@ jobs:
       - uses: ./.github/actions/download
         with:
           platform: android
+      - uses: ./.github/actions/download
+        with:
+          platform: android_sdk
       # Sora iOS SDK 向けバイナリの WebRTC.xcframework.zip をダウンロードする
       - name: Env to output for WebRTC.xcframework.zip
         shell: bash
         run: |
           PACKAGE_NAME=WebRTC.xcframework.zip
           echo "$PACKAGE_NAME/$PACKAGE_NAME" >> package_paths.env
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: WebRTC.xcframework.zip
           path: WebRTC.xcframework.zip
@@ -254,6 +258,6 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
         id: env
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.env.outputs.package_paths }}
