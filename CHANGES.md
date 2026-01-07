@@ -29,8 +29,35 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-10-16 [RELEASE] 140.7339.2.4
+  - @t-miya
+- 2025-10-16 [RELEASE] 140.7339.2.3
+  - @t-miya
+- 2025-10-16 [ADD] Android SDK の JavaAudioDeviceModule に公開 API として pauseRecording()/resumeRecording() を追加する
+  - Android 実機のマイクインジケータが消灯状態のミュートをできるようにする
+  - 呼び出し先として録音処理を行う WebRtcAudioRecord に以下の機能を追加する
+    - 録音状態管理用に RecordingState Enum と recordingState プロパティを追加する
+    - pauseRecording()/resumeRecording() メソッドを追加する
+    - startRecording()/stopRecording() メソッド内に recordingState を更新する処理を追加する
+  - @t-miya
+- 2025-09-16 [RELEASE] 140.7339.2.2
+  - @torikizi
+- 2025-09-16 [UPDATE] DEPS の MACOS_DEPLOYMENT_TARGET を 14 にアップデートする
+  - @torikizi
+- 2025-09-12 [RELEASE] 140.7339.2.1
+  - @miosakuma
 - 2025-09-12 [RELEASE] m139.7528.3.1
   - @miosakuma
+- 2025-09-11 [RELEASE] 140.7339.2.0
+  - @melpon
+- 2025-09-11 [UPDATE] m140 に対応する
+  - `rtc::` を `webrtc::` に変更する
+  - `ios_sdk` 向けのビルドで使っている `build_ios.py` が、出力ディレクトリがソースディレクトリ以下でないとエラーを出すようになったので、`ios_sdk` のビルドの場合はソースディレクトリ以下に出力するように変更
+  - `adnroid_sdk` 向けのビルドで使っている `build_aar.py` が、出力ディレクトリがソースディレクトリ以下でないとエラーを出すようになったので、`android_sdk` のビルドの場合はソースディレクトリ以下に出力するように変更
+  - @melpon
+- 2025-09-11 [CHANGE] macOS, iOS のビルドに Xcode clang, libc++ ではなく libwebrtc が提供しているものを利用する
+  - これによって macOS, iOS で libwebrtc を利用してビルドする時に libwebrtc の clang, libc++ を指定しなければならなくなる
+  - @melpon
 - 2025-09-11 [CHANGE] android_sdk ビルドから armeabi-v7a 向けのバイナリを削除する
   - @melpon
 - 2025-09-10 [RELEASE] m138.7204.0.5
