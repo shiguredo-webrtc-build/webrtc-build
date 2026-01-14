@@ -279,6 +279,24 @@ PATCHES = {
         "remove_crel.patch",
         "revert_siso.patch",
     ],
+    "android_x86_64": [
+        "add_deps.patch",
+        "4k.patch",
+        "revive_proxy.patch",
+        "add_license_dav1d.patch",
+        "ssl_verify_callback_with_native_handle.patch",
+        "android_webrtc_version.patch",
+        "android_fixsegv.patch",
+        "android_simulcast.patch",
+        "android_hardware_video_encoder.patch",
+        "android_proxy.patch",
+        "h265.patch",
+        "h265_android.patch",
+        "fix_perfetto.patch",
+        "fix_moved_function_call.patch",
+        "remove_crel.patch",
+        "revert_siso.patch",
+    ],
     "android_sdk": [
         "add_deps.patch",
         "4k.patch",
@@ -464,32 +482,42 @@ def get_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir, no_his
         with cd(webrtc_source_dir):
             cmd(["gclient"])
             cmd(["fetch", *no_history_flag, "webrtc"])
-            if target in ("android", "android_sdk"):
-                with open(".gclient", "a") as f:
-                    f.write("target_os = [ 'android' ]\n")
-            if target in ("ios", "ios_sdk"):
-                with open(".gclient", "a") as f:
-                    f.write("target_os = [ 'ios' ]\n")
+    if target in ("android", "android_sdk", "android_x86_64"):
+        with cd(webrtc_source_dir):
+            if os.path.exists(".gclient"):
+                with open(".gclient", "r") as f:
+                    gclient = f.read()
+                if "target_os" not in gclient:
+                    with open(".gclient", "a") as f:
+                        f.write("target_os = [ 'android' ]\n")
+    if target in ("ios", "ios_sdk"):
+        with cd(webrtc_source_dir):
+            if os.path.exists(".gclient"):
+                with open(".gclient", "r") as f:
+                    gclient = f.read()
+                if "target_os" not in gclient:
+                    with open(".gclient", "a") as f:
+                        f.write("target_os = [ 'ios' ]\n")
 
-        with cd(src_dir):
-            if no_history:
-                cmd(["git", "fetch", "--depth=1", "origin", version])
-            else:
-                cmd(["git", "fetch"])
-            cmd(["git", "checkout", "-f", version])
-            cmd(["git", "clean", "-df"])
-            cmd(
-                [
-                    "gclient",
-                    "sync",
-                    "-D",
-                    "--force",
-                    "--reset",
-                    "--with_branch_heads",
-                    *no_history_flag,
-                ]
-            )
-            apply_patches(target, patch_dir, src_dir, None, False)
+    with cd(src_dir):
+        if no_history:
+            cmd(["git", "fetch", "--depth=1", "origin", version])
+        else:
+            cmd(["git", "fetch"])
+        cmd(["git", "checkout", "-f", version])
+        cmd(["git", "clean", "-df"])
+        cmd(
+            [
+                "gclient",
+                "sync",
+                "-D",
+                "--force",
+                "--reset",
+                "--with_branch_heads",
+                *no_history_flag,
+            ]
+        )
+        apply_patches(target, patch_dir, src_dir, None, False)
 
 
 def fetch_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir):
@@ -701,6 +729,11 @@ WEBRTC_BUILD_TARGETS = {
         "sdk/android:libjingle_peerconnection_so",
         "sdk/android:native_api",
     ],
+    "android_x86_64": [
+        "sdk/android:libwebrtc",
+        "sdk/android:libjingle_peerconnection_so",
+        "sdk/android:native_api",
+    ],
     "android_sdk": [
         "sdk/android:libwebrtc",
         "sdk/android:libjingle_peerconnection_so",
@@ -864,7 +897,8 @@ def build_webrtc_ios_sdk(
         f.write(json.dumps(info, indent=4))
 
 
-ANDROID_ARCHS = ["x86_64", "arm64-v8a"]
+ANDROID_ARCHS = ["arm64-v8a"]
+ANDROID_X86_64_ARCHS = ["x86_64"]
 ANDROID_SDK_ARCHS = ["arm64-v8a"]
 ANDROID_TARGET_CPU = {
     "x86_64": "x64",
@@ -885,6 +919,7 @@ def build_webrtc_android(
     gen=False,
     gen_force=False,
     nobuild=False,
+    archs=None,
 ):
     if webrtc_source_dir is None:
         webrtc_source_dir = os.path.join(source_dir, "webrtc")
@@ -911,7 +946,10 @@ def build_webrtc_android(
     ) as f:
         f.writelines(map(lambda x: (x + "\n").encode("utf-8"), lines))
 
-    for arch in ANDROID_ARCHS:
+    if archs is None:
+        archs = ANDROID_ARCHS
+
+    for arch in archs:
         work_dir = os.path.join(webrtc_build_dir, arch)
         if gen_force:
             rm_rf(work_dir)
@@ -1254,6 +1292,12 @@ def package_webrtc(
             dirs += [
                 os.path.join(webrtc_build_dir, arch),
             ]
+    elif target == "android_x86_64":
+        dirs = []
+        for arch in ANDROID_X86_64_ARCHS:
+            dirs += [
+                os.path.join(webrtc_build_dir, arch),
+            ]
     elif target == "android_sdk":
         dirs = []
         for arch in ANDROID_SDK_ARCHS:
@@ -1330,6 +1374,16 @@ def package_webrtc(
         ]
         for arch in ANDROID_ARCHS:
             files.append(([arch, "libwebrtc.a"], ["lib", arch, "libwebrtc.a"]))
+    elif target == "android_x86_64":
+        jar_arch = ANDROID_X86_64_ARCHS[0]
+        files = [
+            (
+                [jar_arch, "lib.java", "sdk", "android", "libwebrtc.jar"],
+                ["jar", "webrtc.jar"],
+            ),
+        ]
+        for arch in ANDROID_X86_64_ARCHS:
+            files.append(([arch, "libwebrtc.a"], ["lib", arch, "libwebrtc.a"]))
     elif target == "android_sdk":
         # M140 あたりからソースディレクトリ以下でないとエラーになるようになっているので
         # webrtc_src_dir にビルド済みバイナリが配置されている
@@ -1387,6 +1441,7 @@ TARGETS = [
     "ubuntu-24.04_armv8",
     "raspberry-pi-os_armv8",
     "android",
+    "android_x86_64",
     "android_sdk",
     "ios",
     "ios_sdk",
@@ -1422,6 +1477,7 @@ def check_target(target):
             "ubuntu-24.04_armv8",
             "raspberry-pi-os_armv8",
             "android",
+            "android_x86_64",
             "android_sdk",
         ):
             return True
@@ -1746,6 +1802,14 @@ def main():
                     gen=args.webrtc_gen,
                     gen_force=args.webrtc_gen_force,
                     nobuild=args.webrtc_nobuild,
+                )
+            elif args.target == "android_x86_64":
+                build_webrtc_android(
+                    **build_webrtc_args,
+                    gen=args.webrtc_gen,
+                    gen_force=args.webrtc_gen_force,
+                    nobuild=args.webrtc_nobuild,
+                    archs=ANDROID_X86_64_ARCHS,
                 )
             elif args.target == "android_sdk":
                 build_webrtc_android_sdk(
