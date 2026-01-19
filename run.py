@@ -279,6 +279,8 @@ PATCHES = {
         "remove_crel.patch",
         "revert_siso.patch",
     ],
+    # android target にパッチが追加されるごとに support/android-x86_64 ブランチ用の
+    # target でもパッチを追加してビルドが通るようにする必要がある。
     "android_x86_64": [
         "add_deps.patch",
         "4k.patch",
@@ -482,42 +484,32 @@ def get_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir, no_his
         with cd(webrtc_source_dir):
             cmd(["gclient"])
             cmd(["fetch", *no_history_flag, "webrtc"])
-    if target in ("android", "android_sdk", "android_x86_64"):
-        with cd(webrtc_source_dir):
-            if os.path.exists(".gclient"):
-                with open(".gclient", "r") as f:
-                    gclient = f.read()
-                if "target_os" not in gclient:
-                    with open(".gclient", "a") as f:
-                        f.write("target_os = [ 'android' ]\n")
-    if target in ("ios", "ios_sdk"):
-        with cd(webrtc_source_dir):
-            if os.path.exists(".gclient"):
-                with open(".gclient", "r") as f:
-                    gclient = f.read()
-                if "target_os" not in gclient:
-                    with open(".gclient", "a") as f:
-                        f.write("target_os = [ 'ios' ]\n")
+            if target in ("android", "android_sdk", "android_x86_64"):
+                with open(".gclient", "a") as f:
+                    f.write("target_os = [ 'android' ]\n")
+            if target in ("ios", "ios_sdk"):
+                with open(".gclient", "a") as f:
+                    f.write("target_os = [ 'ios' ]\n")
 
-    with cd(src_dir):
-        if no_history:
-            cmd(["git", "fetch", "--depth=1", "origin", version])
-        else:
-            cmd(["git", "fetch"])
-        cmd(["git", "checkout", "-f", version])
-        cmd(["git", "clean", "-df"])
-        cmd(
-            [
-                "gclient",
-                "sync",
-                "-D",
-                "--force",
-                "--reset",
-                "--with_branch_heads",
-                *no_history_flag,
-            ]
-        )
-        apply_patches(target, patch_dir, src_dir, None, False)
+        with cd(src_dir):
+            if no_history:
+                cmd(["git", "fetch", "--depth=1", "origin", version])
+            else:
+                cmd(["git", "fetch"])
+            cmd(["git", "checkout", "-f", version])
+            cmd(["git", "clean", "-df"])
+            cmd(
+                [
+                    "gclient",
+                    "sync",
+                    "-D",
+                    "--force",
+                    "--reset",
+                    "--with_branch_heads",
+                    *no_history_flag,
+                ]
+            )
+            apply_patches(target, patch_dir, src_dir, None, False)
 
 
 def fetch_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir):
