@@ -29,9 +29,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
-- 2026-01-20 [ADD] iOS SDK 向けの RTCAudioSession で開始時マイクミュートを指定できるようにする
+- 2026-01-20 [ADD] iOS SDK 向けの RTCAudioSession に setInitialMicrophoneMute を追加する
   - iOS 実機のマイクインジケータが消灯状態で開始できるようにする
-  - RTCAudioSession に公開 API として setInitialMicrophoneMute を追加する
+  - `RTCAudioSession::finishInitializeInput` での Audio input 初期化時にマイク入力を無効にできるようにする
   - @t-miya
 - 2025-12-26 [RELEASE] m144.7559.2.1
   - @t-miya
