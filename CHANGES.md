@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- [RELEASE] m144.7559.2.1-android-x86_64.0
+  - @zztkm
 - 2026-01-20 [CHANGE] GitHub Actions で android_x86_64 のみビルド / リリースを行うように変更する
   - .github/workflows/build.yml のビルド対象を android_x86_64 に絞り込む
   - @zztkm
