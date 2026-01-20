@@ -905,13 +905,13 @@ def build_webrtc_android(
     version_info: VersionInfo,
     deps_info: DepsInfo,
     extra_gn_args,
+    archs,
     webrtc_source_dir=None,
     webrtc_build_dir=None,
     debug=False,
     gen=False,
     gen_force=False,
     nobuild=False,
-    archs=None,
 ):
     if webrtc_source_dir is None:
         webrtc_source_dir = os.path.join(source_dir, "webrtc")
@@ -938,8 +938,8 @@ def build_webrtc_android(
     ) as f:
         f.writelines(map(lambda x: (x + "\n").encode("utf-8"), lines))
 
-    if archs is None:
-        archs = ANDROID_ARCHS
+    if not archs:
+        raise ValueError("archs is required")
 
     for arch in archs:
         work_dir = os.path.join(webrtc_build_dir, arch)
@@ -1794,6 +1794,7 @@ def main():
                     gen=args.webrtc_gen,
                     gen_force=args.webrtc_gen_force,
                     nobuild=args.webrtc_nobuild,
+                    archs=ANDROID_ARCHS,
                 )
             elif args.target == "android_x86_64":
                 build_webrtc_android(
