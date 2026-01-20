@@ -32,8 +32,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 - 2026-01-20 [CHANGE] GitHub Actions で android_x86_64 のみビルド / リリースを行うように変更する
   - .github/workflows/build.yml のビルド対象を android_x86_64 に絞り込む
   - @zztkm
-- 2026-01-20 [ADD] android_x86_64 ビルドターゲットを追加
-  - run.py に android_x86_64 向けのパッチ/ビルド/パッケージングを追加
+- 2026-01-20 [ADD] android_x86_64 ビルドターゲットを追加する
+  - run.py に android_x86_64 向けのビルド/パッケージング処理の分岐を追加する
   - @zztkm
 - 2025-12-26 [RELEASE] m144.7559.2.1
   - @t-miya
