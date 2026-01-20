@@ -905,7 +905,7 @@ def build_webrtc_android(
     version_info: VersionInfo,
     deps_info: DepsInfo,
     extra_gn_args,
-    archs,
+    archs: list[str],
     webrtc_source_dir=None,
     webrtc_build_dir=None,
     debug=False,
@@ -937,9 +937,6 @@ def build_webrtc_android(
         os.path.join(webrtc_src_dir, "sdk", "android", "api", "org", "webrtc", f"{name}.java"), "wb"
     ) as f:
         f.writelines(map(lambda x: (x + "\n").encode("utf-8"), lines))
-
-    if not archs:
-        raise ValueError("archs is required")
 
     for arch in archs:
         work_dir = os.path.join(webrtc_build_dir, arch)
@@ -1791,18 +1788,18 @@ def main():
             elif args.target == "android":
                 build_webrtc_android(
                     **build_webrtc_args,
+                    archs=ANDROID_ARCHS,
                     gen=args.webrtc_gen,
                     gen_force=args.webrtc_gen_force,
                     nobuild=args.webrtc_nobuild,
-                    archs=ANDROID_ARCHS,
                 )
             elif args.target == "android_x86_64":
                 build_webrtc_android(
                     **build_webrtc_args,
+                    archs=ANDROID_X86_64_ARCHS,
                     gen=args.webrtc_gen,
                     gen_force=args.webrtc_gen_force,
                     nobuild=args.webrtc_nobuild,
-                    archs=ANDROID_X86_64_ARCHS,
                 )
             elif args.target == "android_sdk":
                 build_webrtc_android_sdk(
