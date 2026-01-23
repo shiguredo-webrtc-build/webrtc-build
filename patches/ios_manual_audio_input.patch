@@ -87,7 +87,7 @@ index 69e90277fc..0753ea00bc 100644
  NSInteger const kRTCAudioSessionErrorLockRequired = -1;
  NSInteger const kRTCAudioSessionErrorConfiguration = -2;
 +NSInteger const kRTCAudioSessionErrorInputInitialization = -3;
-+NSInteger const kRTCAudioSessionErrorInitialMicrophoneMute = -4
++NSInteger const kRTCAudioSessionErrorInitialMicrophoneMute = -4;
  NSString *const kRTCAudioSessionOutputVolumeSelector = @"outputVolume";
  
  namespace {
