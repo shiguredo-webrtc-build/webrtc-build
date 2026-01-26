@@ -39,19 +39,18 @@ index 7eb3bf4e38..810ef59a44 100644
   */
  - (void)notifyAudioUnitStartFailedWithError:(OSStatus)error;
 diff --git a/sdk/objc/components/audio/RTCAudioSession.h b/sdk/objc/components/audio/RTCAudioSession.h
-index 00a825f0a1..9c809febf3 100644
+index 00a825f0a1..7f0eedb694 100644
 --- a/sdk/objc/components/audio/RTCAudioSession.h
 +++ b/sdk/objc/components/audio/RTCAudioSession.h
-@@ -20,6 +20,8 @@ extern NSString *const kRTCAudioSessionErrorDomain;
+@@ -20,6 +20,7 @@ extern NSString *const kRTCAudioSessionErrorDomain;
  extern NSInteger const kRTCAudioSessionErrorLockRequired;
  /** Unknown configuration error occurred. */
  extern NSInteger const kRTCAudioSessionErrorConfiguration;
 +extern NSInteger const kRTCAudioSessionErrorInputInitialization;
-+extern NSInteger const kRTCAudioSessionErrorInitialMicrophoneMute;
  
  @class RTC_OBJC_TYPE(RTCAudioSession);
  @class RTC_OBJC_TYPE(RTCAudioSessionConfiguration);
-@@ -238,6 +240,8 @@ RTC_OBJC_EXPORT
+@@ -238,6 +239,8 @@ RTC_OBJC_EXPORT
  // AVAudioSession. `lockForConfiguration` must be called before using them
  // otherwise they will fail with kRTCAudioSessionErrorLockRequired.
  
@@ -60,7 +59,7 @@ index 00a825f0a1..9c809febf3 100644
  - (BOOL)setCategory:(AVAudioSessionCategory)category
                 mode:(AVAudioSessionMode)mode
              options:(AVAudioSessionCategoryOptions)options
-@@ -262,6 +266,17 @@ RTC_OBJC_EXPORT
+@@ -262,6 +265,15 @@ RTC_OBJC_EXPORT
                       error:(NSError **)outError;
  - (BOOL)setOutputDataSource:(AVAudioSessionDataSourceDescription *)dataSource
                        error:(NSError **)outError;
@@ -69,29 +68,26 @@ index 00a825f0a1..9c809febf3 100644
 +
 +/** initialMicrophoneMute フラグの値をセットします。
 + *  audio input 初期化前のみ実行することができます。
-+ *  初期化後の実行は NSError となります。
-+ *  実行時は `lockForConfiguration` でロックを取るようにしてください。
++ *  初期化後に実行した場合は NO を返します。
 + */
-+- (BOOL)setInitialMicrophoneMute:(BOOL)initialMicrophoneMute
-+                          error:(NSError **)outError;
++- (BOOL)setInitialMicrophoneMute:(BOOL)initialMicrophoneMute;
 +
  @end
  
  @interface RTC_OBJC_TYPE (RTCAudioSession)
 diff --git a/sdk/objc/components/audio/RTCAudioSession.mm b/sdk/objc/components/audio/RTCAudioSession.mm
-index 69e90277fc..0753ea00bc 100644
+index 69e90277fc..7ba8305f62 100644
 --- a/sdk/objc/components/audio/RTCAudioSession.mm
 +++ b/sdk/objc/components/audio/RTCAudioSession.mm
-@@ -30,6 +30,8 @@
+@@ -30,6 +30,7 @@
      @"org.webrtc.RTC_OBJC_TYPE(RTCAudioSession)";
  NSInteger const kRTCAudioSessionErrorLockRequired = -1;
  NSInteger const kRTCAudioSessionErrorConfiguration = -2;
 +NSInteger const kRTCAudioSessionErrorInputInitialization = -3;
-+NSInteger const kRTCAudioSessionErrorInitialMicrophoneMute = -4;
  NSString *const kRTCAudioSessionOutputVolumeSelector = @"outputVolume";
  
  namespace {
-@@ -57,6 +59,14 @@ @implementation RTC_OBJC_TYPE (RTCAudioSession) {
+@@ -57,6 +58,14 @@ @implementation RTC_OBJC_TYPE (RTCAudioSession) {
    BOOL _isAudioEnabled;
    BOOL _canPlayOrRecord;
    BOOL _isInterrupted;
@@ -106,7 +102,7 @@ index 69e90277fc..0753ea00bc 100644
  }
  
  @synthesize session = _session;
-@@ -433,6 +443,11 @@ - (BOOL)setCategory:(AVAudioSessionCategory)category
+@@ -433,6 +442,11 @@ - (BOOL)setCategory:(AVAudioSessionCategory)category
                               error:outError];
  }
  
@@ -118,7 +114,7 @@ index 69e90277fc..0753ea00bc 100644
  - (BOOL)setCategory:(AVAudioSessionCategory)category
          withOptions:(AVAudioSessionCategoryOptions)options
                error:(NSError **)outError {
-@@ -1032,4 +1047,148 @@ - (void)notifyFailedToSetActive:(BOOL)active error:(NSError *)error {
+@@ -1032,4 +1046,136 @@ - (void)notifyFailedToSetActive:(BOOL)active error:(NSError *)error {
    }
  }
  
@@ -175,21 +171,9 @@ index 69e90277fc..0753ea00bc 100644
 +  }
 +}
 +
-+- (BOOL)setInitialMicrophoneMute:(BOOL)initialMicrophoneMute
-+                          error:(NSError **)outError {
-+  if (![self checkLock:outError]) {
-+    return NO;
-+  }
++- (BOOL)setInitialMicrophoneMute:(BOOL)initialMicrophoneMute {
 +  if (_isInputInited) {
-+    if (outError) {
-+      NSDictionary *userInfo = @{
-+        NSLocalizedDescriptionKey :
-+            @"Cannot set initialMicrophoneMute after input is initialized."
-+      };
-+      *outError = [[NSError alloc] initWithDomain:kRTCAudioSessionErrorDomain
-+                                         code:kRTCAudioSessionErrorInitialMicrophoneMute
-+                                     userInfo:userInfo];
-+    }
++    RTCLogWarning(@"Failed to set initialMicrophoneMute. This method must be invoked before input initialization.");
 +    return NO;
 +  }
 +  _initialMicrophoneMute = initialMicrophoneMute;
