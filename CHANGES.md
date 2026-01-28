@@ -29,6 +29,13 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-01-26 [RELEASE] m144.7559.2.2
+  - @t-miya
+- 2026-01-20 [ADD] iOS SDK 向けの RTCAudioSession に setInitialMicrophoneMute を追加する
+  - ios_manual_audio_input.patch への追加
+  - iOS 実機のマイクインジケータが消灯状態で開始できるようにする
+  - `RTCAudioSession::finishInitializeInput` での Audio input 初期化時にマイク入力を無効にできるようにする
+  - @t-miya
 - 2025-12-26 [RELEASE] m144.7559.2.1
   - @t-miya
 - 2025-12-26 [RELEASE] m143.7499.3.2
