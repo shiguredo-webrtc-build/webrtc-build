@@ -39,7 +39,7 @@ index 7eb3bf4e38..810ef59a44 100644
   */
  - (void)notifyAudioUnitStartFailedWithError:(OSStatus)error;
 diff --git a/sdk/objc/components/audio/RTCAudioSession.h b/sdk/objc/components/audio/RTCAudioSession.h
-index 00a825f0a1..47a60074dc 100644
+index 00a825f0a1..7f0eedb694 100644
 --- a/sdk/objc/components/audio/RTCAudioSession.h
 +++ b/sdk/objc/components/audio/RTCAudioSession.h
 @@ -20,6 +20,7 @@ extern NSString *const kRTCAudioSessionErrorDomain;
@@ -59,22 +59,27 @@ index 00a825f0a1..47a60074dc 100644
  - (BOOL)setCategory:(AVAudioSessionCategory)category
                 mode:(AVAudioSessionMode)mode
              options:(AVAudioSessionCategoryOptions)options
-@@ -262,6 +265,10 @@ RTC_OBJC_EXPORT
+@@ -262,6 +265,15 @@ RTC_OBJC_EXPORT
                       error:(NSError **)outError;
  - (BOOL)setOutputDataSource:(AVAudioSessionDataSourceDescription *)dataSource
                        error:(NSError **)outError;
 +
 +- (void)initializeInput:(nullable void (^)(NSError *_Nullable error))completionHandler;
 +
++/** initialMicrophoneMute フラグの値をセットします。
++ *  audio input 初期化前のみ実行することができます。
++ *  初期化後に実行した場合は NO を返します。
++ */
++- (BOOL)setInitialMicrophoneMute:(BOOL)initialMicrophoneMute;
 +
  @end
  
  @interface RTC_OBJC_TYPE (RTCAudioSession)
 diff --git a/sdk/objc/components/audio/RTCAudioSession.mm b/sdk/objc/components/audio/RTCAudioSession.mm
-index a759c35b2c..7678b9c4b5 100644
+index 69e90277fc..7ba8305f62 100644
 --- a/sdk/objc/components/audio/RTCAudioSession.mm
 +++ b/sdk/objc/components/audio/RTCAudioSession.mm
-@@ -30,6 +30,7 @@ NSString *const kRTCAudioSessionErrorDomain =
+@@ -30,6 +30,7 @@
      @"org.webrtc.RTC_OBJC_TYPE(RTCAudioSession)";
  NSInteger const kRTCAudioSessionErrorLockRequired = -1;
  NSInteger const kRTCAudioSessionErrorConfiguration = -2;
@@ -82,7 +87,7 @@ index a759c35b2c..7678b9c4b5 100644
  NSString *const kRTCAudioSessionOutputVolumeSelector = @"outputVolume";
  
  namespace {
-@@ -57,6 +58,11 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
+@@ -57,6 +58,14 @@ @implementation RTC_OBJC_TYPE (RTCAudioSession) {
    BOOL _isAudioEnabled;
    BOOL _canPlayOrRecord;
    BOOL _isInterrupted;
@@ -91,10 +96,13 @@ index a759c35b2c..7678b9c4b5 100644
 +  BOOL _waitsInputInit;
 +  BOOL _isInputInited;
 +  void (^_inputInitCompletionHandler)(NSError *_Nullable error);
++  // 初期状態でマイクミュートするかを指定するフラグです。
++  // YES なら audio input 初期化時に EnableIO を無効にします。
++  BOOL _initialMicrophoneMute;
  }
  
  @synthesize session = _session;
-@@ -435,6 +441,11 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
+@@ -433,6 +442,11 @@ - (BOOL)setCategory:(AVAudioSessionCategory)category
                               error:outError];
  }
  
@@ -106,7 +114,7 @@ index a759c35b2c..7678b9c4b5 100644
  - (BOOL)setCategory:(AVAudioSessionCategory)category
          withOptions:(AVAudioSessionCategoryOptions)options
                error:(NSError **)outError {
-@@ -1037,4 +1048,126 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
+@@ -1032,4 +1046,136 @@ - (void)notifyFailedToSetActive:(BOOL)active error:(NSError *)error {
    }
  }
  
@@ -163,6 +171,15 @@ index a759c35b2c..7678b9c4b5 100644
 +  }
 +}
 +
++- (BOOL)setInitialMicrophoneMute:(BOOL)initialMicrophoneMute {
++  if (_isInputInited) {
++    RTCLogWarning(@"Failed to set initialMicrophoneMute. This method must be invoked before input initialization.");
++    return NO;
++  }
++  _initialMicrophoneMute = initialMicrophoneMute;
++  return YES;
++}
++
 +- (void)finishInitializeInput {
 +  NSError *error = nil;
 +
@@ -181,7 +198,8 @@ index a759c35b2c..7678b9c4b5 100644
 +
 +  // Enable input on the input scope of the input element.
 +  OSStatus result = noErr;
-+  UInt32 enable_input = 1;
++  // 初期状態でミュートにするかのフラグに従って EnableIO を設定します。
++  UInt32 enable_input = _initialMicrophoneMute ? 0 : 1;
 +  result = AudioUnitSetProperty(_vpAudioUnit->vpio_unit_,
 +                                kAudioOutputUnitProperty_EnableIO,
 +                                kAudioUnitScope_Input, kInputBus, &enable_input,
@@ -237,7 +255,7 @@ diff --git a/sdk/objc/components/audio/RTCAudioSessionConfiguration.m b/sdk/objc
 index c583868291..92f3697d08 100644
 --- a/sdk/objc/components/audio/RTCAudioSessionConfiguration.m
 +++ b/sdk/objc/components/audio/RTCAudioSessionConfiguration.m
-@@ -59,7 +59,7 @@ static RTC_OBJC_TYPE(RTCAudioSessionConfiguration) *gWebRTCConfiguration = nil;
+@@ -59,7 +59,7 @@ - (instancetype)init {
      // By default, using this category implies that our app’s audio is
      // nonmixable, hence activating the session will interrupt any other
      // audio sessions which are also nonmixable.
@@ -247,10 +265,10 @@ index c583868291..92f3697d08 100644
      _categoryOptions = AVAudioSessionCategoryOptionAllowBluetoothHFP;
  #else
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index 25c1e02022..eed051542c 100644
+index 7a95973031..594bd0820b 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
-@@ -1013,8 +1013,15 @@ bool AudioDeviceIOS::InitPlayOrRecord() {
+@@ -1013,8 +1013,15 @@ static void LogDeviceInfo() {
        audio_unit_.reset();
        return false;
      }
@@ -291,7 +309,7 @@ index 066f3b161c..1bd895687d 100644
  #import "sdk/objc/components/audio/RTCAudioSessionConfiguration.h"
  
  #if !defined(NDEBUG)
-@@ -116,6 +117,7 @@ bool VoiceProcessingAudioUnit::Init() {
+@@ -116,6 +117,7 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
      return false;
    }
  
@@ -299,7 +317,7 @@ index 066f3b161c..1bd895687d 100644
    // Enable input on the input scope of the input element.
    UInt32 enable_input = 1;
    result = AudioUnitSetProperty(vpio_unit_,
-@@ -131,6 +133,7 @@ bool VoiceProcessingAudioUnit::Init() {
+@@ -131,6 +133,7 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
                  (long)result);
      return false;
    }
@@ -307,7 +325,7 @@ index 066f3b161c..1bd895687d 100644
  
    // Enable output on the output scope of the output element.
    UInt32 enable_output = 1;
-@@ -184,6 +187,7 @@ bool VoiceProcessingAudioUnit::Init() {
+@@ -184,6 +187,7 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
      return false;
    }
  
@@ -315,7 +333,7 @@ index 066f3b161c..1bd895687d 100644
    // Specify the callback to be called by the I/O thread to us when input audio
    // is available. The recorded samples can then be obtained by calling the
    // AudioUnitRender() method.
-@@ -203,6 +207,7 @@ bool VoiceProcessingAudioUnit::Init() {
+@@ -203,6 +207,7 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
                  (long)result);
      return false;
    }
@@ -323,7 +341,7 @@ index 066f3b161c..1bd895687d 100644
  
    state_ = kUninitialized;
    return true;
-@@ -216,6 +221,9 @@ bool VoiceProcessingAudioUnit::Initialize(Float64 sample_rate) {
+@@ -216,6 +221,9 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
    RTC_DCHECK_GE(state_, kUninitialized);
    RTCLog(@"Initializing audio unit with sample rate: %f", sample_rate);
  
@@ -333,7 +351,7 @@ index 066f3b161c..1bd895687d 100644
    OSStatus result = noErr;
    AudioStreamBasicDescription format = GetFormat(sample_rate);
    UInt32 size = sizeof(format);
-@@ -399,6 +407,9 @@ bool VoiceProcessingAudioUnit::Stop() {
+@@ -399,6 +407,9 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
    RTC_DCHECK_GE(state_, kUninitialized);
    RTCLog(@"Stopping audio unit.");
  
