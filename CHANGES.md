@@ -29,8 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
-- 2026-01-29 [CHANGE] GitHub Actions で android_x86_64 のみビルド / リリースを行うように変更する
-  - .github/workflows/build.yml のビルド対象を android_x86_64 に絞り込む
+- 2026-01-29 [CHANGE] GitHub Actions から android_x86_64 以外のターゲット向けのビルドを削除する
+  - support/android-x86_64 ブランチでは Android x86_64 以外のターゲットをビルドする必要がないため削除する
   - @zztkm
 - 2026-01-29 [ADD] android_x86_64 ビルドターゲットを追加する
   - run.py に android_x86_64 向けのビルド/パッケージング処理の分岐を追加する
