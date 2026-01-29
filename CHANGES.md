@@ -29,6 +29,12 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-01-29 [CHANGE] GitHub Actions で android_x86_64 のみビルド / リリースを行うように変更する
+  - .github/workflows/build.yml のビルド対象を android_x86_64 に絞り込む
+  - @zztkm
+- 2026-01-29 [ADD] android_x86_64 ビルドターゲットを追加する
+  - run.py に android_x86_64 向けのビルド/パッケージング処理の分岐を追加する
+  - @zztkm
 - 2025-11-13 [RELEASE] m143.7499.1.0
   - @torikizi
 - 2025-11-13 [ADD] windows_fix_adm_device_count.patch を追加して Windows 向け ADM の RecordingDevices() と PlayoutDevices() の返す値を修正する
