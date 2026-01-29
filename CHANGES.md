@@ -29,6 +29,12 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-01-20 [CHANGE] GitHub Actions で android_x86_64 のみビルド / リリースを行うように変更する
+  - android_x86_64 以外は support/android-x86_64 ブランチではリリース対象外であるため対象から削除する
+  - @zztkm
+- 2026-01-20 [ADD] android_x86_64 ビルドターゲットを追加する
+  - run.py に android_x86_64 向けのビルド/パッケージング処理の分岐を追加する
+  - @zztkm
 - 2025-12-26 [RELEASE] m143.7499.3.2
   - @t-miya
 - 2025-12-25 [ADD] iOS SDK 向けの AudioDeviceIOS の PauseRecording/ResumeRecording を修正する
