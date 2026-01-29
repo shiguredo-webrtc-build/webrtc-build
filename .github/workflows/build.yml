@@ -12,117 +12,12 @@ on:
     tags:
       - "*"
 jobs:
-  build-windows:
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          - name: windows_x86_64
-          - name: windows_arm64
-    runs-on: windows-2022
-    steps:
-      - uses: actions/checkout@v5
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - run: python3 --version
-      - name: Disk Cleanup
-        run: |
-          Get-PSDrive
-          # Cache 済み Docker Image の削除
-          docker rmi $(docker images -q -a)
-          # Android SDK の削除
-          if ($Env:ANDROID_HOME) {
-            Remove-Item -Recurse -Force $Env:ANDROID_HOME -ErrorAction Ignore
-          }
-          if ($Env:ANDROID_NDK_HOME) {
-            Remove-Item -Recurse -Force $Env:ANDROID_NDK_HOME -ErrorAction Ignore
-          }
-          # JVM の削除
-          if ($Env:JAVA_HOME_11_X64) {
-            Remove-Item -Recurse -Force $Env:JAVA_HOME_11_X64 -ErrorAction Ignore
-          }
-          if ($Env:JAVA_HOME_8_X64) {
-            Remove-Item -Recurse -Force $Env:JAVA_HOME_8_X64 -ErrorAction Ignore
-          }
-          Get-PSDrive
-      - name: Setup Git User
-        run: |
-          git config --global user.name  "${{ github.actor }}"
-          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
-      - name: Build ${{ matrix.platform.name }}
-        run: |
-          # リポジトリの下に置きたいが、GitHub Actions の D:\ の容量が少なくてビルド出来ない問題があるので
-          # このパスにソースを配置する。
-          # また、WebRTC のビルドしたファイルは同じドライブに無いといけないっぽいのでこちらも設定する。
-          python3 run.py build ${{ matrix.platform.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build' --no-history
-          python3 run.py package ${{ matrix.platform.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build'
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: webrtc.${{ matrix.platform.name }}.zip
-          path: _package/${{ matrix.platform.name }}/webrtc.${{ matrix.platform.name }}.zip
-  build-macos:
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          - name: macos_arm64
-          - name: ios
-          - name: ios_sdk
-    runs-on: macos-26
-    steps:
-      - uses: actions/checkout@v5
-      - name: Select Xcode 16.1
-        run: sudo xcode-select --switch /Applications/Xcode_26.0.app/Contents/Developer
-      - name: Setup Git User
-        run: |
-          git config --global user.name  "${{ github.actor }}"
-          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
-      - name: Build ${{ matrix.platform.name }} for macos
-        if: matrix.platform.name == 'macos_arm64'
-        run: |
-          python3 run.py build ${{ matrix.platform.name }} --no-history
-          python3 run.py package ${{ matrix.platform.name }}
-      - name: Build ${{ matrix.platform.name }} for ios
-        if: matrix.platform.name == 'ios' || matrix.platform.name == 'ios_sdk'
-        run: |
-          python3 run.py build ${{ matrix.platform.name }} --no-history
-          python3 run.py package ${{ matrix.platform.name }}
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: webrtc.${{ matrix.platform.name }}.tar.gz
-          path: _package/${{ matrix.platform.name }}/webrtc.${{ matrix.platform.name }}.tar.gz
-      # Sora iOS SDK 用に WebRTC.xcframework.zip をアップロードする
-      # ios のみ webrtc.${{ matrix.platform.name }}.tar.gz だけでなく、WebRTC.xcframework.zip もアップロードする
-      - name: Upload Artifact for ios (WebRTC.xcframework.zip)
-        if: matrix.platform.name == 'ios_sdk'
-        uses: actions/upload-artifact@v4
-        with:
-          name: WebRTC.xcframework.zip
-          path: _package/${{ matrix.platform.name }}/WebRTC.xcframework.zip
   build-linux:
     strategy:
       fail-fast: false
       matrix:
         platform:
-          - name: raspberry-pi-os_armv8
-            runs-on: ubuntu-24.04
-          - name: ubuntu-20.04_armv8
-            runs-on: ubuntu-24.04
-          - name: ubuntu-22.04_armv8
-            runs-on: ubuntu-22.04
-          - name: ubuntu-24.04_armv8
-            runs-on: ubuntu-24.04
-          - name: ubuntu-22.04_x86_64
-            runs-on: ubuntu-22.04
-          - name: ubuntu-24.04_x86_64
-            runs-on: ubuntu-24.04
-          - name: android
-            runs-on: ubuntu-24.04
-          - name: android_sdk
+          - name: android_x86_64
             runs-on: ubuntu-24.04
     runs-on: ${{ matrix.platform.runs-on }}
     steps:
@@ -156,13 +51,8 @@ jobs:
           cat /proc/cpuinfo
           cat /proc/meminfo
       - name: Setup ${{ matrix.platform.name }} for x86_64
-        if: endsWith(matrix.platform.name, '_x86_64')
         run: sudo scripts/apt_install_x86_64.sh
-      - name: Setup ${{ matrix.platform.name }} for arm
-        if: contains(matrix.platform.name, '_armv')
-        run: sudo scripts/apt_install_arm.sh
       - name: Setup ${{ matrix.platform.name }} for android
-        if: matrix.platform.name == 'android' || matrix.platform.name == 'android_sdk'
         run: sudo scripts/apt_install_x86_64.sh && sudo apt-get install -y openjdk-11-jdk
       - name: Setup Git User
         run: |
@@ -181,61 +71,13 @@ jobs:
     name: Create Release
     if: contains(github.ref, 'tags/m')
     needs:
-      - build-windows
-      - build-macos
       - build-linux
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/download
         with:
-          platform: windows_x86_64
-      - uses: ./.github/actions/download
-        with:
-          platform: windows_arm64
-      - uses: ./.github/actions/download
-        with:
-          platform: macos_arm64
-      - uses: ./.github/actions/download
-        with:
-          platform: ios
-      - uses: ./.github/actions/download
-        with:
-          platform: ios_sdk
-      - uses: ./.github/actions/download
-        with:
-          platform: raspberry-pi-os_armv8
-      - uses: ./.github/actions/download
-        with:
-          platform: ubuntu-20.04_armv8
-      - uses: ./.github/actions/download
-        with:
-          platform: ubuntu-22.04_armv8
-      - uses: ./.github/actions/download
-        with:
-          platform: ubuntu-24.04_armv8
-      - uses: ./.github/actions/download
-        with:
-          platform: ubuntu-22.04_x86_64
-      - uses: ./.github/actions/download
-        with:
-          platform: ubuntu-24.04_x86_64
-      - uses: ./.github/actions/download
-        with:
-          platform: android
-      - uses: ./.github/actions/download
-        with:
-          platform: android_sdk
-      # Sora iOS SDK 向けバイナリの WebRTC.xcframework.zip をダウンロードする
-      - name: Env to output for WebRTC.xcframework.zip
-        shell: bash
-        run: |
-          PACKAGE_NAME=WebRTC.xcframework.zip
-          echo "$PACKAGE_NAME/$PACKAGE_NAME" >> package_paths.env
-      - uses: actions/download-artifact@v5
-        with:
-          name: WebRTC.xcframework.zip
-          path: WebRTC.xcframework.zip
+          platform: android_x86_64
       - name: Env to output
         run: |
           echo "package_paths<<EOF" >> $GITHUB_OUTPUT
