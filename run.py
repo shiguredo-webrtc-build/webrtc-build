@@ -1524,7 +1524,10 @@ def package_webrtc(
         dirs = []
         for device_arch in VISIONOS_FRAMEWORK_ARCHS:
             [device, arch] = device_arch.split(":")
-            dirs.append(os.path.join(webrtc_src_dir, "out", f"{device}_{arch}_libs"))
+            if overlap_ios_build_dir:
+                dirs.append(os.path.join(webrtc_build_dir, "framework", f"{device}_{arch}_libs"))
+            else:
+                dirs.append(os.path.join(webrtc_src_dir, "out", f"{device}_{arch}_libs"))
         if not overlap_ios_build_dir:
             for device_arch in VISIONOS_ARCHS:
                 [device, arch] = device_arch.split(":")
