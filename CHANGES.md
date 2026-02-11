@@ -29,6 +29,13 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-01-29 [RELEASE] m145.7632.0.0
+  - @t-miya
+- 2026-01-29 [FIX] m145 Android ターゲットのビルドエラーを修正する
+  - android_proxy.patch を修正する
+    - peer_connection_factory.cc 内で JavaParamRef が JavaRef に置き換えられたため
+    - 参考 : https://source.chromium.org/chromium/_/webrtc/src/+/353dedc23f412f90216c4bd45407fe52f8a3bfbb
+  - @t-miya
 - 2026-01-26 [RELEASE] m144.7559.2.2
   - @t-miya
 - 2026-01-20 [ADD] iOS SDK 向けの RTCAudioSession に setInitialMicrophoneMute を追加する
