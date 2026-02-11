@@ -1,5 +1,5 @@
 diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
-index 6baf1ea0f6..8e7ac7ed33 100644
+index d30f3b62f0..559008709d 100644
 --- a/sdk/android/BUILD.gn
 +++ b/sdk/android/BUILD.gn
 @@ -319,6 +319,7 @@ if (is_android) {
@@ -253,18 +253,18 @@ index 4b22cb95ad..451a2cd0c1 100644
  };
  
 diff --git a/sdk/android/src/jni/pc/peer_connection_factory.cc b/sdk/android/src/jni/pc/peer_connection_factory.cc
-index ccbe29fbee..d3e0416514 100644
+index f449a98ed2..c257999e21 100644
 --- a/sdk/android/src/jni/pc/peer_connection_factory.cc
 +++ b/sdk/android/src/jni/pc/peer_connection_factory.cc
-@@ -32,6 +32,7 @@
- #include "api/create_modular_peer_connection_factory.h"
+@@ -33,6 +33,7 @@
  #include "api/enable_media.h"
+ #include "api/environment/deprecated_global_field_trials.h"
  #include "api/environment/environment.h"
 +#include "api/environment/environment_factory.h"
  #include "api/fec_controller.h"
  #include "api/media_stream_interface.h"
  #include "api/neteq/neteq_factory.h"
-@@ -41,6 +42,10 @@
+@@ -42,6 +43,10 @@
  #include "api/scoped_refptr.h"
  #include "api/transport/network_control.h"
  #include "modules/utility/include/jvm_android.h"
@@ -303,7 +303,7 @@ index ccbe29fbee..d3e0416514 100644
        .Release();
  }
  
-@@ -246,6 +253,36 @@ static void JNI_PeerConnectionFactory_ShutdownInternalTracer(JNIEnv* jni) {
+@@ -242,6 +249,36 @@ static void JNI_PeerConnectionFactory_ShutdownInternalTracer(JNIEnv* jni) {
    tracing::ShutdownInternalTracer();
  }
  
@@ -340,7 +340,7 @@ index ccbe29fbee..d3e0416514 100644
  // Following parameters are optional:
  // `audio_device_module`, `jencoder_factory`, `jdecoder_factory`,
  // `audio_processor`, `fec_controller_factory`,
-@@ -328,9 +365,23 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
+@@ -324,9 +361,23 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
        absl::WrapUnique(CreateVideoDecoderFactory(jni, jdecoder_factory));
    EnableMedia(dependencies);
  
@@ -367,7 +367,7 @@ index ccbe29fbee..d3e0416514 100644
    RTC_CHECK(factory) << "Failed to create the peer connection factory; "
                          "WebRTC/libjingle init likely failed on this device";
    // TODO(honghaiz): Maybe put the options as the argument of
-@@ -340,7 +391,7 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
+@@ -336,7 +387,7 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
  
    return NativeToScopedJavaPeerConnectionFactory(
        jni, factory, std::move(socket_server), std::move(network_thread),
@@ -376,7 +376,7 @@ index ccbe29fbee..d3e0416514 100644
  }
  
  static jni_zero::ScopedJavaLocalRef<jobject>
-@@ -469,13 +520,43 @@ static void JNI_PeerConnectionFactory_StopAecDump(JNIEnv* jni,
+@@ -462,13 +513,43 @@ static void JNI_PeerConnectionFactory_StopAecDump(JNIEnv* jni,
    PeerConnectionFactoryFromJava(native_factory)->StopAecDump();
  }
  
@@ -407,21 +407,21 @@ index ccbe29fbee..d3e0416514 100644
  static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
      JNIEnv* jni,
      jlong factory,
-     const jni_zero::JavaParamRef<jobject>& j_rtc_config,
-     const jni_zero::JavaParamRef<jobject>& j_constraints,
+     const jni_zero::JavaRef<jobject>& j_rtc_config,
+     const jni_zero::JavaRef<jobject>& j_constraints,
      jlong observer_p,
--    const jni_zero::JavaParamRef<jobject>& j_sslCertificateVerifier) {
-+    const jni_zero::JavaParamRef<jobject>& j_sslCertificateVerifier,
-+    const jni_zero::JavaParamRef<jobject>& j_proxyType,
-+    const jni_zero::JavaParamRef<jstring>& j_proxyAgent,
-+    const jni_zero::JavaParamRef<jstring>& j_proxyHostname,
+-    const jni_zero::JavaRef<jobject>& j_sslCertificateVerifier) {
++    const jni_zero::JavaRef<jobject>& j_sslCertificateVerifier,
++    const jni_zero::JavaRef<jobject>& j_proxyType,
++    const jni_zero::JavaRef<jstring>& j_proxyAgent,
++    const jni_zero::JavaRef<jstring>& j_proxyHostname,
 +    jint proxyPort,
-+    const jni_zero::JavaParamRef<jstring>& j_proxyUsername,
-+    const jni_zero::JavaParamRef<jstring>& j_proxyPassword) {
++    const jni_zero::JavaRef<jstring>& j_proxyUsername,
++    const jni_zero::JavaRef<jstring>& j_proxyPassword) {
    std::unique_ptr<PeerConnectionObserver> observer(
        reinterpret_cast<PeerConnectionObserver*>(observer_p));
  
-@@ -512,9 +593,51 @@ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
+@@ -505,9 +586,51 @@ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
              jni, j_sslCertificateVerifier);
    }
  
@@ -475,4 +475,3 @@ index ccbe29fbee..d3e0416514 100644
 +      rtc_config, std::move(peer_connection_dependencies));
    if (!result.ok())
      return 0;
- 
