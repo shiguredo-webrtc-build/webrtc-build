@@ -118,20 +118,6 @@ dav1d/libdav1d/src/arm/asm.S に入った変更を取り消すパッチ。
 m124 のタイミングで aarch64 の拡張機能のサポートチェックをするようになり、そのチェックが失敗するとビルドが失敗するようになった。
 webrtc は aarch64 の拡張機能を使っていないため、このチェックは不要であり、このパッチで取り消す。
 
-## ios_build.patch
-
-iOS のビルドで発生した問題を修正するパッチ。  
-以下の変更が含まれている。
-
-- ビルドに Xcode に含まれる clang を使用する
-  - libwebrtc で指定されている clang を使用した場合、 bitcode を有効にしてビルドしたアプリを App Store Connect にアップロードする際にエラーが発生する可能性がある
-  - 参照: https://webrtchacks.com/the-webrtc-bitcode-soap-opera-saul-ibarra-corretge/
-  - こちらの修正には https://github.com/jitsi/webrtc/releases/tag/v100.0.0 で公開されている 001-build.diff を参考にした
-- bitcode を有効にした際に発生したビルド・エラーの修正
-
-Xcode に含まれる clang を利用してビルドするオプションがメインストリームに実装された場合、このパッチは削除できる。  
-https://bugs.chromium.org/p/webrtc/issues/detail?id=13925
-
 ## ios_manual_audio_input.patch
 
 iOS でのマイク不使用時のパーミッション要求を抑制するパッチ。
@@ -234,13 +220,6 @@ Objective-C では以下のように利用する。
 ## macos_screen_capture.patch
 
 ユニバーサルズーム機能が有効でなくとも `helper_.InvalidateScreen` を呼ぶようにするパッチ。
-
-## macos_use_xcode_clang.patch
-
-大体 `ios_build.patch` と同じ内容のパッチ。
-
-WebRTC が用意している clang でビルドすると、M1 Mac で実行時エラーが発生してしまう。
-なので Xcode clang を利用してビルドするように修正する。
 
 ## windows_build_gn.patch
 
