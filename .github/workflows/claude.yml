@@ -13,32 +13,14 @@ permissions:
   actions: read
 
 env:
-  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY_WEBRTC_BUILD_SONNET }}
+  CLAUDE_API_KEY: ${{ secrets.ANTHROPIC_API_KEY_WEBRTC_BUILD_SONNET }}
 
 jobs:
-  check-permission:
+  claude-response:
     runs-on: ubuntu-24.04
-    outputs:
-      has_permission: ${{ steps.check.outputs.has-permission }}
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - id: check
-        uses: shiguredo/github-actions/.github/actions/check-write-permission@main
+      - uses: shiguredo/github-actions/.github/actions/claude-code-action@main
         with:
-          username: ${{ github.event.comment.user.login }}
-
-  claude-sonnet-response:
-    needs: check-permission
-    if: needs.check-permission.outputs.has_permission == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v5
-      - uses: anthropics/claude-code-action@beta
-        with:
-          anthropic_api_key: ${{ env.ANTHROPIC_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          model: "claude-sonnet-4-20250514"
-          trigger_phrase: "!sonnet"
-          timeout_minutes: 15
-          disallowed_tools: "Bash(git:*)"
+          api_key: ${{ env.CLAUDE_API_KEY }}

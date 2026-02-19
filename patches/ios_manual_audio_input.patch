@@ -234,7 +234,7 @@ index a759c35b2c..7678b9c4b5 100644
 +
  @end
 diff --git a/sdk/objc/components/audio/RTCAudioSessionConfiguration.m b/sdk/objc/components/audio/RTCAudioSessionConfiguration.m
-index 74de6b5ce2..143a7864f8 100644
+index c583868291..92f3697d08 100644
 --- a/sdk/objc/components/audio/RTCAudioSessionConfiguration.m
 +++ b/sdk/objc/components/audio/RTCAudioSessionConfiguration.m
 @@ -59,7 +59,7 @@ static RTC_OBJC_TYPE(RTCAudioSessionConfiguration) *gWebRTCConfiguration = nil;
@@ -243,9 +243,9 @@ index 74de6b5ce2..143a7864f8 100644
      // audio sessions which are also nonmixable.
 -    _category = AVAudioSessionCategoryPlayAndRecord;
 +    _category = AVAudioSessionCategoryAmbient;
-     _categoryOptions = AVAudioSessionCategoryOptionAllowBluetooth;
- 
-     // Specify mode for two-way voice communication (e.g. VoIP).
+ #if defined(__IPHONE_26_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_26_0
+     _categoryOptions = AVAudioSessionCategoryOptionAllowBluetoothHFP;
+ #else
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
 index 25c1e02022..eed051542c 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm

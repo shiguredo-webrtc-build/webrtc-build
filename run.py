@@ -257,6 +257,7 @@ PATCHES = {
         "ios_add_scale_resolution_down_to.patch",
         "remove_crel.patch",
         "revert_siso.patch",
+        "ios_revive_copy_framework_header.patch",
     ],
     "visionos": [
         "add_deps.patch",
@@ -296,7 +297,6 @@ PATCHES = {
         "fix_moved_function_call.patch",
         "remove_crel.patch",
         "revert_siso.patch",
-        "android_include_environment_java.patch",
     ],
     "android_sdk": [
         "add_deps.patch",
@@ -315,8 +315,8 @@ PATCHES = {
         "fix_moved_function_call.patch",
         "remove_crel.patch",
         "revert_siso.patch",
-        "android_include_environment_java.patch",
         "android_audio_pause_resume.patch",
+        "android_audio_track_sink.patch",
     ],
     "raspberry-pi-os_armv8": [
         "add_deps.patch",

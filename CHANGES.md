@@ -29,6 +29,17 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-10-26 [RELEASE] 141.7390.3.3
+  - @melpon
+- 2025-10-25 [FIX] iOS SDK でヘッダーのインクルードでエラーが出る問題を修正
+  - @melpon
+- 2025-10-23 [RELEASE] 141.7390.3.2
+  - @zztkm
+- 2025-10-22 [ADD] Android SDK 向けに AudioTrackSink 機能を追加する
+  - AudioTrackSink を利用すると AudioTrack ごとに PCM 音声データを取得することができる
+  - @zztkm
+- 2025-10-17 [RELEASE] 141.7390.3.1
+  - @t-miya
 - 2025-10-16 [RELEASE] 140.7339.2.4
   - @t-miya
 - 2025-10-16 [RELEASE] 140.7339.2.3
@@ -40,6 +51,26 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
     - pauseRecording()/resumeRecording() メソッドを追加する
     - startRecording()/stopRecording() メソッド内に recordingState を更新する処理を追加する
   - @t-miya
+- 2025-10-10 [RELEASE] 141.7390.3.0
+  - @torikizi
+- 2025-09-22 [RELEASE] 141.7390.2.0
+  - @torikizi
+- 2025-09-22 [UPDATE] m141 ブランチのビルドエラーを修正する
+  - remove_crel.patch の単純なパッチ適用失敗を修正
+  - ios_manual_audio_input.patch の単純なパッチ適用失敗を修正
+  - ios_simulcast.patch の修正
+    - RTCVideoEncoderSimulcast.mm で include していた `api/transport/field_trial_based_config.h` を削除
+      - libwebrtc の field_trial_based_config.h は削除されたため
+      - 参考 : https://source.chromium.org/chromium/_/webrtc/src/+/80b3659d7db613638946484010d440001d42fbb7
+  - android_include_environment_java.patch は libwebrtc 側で対応されたため削除
+    - 参考 : https://source.chromium.org/chromium/_/webrtc/src/+/dc0a35fe850060ed606107299ccd7ad3dcbd5809
+  - android_simulcast.patch の修正
+    - `sdk/android/src/jni/simulcast_video_encoder.cc` の `api/transport/field_trial_based_config.h` の include を削除
+      - libwebrtc 側 field_trial_based_config.h は削除されたため
+      - 参考 : https://source.chromium.org/chromium/_/webrtc/src/+/80b3659d7db613638946484010d440001d42fbb7
+    - `sdk/android/src/jni/pc/rtp_parameters.cc` の単純なパッチ適用失敗を修正
+  - revive_proxy.patch の単純なパッチ適用失敗を修正
+  - @torikizi
 - 2025-09-16 [RELEASE] 140.7339.2.2
   - @torikizi
 - 2025-09-16 [UPDATE] DEPS の MACOS_DEPLOYMENT_TARGET を 14 にアップデートする

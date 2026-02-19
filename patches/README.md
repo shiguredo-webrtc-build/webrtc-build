@@ -76,14 +76,6 @@ PeerConnectionDependencies dependencies = PeerConnectionDependencies
 PeerConnection pc = factory.createPeerConnection(rtcConfig, dependencies);
 ```
 
-## android_include_environment_java.patch
-
-libwebrtc.aar に 、`src/sdk/android/api/Environment.java` を追加するパッチ
-
-[m138 で上記ファイルが追加された](https://source.chromium.org/chromium/_/webrtc/src/+/72b9eb1de04ddb56f5c3e3ae8b0d1a50847fef5e) が libwebrtc.aar に含まれていないことにより PeerConnectionFactory.java で参照エラーが発生したため対応した。
-
-本家でこの問題が修正されたら削除する。
-
 ## arm_neon_sve_bridge.patch
 
 iOS/macOS における libvpx ビルド時に `arm_neon_sve_bridge.h` が見つからずにエラーになる問題に対応するパッチ。
@@ -361,3 +353,19 @@ siso を実行すると即座に `Error: can not detect exec_root: build/config/
 Android で録音一時停止・解除をできるようにするパッチ。
 
 パッチの詳細は [android_audio_pause_resume.patch の解説](./android_audio_pause_resume.md) を参照のこと。
+
+## android_audio_track_sink.patch
+
+Android SDK 向けに AudioTrackSink を提供し、AudioTrack ごとに PCM データを取得できるようにするための機能を追加するパッチ
+
+パッチの詳細は [android_audio_track_sink.patch の解説](./android_audio_track_sink.md) を参照
+
+## ios_revive_copy_framework_header.patch
+
+iOS SDK の M141 でインクルードのコンパイルエラーが出る、以下の issue を解決するパッチ。
+
+https://issues.webrtc.org/issues/450130875
+
+元々は `#include "sdk/objc/base/RTCMacros.h"` といったヘッダーのインクルードを `#import <WebRTC/RTCMarcos.h>` に変換するスクリプト `tools_webrtc/apple/copy_framework_header.py` が適用されていたのだが、この issue に書いているコミットによってそれが削除されてしまっている。
+
+このパッチによって、`copy_framework_header.py` の適用を復活させてインクルードのコンパイルエラーを解消する。
