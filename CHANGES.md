@@ -29,6 +29,10 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-02-20 [UPDATE] fix_perfetto.patch を削除する
+  - m146 の libwebrtc で修正されたため、パッチを削除する
+    - 参考リンク : https://source.chromium.org/chromium/_/webrtc/src/+/4354263f56b6ffb11eeec5768c2d8d19329f5bcf
+  - @miosakuma
 - 2026-01-29 [RELEASE] m145.7632.0.0
   - @t-miya
 - 2026-01-29 [FIX] m145 Android ターゲットのビルドエラーを修正する
