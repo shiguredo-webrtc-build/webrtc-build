@@ -164,20 +164,18 @@ index bbadc1247..8f06db59d 100755
    args = parser.parse_args()
    if args.developer_dir:
 diff --git a/build/config/rust.gni b/build/config/rust.gni
-index bd18d1311..613f7c25e 100644
+index 55bd7b78e..2f895664c 100644
 --- a/build/config/rust.gni
 +++ b/build/config/rust.gni
-@@ -316,6 +316,16 @@ if (is_linux || is_chromeos) {
+@@ -281,6 +281,14 @@ if (is_linux || is_chromeos) {
        } else {
          assert(false, "unsupported target_environment=$target_environment")
        }
 +    } else if (target_platform == "visionos") {
 +      if (target_environment == "simulator") {
-+        rust_abi_target = "aarch64-apple-xros-simulator"
-+        cargo_target_abi = "sim"
++        rust_abi_target = "aarch64-apple-xros-sim"
 +      } else if (target_environment == "device") {
 +        rust_abi_target = "aarch64-apple-xros"
-+        cargo_target_abi = ""
 +      } else {
 +        assert(false, "unsupported target_environment=$target_environment")
 +      }
