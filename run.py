@@ -906,7 +906,6 @@ def build_webrtc_visionos(
     gen=False,
     gen_force=False,
     nobuild=False,
-    nobuild_framework=False,
     overlap_build_dir=False,
 ):
     if webrtc_source_dir is None:
@@ -919,56 +918,6 @@ def build_webrtc_visionos(
     mkdir_p(webrtc_build_dir)
 
     mkdir_p(os.path.join(webrtc_build_dir, "framework"))
-    # visionOS 用の GN 設定
-    gn_args_base = [
-        "rtc_libvpx_build_vp9=true",
-        "enable_dsyms=true",
-        "use_custom_libcxx=false",
-        "use_custom_libcxx_for_host=false",
-        "use_lld=false",
-        "rtc_enable_objc_symbol_export=true",
-        "treat_warnings_as_errors=false",
-        'target_os="ios"',  # visionOS は iOS ベースなので iOS を指定
-        *COMMON_GN_ARGS,
-    ]
-
-    # WebRTC.xcframework のビルド
-    # 対応時点では利用している SDK がないのでコメントアウトする
-    if not nobuild_framework:
-        gn_args = [
-            *gn_args_base,
-        ]
-        # 標準の iOS ビルドスクリプトを使用してフレームワークを作成
-        # cmd(
-        #     [
-        #         os.path.join(webrtc_src_dir, "tools_webrtc", "ios", "build_ios_libs.sh"),
-        #         "-o",
-        #         os.path.join(webrtc_build_dir, "framework"),
-        #         "--build_config",
-        #         "debug" if debug else "release",
-        #         "--arch",
-        #         *VISIONOS_FRAMEWORK_ARCHS,
-        #         "--extra-gn-args",
-        #         to_gn_args(gn_args, extra_gn_args),
-        #     ]
-        # )
-
-        # visionOS 専用の xcframework を再作成
-        # create_visionos_xcframework(webrtc_build_dir, debug)
-
-        # ビルド情報を json ファイルに保存
-        # xcframework を作成しない場合は build_info.json も保存しない
-        # info = {}
-        # branch, commit, revision, maint = get_webrtc_version_info(version_info)
-        # info["branch"] = branch
-        # info["commit"] = commit
-        # info["revision"] = revision
-        # info["maint"] = maint
-        # with open(
-        #     os.path.join(webrtc_build_dir, "framework", "WebRTC.xcframework", "build_info.json"),
-        #     "w",
-        # ) as f:
-        #     f.write(json.dumps(info, indent=4))
 
     libs = []
     for device_arch in VISIONOS_ARCHS:
@@ -995,7 +944,8 @@ def build_webrtc_visionos(
                 "ios_enable_code_signing=false",
                 f'ios_deployment_target="{visionos_deployment_target}"',
                 f"enable_stripping={'false' if debug else 'true'}",
-                *gn_args_base,
+                *IOS_COMMON_GN_ARGS,
+                *COMMON_GN_ARGS,
             ]
             gn_gen(webrtc_src_dir, work_dir, gn_args, extra_gn_args)
         if not nobuild:
@@ -2013,7 +1963,6 @@ def main():
             elif args.target == "visionos":
                 build_webrtc_visionos(
                     **build_webrtc_args,
-                    nobuild_framework=args.webrtc_nobuild_ios_framework,  # iOS フレームワークのフラグを再利用
                     overlap_build_dir=args.webrtc_overlap_ios_build_dir,  # iOS ビルドディレクトリのフラグを再利用
                 )
             elif args.target == "android":
