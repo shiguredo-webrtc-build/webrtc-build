@@ -163,7 +163,7 @@ index 0000000000..f7b2faae5a
 +  RTC_CHECK(allocate_direct_method);
 +
 +  // Java 側で direct ByteBuffer を確保し、JNI 経由で受け取る。
-+  ScopedJavaLocalRef<jobject> buffer(
++  ScopedJavaLocalRef<jobject> buffer = ScopedJavaLocalRef<jobject>::Adopt(
 +      env,
 +      env->CallStaticObjectMethod(byte_buffer_class.obj(),
 +                                  allocate_direct_method,

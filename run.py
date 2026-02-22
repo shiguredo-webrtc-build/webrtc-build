@@ -188,6 +188,7 @@ PATCHES = {
         "fix_perfetto.patch",
         "fix_moved_function_call.patch",
         "remove_crel.patch",
+        "windows_fix_adm_device_count.patch",
     ],
     "windows_arm64": [
         "4k.patch",

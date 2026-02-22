@@ -21,11 +21,11 @@ jobs:
           - name: ios
           - name: ios_sdk
           - name: visionos
-    runs-on: macos-14
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v5
       - name: Select Xcode 16.1
-        run: sudo xcode-select --switch /Applications/Xcode_16.1.app/Contents/Developer
+        run: sudo xcode-select --switch /Applications/Xcode_26.0.app/Contents/Developer
       - name: Setup Git User
         run: |
           git config --global user.name  "${{ github.actor }}"

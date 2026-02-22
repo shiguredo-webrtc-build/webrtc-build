@@ -29,6 +29,23 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-11-13 [ADD] windows_fix_adm_device_count.patch を追加して Windows 向け ADM の RecordingDevices() と PlayoutDevices() の返す値を修正する
+  - @melpon
+- 2025-11-06 [RELEASE] 142.7444.2.1
+  - @t-miya
+- 2025-11-05 [FIX] Android SDK の `WebRtcAudioRecord` で pause 状態時に `stopRecording()` を呼び出すとエラーが出る問題を修正する
+  - WebRtcAudioRecord の pauseRecording() により audioThread が null となるため stopRecording() に audioThead の null チェックを行う分岐を追加する
+  - @t-miya
+- 2025-10-31 [RELEASE] 142.7444.2.0
+  - @torikizi
+- 2025-10-30 [CHANGE] m142 ブランチのビルドエラーを修正する
+  - remove_crel.patch の単純なパッチ適用失敗を修正
+  - https://webrtc-review.googlesource.com/c/src/+/409500 の変更に対する修正
+    - `JavaParamRef<jobject>(env, obj)` ではなく `JavaRef<jobject>::CreateLeaky(env, obj)` を使うようにする
+    - `ScopedJavaLocalRef<jobject>(env, obj)` ではなく `ScopedJavaLocalRef<jobject>::Adopt(env, obj)` を使うようにする
+  - https://webrtc-review.googlesource.com/c/src/+/410140 の変更に対する修正
+    - `PeerConnectionFactory` の protected なコンストラクタが `env` を受け取るようになったので明示的に渡すようにする
+    - `ConnectionContext` から `env()` 関数が削除されたので `CreateEnvironment()` に置き換える
 - 2025-10-26 [RELEASE] 141.7390.3.3
   - @melpon
 - 2025-10-25 [FIX] iOS SDK でヘッダーのインクルードでエラーが出る問題を修正
