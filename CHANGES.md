@@ -29,12 +29,18 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2025-12-26 [RELEASE] m144.7559.2.1
+  - @t-miya
 - 2025-12-26 [RELEASE] m143.7499.3.2
   - @t-miya
 - 2025-12-25 [ADD] iOS SDK 向けの AudioDeviceIOS の PauseRecording/ResumeRecording を修正する
   - 内部で `VoiceProcessingAudioUnit::SetMicrophoneMute` を呼び出す `AudioDeviceIOS::ReinitAudioUnitForMicrophoneMute(bool)` を追加する
     - PauseRecording/ResumeRecording から呼び出す
   - @t-miya
+- 2025-12-24 [RELEASE] m144.7559.2.0
+  - @torikizi
+- 2025-12-17 [RELEASE] m144.7559.1.1
+  - @torikizi
 - 2025-12-17 [RELEASE] m143.7499.3.1
   - @t-miya
 - 2025-12-17 [ADD] iOS SDK に RTCAudioDeviceModule を追加する
@@ -45,13 +51,34 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - AudioDeviceIOS に PauseRecording/ResumeRecording を追加する
   - PauseRecording による録音停止の状態から ResumeRecording 実行なしに StopRecording を呼ぶことができる
   - @t-miya
+- 2025-12-16 [RELEASE] m144.7559.1.0
+  - @torikizi
 - 2025-12-16 [RELEASE] m143.7499.3.0
   - @torikizi
+- 2025-12-12 [RELEASE] m144.7559.0.1
+  - @zztkm
 - 2025-12-12 [RELEASE] m143.7499.2.1
   - @zztkm
 - 2025-12-10 [ADD] iOS SDK 向けに RTCAudioTrackSink を追加する
   - RTCAudioTrackSink を実装して、RTCAudioTrack に関連付けると音声トラックごとに PCM 音声データを取得することができる
   - @zztkm
+- 2025-12-09 [UPDATE] revive_proxy.patch の単純なパッチ適用エラーを修正
+  - Windows の単純なパッチ適用エラーを修正
+    - port_allocator.h
+    - port_interface.h
+  - @torikizi
+- 2025-12-08 [CHANGE] ios_revive_copy_framework_header.patch を削除
+  - libwebrtc で修正されたため、パッチを削除する
+    - 参考リンク : https://source.chromium.org/chromium/_/webrtc/src/+/1d832acb82092850131c2d2395108d6779a40782
+  - @torikizi
+- 2025-12-04 [CHANGE] revive_proxy.patch を修正
+  - libwebrtc 側での変更に追従して SignalConnectEvent / SignalReadEvent / SignalCloseEvent を以下のように修正
+    - NotifyConnectEvent
+    - NotifyReadEvent
+    - NotifyCloseEvent
+  - 参考リンク : [NotifyConnectEvent と NotifyCloseEvent の変更](https://source.chromium.org/chromium/_/webrtc/src/+/f938898734b36d72a81794cecf838693a4293cf5)
+  - 参考リンク : [NotifyReadEvent への変更](https://source.chromium.org/chromium/_/webrtc/src/+/bd1d02f84b89b5136fc09cfc10e04cbe53d741f4)
+  - @torikizi
 - 2025-11-13 [RELEASE] m143.7499.1.0
   - @torikizi
 - 2025-11-13 [ADD] windows_fix_adm_device_count.patch を追加して Windows 向け ADM の RecordingDevices() と PlayoutDevices() の返す値を修正する

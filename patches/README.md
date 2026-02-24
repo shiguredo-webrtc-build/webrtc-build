@@ -360,16 +360,6 @@ Android SDK 向けに AudioTrackSink を提供し、AudioTrack ごとに PCM デ
 
 パッチの詳細は [android_audio_track_sink.patch の解説](./android_audio_track_sink.md) を参照
 
-## ios_revive_copy_framework_header.patch
-
-iOS SDK の M141 でインクルードのコンパイルエラーが出る、以下の issue を解決するパッチ。
-
-https://issues.webrtc.org/issues/450130875
-
-元々は `#include "sdk/objc/base/RTCMacros.h"` といったヘッダーのインクルードを `#import <WebRTC/RTCMarcos.h>` に変換するスクリプト `tools_webrtc/apple/copy_framework_header.py` が適用されていたのだが、この issue に書いているコミットによってそれが削除されてしまっている。
-
-このパッチによって、`copy_framework_header.py` の適用を復活させてインクルードのコンパイルエラーを解消する。
-
 ## windows_fix_adm_device_count.patch
 
 Windows 向け ADM の RecordingDevices() と PlayoutDevices() の返す値を修正するパッチ。
