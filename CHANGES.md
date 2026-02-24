@@ -29,6 +29,24 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-02-24 [UPDATE] visionOS ブランチを m144 にアップデートする
+  - @torikizi
+- 2026-02-24 [UPDATE] visionOS ブランチを m143 にアップデートする
+  - @torikizi
+- 2026-02-22 [UPDATE] visionOS ビルドを m142 にアップデート
+  - `use_custom_libcxx=false` を削除し、iOS と同じ設定（`IOS_COMMON_GN_ARGS`）を使用するよう統一する
+  - @torikizi
+- 2026-02-20 [UPDATE] visionOS ブランチを m141 にアップデートする
+  - visionos パッチの単純なパッチ適用失敗を修正する
+  - `cargo_target_abi = "sim"` は使用していないため削除する
+  - @torikizi
+- 2026-02-20 [UPDATE] Apple 系以外のビルドは対象外にする
+  - @torikizi
+- 2026-02-03 [UPDATE] visionOS ブランチを m140 にアップデートする
+  - run.py を修正
+    - visionos ライセンス生成処理を整理
+    - visionos のライセンス生成時、overlap_ios_build_dir が有効なら framework ディレクトリを参照するように修正
+  - @t-miya
 - 2025-12-26 [RELEASE] m144.7559.2.1
   - @t-miya
 - 2025-12-26 [RELEASE] m143.7499.3.2
