@@ -259,6 +259,8 @@ PATCHES = {
         "remove_crel.patch",
         "revert_siso.patch",
         "ios_revive_copy_framework_header.patch",
+        "ios_audio_track_sink.patch",
+        "ios_audio_pause_resume.patch",
     ],
     "visionos": [
         "add_deps.patch",
@@ -393,7 +395,8 @@ GIT_ADD_EXCLUDES = [
     ":!*.rej",
     ":!:__config_site",
     ":!:__assertion_handler",
-    ":!:sdk/android/api/org/webrtc/WebrtcBuildVersion.java",
+    ":!sdk/android/api/org/webrtc/WebrtcBuildVersion.java",
+    ":!*.pyc",
 ]
 
 
