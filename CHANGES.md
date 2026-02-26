@@ -29,9 +29,20 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
-- 2026-02-20 [UPDATE] fix_perfetto.patch を削除する
-  - m146 の libwebrtc で修正されたため、パッチを削除する
-    - 参考リンク : https://source.chromium.org/chromium/_/webrtc/src/+/4354263f56b6ffb11eeec5768c2d8d19329f5bcf
+- 2026-02-26 [UPDATE] m146 ブランチのビルドエラーに対する対応
+  - fix_perfetto.patch を削除する
+    - m146 の libwebrtc で修正されパッチが不要となったため削除する
+      - 修正コミット : https://source.chromium.org/chromium/_/webrtc/src/+/4354263f56b6ffb11eeec5768c2d8d19329f5bcf
+  - android_fixsegv.patch の一部分を削除する
+    - m146 の libwebrtc で同内容の修正がされたため、修正された箇所について削除する
+      - 修正コミット : https://source.chromium.org/chromium/_/webrtc/src/+/4c8e0efeaf96dd565c1934e40a80ef9c7fe44f9b
+      - 修正コミット : https://source.chromium.org/chromium/_/webrtc/src/+/ebe20e49c945deb4f4740eccdc06eae013036aba
+  - android_proxy.patch の一部分を削除する
+    - m146 の libwebrtc で同内容の変更が行われたため該当箇所を削除する
+      - 対象コミット : https://source.chromium.org/chromium/_/webrtc/src/+/eee78e7541901da05e34dd5301f3609a8bd9b30f     
+  - Unsafe Buffers のエラーに対応する
+    - h265.patch, revive_proxy.patch で追加したコードについて unsafe-buffer-usage によりエラーが出るようになったため、コードを修正してエラーに対応する
+  - windows_add_deps.patch のズレを修正する
   - @miosakuma
 - 2026-01-29 [RELEASE] m145.7632.0.0
   - @t-miya
