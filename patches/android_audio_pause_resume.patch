@@ -1,0 +1,200 @@
+diff --git a/sdk/android/api/org/webrtc/audio/JavaAudioDeviceModule.java b/sdk/android/api/org/webrtc/audio/JavaAudioDeviceModule.java
+index bbf1c3a753..cfc3c8b623 100644
+--- a/sdk/android/api/org/webrtc/audio/JavaAudioDeviceModule.java
++++ b/sdk/android/api/org/webrtc/audio/JavaAudioDeviceModule.java
+@@ -419,6 +419,28 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
+     audioInput.setMicrophoneMute(mute);
+   }
+ 
++  /**
++   * Temporarily pause microphone capture. Returns true if the request succeeded or recording was
++   * already paused.
++   */
++  public boolean pauseRecording() {
++    Logging.d(TAG, "pauseRecording");
++    boolean result = audioInput.pauseRecording();
++    Logging.d(TAG, "pauseRecording result=" + result);
++    return result;
++  }
++
++  /**
++   * Resume microphone capture after a pause. Returns true if the request succeeded or capture was
++   * already active.
++   */
++  public boolean resumeRecording() {
++    Logging.d(TAG, "resumeRecording");
++    boolean result = audioInput.resumeRecording();
++    Logging.d(TAG, "resumeRecording result=" + result);
++    return result;
++  }
++
+   @Override
+   public boolean setNoiseSuppressorEnabled(boolean enabled) {
+     Logging.d(TAG, "setNoiseSuppressorEnabled: " + enabled);
+diff --git a/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java b/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
+index ac62308aa3..05bd7e9136 100644
+--- a/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
++++ b/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
+@@ -79,6 +79,13 @@ class WebRtcAudioRecord {
+   // directly after start.
+   private static final int CHECK_REC_STATUS_DELAY_MS = 100;
+ 
++  private enum RecordingState {
++    IDLE,
++    RECORDING,
++    PAUSED,
++    STOPPED
++  }
++
+   private final Context context;
+   private final AudioManager audioManager;
+   private final int audioSource;
+@@ -108,6 +115,8 @@ class WebRtcAudioRecord {
+   private final boolean isAcousticEchoCancelerSupported;
+   private final boolean isNoiseSuppressorSupported;
+ 
++  private RecordingState recordingState = RecordingState.IDLE;
++
+   /**
+    * Audio thread which keeps calling ByteBuffer.read() waiting for audio
+    * to be recorded. Feeds recorded data to the native counterpart as a
+@@ -374,6 +383,14 @@ class WebRtcAudioRecord {
+   @CalledByNative
+   private boolean startRecording() {
+     Logging.d(TAG, "startRecording");
++    if (recordingState == RecordingState.RECORDING) {
++      Logging.w(TAG, "startRecording invoked while already recording");
++      return true;
++    }
++    if (recordingState == RecordingState.PAUSED) {
++      Logging.e(TAG, "startRecording not allowed while paused; call resumeRecording instead");
++      return false;
++    }
+     assertTrue(audioRecord != null);
+     assertTrue(audioThread == null);
+     try {
+@@ -392,13 +409,17 @@ class WebRtcAudioRecord {
+     audioThread = new AudioRecordThread("AudioRecordJavaThread");
+     audioThread.start();
+     scheduleLogRecordingConfigurationsTask(audioRecord);
++    recordingState = RecordingState.RECORDING;
+     return true;
+   }
+ 
+   @CalledByNative
+   private boolean stopRecording() {
+     Logging.d(TAG, "stopRecording");
+-    assertTrue(audioThread != null);
++    if (recordingState == RecordingState.IDLE || recordingState == RecordingState.STOPPED) {
++      Logging.d(TAG, "stopRecording called in state " + recordingState);
++      return true;
++    }
+     if (future != null) {
+       if (!future.isDone()) {
+         // Might be needed if the client calls startRecording(), stopRecording() back-to-back.
+@@ -406,14 +427,104 @@ class WebRtcAudioRecord {
+       }
+       future = null;
+     }
++    if (audioThread != null) {
++      audioThread.stopThread();
++      if (!ThreadUtils.joinUninterruptibly(audioThread, AUDIO_RECORD_THREAD_JOIN_TIMEOUT_MS)) {
++        Logging.e(TAG, "Join of AudioRecordJavaThread timed out");
++        WebRtcAudioUtils.logAudioState(TAG, context, audioManager);
++      }
++      audioThread = null;
++    }
++    effects.release();
++    releaseAudioResources();
++    recordingState = RecordingState.STOPPED;
++    return true;
++  }
++
++  boolean pauseRecording() {
++    Logging.d(TAG, "pauseRecording");
++    if (recordingState == RecordingState.PAUSED) {
++      Logging.d(TAG, "pauseRecording called while already paused");
++      return true;
++    }
++    if (recordingState != RecordingState.RECORDING) {
++      Logging.e(TAG, "pauseRecording invoked while not recording");
++      return false;
++    }
++    // 以下の点を除き stopRecording() での停止処理と同様にしている
++    // - リソースの release はしない
++    // - recordingState を PAUSED に更新する
++    // - audioThread != null 前提とする
++    assertTrue(audioThread != null);
++    if (future != null) {
++      if (!future.isDone()) {
++        future.cancel(true /* mayInterruptIfRunning */);
++      }
++      future = null;
++    }
+     audioThread.stopThread();
+     if (!ThreadUtils.joinUninterruptibly(audioThread, AUDIO_RECORD_THREAD_JOIN_TIMEOUT_MS)) {
+       Logging.e(TAG, "Join of AudioRecordJavaThread timed out");
+       WebRtcAudioUtils.logAudioState(TAG, context, audioManager);
+     }
+     audioThread = null;
+-    effects.release();
+-    releaseAudioResources();
++    recordingState = RecordingState.PAUSED;
++    Logging.d(TAG, "pauseRecording succeeded");
++    return true;
++  }
++
++  boolean resumeRecording() {
++    Logging.d(TAG, "resumeRecording");
++    if (recordingState == RecordingState.RECORDING) {
++      Logging.d(TAG, "resumeRecording called while already recording");
++      return true;
++    }
++    if (recordingState != RecordingState.PAUSED) {
++      Logging.e(TAG, "resumeRecording invoked while not paused");
++      return false;
++    }
++    if (audioRecord == null) {
++      Logging.e(TAG, "resumeRecording failed: audioRecord is null");
++      recordingState = RecordingState.STOPPED;
++      return false;
++    }
++    assertTrue(audioThread == null);
++    // 録画開始処理は startRecording() での処理に準拠する
++    // 以下は startRecording() との差異点
++    // - audioRecord.startRecording() 失敗時はエラーログ出力に加えて、リソース解放を行い、recordingState を STOPPED に変更する
++    // - audioRecord.getRecordingState() の状態不整合時はエラーログ出力に加えて、リソース解放を行い、recordingState を STOPPED に変更する
++    try {
++      audioRecord.startRecording();
++    } catch (IllegalStateException e) {
++      // 録音開始失敗のためリソース解放を実行し停止済み状態に更新する
++      reportWebRtcAudioRecordStartError(AudioRecordStartErrorCode.AUDIO_RECORD_START_EXCEPTION,
++          "AudioRecord.startRecording failed (resume): " + e.getMessage());
++      // stopRecording() の audioThread 停止後と同じ処理を実行
++      effects.release();
++      releaseAudioResources();
++      recordingState = RecordingState.STOPPED;
++      Logging.w(TAG, "resumeRecording failed because AudioRecord.startRecording failed");
++      return false;
++    }
++
++    if (audioRecord.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING) {
++      // AudioRecord の状態不整合が発生したためリソース解放を実行し停止済み状態に更新する
++      reportWebRtcAudioRecordStartError(AudioRecordStartErrorCode.AUDIO_RECORD_START_STATE_MISMATCH,
++          "AudioRecord.startRecording failed during resume - incorrect state: "
++              + audioRecord.getRecordingState());
++      // stopRecording() の audioThread 停止後と同じ処理を実行
++      effects.release();
++      releaseAudioResources();
++      recordingState = RecordingState.STOPPED;
++      Logging.w(TAG, "resumeRecording failed because AudioRecord state incorrect");
++      return false;
++    }
++
++    audioThread = new AudioRecordThread("AudioRecordJavaThread");
++    audioThread.start();
++    scheduleLogRecordingConfigurationsTask(audioRecord);
++    recordingState = RecordingState.RECORDING;
++    Logging.d(TAG, "resumeRecording succeeded");
+     return true;
+   }

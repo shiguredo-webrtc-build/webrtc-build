@@ -1,0 +1,28 @@
+diff --git a/modules/audio_device/win/core_audio_input_win.cc b/modules/audio_device/win/core_audio_input_win.cc
+index f6139aefb3..e81e659d9e 100644
+--- a/modules/audio_device/win/core_audio_input_win.cc
++++ b/modules/audio_device/win/core_audio_input_win.cc
+@@ -70,7 +70,8 @@ int CoreAudioInput::Terminate() {
+ 
+ int CoreAudioInput::NumDevices() const {
+   RTC_DCHECK_RUN_ON(&thread_checker_);
+-  return core_audio_utility::NumberOfActiveDevices(eCapture);
++  int n = core_audio_utility::NumberOfActiveDevices(eCapture);
++  return n == 0 ? 0 : n + 2;
+ }
+ 
+ int CoreAudioInput::SetDevice(int index) {
+diff --git a/modules/audio_device/win/core_audio_output_win.cc b/modules/audio_device/win/core_audio_output_win.cc
+index decc0ee653..eb43ba42ed 100644
+--- a/modules/audio_device/win/core_audio_output_win.cc
++++ b/modules/audio_device/win/core_audio_output_win.cc
+@@ -65,7 +65,8 @@ int CoreAudioOutput::Terminate() {
+ 
+ int CoreAudioOutput::NumDevices() const {
+   RTC_DCHECK_RUN_ON(&thread_checker_);
+-  return core_audio_utility::NumberOfActiveDevices(eRender);
++  int n = core_audio_utility::NumberOfActiveDevices(eRender);
++  return n == 0 ? 0 : n + 2;
+ }
+ 
+ int CoreAudioOutput::SetDevice(int index) {

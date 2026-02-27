@@ -29,6 +29,187 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-02-24 [UPDATE] visionOS ブランチを m144 にアップデートする
+  - @torikizi
+- 2026-02-24 [UPDATE] visionOS ブランチを m143 にアップデートする
+  - @torikizi
+- 2026-02-22 [UPDATE] visionOS ビルドを m142 にアップデート
+  - `use_custom_libcxx=false` を削除し、iOS と同じ設定（`IOS_COMMON_GN_ARGS`）を使用するよう統一する
+  - @torikizi
+- 2026-02-20 [UPDATE] visionOS ブランチを m141 にアップデートする
+  - visionos パッチの単純なパッチ適用失敗を修正する
+  - `cargo_target_abi = "sim"` は使用していないため削除する
+  - @torikizi
+- 2026-02-20 [UPDATE] Apple 系以外のビルドは対象外にする
+  - @torikizi
+- 2026-02-03 [UPDATE] visionOS ブランチを m140 にアップデートする
+  - run.py を修正
+    - visionos ライセンス生成処理を整理
+    - visionos のライセンス生成時、overlap_ios_build_dir が有効なら framework ディレクトリを参照するように修正
+  - @t-miya
+- 2025-12-26 [RELEASE] m144.7559.2.1
+  - @t-miya
+- 2025-12-26 [RELEASE] m143.7499.3.2
+  - @t-miya
+- 2025-12-25 [ADD] iOS SDK 向けの AudioDeviceIOS の PauseRecording/ResumeRecording を修正する
+  - 内部で `VoiceProcessingAudioUnit::SetMicrophoneMute` を呼び出す `AudioDeviceIOS::ReinitAudioUnitForMicrophoneMute(bool)` を追加する
+    - PauseRecording/ResumeRecording から呼び出す
+  - @t-miya
+- 2025-12-24 [RELEASE] m144.7559.2.0
+  - @torikizi
+- 2025-12-17 [RELEASE] m144.7559.1.1
+  - @torikizi
+- 2025-12-17 [RELEASE] m143.7499.3.1
+  - @t-miya
+- 2025-12-17 [ADD] iOS SDK に RTCAudioDeviceModule を追加する
+  - iOS 実機のマイクインジケータが消灯状態のミュートをできるようにする
+  - RTCPeerConnectionFactory に RTCAudioDeviceModule を引数とする initWithEncoderFactory:decoderFactory:audioDeviceModule: を追加する
+  - RTCAudioDeviceModule は公開 API として pauseRecording/resumeRecording を持つ
+  - AudioDeviceModuleIOS に PauseRecording/ResumeRecording を追加する
+  - AudioDeviceIOS に PauseRecording/ResumeRecording を追加する
+  - PauseRecording による録音停止の状態から ResumeRecording 実行なしに StopRecording を呼ぶことができる
+  - @t-miya
+- 2025-12-16 [RELEASE] m144.7559.1.0
+  - @torikizi
+- 2025-12-16 [RELEASE] m143.7499.3.0
+  - @torikizi
+- 2025-12-12 [RELEASE] m144.7559.0.1
+  - @zztkm
+- 2025-12-12 [RELEASE] m143.7499.2.1
+  - @zztkm
+- 2025-12-10 [ADD] iOS SDK 向けに RTCAudioTrackSink を追加する
+  - RTCAudioTrackSink を実装して、RTCAudioTrack に関連付けると音声トラックごとに PCM 音声データを取得することができる
+  - @zztkm
+- 2025-12-09 [UPDATE] revive_proxy.patch の単純なパッチ適用エラーを修正
+  - Windows の単純なパッチ適用エラーを修正
+    - port_allocator.h
+    - port_interface.h
+  - @torikizi
+- 2025-12-08 [CHANGE] ios_revive_copy_framework_header.patch を削除
+  - libwebrtc で修正されたため、パッチを削除する
+    - 参考リンク : https://source.chromium.org/chromium/_/webrtc/src/+/1d832acb82092850131c2d2395108d6779a40782
+  - @torikizi
+- 2025-12-04 [CHANGE] revive_proxy.patch を修正
+  - libwebrtc 側での変更に追従して SignalConnectEvent / SignalReadEvent / SignalCloseEvent を以下のように修正
+    - NotifyConnectEvent
+    - NotifyReadEvent
+    - NotifyCloseEvent
+  - 参考リンク : [NotifyConnectEvent と NotifyCloseEvent の変更](https://source.chromium.org/chromium/_/webrtc/src/+/f938898734b36d72a81794cecf838693a4293cf5)
+  - 参考リンク : [NotifyReadEvent への変更](https://source.chromium.org/chromium/_/webrtc/src/+/bd1d02f84b89b5136fc09cfc10e04cbe53d741f4)
+  - @torikizi
+- 2025-11-13 [RELEASE] m143.7499.1.0
+  - @torikizi
+- 2025-11-13 [ADD] windows_fix_adm_device_count.patch を追加して Windows 向け ADM の RecordingDevices() と PlayoutDevices() の返す値を修正する
+  - @melpon
+- 2025-11-06 [RELEASE] m143.7499.0.0
+  - @torikizi
+- 2025-11-06 [UPDATE] m143 ブランチのビルドエラーを修正する
+  - revive_proxy.patch の単純なパッチ適用エラーを修正
+  - ssl_verify_callback_with_native_handle.patch の単純なパッチ適用エラーを修正
+  - android_proxy.patch の単純なパッチ適用エラーを修正
+  - @melpon
+- 2025-11-06 [RELEASE] m142.7444.2.1
+  - @t-miya
+- 2025-11-06 [RELEASE] 142.7444.2.1
+  - @t-miya
+- 2025-11-05 [FIX] Android SDK の `WebRtcAudioRecord` で pause 状態時に `stopRecording()` を呼び出すとエラーが出る問題を修正する
+  - WebRtcAudioRecord の pauseRecording() により audioThread が null となるため stopRecording() に audioThead の null チェックを行う分岐を追加する
+  - @t-miya
+- 2025-10-31 [RELEASE] m142.7444.2.0
+  - @torikizi
+- 2025-10-30 [CHANGE] m142 ブランチのビルドエラーを修正する
+  - remove_crel.patch の単純なパッチ適用失敗を修正
+  - https://webrtc-review.googlesource.com/c/src/+/409500 の変更に対する修正
+    - `JavaParamRef<jobject>(env, obj)` ではなく `JavaRef<jobject>::CreateLeaky(env, obj)` を使うようにする
+    - `ScopedJavaLocalRef<jobject>(env, obj)` ではなく `ScopedJavaLocalRef<jobject>::Adopt(env, obj)` を使うようにする
+  - https://webrtc-review.googlesource.com/c/src/+/410140 の変更に対する修正
+    - `PeerConnectionFactory` の protected なコンストラクタが `env` を受け取るようになったので明示的に渡すようにする
+    - `ConnectionContext` から `env()` 関数が削除されたので `CreateEnvironment()` に置き換える
+- 2025-10-26 [RELEASE] m141.7390.3.3
+  - @melpon
+- 2025-10-25 [FIX] iOS SDK でヘッダーのインクルードでエラーが出る問題を修正
+  - @melpon
+- 2025-10-23 [RELEASE] m141.7390.3.2
+  - @zztkm
+- 2025-10-22 [ADD] Android SDK 向けに AudioTrackSink 機能を追加する
+  - AudioTrackSink を利用すると AudioTrack ごとに PCM 音声データを取得することができる
+  - @zztkm
+- 2025-10-17 [RELEASE] m141.7390.3.1
+  - @t-miya
+- 2025-10-16 [RELEASE] m140.7339.2.4
+  - @t-miya
+- 2025-10-16 [RELEASE] m140.7339.2.3
+  - @t-miya
+- 2025-10-16 [ADD] Android SDK の JavaAudioDeviceModule に公開 API として pauseRecording()/resumeRecording() を追加する
+  - Android 実機のマイクインジケータが消灯状態のミュートをできるようにする
+  - 呼び出し先として録音処理を行う WebRtcAudioRecord に以下の機能を追加する
+    - 録音状態管理用に RecordingState Enum と recordingState プロパティを追加する
+    - pauseRecording()/resumeRecording() メソッドを追加する
+    - startRecording()/stopRecording() メソッド内に recordingState を更新する処理を追加する
+  - @t-miya
+- 2025-10-10 [RELEASE] m141.7390.3.0
+  - @torikizi
+- 2025-09-22 [RELEASE] m141.7390.2.0
+  - @torikizi
+- 2025-09-22 [UPDATE] m141 ブランチのビルドエラーを修正する
+  - remove_crel.patch の単純なパッチ適用失敗を修正
+  - ios_manual_audio_input.patch の単純なパッチ適用失敗を修正
+  - ios_simulcast.patch の修正
+    - RTCVideoEncoderSimulcast.mm で include していた `api/transport/field_trial_based_config.h` を削除
+      - libwebrtc の field_trial_based_config.h は削除されたため
+      - 参考 : https://source.chromium.org/chromium/_/webrtc/src/+/80b3659d7db613638946484010d440001d42fbb7
+  - android_include_environment_java.patch は libwebrtc 側で対応されたため削除
+    - 参考 : https://source.chromium.org/chromium/_/webrtc/src/+/dc0a35fe850060ed606107299ccd7ad3dcbd5809
+  - android_simulcast.patch の修正
+    - `sdk/android/src/jni/simulcast_video_encoder.cc` の `api/transport/field_trial_based_config.h` の include を削除
+      - libwebrtc 側 field_trial_based_config.h は削除されたため
+      - 参考 : https://source.chromium.org/chromium/_/webrtc/src/+/80b3659d7db613638946484010d440001d42fbb7
+    - `sdk/android/src/jni/pc/rtp_parameters.cc` の単純なパッチ適用失敗を修正
+  - revive_proxy.patch の単純なパッチ適用失敗を修正
+  - @torikizi
+- 2025-09-16 [RELEASE] m140.7339.2.2
+  - @torikizi
+- 2025-09-16 [UPDATE] DEPS の MACOS_DEPLOYMENT_TARGET を 14 にアップデートする
+  - @torikizi
+- 2025-09-12 [RELEASE] m140.7339.2.1
+  - @miosakuma
+- 2025-09-12 [RELEASE] m139.7528.3.1
+  - @miosakuma
+- 2025-09-11 [RELEASE] m140.7339.2.0
+  - @melpon
+- 2025-09-11 [UPDATE] m140 に対応する
+  - `rtc::` を `webrtc::` に変更する
+  - `ios_sdk` 向けのビルドで使っている `build_ios.py` が、出力ディレクトリがソースディレクトリ以下でないとエラーを出すようになったので、`ios_sdk` のビルドの場合はソースディレクトリ以下に出力するように変更
+  - `adnroid_sdk` 向けのビルドで使っている `build_aar.py` が、出力ディレクトリがソースディレクトリ以下でないとエラーを出すようになったので、`android_sdk` のビルドの場合はソースディレクトリ以下に出力するように変更
+  - @melpon
+- 2025-09-11 [CHANGE] macOS, iOS のビルドに Xcode clang, libc++ ではなく libwebrtc が提供しているものを利用する
+  - これによって macOS, iOS で libwebrtc を利用してビルドする時に libwebrtc の clang, libc++ を指定しなければならなくなる
+  - @melpon
+- 2025-09-11 [CHANGE] android_sdk ビルドから armeabi-v7a 向けのバイナリを削除する
+  - @melpon
+- 2025-09-10 [RELEASE] m138.7204.0.5
+  - @miosakuma
+- 2025-09-05 [FIX] Android の Pixel 8, Pixel 9 について、VP9 と AV1 のサイマルキャストが行えない不具合を修正する
+  - AV1, VP9 ともハードウェアエンコーダーを持っている端末で不具合が発生する
+  - m136 で利用可能コーデック情報のリストを作成する際に重複を除外する処理が追加された結果、 `scalabilityMode` を保持しているコーデック情報が重複により除外され、サイマルキャストが行えなくなった
+    - https://source.chromium.org/chromium/_/webrtc/src/+/a22e244a8d22db2291cc51dcc4bdb0a54488c488:media/engine/webrtc_video_engine.cc;dlc=c2f1bc703d24f105ff3612f8e4ff7bea21a0aadf
+  - `HardwareVideoEncoderFactory` の `getSupportedCodecs()` に `scalabilityMode` を追加することで対応した
+  - @voluntas @melpon
+- 2025-09-05 [CHANGE] Android のサイマルキャストの利用可能コーデック情報リスト作成時に、エンコーダーから取得した情報のみを利用するように変更する
+  - SimulcastVideoEncoder でソフトウェアエンコーダーで利用可能なコーデック情報を常に取得していたが、指定したエンコーダーのコーデック情報のみを使用するようにする
+  - @voluntas @melpon
+- 2025-09-05 [UPDATE] Android Simulcast 用のパッチを整理
+  - パッチ構成の変更とリファクタリング: `android_add_scale_resolution_down_to.patch` を `android_simulcast.patch` に統合し、処理の見直しを行った
+  - @voluntas
+- 2025-09-05 [CHANGE] raspberry-pi-os_armv6 と raspberry-pi-os_armv7 を削除する
+  - @torikizi
+- 2025-09-02 [UPDATE] macOS GitHub Actions の `build-macos` から Ninja をインストールするステップを削除する
+  - 現在利用している `macos-14` には Ninja がインストール済みであるため本変更を行った
+  - @zztkm
+- 2025-08-14 [UPDATE] GitHub Actions の依存ライブラリをアップデート
+  - actions/download-artifact@v4 から actions/download-artifact@v5 にアップデート
+  - actions/checkout@v4 から actions/checkout@v5 にアップデート
+  - softprops/action-gh-release@v1 から softprops/action-gh-release@v2 にアップデート
 - 2025-08-06 [RELEASE] m138.7204.0.4-apple-vision-pro.0
   - @torikizi
 - 2025-08-06 [ADD] visionOS 対応を追加
@@ -37,6 +218,19 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - WebRTC.xcframework は現在利用していないため作成していません
 - 2025-08-06 [RELEASE] m138.7204.0.4
   - @torikizi
+- 2025-08-05 [CHANGE] `ios` ビルドを `ios` と `ios_sdk` に、`android` ビルドを `android` と `android_sdk` に分ける
+  - 提供するバイナリやディレクトリ構成、ダウンロード URL が変わるため破壊的変更となります
+  - @melpon
+- 2025-08-01 [RELEASE] m139.7258.3.0
+  - @miosakuma
+- 2025-07-30 [UPDATE] m139 ブランチのビルドエラーに対する対応
+  - `h265_ios.patch` の単純なパッチ適用失敗を修正
+  - `ios_proxy.patch` の単純なパッチ適用失敗を修正
+  - `h265_ios.patch` の AnnexBBufferReader のパラメータ変更に対応
+    - https://source.chromium.org/chromium/_/webrtc/src/+/eddc465338ebef0993ffc71f607a1b6e6d6f070e
+  - @torikizi @miosakuma
+- 2025-07-22 [ADD] run.py に --no-history フラグを追加
+  - @melpon
 - 2025-07-14 [UPDATE] Raspberry Pi OS (armv8) のビルドを buster から bookworm にアップデートする
   - multistrap の suite を buster から bookworm に修正
   - libstdc++-8-dev を libstdc++-11-dev に変更

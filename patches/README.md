@@ -40,17 +40,6 @@ Android にて映像フレームの処理時にクラッシュするいくつか
 
 同等の機能が本家に実装されるか、 PR を出して取り込まれたら削除する。
 
-## android_simulcast.patch
-
-Android でのサイマルキャストのサポートを追加するパッチ。この実装は C++ の `SimulcastEncoderAdapter` の簡単なラッパーであり、既存の仕様に破壊的変更も行わない。
-
-以下の API を追加する。
-
-- `SimulcastVideoEncoder`
-- `SimulcastVideoEncoderFactory`
-
-同等の機能が本家に実装されるか、 PR を出して取り込まれたら削除する。
-
 ## android_webrtc_version.patch
 
 Android API に libwebrtc のビルド時のバージョンを取得する API を追加する。
@@ -86,14 +75,6 @@ PeerConnectionDependencies dependencies = PeerConnectionDependencies
 // あとはいつも通り PeerConnection を生成する
 PeerConnection pc = factory.createPeerConnection(rtcConfig, dependencies);
 ```
-
-## android_include_environment_java.patch
-
-libwebrtc.aar に 、`src/sdk/android/api/Environment.java` を追加するパッチ
-
-[m138 で上記ファイルが追加された](https://source.chromium.org/chromium/_/webrtc/src/+/72b9eb1de04ddb56f5c3e3ae8b0d1a50847fef5e) が libwebrtc.aar に含まれていないことにより PeerConnectionFactory.java で参照エラーが発生したため対応した。
-
-本家でこの問題が修正されたら削除する。
 
 ## arm_neon_sve_bridge.patch
 
@@ -261,10 +242,6 @@ Objective-C では以下のように利用する。
 WebRTC が用意している clang でビルドすると、M1 Mac で実行時エラーが発生してしまう。
 なので Xcode clang を利用してビルドするように修正する。
 
-## nacl_armv6_2.patch
-
-current_cpu の条件に armv6 以前は false に armv7 以降は true になるよう追加するパッチ。
-
 ## windows_build_gn.patch
 
 C++17 で deprecated されているコードを多数含むために \_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS を追加している。
@@ -350,6 +327,12 @@ iOS でのサイマルキャストのサポートを追加するパッチ。こ�
 
 特に scalabilityMode は libwebrtc 側で NSString 記述となったため RTCScalabilityMode ENUM を削除した。変数名は同じだが NSNumber から NSString に型が変更になっているので注意すること。
 
+## android_simulcast.patch
+
+Android でサイマルキャストを実現するためのパッチ。
+
+パッチの詳細は [android_simulcast.patch の解説](./android_simulcast.md) を参照のこと。
+
 ## remove_crel.patch
 
 [CREL](https://maskray.me/blog/2024-03-09-a-compact-relocation-format-for-elf) (compact relocation) を有効にするオプションを削除するパッチ。
@@ -364,3 +347,39 @@ CREL は LLVM のリンカ(lld)特有の機能なので、これを有効にす�
 このコミットを revert したパッチ。
 
 siso を実行すると即座に `Error: can not detect exec_root: build/config/siso not found` というエラーが出てどうしようも無かったので revert する。
+
+## android_audio_pause_resume.md
+
+Android で録音一時停止・解除をできるようにするパッチ。
+
+パッチの詳細は [android_audio_pause_resume.patch の解説](./android_audio_pause_resume.md) を参照のこと。
+
+## android_audio_track_sink.patch
+
+Android SDK 向けに AudioTrackSink を提供し、AudioTrack ごとに PCM データを取得できるようにするための機能を追加するパッチ
+
+パッチの詳細は [android_audio_track_sink.patch の解説](./android_audio_track_sink.md) を参照
+
+## windows_fix_adm_device_count.patch
+
+Windows 向け ADM の RecordingDevices() と PlayoutDevices() の返す値を修正するパッチ。
+
+Windows 向け ADM の
+
+- `SetRecordingDevice()`, `SetPlayoutDevice()` といったアクティブなデバイスを選択する時に渡すインデックス
+- `RecordingDeviceName()`, `PlayoutDeviceName()` といったデバイス名を取得する時に渡すインデックス
+
+これらのインデックスは、必ず 0 が Default デバイスで、1 が Communitation デバイスとなる。
+
+そしてこれらの追加されたデバイスは **`RecordingDevices()` や `PlayoutDevices()` の戻り値には含まれていない** 。
+例えば有効なマイクデバイスが 2 個接続されている場合、`RecordingDevices()` は 2 を返すが、
+対応するインデックスは以下のようになる。
+
+ 0 - Default - マイク１
+ 1 - Communitation - マイク１
+ 2 - マイク１
+ 3 - マイク２
+
+そのためユーザー側で `for (int i = 0; i < adm->RecordingDevices(); i++) { ... }` のように実装しても、Windows では全てのデバイスを列挙できなくなっている。
+
+この問題を解決するために `RecordingDevices()` と `PlayoutDevices()` の戻り値を +2 するのがこのパッチの内容となっている。
