@@ -29,17 +29,10 @@ index b24194c6e9..e5017ed515 100644
      uint32_t height = 0;
      uint32_t delta_pic_order_always_zero_flag = 0;
 diff --git a/common_video/h265/h265_vps_parser.cc b/common_video/h265/h265_vps_parser.cc
-index 8ebe5f96a1..dda963ad58 100644
+index 8ebe5f96a1..0fc57985dd 100644
 --- a/common_video/h265/h265_vps_parser.cc
 +++ b/common_video/h265/h265_vps_parser.cc
-@@ -10,11 +10,14 @@
- 
- #include "common_video/h265/h265_vps_parser.h"
- 
-+#include <algorithm>
-+#include <array>
- #include <cstdint>
- #include <optional>
+@@ -15,6 +15,7 @@
  
  #include "api/array_view.h"
  #include "common_video/h265/h265_common.h"
@@ -47,7 +40,7 @@ index 8ebe5f96a1..dda963ad58 100644
  #include "rtc_base/bitstream_reader.h"
  
  namespace webrtc {
-@@ -47,6 +50,59 @@ std::optional<H265VpsParser::VpsState> H265VpsParser::ParseInternal(
+@@ -47,6 +48,51 @@ std::optional<H265VpsParser::VpsState> H265VpsParser::ParseInternal(
      return std::nullopt;
    }
  
@@ -74,32 +67,24 @@ index 8ebe5f96a1..dda963ad58 100644
 +    return std::nullopt;
 +  }
 +
-+  std::array<uint32_t, kMaxSubLayers> vps_max_num_reorder_pics = {};
 +  bool vps_sub_layer_ordering_info_present_flag = reader.Read<bool>();
 +  for (uint32_t i = (vps_sub_layer_ordering_info_present_flag != 0) ? 0 : vps.vps_max_sub_layers_minus1; i <= vps.vps_max_sub_layers_minus1; i++) {
 +    // vps_max_dec_pic_buffering_minus1[ i ]: ue(v)
 +    reader.ReadExponentialGolomb();
 +    // vps_max_num_reorder_pics[ i ]: ue(v)
-+    const uint32_t max_num_reorder_pics = reader.ReadExponentialGolomb();
-+    if (!reader.Ok() ||
-+        (i > 0 &&
-+         max_num_reorder_pics < vps_max_num_reorder_pics.at(i - 1))) {
++    vps.vps_max_num_reorder_pics[i] = reader.ReadExponentialGolomb();
++    if (!reader.Ok() || (i > 0 && vps.vps_max_num_reorder_pics[i] < vps.vps_max_num_reorder_pics[i - 1])) {
 +      return std::nullopt;
 +    }
-+    vps_max_num_reorder_pics.at(i) = max_num_reorder_pics;
 +
 +    // vps_max_latency_increase_plus1: ue(v)
 +    reader.ReadExponentialGolomb();
 +  }
 +  if (!vps_sub_layer_ordering_info_present_flag) {
-+    const uint32_t max_num_reorder_pics =
-+        vps_max_num_reorder_pics.at(vps.vps_max_sub_layers_minus1);
 +    for (uint32_t i = 0; i < vps.vps_max_sub_layers_minus1; ++i) {
-+      vps_max_num_reorder_pics.at(i) = max_num_reorder_pics;
++      vps.vps_max_num_reorder_pics[i] = vps.vps_max_num_reorder_pics[vps.vps_max_sub_layers_minus1];
 +    }
 +  }
-+  std::copy(vps_max_num_reorder_pics.begin(), vps_max_num_reorder_pics.end(),
-+            vps.vps_max_num_reorder_pics);
 +  if (!reader.Ok() || !profile_tier_level) {
 +    return std::nullopt;
 +  }
@@ -129,10 +114,10 @@ index e890e4e64f..423ff28b2b 100644
  
    // Unpack RBSP and parse VPS state from the supplied buffer.
 diff --git a/webrtc.gni b/webrtc.gni
-index 64a739ca92..c55f985bb3 100644
+index 103983dec4..530eea6ff7 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
-@@ -180,7 +180,7 @@ declare_args() {
+@@ -196,7 +196,7 @@ declare_args() {
    if (build_with_chromium) {
      rtc_use_h265 = enable_hevc_parser_and_hw_decoder
    } else {

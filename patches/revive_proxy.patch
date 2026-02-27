@@ -1,8 +1,8 @@
 diff --git a/api/packet_socket_factory.h b/api/packet_socket_factory.h
-index 06a2d2849e..a1c6c70797 100644
+index e87e9cd9b3..1db4f4f33e 100644
 --- a/api/packet_socket_factory.h
 +++ b/api/packet_socket_factory.h
-@@ -24,6 +24,8 @@
+@@ -23,6 +23,8 @@
  #include "rtc_base/ssl_certificate.h"
  #include "rtc_base/system/rtc_export.h"
  
@@ -11,7 +11,7 @@ index 06a2d2849e..a1c6c70797 100644
  namespace webrtc {
  
  struct PacketSocketTcpOptions {
-@@ -81,6 +83,8 @@ class RTC_EXPORT PacketSocketFactory {
+@@ -76,6 +78,8 @@ class RTC_EXPORT PacketSocketFactory {
        const Environment& env,
        const SocketAddress& local_address,
        const SocketAddress& remote_address,
@@ -21,10 +21,10 @@ index 06a2d2849e..a1c6c70797 100644
  
    virtual std::unique_ptr<AsyncDnsResolverInterface>
 diff --git a/p2p/base/basic_packet_socket_factory.cc b/p2p/base/basic_packet_socket_factory.cc
-index 1093bd4bfa..07d8eefbb3 100644
+index c410099bbc..d9b8260577 100644
 --- a/p2p/base/basic_packet_socket_factory.cc
 +++ b/p2p/base/basic_packet_socket_factory.cc
-@@ -31,6 +31,8 @@
+@@ -32,6 +32,8 @@
  #include "rtc_base/socket_factory.h"
  #include "rtc_base/ssl_adapter.h"
  
@@ -33,7 +33,7 @@ index 1093bd4bfa..07d8eefbb3 100644
  namespace webrtc {
  
  BasicPacketSocketFactory::BasicPacketSocketFactory(
-@@ -146,6 +148,8 @@ BasicPacketSocketFactory::CreateClientTcpSocket(
+@@ -96,6 +98,8 @@ BasicPacketSocketFactory::CreateClientTcpSocket(
      const Environment& env,
      const SocketAddress& local_address,
      const SocketAddress& remote_address,
@@ -42,7 +42,7 @@ index 1093bd4bfa..07d8eefbb3 100644
      const PacketSocketTcpOptions& tcp_options) {
    std::unique_ptr<Socket> socket =
        socket_factory_->Create(local_address.family(), SOCK_STREAM);
-@@ -176,6 +180,12 @@ BasicPacketSocketFactory::CreateClientTcpSocket(
+@@ -126,6 +130,12 @@ BasicPacketSocketFactory::CreateClientTcpSocket(
                        << socket->GetError();
    }
  
@@ -56,7 +56,7 @@ index 1093bd4bfa..07d8eefbb3 100644
    int tlsOpts = tcp_options.opts & (PacketSocketFactory::OPT_TLS |
                                      PacketSocketFactory::OPT_TLS_FAKE |
 diff --git a/p2p/base/basic_packet_socket_factory.h b/p2p/base/basic_packet_socket_factory.h
-index aaa3b854b8..ffaed314b2 100644
+index b5c382ff29..2a45af41d3 100644
 --- a/p2p/base/basic_packet_socket_factory.h
 +++ b/p2p/base/basic_packet_socket_factory.h
 @@ -45,6 +45,8 @@ class RTC_EXPORT BasicPacketSocketFactory : public PacketSocketFactory {
@@ -69,10 +69,10 @@ index aaa3b854b8..ffaed314b2 100644
  
    std::unique_ptr<AsyncDnsResolverInterface> CreateAsyncDnsResolver() override;
 diff --git a/p2p/base/port.h b/p2p/base/port.h
-index c2e5f53f63..f4d540d37b 100644
+index 0ab339e69c..6585740f9e 100644
 --- a/p2p/base/port.h
 +++ b/p2p/base/port.h
-@@ -48,6 +48,8 @@
+@@ -50,6 +50,8 @@
  #include "rtc_base/thread_annotations.h"
  #include "rtc_base/weak_ptr.h"
  
@@ -81,7 +81,7 @@ index c2e5f53f63..f4d540d37b 100644
  namespace webrtc {
  
  enum class MdnsNameRegistrationStatus {
-@@ -407,6 +409,17 @@ class RTC_EXPORT Port : public PortInterface {
+@@ -384,6 +386,17 @@ class RTC_EXPORT Port : public PortInterface, public sigslot::has_slots<> {
  
    void GetStunStats(std::optional<StunStats>* /* stats */) override {}
  
@@ -100,7 +100,7 @@ index c2e5f53f63..f4d540d37b 100644
    void SubscribeRoleConflict(absl::AnyInvocable<void()> callback) override;
    void NotifyRoleConflict() override;
 diff --git a/p2p/base/port_allocator.h b/p2p/base/port_allocator.h
-index 6eb699e3fb..4616b39865 100644
+index be91dae6d8..6095ef7f98 100644
 --- a/p2p/base/port_allocator.h
 +++ b/p2p/base/port_allocator.h
 @@ -35,6 +35,8 @@
@@ -112,7 +112,7 @@ index 6eb699e3fb..4616b39865 100644
  namespace webrtc {
  
  class TurnCustomizer;
-@@ -570,6 +572,26 @@ class RTC_EXPORT PortAllocator {
+@@ -531,6 +533,26 @@ class RTC_EXPORT PortAllocator {
      flags_ = flags;
    }
  
@@ -140,7 +140,7 @@ index 6eb699e3fb..4616b39865 100644
    int min_port() const {
      CheckRunOnValidThreadIfInitialized();
 diff --git a/p2p/base/port_interface.h b/p2p/base/port_interface.h
-index 0f9d76a197..04a7c7072d 100644
+index 5182a049e6..b26cd5bb69 100644
 --- a/p2p/base/port_interface.h
 +++ b/p2p/base/port_interface.h
 @@ -33,6 +33,8 @@
@@ -152,7 +152,7 @@ index 0f9d76a197..04a7c7072d 100644
  namespace webrtc {
  
  class Connection;
-@@ -196,6 +198,9 @@ class PortInterface {
+@@ -174,6 +176,9 @@ class PortInterface {
    // Called when the Connection discovers a local peer reflexive candidate.
    virtual void AddPrflxCandidate(const Candidate& local) = 0;
  
@@ -163,10 +163,10 @@ index 0f9d76a197..04a7c7072d 100644
    PortInterface();
    virtual void UpdateNetworkCost() = 0;
 diff --git a/p2p/base/tcp_port.cc b/p2p/base/tcp_port.cc
-index 87ef5bffd0..ae585b18a1 100644
+index de01d116a2..4606b0c9d7 100644
 --- a/p2p/base/tcp_port.cc
 +++ b/p2p/base/tcp_port.cc
-@@ -608,7 +608,9 @@ void TCPConnection::CreateOutgoingTcpSocket() {
+@@ -600,7 +600,9 @@ void TCPConnection::CreateOutgoingTcpSocket() {
    tcp_opts.opts = opts;
    socket_ = port()->socket_factory()->CreateClientTcpSocket(
        env(), SocketAddress(port()->Network()->GetBestIP(), 0),
@@ -178,10 +178,10 @@ index 87ef5bffd0..ae585b18a1 100644
      RTC_LOG(LS_VERBOSE) << ToString() << ": Connecting from "
                          << socket_->GetLocalAddress().ToSensitiveString()
 diff --git a/p2p/base/turn_port.cc b/p2p/base/turn_port.cc
-index 7eba2fa37d..96952c1809 100644
+index 1abb21bb1e..d69a53ab04 100644
 --- a/p2p/base/turn_port.cc
 +++ b/p2p/base/turn_port.cc
-@@ -479,7 +479,9 @@ bool TurnPort::CreateTurnClientSocket() {
+@@ -457,7 +457,9 @@ bool TurnPort::CreateTurnClientSocket() {
      tcp_options.tls_cert_verifier = tls_cert_verifier_;
      owned_socket_ = socket_factory()->CreateClientTcpSocket(
          env(), SocketAddress(Network()->GetBestIP(), 0),
@@ -193,7 +193,7 @@ index 7eba2fa37d..96952c1809 100644
    }
  
 diff --git a/p2p/client/basic_port_allocator.cc b/p2p/client/basic_port_allocator.cc
-index 22dc035103..544e587b06 100644
+index aa372be7d8..7f9c663a9f 100644
 --- a/p2p/client/basic_port_allocator.cc
 +++ b/p2p/client/basic_port_allocator.cc
 @@ -55,6 +55,8 @@
@@ -205,7 +205,7 @@ index 22dc035103..544e587b06 100644
  namespace webrtc {
  namespace {
  
-@@ -915,6 +917,8 @@ void BasicPortAllocatorSession::AddAllocatedPort(Port* port,
+@@ -913,6 +915,8 @@ void BasicPortAllocatorSession::AddAllocatedPort(Port* port,
    RTC_LOG(LS_INFO) << "Adding allocated port for " << content_name();
    port->set_component(component());
    port->set_generation(generation());
@@ -215,10 +215,10 @@ index 22dc035103..544e587b06 100644
        (flags() & PORTALLOCATOR_ENABLE_STUN_RETRANSMIT_ATTRIBUTE) != 0);
  
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 309bc31fe7..df2e4fdacc 100644
+index 88f9f4295c..9af50e1fe3 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
-@@ -1294,6 +1294,8 @@ rtc_library("socket_adapters") {
+@@ -1288,6 +1288,8 @@ rtc_library("socket_adapters") {
    sources = [
      "socket_adapters.cc",
      "socket_adapters.h",
@@ -227,7 +227,7 @@ index 309bc31fe7..df2e4fdacc 100644
    ]
    deps = [
      ":async_socket",
-@@ -1309,6 +1311,7 @@ rtc_library("socket_adapters") {
+@@ -1303,6 +1305,7 @@ rtc_library("socket_adapters") {
      "//third_party/abseil-cpp/absl/functional:any_invocable",
      "//third_party/abseil-cpp/absl/strings",
      "//third_party/abseil-cpp/absl/strings:string_view",
@@ -235,7 +235,7 @@ index 309bc31fe7..df2e4fdacc 100644
    ]
  }
  
-@@ -1461,6 +1464,20 @@ rtc_library("dscp") {
+@@ -1460,6 +1463,20 @@ rtc_library("dscp") {
    sources = [ "dscp.h" ]
  }
  
@@ -256,7 +256,7 @@ index 309bc31fe7..df2e4fdacc 100644
  rtc_library("file_rotating_stream") {
    sources = [
      "file_rotating_stream.cc",
-@@ -1728,6 +1745,13 @@ rtc_library("ssl_adapter") {
+@@ -1727,6 +1744,13 @@ rtc_library("ssl_adapter") {
    }
  }
  
@@ -400,10 +400,10 @@ index 0000000000..3635bd0512
 +#endif  // RTC_BASE_CRYPT_STRING_REVIVE_H_
 diff --git a/rtc_base/http_common_revive.cc b/rtc_base/http_common_revive.cc
 new file mode 100644
-index 0000000000..4cc1fe0eab
+index 0000000000..e575943e41
 --- /dev/null
 +++ b/rtc_base/http_common_revive.cc
-@@ -0,0 +1,569 @@
+@@ -0,0 +1,562 @@
 +/*
 + *  Copyright 2004 The WebRTC Project Authors. All rights reserved.
 + *
@@ -562,7 +562,7 @@ index 0000000000..4cc1fe0eab
 +    }
 +
 +    HttpAttribute attribute;
-+    attribute.first.assign(data.substr(start, pos - start));
++    attribute.first.assign(data.data() + start, data.data() + pos);
 +
 +    // Attribute has value?
 +    if ((pos < len) && (data[pos] == '=')) {
@@ -685,22 +685,18 @@ index 0000000000..4cc1fe0eab
 +    // return response as CryptString so contents get securely deleted
 +    // automatically.
 +    // std::string decoded = username + ":" + password;
-+    std::string sensitive_password(password.GetLength(), '\0');
-+    if (!sensitive_password.empty()) {
-+      password.CopyTo(sensitive_password.data(), false);
-+    }
-+    std::string sensitive = std::string(username) + ":" + sensitive_password;
++    size_t len = username.size() + password.GetLength() + 2;
++    char* sensitive = new char[len];
++    size_t pos = strcpyn(sensitive, len, username);
++    pos += strcpyn(sensitive + pos, len - pos, ":");
++    password.CopyTo(sensitive + pos, true);
 +
 +    response = auth_method;
 +    response.append(" ");
 +    // TODO: create a sensitive-source version of Base64::encode
 +    response.append(webrtc::Base64Encode(sensitive));
-+    if (!sensitive_password.empty()) {
-+      ExplicitZeroMemory(sensitive_password.data(), sensitive_password.size());
-+    }
-+    if (!sensitive.empty()) {
-+      ExplicitZeroMemory(sensitive.data(), sensitive.size());
-+    }
++    ExplicitZeroMemory(sensitive, len);
++    delete[] sensitive;
 +    return HAR_RESPONSE;
 +  }
 +
@@ -729,12 +725,13 @@ index 0000000000..4cc1fe0eab
 +    // return response as CryptString so contents get securely deleted
 +    // automatically.
 +    // std::string A1 = username + ":" + realm + ":" + password;
-+    std::string sensitive_password(password.GetLength(), '\0');
-+    if (!sensitive_password.empty()) {
-+      password.CopyTo(sensitive_password.data(), false);
-+    }
-+    std::string sensitive =
-+        std::string(username) + ":" + realm + ":" + sensitive_password;
++    size_t len = username.size() + realm.size() + password.GetLength() + 3;
++    char* sensitive = new char[len];  // A1
++    size_t pos = strcpyn(sensitive, len, username);
++    pos += strcpyn(sensitive + pos, len - pos, ":");
++    pos += strcpyn(sensitive + pos, len - pos, realm);
++    pos += strcpyn(sensitive + pos, len - pos, ":");
++    password.CopyTo(sensitive + pos, true);
 +
 +    std::string A2 = std::string(method) + ":" + std::string(uri);
 +    std::string middle;
@@ -745,12 +742,8 @@ index 0000000000..4cc1fe0eab
 +      middle = nonce;
 +    }
 +    std::string HA1 = MD5(sensitive);
-+    if (!sensitive_password.empty()) {
-+      ExplicitZeroMemory(sensitive_password.data(), sensitive_password.size());
-+    }
-+    if (!sensitive.empty()) {
-+      ExplicitZeroMemory(sensitive.data(), sensitive.size());
-+    }
++    ExplicitZeroMemory(sensitive, len);
++    delete[] sensitive;
 +    std::string HA2 = MD5(A2);
 +    std::string dig_response = MD5(HA1 + ":" + middle + ":" + HA2);
 +
@@ -973,6 +966,7 @@ index 0000000000..4cc1fe0eab
 +//////////////////////////////////////////////////////////////////////
 +
 +}  // namespace webrtc::revive
+\ No newline at end of file
 diff --git a/rtc_base/http_common_revive.h b/rtc_base/http_common_revive.h
 new file mode 100644
 index 0000000000..491fee4971
@@ -1043,25 +1037,17 @@ index 0000000000..491fee4971
 +#endif  // RTC_BASE_HTTP_COMMON_REVIVE_H_
 diff --git a/rtc_base/proxy_info_revive.cc b/rtc_base/proxy_info_revive.cc
 new file mode 100644
-index 0000000000..34929ffe04
+index 0000000000..713c33195d
 --- /dev/null
 +++ b/rtc_base/proxy_info_revive.cc
-@@ -0,0 +1,21 @@
+@@ -0,0 +1,13 @@
 +#include "rtc_base/proxy_info_revive.h"
 +
 +namespace webrtc::revive {
 +
 +const char* ProxyToString(ProxyType proxy) {
-+  switch (proxy) {
-+    case PROXY_NONE:
-+      return "none";
-+    case PROXY_HTTPS:
-+      return "https";
-+    case PROXY_SOCKS5:
-+      return "socks5";
-+    default:
-+      return "unknown";
-+  }
++  const char* const PROXY_NAMES[] = {"none", "https", "socks5", "unknown"};
++  return PROXY_NAMES[proxy];
 +}
 +
 +ProxyInfo::ProxyInfo() : type(PROXY_NONE), autodetect(false) {}
@@ -1115,15 +1101,13 @@ index 0000000000..5217436b2a
 +#endif
 diff --git a/rtc_base/socket_adapters_revive.cc b/rtc_base/socket_adapters_revive.cc
 new file mode 100644
-index 0000000000..8d3ca6f876
+index 0000000000..446af9c557
 --- /dev/null
 +++ b/rtc_base/socket_adapters_revive.cc
-@@ -0,0 +1,276 @@
+@@ -0,0 +1,268 @@
 +#include "rtc_base/socket_adapters_revive.h"
 +
 +#include <algorithm>
-+#include <cstdlib>
-+#include <cstring>
 +
 +#include "absl/strings/match.h"
 +#include "absl/strings/string_view.h"
@@ -1213,7 +1197,6 @@ index 0000000000..8d3ca6f876
 +}
 +
 +void AsyncHttpsProxySocket::ProcessInput(char* data, size_t* len) {
-+  const absl::string_view input(data, *len);
 +  size_t start = 0;
 +  for (size_t pos = start; state_ < PS_TUNNEL && pos < *len;) {
 +    if (state_ == PS_SKIP_BODY) {
@@ -1227,22 +1210,21 @@ index 0000000000..8d3ca6f876
 +      continue;
 +    }
 +
-+    if (input[pos++] != '\n')
++    if (data[pos++] != '\n')
 +      continue;
 +
 +    size_t length = pos - start - 1;
-+    if ((length > 0) && (input[start + length - 1] == '\r'))
++    if ((length > 0) && (data[start + length - 1] == '\r'))
 +      --length;
 +
-+    std::string line(input.substr(start, length));
-+    ProcessLine(line.data(), line.size());
++    data[start + length] = 0;
++    ProcessLine(data + start, length);
 +    start = pos;
 +  }
 +
 +  *len -= start;
 +  if (*len > 0) {
-+    std::string remainder(input.substr(start, *len));
-+    std::memcpy(data, remainder.data(), *len);
++    memmove(data, data + start, *len);
 +  }
 +
 +  if (state_ != PS_TUNNEL)
@@ -1283,8 +1265,7 @@ index 0000000000..8d3ca6f876
 +}
 +
 +void AsyncHttpsProxySocket::ProcessLine(char* data, size_t len) {
-+  const absl::string_view line(data, len);
-+  RTC_LOG(LS_VERBOSE) << "AsyncHttpsProxySocket << " << line;
++  RTC_LOG(LS_VERBOSE) << "AsyncHttpsProxySocket << " << data;
 +
 +  if (len == 0) {
 +    if (state_ == PS_TUNNEL_HEADERS) {
@@ -1310,8 +1291,7 @@ index 0000000000..8d3ca6f876
 +    }
 +  } else if (state_ == PS_LEADER) {
 +    unsigned int code;
-+    std::string leader_line(line);
-+    if (sscanf(leader_line.c_str(), "HTTP/%*u.%*u %u", &code) != 1) {
++    if (sscanf(data, "HTTP/%*u.%*u %u", &code) != 1) {
 +      Error(0);
 +      return;
 +    }
@@ -1332,9 +1312,9 @@ index 0000000000..8d3ca6f876
 +        return;
 +    }
 +  } else if ((state_ == PS_AUTHENTICATE) &&
-+             absl::StartsWithIgnoreCase(line, "Proxy-Authenticate:")) {
++             absl::StartsWithIgnoreCase(data, "Proxy-Authenticate:")) {
 +    std::string response, auth_method;
-+    switch (HttpAuthenticate(line.substr(19), proxy_,
++    switch (HttpAuthenticate(absl::string_view(data + 19, len - 19), proxy_,
 +                             "CONNECT", "/", user_, pass_, context_, response,
 +                             auth_method)) {
 +      case HAR_IGNORE:
@@ -1361,11 +1341,9 @@ index 0000000000..8d3ca6f876
 +        unknown_mechanisms_.clear();
 +        break;
 +    }
-+  } else if (absl::StartsWithIgnoreCase(line, "Content-Length:")) {
-+    std::string value(line.substr(15));
-+    content_length_ = std::strtoul(value.c_str(), nullptr, 0);
-+  } else if (absl::StartsWithIgnoreCase(line,
-+                                        "Proxy-Connection: Keep-Alive")) {
++  } else if (absl::StartsWithIgnoreCase(data, "Content-Length:")) {
++    content_length_ = strtoul(data + 15, 0, 0);
++  } else if (absl::StartsWithIgnoreCase(data, "Proxy-Connection: Keep-Alive")) {
 +    expect_close_ = false;
 +    /*
 +  } else if (absl::StartsWithIgnoreCase(data, "Connection: close") {
