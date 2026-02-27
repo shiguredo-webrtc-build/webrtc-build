@@ -188,6 +188,7 @@ PATCHES = {
         "fix_moved_function_call.patch",
         "remove_crel.patch",
         "windows_fix_adm_device_count.patch",
+        "unsafe_buffers_optout_list.patch",
     ],
     "windows_arm64": [
         "4k.patch",
@@ -200,6 +201,7 @@ PATCHES = {
         "h265.patch",
         "fix_moved_function_call.patch",
         "remove_crel.patch",
+        "unsafe_buffers_optout_list.patch",
     ],
     "macos_arm64": [
         "add_deps.patch",
@@ -215,6 +217,7 @@ PATCHES = {
         "dav1d_config_change.patch",
         "fix_moved_function_call.patch",
         "remove_crel.patch",
+        "unsafe_buffers_optout_list.patch",
     ],
     "ios": [
         "add_deps.patch",
@@ -234,6 +237,7 @@ PATCHES = {
         "ios_add_scale_resolution_down_to.patch",
         "remove_crel.patch",
         "revert_siso.patch",
+        "unsafe_buffers_optout_list.patch",
     ],
     "ios_sdk": [
         "add_deps.patch",
@@ -255,6 +259,7 @@ PATCHES = {
         "revert_siso.patch",
         "ios_audio_track_sink.patch",
         "ios_audio_pause_resume.patch",
+        "unsafe_buffers_optout_list.patch",
     ],
     "android": [
         "add_deps.patch",
@@ -272,6 +277,7 @@ PATCHES = {
         "fix_moved_function_call.patch",
         "remove_crel.patch",
         "revert_siso.patch",
+        "unsafe_buffers_optout_list.patch",
     ],
     "android_sdk": [
         "add_deps.patch",
@@ -291,6 +297,7 @@ PATCHES = {
         "revert_siso.patch",
         "android_audio_pause_resume.patch",
         "android_audio_track_sink.patch",
+        "unsafe_buffers_optout_list.patch",
     ],
     "raspberry-pi-os_armv8": [
         "add_deps.patch",
@@ -301,6 +308,7 @@ PATCHES = {
         "h265.patch",
         "fix_moved_function_call.patch",
         "remove_crel.patch",
+        "unsafe_buffers_optout_list.patch",
     ],
     "ubuntu-20.04_armv8": [
         "add_deps.patch",
@@ -311,6 +319,7 @@ PATCHES = {
         "h265.patch",
         "fix_moved_function_call.patch",
         "remove_crel.patch",
+        "unsafe_buffers_optout_list.patch",
     ],
     "ubuntu-22.04_armv8": [
         "add_deps.patch",
@@ -321,6 +330,7 @@ PATCHES = {
         "h265.patch",
         "fix_moved_function_call.patch",
         "remove_crel.patch",
+        "unsafe_buffers_optout_list.patch",
     ],
     "ubuntu-24.04_armv8": [
         "add_deps.patch",
@@ -331,6 +341,7 @@ PATCHES = {
         "h265.patch",
         "fix_moved_function_call.patch",
         "remove_crel.patch",
+        "unsafe_buffers_optout_list.patch",
     ],
     "ubuntu-22.04_x86_64": [
         "add_deps.patch",
@@ -341,6 +352,7 @@ PATCHES = {
         "h265.patch",
         "fix_moved_function_call.patch",
         "remove_crel.patch",
+        "unsafe_buffers_optout_list.patch",
     ],
     "ubuntu-24.04_x86_64": [
         "add_deps.patch",
@@ -351,6 +363,7 @@ PATCHES = {
         "h265.patch",
         "fix_moved_function_call.patch",
         "remove_crel.patch",
+        "unsafe_buffers_optout_list.patch",
     ],
 }
 
