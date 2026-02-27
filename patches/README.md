@@ -296,13 +296,6 @@ h265.patch と併用することを前提とした iOS で H.265 を利用でき
 WebKit で施されている H.265 対応差分を最新の libwebrtc に適用します。おそらく macOS も同様のコードで動作しますが現状では検証しておりません。
 libwebrtc の iOS ハードウェアエンコード実装が H.265 に対応すると不要となると考えています。
 
-## fix_perfetto.patch
-
-rtc_use_perfetto=false した時にコンパイルエラーになる問題を修正するパッチ。
-
-M126 で perfetto を使うようになったけど、これは rtc_use_perfetto=false で無効にできるため試してみたところ、必要な部分が ifdef で囲まれていなかったためコンパイルエラーになった。
-このパッチはその問題を修正するもの。
-
 ## fix_moved_function_call.patch
 
 SesseionDescription のコールバック実行中に PeerConnection が破棄された時にクラッシュする問題を修正するパッチ。
@@ -383,3 +376,20 @@ Windows 向け ADM の
 そのためユーザー側で `for (int i = 0; i < adm->RecordingDevices(); i++) { ... }` のように実装しても、Windows では全てのデバイスを列挙できなくなっている。
 
 この問題を解決するために `RecordingDevices()` と `PlayoutDevices()` の戻り値を +2 するのがこのパッチの内容となっている。
+
+## unsafe_buffers_optout_list.patch
+
+m146 より [UnSafe Buffers Clang plugin](https://chromium.googlesource.com/chromium/src/+/refs/tags/146.0.7680.36/docs/unsafe_buffers.md) によるビルドチェックエラーが発生したため追加したパッチ。
+
+パッチにより新規追加したソースファイルがビルドチェックエラーとなったため、チェック除外リストである  [unsafe_buffers_paths.txt](https://source.chromium.org/chromium/chromium/src/+/main:third_party/webrtc/unsafe_buffers_paths.txt;l=1;bpv=1) にエラーとなったファイルを追加した。
+
+追加したファイルは以下の通り
+
+- h265.patch
+  - common_video/h265/h265_vps_parser.cc
+- android_proxy.patch
+  - rtc_base/http_common_revive.cc
+  - rtc_base/proxy_info_revive.cc
+  - rtc_base/socket_adapters_revive.cc
+
+エラーとなったパッチファイルについてビルドチェックエラーとならないようコード修正を行うことでこのパッチは削除できる。

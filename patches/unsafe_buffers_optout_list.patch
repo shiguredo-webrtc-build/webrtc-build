@@ -1,0 +1,13 @@
+diff --git a/unsafe_buffers_paths.txt b/unsafe_buffers_paths.txt
+index 64c5244c7b..31b5697d6c 100644
+--- a/unsafe_buffers_paths.txt
++++ b/unsafe_buffers_paths.txt
+@@ -735,3 +735,8 @@
+ -video/video_send_stream_tests.cc
+ -video/video_stream_encoder.cc
+ -video/video_stream_encoder_unittest.cc
++
++-common_video/h265/h265_vps_parser.cc
++-rtc_base/http_common_revive.cc
++-rtc_base/proxy_info_revive.cc
++-rtc_base/socket_adapters_revive.cc

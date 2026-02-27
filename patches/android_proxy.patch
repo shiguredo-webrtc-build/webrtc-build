@@ -1,5 +1,5 @@
 diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
-index d30f3b62f0..559008709d 100644
+index 9ea7f37a0d..9cd8cb3bc0 100644
 --- a/sdk/android/BUILD.gn
 +++ b/sdk/android/BUILD.gn
 @@ -319,6 +319,7 @@ if (is_android) {
@@ -253,18 +253,10 @@ index 4b22cb95ad..451a2cd0c1 100644
  };
  
 diff --git a/sdk/android/src/jni/pc/peer_connection_factory.cc b/sdk/android/src/jni/pc/peer_connection_factory.cc
-index f449a98ed2..c257999e21 100644
+index bd26b84516..e83470c950 100644
 --- a/sdk/android/src/jni/pc/peer_connection_factory.cc
 +++ b/sdk/android/src/jni/pc/peer_connection_factory.cc
-@@ -33,6 +33,7 @@
- #include "api/enable_media.h"
- #include "api/environment/deprecated_global_field_trials.h"
- #include "api/environment/environment.h"
-+#include "api/environment/environment_factory.h"
- #include "api/fec_controller.h"
- #include "api/media_stream_interface.h"
- #include "api/neteq/neteq_factory.h"
-@@ -42,6 +43,10 @@
+@@ -43,6 +43,10 @@
  #include "api/scoped_refptr.h"
  #include "api/transport/network_control.h"
  #include "modules/utility/include/jvm_android.h"
@@ -275,7 +267,7 @@ index f449a98ed2..c257999e21 100644
  #include "rtc_base/checks.h"
  #include "rtc_base/event_tracer.h"
  #include "rtc_base/logging.h"
-@@ -146,10 +151,11 @@ ScopedJavaLocalRef<jobject> NativeToScopedJavaPeerConnectionFactory(
+@@ -147,10 +151,11 @@ ScopedJavaLocalRef<jobject> NativeToScopedJavaPeerConnectionFactory(
      std::unique_ptr<SocketFactory> socket_factory,
      std::unique_ptr<Thread> network_thread,
      std::unique_ptr<Thread> worker_thread,
@@ -289,7 +281,7 @@ index f449a98ed2..c257999e21 100644
  
    jni_zero::ScopedJavaLocalRef<jobject> j_pcf =
        Java_PeerConnectionFactory_Constructor(
-@@ -186,10 +192,11 @@ jobject NativeToJavaPeerConnectionFactory(
+@@ -187,10 +192,11 @@ jobject NativeToJavaPeerConnectionFactory(
      std::unique_ptr<SocketFactory> socket_factory,
      std::unique_ptr<Thread> network_thread,
      std::unique_ptr<Thread> worker_thread,
@@ -303,7 +295,7 @@ index f449a98ed2..c257999e21 100644
        .Release();
  }
  
-@@ -242,6 +249,36 @@ static void JNI_PeerConnectionFactory_ShutdownInternalTracer(JNIEnv* jni) {
+@@ -244,6 +250,36 @@ static void JNI_PeerConnectionFactory_ShutdownInternalTracer(JNIEnv* jni) {
    tracing::ShutdownInternalTracer();
  }
  
@@ -340,7 +332,7 @@ index f449a98ed2..c257999e21 100644
  // Following parameters are optional:
  // `audio_device_module`, `jencoder_factory`, `jdecoder_factory`,
  // `audio_processor`, `fec_controller_factory`,
-@@ -324,9 +361,23 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
+@@ -326,9 +362,23 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
        absl::WrapUnique(CreateVideoDecoderFactory(jni, jdecoder_factory));
    EnableMedia(dependencies);
  
@@ -367,7 +359,7 @@ index f449a98ed2..c257999e21 100644
    RTC_CHECK(factory) << "Failed to create the peer connection factory; "
                          "WebRTC/libjingle init likely failed on this device";
    // TODO(honghaiz): Maybe put the options as the argument of
-@@ -336,7 +387,7 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
+@@ -338,7 +388,7 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
  
    return NativeToScopedJavaPeerConnectionFactory(
        jni, factory, std::move(socket_server), std::move(network_thread),
@@ -376,7 +368,7 @@ index f449a98ed2..c257999e21 100644
  }
  
  static jni_zero::ScopedJavaLocalRef<jobject>
-@@ -462,13 +513,43 @@ static void JNI_PeerConnectionFactory_StopAecDump(JNIEnv* jni,
+@@ -464,13 +514,43 @@ static void JNI_PeerConnectionFactory_StopAecDump(JNIEnv* jni,
    PeerConnectionFactoryFromJava(native_factory)->StopAecDump();
  }
  
@@ -421,7 +413,7 @@ index f449a98ed2..c257999e21 100644
    std::unique_ptr<PeerConnectionObserver> observer(
        reinterpret_cast<PeerConnectionObserver*>(observer_p));
  
-@@ -505,9 +586,51 @@ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
+@@ -507,9 +587,51 @@ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
              jni, j_sslCertificateVerifier);
    }
  
@@ -475,3 +467,4 @@ index f449a98ed2..c257999e21 100644
 +      rtc_config, std::move(peer_connection_dependencies));
    if (!result.ok())
      return 0;
+ 
