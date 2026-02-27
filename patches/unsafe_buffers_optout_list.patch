@@ -1,31 +1,13 @@
 diff --git a/unsafe_buffers_paths.txt b/unsafe_buffers_paths.txt
-index 64c5244c7b..e2d2fb45bf 100644
+index 64c5244c7b..31b5697d6c 100644
 --- a/unsafe_buffers_paths.txt
 +++ b/unsafe_buffers_paths.txt
-@@ -164,6 +164,7 @@
- -common_video/h265/h265_inline.h
- -common_video/h265/h265_pps_parser.cc
- -common_video/h265/h265_sps_parser.cc
+@@ -735,3 +735,8 @@
+ -video/video_send_stream_tests.cc
+ -video/video_stream_encoder.cc
+ -video/video_stream_encoder_unittest.cc
++
 +-common_video/h265/h265_vps_parser.cc
- -common_video/libyuv/libyuv_unittest.cc
- -common_video/libyuv/webrtc_libyuv.cc
- -common_video/video_frame_unittest.cc
-@@ -626,6 +627,7 @@
- -rtc_base/file_rotating_stream.cc
- -rtc_base/file_rotating_stream_unittest.cc
- -rtc_base/ifaddrs_android.cc
 +-rtc_base/http_common_revive.cc
- -rtc_base/ip_address.cc
- -rtc_base/ip_address_unittest.cc
- -rtc_base/logging.cc
-@@ -639,8 +641,10 @@
- -rtc_base/openssl_utility.cc
- -rtc_base/physical_socket_server.cc
- -rtc_base/platform_thread_types.cc
 +-rtc_base/proxy_info_revive.cc
- -rtc_base/rate_tracker.cc
- -rtc_base/socket_adapters.cc
 +-rtc_base/socket_adapters_revive.cc
- -rtc_base/socket_unittest.cc
- -rtc_base/ssl_adapter_unittest.cc
- -rtc_base/ssl_identity.cc
