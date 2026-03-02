@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-03-02 [RELEASE] m144.7559.2.1-apple-vision-pro.0
+  - @torikizi
 - 2026-02-24 [UPDATE] visionOS ブランチを m144 にアップデートする
   - @torikizi
 - 2026-02-24 [UPDATE] visionOS ブランチを m143 にアップデートする
