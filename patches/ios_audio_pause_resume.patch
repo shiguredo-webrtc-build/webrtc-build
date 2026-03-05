@@ -131,10 +131,10 @@ index 0000000000..3e67c8582c
 +@end
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.h b/sdk/objc/components/audio/RTCAudioDeviceModule.h
 new file mode 100644
-index 0000000000..25af4d54ac
+index 0000000000..d5d00d3eee
 --- /dev/null
 +++ b/sdk/objc/components/audio/RTCAudioDeviceModule.h
-@@ -0,0 +1,27 @@
+@@ -0,0 +1,28 @@
 +// iOS 用の AudioDeviceModule を生成し、pauseRecording()/resumeRecording() を公開するためのラッパー
 +#import <Foundation/Foundation.h>
 +
@@ -158,7 +158,8 @@ index 0000000000..25af4d54ac
 +// 現在の AudioUnit に実際に適用されている音声バイパスの状態を返す。
 +// - AudioUnit が未初期化の場合は false を返す
 +// - 返り値は「要求した設定値」ではなく「実適用状態」を表す
-+// - 初期化前の設定意図を確認したい場合は should_bypass_voice_processing_ (または設定保持値) を参照すること
++// - 初期化前の設定を確認したい場合は initWithBypassVoiceProcessing: に渡した値、
++//   または最後に setBypassVoiceProcessing: に渡した値を参照すること
 +- (BOOL)isBypassVoiceProcessingEnabled;
 +
 +@end
@@ -237,7 +238,7 @@ index 1b73a533bb..10bd9c08fa 100644
  typedef void (^ADMErrorHandler)(ADMError error);
  }  // namespace webrtc
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.h b/sdk/objc/native/src/audio/audio_device_ios.h
-index d1788a33d7..225de5e08e 100644
+index d1788a33d7..3e6a5407ba 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.h
 +++ b/sdk/objc/native/src/audio/audio_device_ios.h
 @@ -80,6 +80,8 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
@@ -258,7 +259,7 @@ index d1788a33d7..225de5e08e 100644
  
    // AudioSessionObserver methods. May be called from any thread.
    void OnInterruptionBegin() override;
-@@ -222,10 +226,18 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
+@@ -222,10 +226,19 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
    // Resets thread-checkers before a call is restarted.
    void PrepareForNewStart();
  
@@ -275,12 +276,13 @@ index d1788a33d7..225de5e08e 100644
 -  const bool bypass_voice_processing_;
 +  // 音声バイパスを有効/無効にするかの希望値です。現在のバイパスの状態と必ず一致するとは限りません。
 +  // 現在のバイパスの状態を取得するには IsBypassVoiceProcessingEnabled() を利用してください。
++  // AudioUnit はルート変更や再初期化で再作成されるため、その際にバイパス設定を維持するためにも利用されます。
 +  bool should_bypass_voice_processing_;
  
    // Handle a user speaking during muted event
    AudioDeviceModule::MutedSpeechEventHandler muted_speech_event_handler_;
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index 594bd0820b..247c7acfde 100644
+index 594bd0820b..1a035b0263 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
 @@ -101,7 +101,7 @@ static void LogDeviceInfo() {
@@ -429,10 +431,14 @@ index 594bd0820b..247c7acfde 100644
    if (!audio_unit_->Init()) {
      audio_unit_.reset();
      return false;
-@@ -1173,6 +1276,24 @@ static void LogDeviceInfo() {
+@@ -1173,6 +1276,28 @@ static void LogDeviceInfo() {
    return 0;
  }
  
++// `should_bypass_voice_processing_` は `希望する設定値` を保持する。
++// 即時適用に失敗してもロールバックしない。
++// 失敗時は現在の AudioUnit 実状態と乖離する可能性があるが、
++// 次回の初期化/再初期化時に希望値の再適用を試みる。
 +int32_t AudioDeviceIOS::SetBypassVoiceProcessing(bool enable) {
 +  RTC_DCHECK_RUN_ON(thread_);
 +  should_bypass_voice_processing_ = enable;
