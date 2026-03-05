@@ -606,7 +606,7 @@ index cad6fe5105..ee45055471 100644
    VoiceProcessingAudioUnitObserver* observer_;
    AudioUnit vpio_unit_;
 diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.mm b/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
-index 1bd895687d..f307ad03ef 100644
+index 1bd895687d..f1e1c9ecbb 100644
 --- a/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
 +++ b/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
 @@ -78,7 +78,7 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
@@ -618,7 +618,7 @@ index 1bd895687d..f307ad03ef 100644
        detect_mute_speech_(detect_mute_speech),
        observer_(observer),
        vpio_unit_(nullptr),
-@@ -307,20 +307,9 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
+@@ -307,20 +307,12 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
      }
    }
  
@@ -637,12 +637,15 @@ index 1bd895687d..f307ad03ef 100644
 -      RTCLogError(@"Failed to bypass voice processing. Error=%ld.",
 -                  (long)result);
 +  if (should_bypass_voice_processing_) {
++    // バイパス設定をベストエフォートで適用します。
++    // エラーの場合でも初期化処理自体をエラーにはしません。
 +    if (!ApplyBypassVoiceProcessing()) {
-+      return false;
++      RTCLogWarning(@"Bypass voice processing could not be applied at initialization. "
++                    "Continue without bypass.");
      }
      state_ = kInitialized;
      return true;
-@@ -473,6 +462,55 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
+@@ -473,6 +465,55 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
    return true;
  }
  
