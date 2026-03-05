@@ -131,10 +131,10 @@ index 0000000000..3e67c8582c
 +@end
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.h b/sdk/objc/components/audio/RTCAudioDeviceModule.h
 new file mode 100644
-index 0000000000..12d636378a
+index 0000000000..25af4d54ac
 --- /dev/null
 +++ b/sdk/objc/components/audio/RTCAudioDeviceModule.h
-@@ -0,0 +1,24 @@
+@@ -0,0 +1,27 @@
 +// iOS 用の AudioDeviceModule を生成し、pauseRecording()/resumeRecording() を公開するためのラッパー
 +#import <Foundation/Foundation.h>
 +
@@ -155,7 +155,10 @@ index 0000000000..12d636378a
 +- (NSInteger)resumeRecording;
 +// 音声バイパス処理の有効化 / 無効化を設定する。
 +- (NSInteger)setBypassVoiceProcessing:(BOOL)enabled;
-+// 現在の音声バイパス設定を取得する。
++// 現在の AudioUnit に実際に適用されている音声バイパスの状態を返す。
++// - AudioUnit が未初期化の場合は false を返す
++// - 返り値は「要求した設定値」ではなく「実適用状態」を表す
++// - 初期化前の設定意図を確認したい場合は should_bypass_voice_processing_ (または設定保持値) を参照すること
 +- (BOOL)isBypassVoiceProcessingEnabled;
 +
 +@end
