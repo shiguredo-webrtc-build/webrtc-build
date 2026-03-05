@@ -568,27 +568,33 @@ index e2ea360e2f..1d5cf2d8d2 100644
    RTC_DLOG(LS_INFO) << __FUNCTION__;
    CHECKinitialized_();
 diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.h b/sdk/objc/native/src/audio/voice_processing_audio_unit.h
-index cad6fe5105..e3aaa9de64 100644
+index cad6fe5105..ee45055471 100644
 --- a/sdk/objc/native/src/audio/voice_processing_audio_unit.h
 +++ b/sdk/objc/native/src/audio/voice_processing_audio_unit.h
-@@ -94,6 +94,10 @@ class VoiceProcessingAudioUnit {
+@@ -94,6 +94,14 @@ class VoiceProcessingAudioUnit {
  
    // Mutes the microphone.
    bool SetMicrophoneMute(bool enable);
-+  // 音声バイパス処理の有効化 / 無効化を設定する。
++  // 音声バイパス設定を更新する。
++  // 状態が kInitialized であれば ApplyBypassVoiceProcessing() を呼び、即時に AudioUnit へ適用する。
++  // それ以外の状態であれば should_bypass_voice_processing_ に要求値を保持し、
++  // 実適用は初期化完了時まで遅延する。(Initialize 内で ApplyBypassVoiceProcessing() が呼ばれる)
++  // 即時適用を試みて失敗した場合のみ false が返る。
 +  bool SetBypassVoiceProcessing(bool enable);
 +  // 音声バイパスが有効かどうか取得する。
 +  bool IsBypassVoiceProcessingEnabled() const;
  
    // Calls render on the underlying audio unit.
    OSStatus Render(AudioUnitRenderActionFlags* flags,
-@@ -138,8 +142,9 @@ class VoiceProcessingAudioUnit {
- 
+@@ -139,7 +147,11 @@ class VoiceProcessingAudioUnit {
    // Deletes the underlying audio unit.
    void DisposeAudioUnit();
-+  bool ApplyBypassVoiceProcessing();
  
 -  const bool bypass_voice_processing_;
++  // 現在保持している音声バイパスの要求値を AudioUnit に適用する。
++  // AudioUnit が初期化済みであることを前提とする。
++  bool ApplyBypassVoiceProcessing();
++
 +  bool should_bypass_voice_processing_;
    const bool detect_mute_speech_;
    VoiceProcessingAudioUnitObserver* observer_;
