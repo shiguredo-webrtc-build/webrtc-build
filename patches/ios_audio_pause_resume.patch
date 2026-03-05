@@ -1,8 +1,8 @@
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index f61cf30..aab3684 100644
+index ba8ce38c84..2446d4f68d 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
-@@ -172,6 +172,7 @@ if (is_ios || is_mac) {
+@@ -160,6 +160,7 @@ if (is_ios || is_mac) {
        sources += [
          "objc/helpers/UIDevice+RTCDevice.h",
          "objc/helpers/UIDevice+RTCDevice.mm",
@@ -10,7 +10,7 @@ index f61cf30..aab3684 100644
        ]
  
        if (target_platform != "tvos") {
-@@ -1369,6 +1370,7 @@ if (is_ios || is_mac) {
+@@ -1360,6 +1361,7 @@ if (is_ios || is_mac) {
            "objc/base/RTCVideoRenderer.h",
            "objc/base/RTCYUVPlanarBuffer.h",
            "objc/components/audio/RTCAudioDevice.h",
@@ -19,7 +19,7 @@ index f61cf30..aab3684 100644
            "objc/components/audio/RTCAudioSessionConfiguration.h",
            "objc/components/capturer/RTCCameraVideoCapturer.h",
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h
-index 8287bcf..7090921 100644
+index 8287bcf3d0..709092138e 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h
 @@ -11,6 +11,7 @@
@@ -57,10 +57,10 @@ index 8287bcf..7090921 100644
   * Valid kind values are kRTCMediaStreamTrackKindAudio and
   * kRTCMediaStreamTrackKindVideo.
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
-index 233cf25..0c20512 100644
+index 0924fc2b30..34ef2786ca 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
-@@ -14,6 +14,7 @@
+@@ -15,6 +15,7 @@
  #import "RTCPeerConnectionFactory+Private.h"
  #import "RTCPeerConnectionFactoryOptions+Private.h"
  #import "RTCRtpCapabilities+Private.h"
@@ -68,7 +68,7 @@ index 233cf25..0c20512 100644
  
  #import "RTCAudioSource+Private.h"
  #import "RTCAudioTrack+Private.h"
-@@ -189,6 +190,43 @@ - (instancetype)init {
+@@ -194,6 +195,43 @@ - (instancetype)init {
  #endif
  }
  
@@ -114,7 +114,7 @@ index 233cf25..0c20512 100644
    self = [super init];
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule+Private.h b/sdk/objc/components/audio/RTCAudioDeviceModule+Private.h
 new file mode 100644
-index 0000000..3e67c85
+index 0000000000..3e67c8582c
 --- /dev/null
 +++ b/sdk/objc/components/audio/RTCAudioDeviceModule+Private.h
 @@ -0,0 +1,11 @@
@@ -131,10 +131,10 @@ index 0000000..3e67c85
 +@end
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.h b/sdk/objc/components/audio/RTCAudioDeviceModule.h
 new file mode 100644
-index 0000000..60c4eb6
+index 0000000000..12d636378a
 --- /dev/null
 +++ b/sdk/objc/components/audio/RTCAudioDeviceModule.h
-@@ -0,0 +1,17 @@
+@@ -0,0 +1,24 @@
 +// iOS 用の AudioDeviceModule を生成し、pauseRecording()/resumeRecording() を公開するためのラッパー
 +#import <Foundation/Foundation.h>
 +
@@ -145,19 +145,26 @@ index 0000000..60c4eb6
 +
 +// 内部で AudioDeviceModuleIOS を生成する
 +- (instancetype)init;
++// 内部で AudioDeviceModuleIOS を生成する。`enabled` が true の場合は
++// VoiceProcessing のバイパス有効を初期値として生成する。
++- (instancetype)initWithBypassVoiceProcessing:(BOOL)enabled;
 +
 +// 録音を一時停止する。内部で AudioDeviceModuleIOS::PauseRecording() を呼ぶ
 +- (NSInteger)pauseRecording;
 +// 録音を再開する。内部で AudioDeviceModuleIOS::ResumeRecording() を呼ぶ
 +- (NSInteger)resumeRecording;
++// 音声バイパス処理の有効化 / 無効化を設定する。
++- (NSInteger)setBypassVoiceProcessing:(BOOL)enabled;
++// 現在の音声バイパス設定を取得する。
++- (BOOL)isBypassVoiceProcessingEnabled;
 +
 +@end
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.mm b/sdk/objc/components/audio/RTCAudioDeviceModule.mm
 new file mode 100644
-index 0000000..d1e495f
+index 0000000000..dc3e37b078
 --- /dev/null
 +++ b/sdk/objc/components/audio/RTCAudioDeviceModule.mm
-@@ -0,0 +1,40 @@
+@@ -0,0 +1,56 @@
 +#import "RTCAudioDeviceModule.h"
 +
 +#include "api/environment/environment_factory.h"
@@ -173,10 +180,14 @@ index 0000000..d1e495f
 +@implementation RTC_OBJC_TYPE(RTCAudioDeviceModule)
 +
 +- (instancetype)init {
++  return [self initWithBypassVoiceProcessing:NO];
++}
++
++- (instancetype)initWithBypassVoiceProcessing:(BOOL)enabled {
 +  self = [super init];
 +  if (self) {
 +    auto env = webrtc::CreateEnvironment();
-+    _adm = webrtc::CreateAudioDeviceModule(env);
++    _adm = webrtc::CreateAudioDeviceModule(env, enabled);
 +  }
 +  return self;
 +}
@@ -197,9 +208,33 @@ index 0000000..d1e495f
 +  return ptr->ResumeRecording();
 +}
 +
++- (NSInteger)setBypassVoiceProcessing:(BOOL)enabled {
++  auto ptr =
++      static_cast<webrtc::ios_adm::AudioDeviceModuleIOS*>(_adm.get());
++  return ptr->SetBypassVoiceProcessing(enabled);
++}
++
++- (BOOL)isBypassVoiceProcessingEnabled {
++  auto ptr =
++      static_cast<webrtc::ios_adm::AudioDeviceModuleIOS*>(_adm.get());
++  return ptr->IsBypassVoiceProcessingEnabled() ? YES : NO;
++}
++
 +@end
+diff --git a/sdk/objc/native/api/audio_device_module_error_handler.h b/sdk/objc/native/api/audio_device_module_error_handler.h
+index 1b73a533bb..10bd9c08fa 100644
+--- a/sdk/objc/native/api/audio_device_module_error_handler.h
++++ b/sdk/objc/native/api/audio_device_module_error_handler.h
+@@ -47,6 +47,7 @@ enum ADMError : uint8_t {
+   kEnableBuiltInAECFailed,
+   kEnableBuiltInAGCFailed,
+   kEnableBuiltInNSFailed,
++  kBypassVoiceProcessingFailed,
+ };
+ typedef void (^ADMErrorHandler)(ADMError error);
+ }  // namespace webrtc
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.h b/sdk/objc/native/src/audio/audio_device_ios.h
-index d1788a3..a3355a0 100644
+index d1788a33d7..225de5e08e 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.h
 +++ b/sdk/objc/native/src/audio/audio_device_ios.h
 @@ -80,6 +80,8 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
@@ -211,7 +246,16 @@ index d1788a3..a3355a0 100644
    int32_t StopRecording() override;
    bool Recording() const override;
  
-@@ -222,6 +224,13 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
+@@ -150,6 +152,8 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
+   int32_t StereoRecordingIsAvailable(bool& available) override;
+   int32_t SetStereoRecording(bool enable) override;
+   int32_t StereoRecording(bool& enabled) const override;
++  int32_t SetBypassVoiceProcessing(bool enable);
++  bool IsBypassVoiceProcessingEnabled() const;
+ 
+   // AudioSessionObserver methods. May be called from any thread.
+   void OnInterruptionBegin() override;
+@@ -222,10 +226,18 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
    // Resets thread-checkers before a call is restarted.
    void PrepareForNewStart();
  
@@ -224,12 +268,37 @@ index d1788a3..a3355a0 100644
 +
    const Environment env_;
  
-   // Determines whether voice processing should be enabled or disabled.
+-  // Determines whether voice processing should be enabled or disabled.
+-  const bool bypass_voice_processing_;
++  // 音声バイパスを有効/無効にするかの希望値です。現在のバイパスの状態と必ず一致するとは限りません。
++  // 現在のバイパスの状態を取得するには IsBypassVoiceProcessingEnabled() を利用してください。
++  bool should_bypass_voice_processing_;
+ 
+   // Handle a user speaking during muted event
+   AudioDeviceModule::MutedSpeechEventHandler muted_speech_event_handler_;
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index 021f08a..11c9286 100644
+index 594bd0820b..247c7acfde 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
-@@ -330,7 +330,9 @@ static void LogDeviceInfo() {
+@@ -101,7 +101,7 @@ static void LogDeviceInfo() {
+     AudioDeviceModule::MutedSpeechEventHandler muted_speech_event_handler,
+     AudioDeviceIOSRenderErrorHandler render_error_handler)
+     : env_(env),
+-      bypass_voice_processing_(bypass_voice_processing),
++      should_bypass_voice_processing_(bypass_voice_processing),
+       muted_speech_event_handler_(muted_speech_event_handler),
+       render_error_handler_(render_error_handler),
+       disregard_next_render_error_(false),
+@@ -124,7 +124,7 @@ static void LogDeviceInfo() {
+       hw_output_latency_(0),
+       last_hw_output_latency_update_sample_count_(0) {
+   LOGI() << "ctor" << ios::GetCurrentThreadDescription()
+-         << ",bypass_voice_processing=" << bypass_voice_processing_;
++         << ",bypass_voice_processing=" << should_bypass_voice_processing_;
+   io_thread_checker_.Detach();
+   thread_ = webrtc::Thread::Current();
+ 
+@@ -329,7 +329,9 @@ static void LogDeviceInfo() {
  int32_t AudioDeviceIOS::StopRecording() {
    LOGI() << "StopRecording";
    RTC_DCHECK_RUN_ON(thread_);
@@ -240,7 +309,7 @@ index 021f08a..11c9286 100644
      return 0;
    }
    if (!playing_.load()) {
-@@ -340,6 +342,107 @@ static void LogDeviceInfo() {
+@@ -339,6 +341,107 @@ static void LogDeviceInfo() {
    return 0;
  }
  
@@ -348,8 +417,42 @@ index 021f08a..11c9286 100644
  bool AudioDeviceIOS::Recording() const {
    return recording_.load();
  }
+@@ -821,7 +924,7 @@ static void LogDeviceInfo() {
+   }
+   BOOL detect_mute_speech_ = (muted_speech_event_handler_ != 0);
+   audio_unit_.reset(new VoiceProcessingAudioUnit(
+-      bypass_voice_processing_, detect_mute_speech_, this));
++      should_bypass_voice_processing_, detect_mute_speech_, this));
+   if (!audio_unit_->Init()) {
+     audio_unit_.reset();
+     return false;
+@@ -1173,6 +1276,24 @@ static void LogDeviceInfo() {
+   return 0;
+ }
+ 
++int32_t AudioDeviceIOS::SetBypassVoiceProcessing(bool enable) {
++  RTC_DCHECK_RUN_ON(thread_);
++  should_bypass_voice_processing_ = enable;
++  if (audio_unit_ && !audio_unit_->SetBypassVoiceProcessing(enable)) {
++    RTCLogError(@"Failed to set bypass voice processing. enabled=%d", enable);
++    return -1;
++  }
++  return 0;
++}
++
++bool AudioDeviceIOS::IsBypassVoiceProcessingEnabled() const {
++  RTC_DCHECK_RUN_ON(thread_);
++  if (!audio_unit_) {
++    return false;
++  }
++  return audio_unit_->IsBypassVoiceProcessingEnabled();
++}
++
+ int32_t AudioDeviceIOS::MicrophoneMute(bool& enabled) const {
+   RTC_DCHECK_NOTREACHED() << "Not implemented";
+   return -1;
 diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.h b/sdk/objc/native/src/audio/audio_device_module_ios.h
-index 5ff5062..987deb8 100644
+index 5ff50621b3..2e04a239c1 100644
 --- a/sdk/objc/native/src/audio/audio_device_module_ios.h
 +++ b/sdk/objc/native/src/audio/audio_device_module_ios.h
 @@ -76,6 +76,8 @@ class AudioDeviceModuleIOS : public AudioDeviceModule {
@@ -361,11 +464,74 @@ index 5ff5062..987deb8 100644
    int32_t StopRecording() override;
    bool Recording() const override;
  
+@@ -109,6 +111,10 @@ class AudioDeviceModuleIOS : public AudioDeviceModule {
+   int32_t SetMicrophoneMute(bool enable) override;
+   int32_t MicrophoneMute(bool* enabled) const override;
+ 
++  // Voice processing control
++  int32_t SetBypassVoiceProcessing(bool enable);
++  bool IsBypassVoiceProcessingEnabled() const;
++
+   // Stereo support
+   int32_t StereoPlayoutIsAvailable(bool* available) const override;
+   int32_t SetStereoPlayout(bool enable) override;
+@@ -139,7 +145,7 @@ class AudioDeviceModuleIOS : public AudioDeviceModule {
+   void ReportError(ADMError error) const;
+ 
+   const Environment env_;
+-  const bool bypass_voice_processing_;
++  const bool should_bypass_voice_processing_;
+   MutedSpeechEventHandler muted_speech_event_handler_;
+   ADMErrorHandler error_handler_;
+   bool initialized_ = false;
 diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.mm b/sdk/objc/native/src/audio/audio_device_module_ios.mm
-index e2ea360..a1cd5ca 100644
+index e2ea360e2f..1d5cf2d8d2 100644
 --- a/sdk/objc/native/src/audio/audio_device_module_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_module_ios.mm
-@@ -652,6 +652,32 @@
+@@ -48,7 +48,7 @@
+     MutedSpeechEventHandler muted_speech_event_handler,
+     ADMErrorHandler error_handler)
+     : env_(env),
+-      bypass_voice_processing_(bypass_voice_processing),
++      should_bypass_voice_processing_(bypass_voice_processing),
+       muted_speech_event_handler_(muted_speech_event_handler),
+       error_handler_(error_handler) {
+   RTC_LOG(LS_INFO) << "current platform is IOS";
+@@ -92,7 +92,7 @@
+   audio_device_buffer_ = std::make_unique<AudioDeviceBuffer>(env_);
+   audio_device_ =
+       std::make_unique<ios_adm::AudioDeviceIOS>(env_,
+-                                                bypass_voice_processing_,
++                                                should_bypass_voice_processing_,
+                                                 muted_speech_event_handler_,
+                                                 error_handler);
+   RTC_CHECK(audio_device_);
+@@ -295,6 +295,24 @@
+   return 0;
+ }
+ 
++int32_t AudioDeviceModuleIOS::SetBypassVoiceProcessing(bool enable) {
++  RTC_DLOG(LS_INFO) << __FUNCTION__ << "(" << enable << ")";
++  CHECKinitialized_();
++  int32_t result = audio_device_->SetBypassVoiceProcessing(enable);
++  if (result != 0) {
++    ReportError(kBypassVoiceProcessingFailed);
++  }
++  return result;
++}
++
++bool AudioDeviceModuleIOS::IsBypassVoiceProcessingEnabled() const {
++  RTC_DLOG(LS_INFO) << __FUNCTION__;
++  CHECKinitialized__BOOL();
++  bool bypass_enabled = audio_device_->IsBypassVoiceProcessingEnabled();
++  RTC_DLOG(LS_INFO) << "output: " << bypass_enabled;
++  return bypass_enabled;
++}
++
+ int32_t AudioDeviceModuleIOS::MicrophoneVolumeIsAvailable(bool* available) {
+   RTC_DLOG(LS_INFO) << __FUNCTION__;
+   CHECKinitialized_();
+@@ -652,6 +670,32 @@
    return result;
  }
  
@@ -398,3 +564,122 @@ index e2ea360..a1cd5ca 100644
  int32_t AudioDeviceModuleIOS::StopRecording() {
    RTC_DLOG(LS_INFO) << __FUNCTION__;
    CHECKinitialized_();
+diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.h b/sdk/objc/native/src/audio/voice_processing_audio_unit.h
+index cad6fe5105..e3aaa9de64 100644
+--- a/sdk/objc/native/src/audio/voice_processing_audio_unit.h
++++ b/sdk/objc/native/src/audio/voice_processing_audio_unit.h
+@@ -94,6 +94,10 @@ class VoiceProcessingAudioUnit {
+ 
+   // Mutes the microphone.
+   bool SetMicrophoneMute(bool enable);
++  // 音声バイパス処理の有効化 / 無効化を設定する。
++  bool SetBypassVoiceProcessing(bool enable);
++  // 音声バイパスが有効かどうか取得する。
++  bool IsBypassVoiceProcessingEnabled() const;
+ 
+   // Calls render on the underlying audio unit.
+   OSStatus Render(AudioUnitRenderActionFlags* flags,
+@@ -138,8 +142,9 @@ class VoiceProcessingAudioUnit {
+ 
+   // Deletes the underlying audio unit.
+   void DisposeAudioUnit();
++  bool ApplyBypassVoiceProcessing();
+ 
+-  const bool bypass_voice_processing_;
++  bool should_bypass_voice_processing_;
+   const bool detect_mute_speech_;
+   VoiceProcessingAudioUnitObserver* observer_;
+   AudioUnit vpio_unit_;
+diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.mm b/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
+index 1bd895687d..f307ad03ef 100644
+--- a/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
++++ b/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
+@@ -78,7 +78,7 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
+     bool bypass_voice_processing,
+     bool detect_mute_speech,
+     VoiceProcessingAudioUnitObserver* observer)
+-    : bypass_voice_processing_(bypass_voice_processing),
++    : should_bypass_voice_processing_(bypass_voice_processing),
+       detect_mute_speech_(detect_mute_speech),
+       observer_(observer),
+       vpio_unit_(nullptr),
+@@ -307,20 +307,9 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
+     }
+   }
+ 
+-  if (bypass_voice_processing_) {
+-    // Attempt to disable builtin voice processing.
+-    UInt32 toggle = 1;
+-    result = AudioUnitSetProperty(vpio_unit_,
+-                                  kAUVoiceIOProperty_BypassVoiceProcessing,
+-                                  kAudioUnitScope_Global,
+-                                  kInputBus,
+-                                  &toggle,
+-                                  sizeof(toggle));
+-    if (result == noErr) {
+-      RTCLog(@"Successfully bypassed voice processing.");
+-    } else {
+-      RTCLogError(@"Failed to bypass voice processing. Error=%ld.",
+-                  (long)result);
++  if (should_bypass_voice_processing_) {
++    if (!ApplyBypassVoiceProcessing()) {
++      return false;
+     }
+     state_ = kInitialized;
+     return true;
+@@ -473,6 +462,55 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
+   return true;
+ }
+ 
++bool VoiceProcessingAudioUnit::SetBypassVoiceProcessing(bool enable) {
++  should_bypass_voice_processing_ = enable;
++  if (state_ < kInitialized || !vpio_unit_) {
++    return true;
++  }
++  return ApplyBypassVoiceProcessing();
++}
++
++bool VoiceProcessingAudioUnit::IsBypassVoiceProcessingEnabled() const {
++  if (state_ < kInitialized || !vpio_unit_) {
++    return false;
++  }
++
++  UInt32 bypass_enabled = 0;
++  UInt32 size = sizeof(bypass_enabled);
++  OSStatus result = AudioUnitGetProperty(vpio_unit_,
++                                         kAUVoiceIOProperty_BypassVoiceProcessing,
++                                         kAudioUnitScope_Global,
++                                         kInputBus,
++                                         &bypass_enabled,
++                                         &size);
++  if (result != noErr) {
++    RTCLogError(@"Failed to get bypass voice processing state. Error=%ld",
++                (long)result);
++    return false;
++  }
++  return bypass_enabled == 1;
++}
++
++bool VoiceProcessingAudioUnit::ApplyBypassVoiceProcessing() {
++  RTC_DCHECK(vpio_unit_);
++  UInt32 toggle = should_bypass_voice_processing_ ? 1 : 0;
++  OSStatus result = AudioUnitSetProperty(vpio_unit_,
++                                         kAUVoiceIOProperty_BypassVoiceProcessing,
++                                         kAudioUnitScope_Global,
++                                         kInputBus,
++                                         &toggle,
++                                         sizeof(toggle));
++  if (result != noErr) {
++    RTCLogError(@"Failed to set bypass voice processing. enabled=%d, Error=%ld",
++                should_bypass_voice_processing_,
++                (long)result);
++    return false;
++  }
++  RTCLog(@"Set bypass voice processing. enabled=%d",
++         should_bypass_voice_processing_);
++  return true;
++}
++
+ OSStatus VoiceProcessingAudioUnit::Render(AudioUnitRenderActionFlags* flags,
+                                           const AudioTimeStamp* time_stamp,
+                                           UInt32 output_bus_number,

@@ -29,6 +29,13 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-03-05 [ADD] iOS SDK 向けに音声入力のバイパス処理を追加する
+  - ios_audio_pause_resume.patch への追加
+  - RTCAudioDeviceModule に公開 API を追加する
+    - 初期化時にバイパスを有効にするフラグを受け取るコントラクタ
+    - 音声バイパスの切り替えを行う setBypassVoiceProcessing メソッド
+    - 音声バイパスが有効かを取得する isBypassVoiceProcessingEnabled メソッド
+  - @t-miya
 - 2026-02-27 [RELEASE] m146.7680.0.0
   - @miosakuma
 - 2026-02-27 [UPDATE] m146 ブランチのビルドエラーに対する対応
