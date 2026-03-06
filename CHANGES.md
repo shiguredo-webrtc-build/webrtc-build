@@ -29,6 +29,10 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-03-06 [ADD] RTCSSLCertificateVerifier に verifyChain を追加する
+  - `SSLCertificateVerifier::VerifyChain(const SSLCertChain&)` と ObjC の `RTCSSLCertificateVerifier` を接続する ObjC/C++ ブリッジを追加する
+  - `verifyChain:` 未実装時は `verify:` へフォールバックする
+  - @zztkm
 - 2026-02-27 [RELEASE] m146.7680.0.0
   - @miosakuma
 - 2026-02-27 [UPDATE] m146 ブランチのビルドエラーに対する対応
