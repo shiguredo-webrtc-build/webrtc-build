@@ -551,7 +551,7 @@ index cad6fe5105..05bb66b995 100644
    VoiceProcessingAudioUnitObserver* observer_;
    AudioUnit vpio_unit_;
 diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.mm b/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
-index 1bd895687d..d030c3424b 100644
+index 1bd895687d..b323832fc6 100644
 --- a/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
 +++ b/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
 @@ -308,19 +308,11 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
@@ -579,13 +579,17 @@ index 1bd895687d..d030c3424b 100644
      }
      state_ = kInitialized;
      return true;
-@@ -473,6 +465,55 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
+@@ -473,6 +465,59 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
    return true;
  }
  
 +bool VoiceProcessingAudioUnit::SetBypassVoiceProcessing(bool enable) {
 +  bypass_voice_processing_ = enable;
 +  if (state_ < kInitialized || !vpio_unit_) {
++    RTCLog(@"Defer SetBypassVoiceProcessing: enable=%d, state=%d, has_vpio_unit=%d",
++           enable,
++           static_cast<int>(state_),
++           vpio_unit_ != nullptr);
 +    return true;
 +  }
 +  return ApplyBypassVoiceProcessing();
