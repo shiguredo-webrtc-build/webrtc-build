@@ -1,0 +1,128 @@
+diff --git a/sdk/android/api/org/webrtc/SSLCertificateVerifier.java b/sdk/android/api/org/webrtc/SSLCertificateVerifier.java
+index 461cd3b..3093960 100644
+--- a/sdk/android/api/org/webrtc/SSLCertificateVerifier.java
++++ b/sdk/android/api/org/webrtc/SSLCertificateVerifier.java
+@@ -24,4 +24,21 @@ public interface SSLCertificateVerifier {
+    * @return True if the certificate is verified and trusted else false.
+    */
+   @CalledByNative boolean verify(byte[] certificate);
++
++  /**
++   * Implementations of verifyChain allow applications to validate the full
++   * certificate chain (leaf first, then intermediates). The default
++   * implementation falls back to verify the leaf certificate for backward
++   * compatibility.
++   *
++   * @param certificateChain A DER encoded X509 certificate chain.
++   * @return True if the certificate chain is verified and trusted else false.
++   */
++  @CalledByNative
++  default boolean verifyChain(byte[][] certificateChain) {
++    if (certificateChain == null || certificateChain.length == 0) {
++      return false;
++    }
++    return verify(certificateChain[0]);
++  }
+ }
+diff --git a/sdk/android/src/jni/pc/ssl_certificate_verifier_wrapper.cc b/sdk/android/src/jni/pc/ssl_certificate_verifier_wrapper.cc
+index 48f23c9..1dd7dbe 100644
+--- a/sdk/android/src/jni/pc/ssl_certificate_verifier_wrapper.cc
++++ b/sdk/android/src/jni/pc/ssl_certificate_verifier_wrapper.cc
+@@ -15,12 +15,52 @@
+ #include "rtc_base/buffer.h"
+ #include "rtc_base/ssl_certificate.h"
+ #include "sdk/android/generated_peerconnection_jni/SSLCertificateVerifier_jni.h"
++#include "sdk/android/native_api/jni/class_loader.h"
+ #include "sdk/android/native_api/jni/jvm.h"
+ #include "sdk/android/native_api/jni/scoped_java_ref.h"
+ 
+ namespace webrtc {
+ namespace jni {
+ 
++namespace {
++
++ScopedJavaLocalRef<jbyteArray> SerializeCertificate(
++    JNIEnv* jni,
++    const SSLCertificate& certificate) {
++  Buffer cert_der_buffer;
++  certificate.ToDER(&cert_der_buffer);
++  ScopedJavaLocalRef<jbyteArray> jni_buffer =
++      ScopedJavaLocalRef<jbyteArray>::Adopt(
++          jni, jni->NewByteArray(cert_der_buffer.size()));
++  jni->SetByteArrayRegion(
++      jni_buffer.obj(), 0, cert_der_buffer.size(),
++      reinterpret_cast<const jbyte*>(cert_der_buffer.data()));
++  return jni_buffer;
++}
++
++ScopedJavaLocalRef<jobjectArray> SerializeCertificateChain(
++    JNIEnv* jni,
++    const SSLCertChain& chain) {
++  RTC_DCHECK(chain.GetSize() > 0);
++  ScopedJavaLocalRef<jbyteArray> first_certificate =
++      SerializeCertificate(jni, chain.Get(0));
++  ScopedJavaLocalRef<jclass> byte_array_class = webrtc::GetClass(jni, "[B");
++  ScopedJavaLocalRef<jobjectArray> jni_chain =
++      ScopedJavaLocalRef<jobjectArray>::Adopt(
++          jni,
++          jni->NewObjectArray(static_cast<jsize>(chain.GetSize()),
++                              byte_array_class.obj(), nullptr));
++  jni->SetObjectArrayElement(jni_chain.obj(), 0, first_certificate.obj());
++  for (size_t i = 1; i < chain.GetSize(); ++i) {
++    ScopedJavaLocalRef<jbyteArray> certificate =
++        SerializeCertificate(jni, chain.Get(i));
++    jni->SetObjectArrayElement(jni_chain.obj(), i, certificate.obj());
++  }
++  return jni_chain;
++}
++
++}  // namespace
++
+ SSLCertificateVerifierWrapper::SSLCertificateVerifierWrapper(
+     JNIEnv* jni,
+     const JavaRef<jobject>& ssl_certificate_verifier)
+@@ -30,20 +70,22 @@ SSLCertificateVerifierWrapper::~SSLCertificateVerifierWrapper() = default;
+ 
+ bool SSLCertificateVerifierWrapper::Verify(const SSLCertificate& certificate) {
+   JNIEnv* jni = AttachCurrentThreadIfNeeded();
+-
+-  // Serialize the der encoding of the cert into a jbyteArray
+-  Buffer cert_der_buffer;
+-  certificate.ToDER(&cert_der_buffer);
+   ScopedJavaLocalRef<jbyteArray> jni_buffer =
+-      ScopedJavaLocalRef<jbyteArray>::Adopt(
+-          jni, jni->NewByteArray(cert_der_buffer.size()));
+-  jni->SetByteArrayRegion(
+-      jni_buffer.obj(), 0, cert_der_buffer.size(),
+-      reinterpret_cast<const jbyte*>(cert_der_buffer.data()));
+-
++      SerializeCertificate(jni, certificate);
+   return Java_SSLCertificateVerifier_verify(jni, ssl_certificate_verifier_,
+                                             jni_buffer);
+ }
+ 
++bool SSLCertificateVerifierWrapper::VerifyChain(const SSLCertChain& chain) {
++  if (chain.GetSize() == 0) {
++    return false;
++  }
++  JNIEnv* jni = AttachCurrentThreadIfNeeded();
++  ScopedJavaLocalRef<jobjectArray> jni_chain =
++      SerializeCertificateChain(jni, chain);
++  return Java_SSLCertificateVerifier_verifyChain(
++      jni, ssl_certificate_verifier_, jni_chain);
++}
++
+ }  // namespace jni
+ }  // namespace webrtc
+diff --git a/sdk/android/src/jni/pc/ssl_certificate_verifier_wrapper.h b/sdk/android/src/jni/pc/ssl_certificate_verifier_wrapper.h
+index 7741536..069707c 100644
+--- a/sdk/android/src/jni/pc/ssl_certificate_verifier_wrapper.h
++++ b/sdk/android/src/jni/pc/ssl_certificate_verifier_wrapper.h
+@@ -29,6 +29,7 @@ class SSLCertificateVerifierWrapper : public SSLCertificateVerifier {
+   ~SSLCertificateVerifierWrapper() override;
+ 
+   bool Verify(const SSLCertificate& certificate) override;
++  bool VerifyChain(const SSLCertChain& chain) override;
+ 
+  private:
+   const ScopedJavaGlobalRef<jobject> ssl_certificate_verifier_;
