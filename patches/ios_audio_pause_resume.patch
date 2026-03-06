@@ -237,7 +237,7 @@ index 1b73a533bb..10bd9c08fa 100644
  typedef void (^ADMErrorHandler)(ADMError error);
  }  // namespace webrtc
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.h b/sdk/objc/native/src/audio/audio_device_ios.h
-index d1788a33d7..3e6a5407ba 100644
+index d1788a33d7..df02cb56c5 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.h
 +++ b/sdk/objc/native/src/audio/audio_device_ios.h
 @@ -80,6 +80,8 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
@@ -276,32 +276,14 @@ index d1788a33d7..3e6a5407ba 100644
 +  // 音声バイパスを有効/無効にするかの希望値です。現在のバイパスの状態と必ず一致するとは限りません。
 +  // 現在のバイパスの状態を取得するには IsBypassVoiceProcessingEnabled() を利用してください。
 +  // AudioUnit はルート変更や再初期化で再作成されるため、その際にバイパス設定を維持するためにも利用されます。
-+  bool should_bypass_voice_processing_;
++  bool bypass_voice_processing_;
  
    // Handle a user speaking during muted event
    AudioDeviceModule::MutedSpeechEventHandler muted_speech_event_handler_;
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index 594bd0820b..1a035b0263 100644
+index 594bd0820b..1ef6fda24b 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
-@@ -101,7 +101,7 @@ static void LogDeviceInfo() {
-     AudioDeviceModule::MutedSpeechEventHandler muted_speech_event_handler,
-     AudioDeviceIOSRenderErrorHandler render_error_handler)
-     : env_(env),
--      bypass_voice_processing_(bypass_voice_processing),
-+      should_bypass_voice_processing_(bypass_voice_processing),
-       muted_speech_event_handler_(muted_speech_event_handler),
-       render_error_handler_(render_error_handler),
-       disregard_next_render_error_(false),
-@@ -124,7 +124,7 @@ static void LogDeviceInfo() {
-       hw_output_latency_(0),
-       last_hw_output_latency_update_sample_count_(0) {
-   LOGI() << "ctor" << ios::GetCurrentThreadDescription()
--         << ",bypass_voice_processing=" << bypass_voice_processing_;
-+         << ",bypass_voice_processing=" << should_bypass_voice_processing_;
-   io_thread_checker_.Detach();
-   thread_ = webrtc::Thread::Current();
- 
 @@ -329,7 +329,9 @@ static void LogDeviceInfo() {
  int32_t AudioDeviceIOS::StopRecording() {
    LOGI() << "StopRecording";
@@ -421,26 +403,17 @@ index 594bd0820b..1a035b0263 100644
  bool AudioDeviceIOS::Recording() const {
    return recording_.load();
  }
-@@ -821,7 +924,7 @@ static void LogDeviceInfo() {
-   }
-   BOOL detect_mute_speech_ = (muted_speech_event_handler_ != 0);
-   audio_unit_.reset(new VoiceProcessingAudioUnit(
--      bypass_voice_processing_, detect_mute_speech_, this));
-+      should_bypass_voice_processing_, detect_mute_speech_, this));
-   if (!audio_unit_->Init()) {
-     audio_unit_.reset();
-     return false;
 @@ -1173,6 +1276,28 @@ static void LogDeviceInfo() {
    return 0;
  }
  
-+// `should_bypass_voice_processing_` は `希望する設定値` を保持する。
++// `bypass_voice_processing_` は `希望する設定値` を保持する。
 +// 即時適用に失敗してもロールバックしない。
 +// 失敗時は現在の AudioUnit 実状態と乖離する可能性があるが、
 +// 次回の初期化/再初期化時に希望値の再適用を試みる。
 +int32_t AudioDeviceIOS::SetBypassVoiceProcessing(bool enable) {
 +  RTC_DCHECK_RUN_ON(thread_);
-+  should_bypass_voice_processing_ = enable;
++  bypass_voice_processing_ = enable;
 +  if (audio_unit_ && !audio_unit_->SetBypassVoiceProcessing(enable)) {
 +    RTCLogError(@"Failed to set bypass voice processing. enabled=%d", enable);
 +    return -1;
