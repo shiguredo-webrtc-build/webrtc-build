@@ -433,7 +433,7 @@ index 594bd0820b..1ef6fda24b 100644
    RTC_DCHECK_NOTREACHED() << "Not implemented";
    return -1;
 diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.h b/sdk/objc/native/src/audio/audio_device_module_ios.h
-index 5ff50621b3..2e04a239c1 100644
+index 5ff50621b3..e03d759e0d 100644
 --- a/sdk/objc/native/src/audio/audio_device_module_ios.h
 +++ b/sdk/objc/native/src/audio/audio_device_module_ios.h
 @@ -76,6 +76,8 @@ class AudioDeviceModuleIOS : public AudioDeviceModule {
@@ -456,37 +456,10 @@ index 5ff50621b3..2e04a239c1 100644
    // Stereo support
    int32_t StereoPlayoutIsAvailable(bool* available) const override;
    int32_t SetStereoPlayout(bool enable) override;
-@@ -139,7 +145,7 @@ class AudioDeviceModuleIOS : public AudioDeviceModule {
-   void ReportError(ADMError error) const;
- 
-   const Environment env_;
--  const bool bypass_voice_processing_;
-+  const bool should_bypass_voice_processing_;
-   MutedSpeechEventHandler muted_speech_event_handler_;
-   ADMErrorHandler error_handler_;
-   bool initialized_ = false;
 diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.mm b/sdk/objc/native/src/audio/audio_device_module_ios.mm
-index e2ea360e2f..1d5cf2d8d2 100644
+index e2ea360e2f..8c718e07f9 100644
 --- a/sdk/objc/native/src/audio/audio_device_module_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_module_ios.mm
-@@ -48,7 +48,7 @@
-     MutedSpeechEventHandler muted_speech_event_handler,
-     ADMErrorHandler error_handler)
-     : env_(env),
--      bypass_voice_processing_(bypass_voice_processing),
-+      should_bypass_voice_processing_(bypass_voice_processing),
-       muted_speech_event_handler_(muted_speech_event_handler),
-       error_handler_(error_handler) {
-   RTC_LOG(LS_INFO) << "current platform is IOS";
-@@ -92,7 +92,7 @@
-   audio_device_buffer_ = std::make_unique<AudioDeviceBuffer>(env_);
-   audio_device_ =
-       std::make_unique<ios_adm::AudioDeviceIOS>(env_,
--                                                bypass_voice_processing_,
-+                                                should_bypass_voice_processing_,
-                                                 muted_speech_event_handler_,
-                                                 error_handler);
-   RTC_CHECK(audio_device_);
 @@ -295,6 +295,24 @@
    return 0;
  }
@@ -546,7 +519,7 @@ index e2ea360e2f..1d5cf2d8d2 100644
    RTC_DLOG(LS_INFO) << __FUNCTION__;
    CHECKinitialized_();
 diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.h b/sdk/objc/native/src/audio/voice_processing_audio_unit.h
-index cad6fe5105..6122bc0f60 100644
+index cad6fe5105..05bb66b995 100644
 --- a/sdk/objc/native/src/audio/voice_processing_audio_unit.h
 +++ b/sdk/objc/native/src/audio/voice_processing_audio_unit.h
 @@ -94,6 +94,14 @@ class VoiceProcessingAudioUnit {
@@ -555,7 +528,7 @@ index cad6fe5105..6122bc0f60 100644
    bool SetMicrophoneMute(bool enable);
 +  // 音声バイパス設定を更新する。
 +  // 状態が kInitialized 以上であれば ApplyBypassVoiceProcessing() を呼び、即時に AudioUnit へ適用する。
-+  // それ以外の状態であれば should_bypass_voice_processing_ に要求値を保持し、
++  // それ以外の状態であれば bypass_voice_processing_ に要求値を保持し、
 +  // 実適用は初期化完了時まで遅延する。(Initialize 内で ApplyBypassVoiceProcessing() が呼ばれる)
 +  // 即時適用を試みて失敗した場合のみ false が返る。
 +  bool SetBypassVoiceProcessing(bool enable);
@@ -573,28 +546,18 @@ index cad6fe5105..6122bc0f60 100644
 +  // AudioUnit が初期化済みであることを前提とする。
 +  bool ApplyBypassVoiceProcessing();
 +
-+  bool should_bypass_voice_processing_;
++  bool bypass_voice_processing_;
    const bool detect_mute_speech_;
    VoiceProcessingAudioUnitObserver* observer_;
    AudioUnit vpio_unit_;
 diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.mm b/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
-index 1bd895687d..f1e1c9ecbb 100644
+index 1bd895687d..d030c3424b 100644
 --- a/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
 +++ b/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
-@@ -78,7 +78,7 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
-     bool bypass_voice_processing,
-     bool detect_mute_speech,
-     VoiceProcessingAudioUnitObserver* observer)
--    : bypass_voice_processing_(bypass_voice_processing),
-+    : should_bypass_voice_processing_(bypass_voice_processing),
-       detect_mute_speech_(detect_mute_speech),
-       observer_(observer),
-       vpio_unit_(nullptr),
-@@ -307,20 +307,12 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
-     }
+@@ -308,19 +308,11 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
    }
  
--  if (bypass_voice_processing_) {
+   if (bypass_voice_processing_) {
 -    // Attempt to disable builtin voice processing.
 -    UInt32 toggle = 1;
 -    result = AudioUnitSetProperty(vpio_unit_,
@@ -608,7 +571,6 @@ index 1bd895687d..f1e1c9ecbb 100644
 -    } else {
 -      RTCLogError(@"Failed to bypass voice processing. Error=%ld.",
 -                  (long)result);
-+  if (should_bypass_voice_processing_) {
 +    // バイパス設定をベストエフォートで適用します。
 +    // エラーの場合でも初期化処理自体をエラーにはしません。
 +    if (!ApplyBypassVoiceProcessing()) {
@@ -622,7 +584,7 @@ index 1bd895687d..f1e1c9ecbb 100644
  }
  
 +bool VoiceProcessingAudioUnit::SetBypassVoiceProcessing(bool enable) {
-+  should_bypass_voice_processing_ = enable;
++  bypass_voice_processing_ = enable;
 +  if (state_ < kInitialized || !vpio_unit_) {
 +    return true;
 +  }
@@ -652,7 +614,7 @@ index 1bd895687d..f1e1c9ecbb 100644
 +
 +bool VoiceProcessingAudioUnit::ApplyBypassVoiceProcessing() {
 +  RTC_DCHECK(vpio_unit_);
-+  UInt32 toggle = should_bypass_voice_processing_ ? 1 : 0;
++  UInt32 toggle = bypass_voice_processing_ ? 1 : 0;
 +  OSStatus result = AudioUnitSetProperty(vpio_unit_,
 +                                         kAUVoiceIOProperty_BypassVoiceProcessing,
 +                                         kAudioUnitScope_Global,
@@ -661,12 +623,12 @@ index 1bd895687d..f1e1c9ecbb 100644
 +                                         sizeof(toggle));
 +  if (result != noErr) {
 +    RTCLogError(@"Failed to set bypass voice processing. enabled=%d, Error=%ld",
-+                should_bypass_voice_processing_,
++                bypass_voice_processing_,
 +                (long)result);
 +    return false;
 +  }
 +  RTCLog(@"Set bypass voice processing. enabled=%d",
-+         should_bypass_voice_processing_);
++         bypass_voice_processing_);
 +  return true;
 +}
 +
