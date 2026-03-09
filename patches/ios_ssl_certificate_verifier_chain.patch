@@ -14,24 +14,23 @@ index 2b1614c148..9fe49fd31b 100644
  
  NS_ASSUME_NONNULL_END
 diff --git a/sdk/objc/native/api/ssl_certificate_verifier.mm b/sdk/objc/native/api/ssl_certificate_verifier.mm
-index ac19781590..ccac6c85ee 100644
+index ac19781590..b584b77a18 100644
 --- a/sdk/objc/native/api/ssl_certificate_verifier.mm
 +++ b/sdk/objc/native/api/ssl_certificate_verifier.mm
-@@ -14,6 +14,13 @@
+@@ -14,6 +14,12 @@
  
  namespace {
  
 +NSData* SerializeCertificate(const webrtc::SSLCertificate& certificate) {
 +  webrtc::Buffer der_buffer;
 +  certificate.ToDER(&der_buffer);
-+  return [[NSData alloc] initWithBytes:der_buffer.data()
-+                                length:der_buffer.size()];
++  return [NSData dataWithBytes:der_buffer.data() length:der_buffer.size()];
 +}
 +
  class SSLCertificateVerifierAdapter final
      : public webrtc::SSLCertificateVerifier {
   public:
-@@ -23,13 +30,33 @@ class SSLCertificateVerifierAdapter final
+@@ -23,13 +29,33 @@ class SSLCertificateVerifierAdapter final
      RTC_DCHECK(objc_certificate_verifier_ != nil);
    }
  
@@ -48,13 +47,13 @@ index ac19781590..ccac6c85ee 100644
 +            addObject:SerializeCertificate(chain.Get(i))];
 +      }
 +
-+      NSData* serialized_certificate =
-+          [serialized_certificate_chain objectAtIndex:0];
 +      if ([objc_certificate_verifier_
 +              respondsToSelector:@selector(verifyChain:)]) {
 +        return [objc_certificate_verifier_
 +            verifyChain:serialized_certificate_chain];
 +      }
++      NSData* serialized_certificate =
++          [serialized_certificate_chain objectAtIndex:0];
 +      return [objc_certificate_verifier_ verify:serialized_certificate];
 +    }
 +  }
