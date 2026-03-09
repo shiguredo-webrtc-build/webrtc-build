@@ -1,8 +1,8 @@
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index f61cf30..aab3684 100644
+index ba8ce38c84..2446d4f68d 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
-@@ -172,6 +172,7 @@ if (is_ios || is_mac) {
+@@ -160,6 +160,7 @@ if (is_ios || is_mac) {
        sources += [
          "objc/helpers/UIDevice+RTCDevice.h",
          "objc/helpers/UIDevice+RTCDevice.mm",
@@ -10,7 +10,7 @@ index f61cf30..aab3684 100644
        ]
  
        if (target_platform != "tvos") {
-@@ -1369,6 +1370,7 @@ if (is_ios || is_mac) {
+@@ -1360,6 +1361,7 @@ if (is_ios || is_mac) {
            "objc/base/RTCVideoRenderer.h",
            "objc/base/RTCYUVPlanarBuffer.h",
            "objc/components/audio/RTCAudioDevice.h",
@@ -19,7 +19,7 @@ index f61cf30..aab3684 100644
            "objc/components/audio/RTCAudioSessionConfiguration.h",
            "objc/components/capturer/RTCCameraVideoCapturer.h",
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h
-index 8287bcf..7090921 100644
+index 8287bcf3d0..709092138e 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h
 @@ -11,6 +11,7 @@
@@ -43,7 +43,7 @@ index 8287bcf..7090921 100644
                     (nullable id<RTC_OBJC_TYPE(RTCAudioDevice)>)audioDevice;
  
 +/**
-+ * Video encoder/decorder ファクトリと RTCAudioDeviceModule 差し込みによる初期化
++ * Video encoder/decoder ファクトリと RTCAudioDeviceModule 差し込みによる初期化
 + */
 +- (instancetype)
 +    initWithEncoderFactory:
@@ -57,10 +57,10 @@ index 8287bcf..7090921 100644
   * Valid kind values are kRTCMediaStreamTrackKindAudio and
   * kRTCMediaStreamTrackKindVideo.
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
-index 233cf25..0c20512 100644
+index 0924fc2b30..34ef2786ca 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
-@@ -14,6 +14,7 @@
+@@ -15,6 +15,7 @@
  #import "RTCPeerConnectionFactory+Private.h"
  #import "RTCPeerConnectionFactoryOptions+Private.h"
  #import "RTCRtpCapabilities+Private.h"
@@ -68,7 +68,7 @@ index 233cf25..0c20512 100644
  
  #import "RTCAudioSource+Private.h"
  #import "RTCAudioTrack+Private.h"
-@@ -189,6 +190,43 @@ - (instancetype)init {
+@@ -194,6 +195,43 @@ - (instancetype)init {
  #endif
  }
  
@@ -114,7 +114,7 @@ index 233cf25..0c20512 100644
    self = [super init];
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule+Private.h b/sdk/objc/components/audio/RTCAudioDeviceModule+Private.h
 new file mode 100644
-index 0000000..3e67c85
+index 0000000000..3e67c8582c
 --- /dev/null
 +++ b/sdk/objc/components/audio/RTCAudioDeviceModule+Private.h
 @@ -0,0 +1,11 @@
@@ -131,10 +131,10 @@ index 0000000..3e67c85
 +@end
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.h b/sdk/objc/components/audio/RTCAudioDeviceModule.h
 new file mode 100644
-index 0000000..60c4eb6
+index 0000000000..858ceb94be
 --- /dev/null
 +++ b/sdk/objc/components/audio/RTCAudioDeviceModule.h
-@@ -0,0 +1,17 @@
+@@ -0,0 +1,19 @@
 +// iOS 用の AudioDeviceModule を生成し、pauseRecording()/resumeRecording() を公開するためのラッパー
 +#import <Foundation/Foundation.h>
 +
@@ -145,7 +145,9 @@ index 0000000..60c4eb6
 +
 +// 内部で AudioDeviceModuleIOS を生成する
 +- (instancetype)init;
-+
++// 内部で AudioDeviceModuleIOS を生成する。`enabled` が true の場合は
++// VoiceProcessing のバイパス有効を初期値として生成する。
++- (instancetype)initWithBypassVoiceProcessing:(BOOL)enabled;
 +// 録音を一時停止する。内部で AudioDeviceModuleIOS::PauseRecording() を呼ぶ
 +- (NSInteger)pauseRecording;
 +// 録音を再開する。内部で AudioDeviceModuleIOS::ResumeRecording() を呼ぶ
@@ -154,10 +156,10 @@ index 0000000..60c4eb6
 +@end
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.mm b/sdk/objc/components/audio/RTCAudioDeviceModule.mm
 new file mode 100644
-index 0000000..d1e495f
+index 0000000000..30fbcfd655
 --- /dev/null
 +++ b/sdk/objc/components/audio/RTCAudioDeviceModule.mm
-@@ -0,0 +1,40 @@
+@@ -0,0 +1,44 @@
 +#import "RTCAudioDeviceModule.h"
 +
 +#include "api/environment/environment_factory.h"
@@ -173,10 +175,14 @@ index 0000000..d1e495f
 +@implementation RTC_OBJC_TYPE(RTCAudioDeviceModule)
 +
 +- (instancetype)init {
++  return [self initWithBypassVoiceProcessing:NO];
++}
++
++- (instancetype)initWithBypassVoiceProcessing:(BOOL)enabled {
 +  self = [super init];
 +  if (self) {
 +    auto env = webrtc::CreateEnvironment();
-+    _adm = webrtc::CreateAudioDeviceModule(env);
++    _adm = webrtc::CreateAudioDeviceModule(env, enabled);
 +  }
 +  return self;
 +}
@@ -199,7 +205,7 @@ index 0000000..d1e495f
 +
 +@end
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.h b/sdk/objc/native/src/audio/audio_device_ios.h
-index d1788a3..a3355a0 100644
+index d1788a33d7..a3355a049b 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.h
 +++ b/sdk/objc/native/src/audio/audio_device_ios.h
 @@ -80,6 +80,8 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
@@ -226,10 +232,10 @@ index d1788a3..a3355a0 100644
  
    // Determines whether voice processing should be enabled or disabled.
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index 021f08a..11c9286 100644
+index 594bd0820b..bdeb73508d 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
-@@ -330,7 +330,9 @@ static void LogDeviceInfo() {
+@@ -329,7 +329,9 @@ static void LogDeviceInfo() {
  int32_t AudioDeviceIOS::StopRecording() {
    LOGI() << "StopRecording";
    RTC_DCHECK_RUN_ON(thread_);
@@ -240,7 +246,7 @@ index 021f08a..11c9286 100644
      return 0;
    }
    if (!playing_.load()) {
-@@ -340,6 +342,107 @@ static void LogDeviceInfo() {
+@@ -339,6 +341,107 @@ static void LogDeviceInfo() {
    return 0;
  }
  
@@ -349,7 +355,7 @@ index 021f08a..11c9286 100644
    return recording_.load();
  }
 diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.h b/sdk/objc/native/src/audio/audio_device_module_ios.h
-index 5ff5062..987deb8 100644
+index 5ff50621b3..987deb8e7d 100644
 --- a/sdk/objc/native/src/audio/audio_device_module_ios.h
 +++ b/sdk/objc/native/src/audio/audio_device_module_ios.h
 @@ -76,6 +76,8 @@ class AudioDeviceModuleIOS : public AudioDeviceModule {
@@ -362,7 +368,7 @@ index 5ff5062..987deb8 100644
    bool Recording() const override;
  
 diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.mm b/sdk/objc/native/src/audio/audio_device_module_ios.mm
-index e2ea360..a1cd5ca 100644
+index e2ea360e2f..a1cd5cac34 100644
 --- a/sdk/objc/native/src/audio/audio_device_module_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_module_ios.mm
 @@ -652,6 +652,32 @@

@@ -372,3 +372,14 @@ m146 より [UnSafe Buffers Clang plugin](https://chromium.googlesource.com/chro
   - rtc_base/socket_adapters_revive.cc
 
 エラーとなったパッチファイルについてビルドチェックエラーとならないようコード修正を行うことでこのパッチは削除できる。
+
+## ios_ssl_certificate_verifier_chain.patch
+
+`RTCSSLCertificateVerifier` に証明書チェーン検証用の `verifyChain:` を追加するパッチ。
+
+WebRTC C++ 側の `SSLCertificateVerifier::VerifyChain(const SSLCertChain&)` は証明書チェーンを扱えるが、
+ObjC ブリッジは leaf 証明書のみを渡していた。
+このパッチで `SSLCertChain` を `NSArray<NSData *>` (leaf first) に変換して ObjC へ渡せるようにする。
+
+互換性のため、`verifyChain:` を実装していない場合は従来どおり `verify:` に leaf 証明書を渡してフォールバックする。
+
