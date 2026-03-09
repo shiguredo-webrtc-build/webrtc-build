@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-03-09 [RELEASE] m146.7680.0.1
+  - @t-miya
 - 2026-03-09 [ADD] iOS SDK 向けの RTCAudioDeviceModule に音声バイパスを設定できるコンストラクタを追加する
   - ios_audio_pause_resume.patch への追加
   - @t-miya
