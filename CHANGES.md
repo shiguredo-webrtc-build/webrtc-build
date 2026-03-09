@@ -29,6 +29,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-03-09 [ADD] iOS SDK 向けの RTCAudioDeviceModule に音声バイパスを設定できるコンストラクタを追加する
+  - ios_audio_pause_resume.patch への追加
+  - @t-miya
 - 2026-03-06 [ADD] RTCSSLCertificateVerifier に verifyChain を追加する
   - `SSLCertificateVerifier::VerifyChain(const SSLCertChain&)` と ObjC の `RTCSSLCertificateVerifier` を接続する ObjC/C++ ブリッジを追加する
   - `verifyChain:` 未実装時は `verify:` へフォールバックする
