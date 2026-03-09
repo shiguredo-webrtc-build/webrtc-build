@@ -43,7 +43,7 @@ index 8287bcf3d0..709092138e 100644
                     (nullable id<RTC_OBJC_TYPE(RTCAudioDevice)>)audioDevice;
  
 +/**
-+ * Video encoder/decorder ファクトリと RTCAudioDeviceModule 差し込みによる初期化
++ * Video encoder/decoder ファクトリと RTCAudioDeviceModule 差し込みによる初期化
 + */
 +- (instancetype)
 +    initWithEncoderFactory:
