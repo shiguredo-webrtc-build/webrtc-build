@@ -1,8 +1,8 @@
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index 219c2b6e84..ede6033b45 100644
+index b70ce0edc2..877bb2913e 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
-@@ -714,6 +714,16 @@ if (is_ios || is_mac) {
+@@ -716,6 +716,16 @@ if (is_ios || is_mac) {
          ]
        }
  
@@ -19,7 +19,7 @@ index 219c2b6e84..ede6033b45 100644
        public_configs = [ ":common_config_objc" ]
        deps = [
          ":base_objc",
-@@ -1406,6 +1416,15 @@ if (is_ios || is_mac) {
+@@ -1416,6 +1426,15 @@ if (is_ios || is_mac) {
            "objc/api/video_frame_buffer/RTCNativeMutableI420Buffer.h",
          ]
  
@@ -35,7 +35,7 @@ index 219c2b6e84..ede6033b45 100644
          if (!build_with_chromium) {
            common_objc_headers += [
              "objc/api/logging/RTCCallbackLogger.h",
-@@ -1777,6 +1796,17 @@ if (is_ios || is_mac) {
+@@ -1787,6 +1806,17 @@ if (is_ios || is_mac) {
          "objc/components/video_codec/RTCVideoEncoderH264.mm",
        ]
  
@@ -299,7 +299,7 @@ index 0000000000..6e77bdf40d
 \ No newline at end of file
 diff --git a/sdk/objc/components/video_codec/RTCVideoDecoderH265.mm b/sdk/objc/components/video_codec/RTCVideoDecoderH265.mm
 new file mode 100644
-index 0000000000..9e7891a83e
+index 0000000000..abb2054cb4
 --- /dev/null
 +++ b/sdk/objc/components/video_codec/RTCVideoDecoderH265.mm
 @@ -0,0 +1,510 @@
@@ -815,7 +815,7 @@ index 0000000000..9e7891a83e
 +@end
 \ No newline at end of file
 diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.mm b/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.mm
-index 15a6249c11..486980dc36 100644
+index 3f7b0f0414..110c317ef5 100644
 --- a/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.mm
 +++ b/sdk/objc/components/video_codec/RTCVideoEncoderFactorySimulcast.mm
 @@ -1,6 +1,7 @@
@@ -872,7 +872,7 @@ index 0000000000..54d86807ec
 \ No newline at end of file
 diff --git a/sdk/objc/components/video_codec/RTCVideoEncoderH265.mm b/sdk/objc/components/video_codec/RTCVideoEncoderH265.mm
 new file mode 100644
-index 0000000000..42284c1ab3
+index 0000000000..3e1e274205
 --- /dev/null
 +++ b/sdk/objc/components/video_codec/RTCVideoEncoderH265.mm
 @@ -0,0 +1,606 @@
@@ -1637,7 +1637,7 @@ index 0000000000..fcaccb8bbc
 +}
 \ No newline at end of file
 diff --git a/sdk/objc/components/video_codec/nalu_rewriter.cc b/sdk/objc/components/video_codec/nalu_rewriter.cc
-index 236ef32d08..16b5dc1754 100644
+index 271d8597c3..fe6623ef91 100644
 --- a/sdk/objc/components/video_codec/nalu_rewriter.cc
 +++ b/sdk/objc/components/video_codec/nalu_rewriter.cc
 @@ -23,6 +23,7 @@
@@ -1648,7 +1648,7 @@ index 236ef32d08..16b5dc1754 100644
  
  namespace webrtc {
  
-@@ -166,8 +167,8 @@ bool H264AnnexBBufferToCMSampleBuffer(ArrayView<const uint8_t> annexb_buffer,
+@@ -166,8 +167,8 @@ bool H264AnnexBBufferToCMSampleBuffer(std::span<const uint8_t> annexb_buffer,
    CMBlockBufferRef block_buffer = nullptr;
    CFAllocatorRef block_allocator = CMMemoryPoolGetAllocator(memory_pool);
    OSStatus status = CMBlockBufferCreateWithMemoryBlock(
@@ -1659,7 +1659,7 @@ index 236ef32d08..16b5dc1754 100644
        &block_buffer);
    if (status != kCMBlockBufferNoErr) {
      RTC_LOG(LS_ERROR) << "Failed to create block buffer.";
-@@ -201,7 +202,7 @@ bool H264AnnexBBufferToCMSampleBuffer(ArrayView<const uint8_t> annexb_buffer,
+@@ -201,7 +202,7 @@ bool H264AnnexBBufferToCMSampleBuffer(std::span<const uint8_t> annexb_buffer,
      CFRelease(contiguous_buffer);
      return false;
    }
@@ -1668,7 +1668,7 @@ index 236ef32d08..16b5dc1754 100644
  
    // Write Avcc NALUs into block buffer memory.
    AvccBufferWriter writer(
-@@ -226,6 +227,213 @@ bool H264AnnexBBufferToCMSampleBuffer(ArrayView<const uint8_t> annexb_buffer,
+@@ -226,6 +227,213 @@ bool H264AnnexBBufferToCMSampleBuffer(std::span<const uint8_t> annexb_buffer,
    return true;
  }
  
@@ -1880,7 +1880,7 @@ index 236ef32d08..16b5dc1754 100644
 +}
 +
  CMVideoFormatDescriptionRef CreateVideoFormatDescription(
-     ArrayView<const uint8_t> annexb_buffer) {
+     std::span<const uint8_t> annexb_buffer) {
    const uint8_t* param_set_ptrs[2] = {};
 @@ -262,6 +470,340 @@ CMVideoFormatDescriptionRef CreateVideoFormatDescription(
    return description;
@@ -2220,7 +2220,7 @@ index 236ef32d08..16b5dc1754 100644
 +  return description;
 +}
 +
- AnnexBBufferReader::AnnexBBufferReader(ArrayView<const uint8_t> annexb_buffer)
+ AnnexBBufferReader::AnnexBBufferReader(std::span<const uint8_t> annexb_buffer)
      : buffer_(annexb_buffer) {
    offsets_ = H264::FindNaluIndices(annexb_buffer);
 @@ -287,6 +829,19 @@ size_t AnnexBBufferReader::BytesRemaining() const {
@@ -2257,23 +2257,23 @@ index 236ef32d08..16b5dc1754 100644
 +  return false;
 +}
 +
- AvccBufferWriter::AvccBufferWriter(ArrayView<uint8_t> avcc_buffer)
+ AvccBufferWriter::AvccBufferWriter(std::span<uint8_t> avcc_buffer)
      : buffer_(avcc_buffer) {}
  
 diff --git a/sdk/objc/components/video_codec/nalu_rewriter.h b/sdk/objc/components/video_codec/nalu_rewriter.h
-index 507aa67a69..495fcb3d85 100644
+index c789aa2fd4..2e21d23f4f 100644
 --- a/sdk/objc/components/video_codec/nalu_rewriter.h
 +++ b/sdk/objc/components/video_codec/nalu_rewriter.h
 @@ -20,6 +20,8 @@
+ #include <vector>
  
- #include "api/array_view.h"
  #include "common_video/h264/h264_common.h"
 +#include "common_video/h265/h265_common.h"
 +#include "modules/video_coding/codecs/h264/include/h264.h"
  #include "rtc_base/buffer.h"
  
  using webrtc::H264::NaluIndex;
-@@ -44,6 +46,30 @@ bool H264AnnexBBufferToCMSampleBuffer(ArrayView<const uint8_t> annexb_buffer,
+@@ -44,6 +46,30 @@ bool H264AnnexBBufferToCMSampleBuffer(std::span<const uint8_t> annexb_buffer,
                                        CMSampleBufferRef* out_sample_buffer,
                                        CMMemoryPoolRef memory_pool);
  
