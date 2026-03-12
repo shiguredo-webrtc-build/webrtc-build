@@ -238,6 +238,7 @@ PATCHES = {
         "remove_crel.patch",
         "revert_siso.patch",
         "unsafe_buffers_optout_list.patch",
+        "ios_ssl_certificate_verifier_chain.patch",
     ],
     "ios_sdk": [
         "add_deps.patch",
@@ -260,6 +261,7 @@ PATCHES = {
         "ios_audio_track_sink.patch",
         "ios_audio_pause_resume.patch",
         "unsafe_buffers_optout_list.patch",
+        "ios_ssl_certificate_verifier_chain.patch",
     ],
     "android": [
         "add_deps.patch",
