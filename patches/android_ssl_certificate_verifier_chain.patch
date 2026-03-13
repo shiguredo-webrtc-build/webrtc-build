@@ -1,8 +1,8 @@
 diff --git a/sdk/android/api/org/webrtc/SSLCertificateVerifier.java b/sdk/android/api/org/webrtc/SSLCertificateVerifier.java
-index 461cd3b..3093960 100644
+index 461cd3b..f5bb68d 100644
 --- a/sdk/android/api/org/webrtc/SSLCertificateVerifier.java
 +++ b/sdk/android/api/org/webrtc/SSLCertificateVerifier.java
-@@ -24,4 +24,21 @@ public interface SSLCertificateVerifier {
+@@ -24,4 +24,18 @@ public interface SSLCertificateVerifier {
     * @return True if the certificate is verified and trusted else false.
     */
    @CalledByNative boolean verify(byte[] certificate);
@@ -18,9 +18,6 @@ index 461cd3b..3093960 100644
 +   */
 +  @CalledByNative
 +  default boolean verifyChain(byte[][] certificateChain) {
-+    if (certificateChain == null || certificateChain.length == 0) {
-+      return false;
-+    }
 +    return verify(certificateChain[0]);
 +  }
  }
