@@ -29,6 +29,12 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-02-27 [UPDATE] m147 ブランチのビルドエラーに対する対応
+  - h265_ios.patch について、ArrayView から std::span へ移行する
+     - libwebrtc の ArrayView から std::span への移行に追従する
+     - 参考 : https://issuetracker.google.com/issues/439801349
+  - h265_ios.patch の単純なパッチ適用エラーを修正する
+  - @miosakuma
 - 2026-03-09 [RELEASE] m146.7680.0.1
   - @t-miya
 - 2026-03-09 [ADD] iOS SDK 向けの RTCAudioDeviceModule に音声バイパスを設定できるコンストラクタを追加する
