@@ -25,10 +25,10 @@ index 461cd3b..3093960 100644
 +  }
  }
 diff --git a/sdk/android/src/jni/pc/ssl_certificate_verifier_wrapper.cc b/sdk/android/src/jni/pc/ssl_certificate_verifier_wrapper.cc
-index 48f23c9..1dd7dbe 100644
+index 48f23c9..02a007a 100644
 --- a/sdk/android/src/jni/pc/ssl_certificate_verifier_wrapper.cc
 +++ b/sdk/android/src/jni/pc/ssl_certificate_verifier_wrapper.cc
-@@ -15,12 +15,52 @@
+@@ -15,12 +15,48 @@
  #include "rtc_base/buffer.h"
  #include "rtc_base/ssl_certificate.h"
  #include "sdk/android/generated_peerconnection_jni/SSLCertificateVerifier_jni.h"
@@ -58,17 +58,13 @@ index 48f23c9..1dd7dbe 100644
 +ScopedJavaLocalRef<jobjectArray> SerializeCertificateChain(
 +    JNIEnv* jni,
 +    const SSLCertChain& chain) {
-+  RTC_DCHECK(chain.GetSize() > 0);
-+  ScopedJavaLocalRef<jbyteArray> first_certificate =
-+      SerializeCertificate(jni, chain.Get(0));
 +  ScopedJavaLocalRef<jclass> byte_array_class = webrtc::GetClass(jni, "[B");
 +  ScopedJavaLocalRef<jobjectArray> jni_chain =
 +      ScopedJavaLocalRef<jobjectArray>::Adopt(
 +          jni,
 +          jni->NewObjectArray(static_cast<jsize>(chain.GetSize()),
 +                              byte_array_class.obj(), nullptr));
-+  jni->SetObjectArrayElement(jni_chain.obj(), 0, first_certificate.obj());
-+  for (size_t i = 1; i < chain.GetSize(); ++i) {
++  for (size_t i = 0; i < chain.GetSize(); ++i) {
 +    ScopedJavaLocalRef<jbyteArray> certificate =
 +        SerializeCertificate(jni, chain.Get(i));
 +    jni->SetObjectArrayElement(jni_chain.obj(), i, certificate.obj());
@@ -81,7 +77,7 @@ index 48f23c9..1dd7dbe 100644
  SSLCertificateVerifierWrapper::SSLCertificateVerifierWrapper(
      JNIEnv* jni,
      const JavaRef<jobject>& ssl_certificate_verifier)
-@@ -30,20 +70,22 @@ SSLCertificateVerifierWrapper::~SSLCertificateVerifierWrapper() = default;
+@@ -30,20 +66,22 @@ SSLCertificateVerifierWrapper::~SSLCertificateVerifierWrapper() = default;
  
  bool SSLCertificateVerifierWrapper::Verify(const SSLCertificate& certificate) {
    JNIEnv* jni = AttachCurrentThreadIfNeeded();
