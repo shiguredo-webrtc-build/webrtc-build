@@ -404,3 +404,18 @@ ObjC ブリッジは leaf 証明書のみを渡していた。
 
 互換性のため、`verifyChain:` を実装していない場合は従来どおり `verify:` に leaf 証明書を渡してフォールバックする。
 
+## turn_tls_client_certificate.patch
+
+TURN-TLS 接続でクライアント証明書を指定できるようにするパッチ。
+
+`PacketSocketTcpOptions`、`RelayServerConfig`、`PeerConnectionInterface::IceServer` に
+クライアント証明書 (`SSLIdentity`) を保持するフィールドを追加し、
+`IceServer` から `RelayServerConfig`、`TurnPort`、`SSLAdapter` まで deep copy しながら伝搬する。
+
+`IceServer` と `RelayServerConfig` は既存コードでコピーされるため、
+`std::unique_ptr<SSLIdentity>` を保持しつつ copy semantics を維持するように
+コピーコンストラクタと代入演算子で `Clone()` を使って複製する。
+
+※ このパッチには iOS / Android SDK の変更は含まれていない。
+
+
