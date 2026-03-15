@@ -8,6 +8,7 @@ import re
 import shutil
 import subprocess
 import tarfile
+import time
 import urllib.parse
 import zipfile
 from typing import Dict, List, Optional, Tuple
@@ -157,21 +158,68 @@ def enum_all_files(dir, dir2):
             yield os.path.relpath(os.path.join(root, file), dir2)
 
 
+MIRROR_URL = os.environ.get("WEBRTC_MIRROR_URL", "")
+
+GOOGLESOURCE_HOSTS = [
+    "chromium.googlesource.com",
+    "webrtc.googlesource.com",
+    "boringssl.googlesource.com",
+    "aomedia.googlesource.com",
+    "android.googlesource.com",
+]
+
+
+def replace_googlesource_url(url: str) -> str:
+    """googlesource.com の URL をミラー URL に書き換える。
+    WEBRTC_MIRROR_URL が未設定の場合は何もしない。
+    """
+    if not MIRROR_URL:
+        return url
+    for host in GOOGLESOURCE_HOSTS:
+        prefix = f"https://{host}/"
+        if url.startswith(prefix):
+            mirror_url = f"{MIRROR_URL}/{host}/{url[len(prefix):]}"
+            logging.info(f"Mirror: {url} -> {mirror_url}")
+            return mirror_url
+    return url
+
+
+def rewrite_deps_for_mirror(src_dir: str):
+    """DEPS ファイル内の googlesource.com URL をミラーに書き換える。"""
+    if not MIRROR_URL:
+        return
+    deps_path = os.path.join(src_dir, "DEPS")
+    with open(deps_path) as f:
+        content = f.read()
+    for host in GOOGLESOURCE_HOSTS:
+        # https://host/ 形式の直接 URL を置換
+        content = content.replace(
+            f"https://{host}/",
+            f"{MIRROR_URL}/{host}/",
+        )
+        # Var('chromium_git') 等で使われる末尾スラッシュなしの URL を置換
+        content = content.replace(
+            f"'https://{host}'",
+            f"'{MIRROR_URL}/{host}'",
+        )
+    with open(deps_path, "w") as f:
+        f.write(content)
+    logging.info(f"DEPS rewritten for mirror: {MIRROR_URL}")
+
+
 def get_depot_tools(source_dir, fetch=False):
+    t = time.time()
     dir = os.path.join(source_dir, "depot_tools")
     if os.path.exists(dir):
         if fetch:
             cmd(["git", "fetch"])
             cmd(["git", "checkout", "-f", "origin/HEAD"])
     else:
-        cmd(
-            [
-                "git",
-                "clone",
-                "https://chromium.googlesource.com/chromium/tools/depot_tools.git",
-                dir,
-            ]
+        depot_tools_url = replace_googlesource_url(
+            "https://chromium.googlesource.com/chromium/tools/depot_tools.git"
         )
+        cmd(["git", "clone", depot_tools_url, dir])
+    logging.info(f"get_depot_tools: {time.time() - t:.1f}s")
     return dir
 
 
@@ -454,6 +502,7 @@ def get_base_commit(n=30):
 
 
 def get_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir, no_history=False):
+    t_total = time.time()
     if webrtc_source_dir is None:
         webrtc_source_dir = os.path.join(source_dir, "webrtc")
 
@@ -463,15 +512,43 @@ def get_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir, no_his
 
     src_dir = os.path.join(webrtc_source_dir, "src")
     if not os.path.exists(src_dir):
+        t = time.time()
         with cd(webrtc_source_dir):
-            cmd(["gclient"])
-            cmd(["fetch", *no_history_flag, "webrtc"])
-            if target in ("android", "android_sdk"):
-                with open(".gclient", "a") as f:
-                    f.write("target_os = [ 'android' ]\n")
-            if target in ("ios", "ios_sdk"):
-                with open(".gclient", "a") as f:
-                    f.write("target_os = [ 'ios' ]\n")
+            if MIRROR_URL:
+                webrtc_url = replace_googlesource_url(
+                    "https://webrtc.googlesource.com/src.git"
+                )
+                with open(".gclient", "w") as f:
+                    f.write(
+                        'solutions = [\n'
+                        '  {\n'
+                        '    "name": "src",\n'
+                        f'    "url": "{webrtc_url}",\n'
+                        '    "deps_file": "DEPS",\n'
+                        '    "managed": False,\n'
+                        '    "custom_deps": {},\n'
+                        '  },\n'
+                        ']\n'
+                    )
+                    if target in ("android", "android_sdk"):
+                        f.write("target_os = [ 'android' ]\n")
+                    if target in ("ios", "ios_sdk"):
+                        f.write("target_os = [ 'ios' ]\n")
+                if no_history:
+                    cmd(["git", "clone", "--depth=1", webrtc_url, "src"])
+                else:
+                    cmd(["git", "clone", webrtc_url, "src"])
+            else:
+                cmd(["gclient"])
+                cmd(["fetch", *no_history_flag, "webrtc"])
+                if target in ("android", "android_sdk"):
+                    with open(".gclient", "a") as f:
+                        f.write("target_os = [ 'android' ]\n")
+                if target in ("ios", "ios_sdk"):
+                    with open(".gclient", "a") as f:
+                        f.write("target_os = [ 'ios' ]\n")
+
+        logging.info(f"get_webrtc clone: {time.time() - t:.1f}s")
 
         with cd(src_dir):
             if no_history:
@@ -480,6 +557,10 @@ def get_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir, no_his
                 cmd(["git", "fetch"])
             cmd(["git", "checkout", "-f", version])
             cmd(["git", "clean", "-df"])
+
+            rewrite_deps_for_mirror(src_dir)
+
+            t = time.time()
             cmd(
                 [
                     "gclient",
@@ -491,10 +572,13 @@ def get_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir, no_his
                     *no_history_flag,
                 ]
             )
+            logging.info(f"gclient sync: {time.time() - t:.1f}s")
             apply_patches(target, patch_dir, src_dir, None, False)
+    logging.info(f"get_webrtc total: {time.time() - t_total:.1f}s")
 
 
 def fetch_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir):
+    t_total = time.time()
     if webrtc_source_dir is None:
         webrtc_source_dir = os.path.join(source_dir, "webrtc")
 
@@ -503,8 +587,14 @@ def fetch_webrtc(source_dir, patch_dir, version, target, webrtc_source_dir):
         cmd(["git", "fetch"])
         cmd(["git", "checkout", "-f", version])
         cmd(["git", "clean", "-df"])
+
+        rewrite_deps_for_mirror(src_dir)
+
+        t = time.time()
         cmd(["gclient", "sync", "-D", "--force", "--reset", "--with_branch_heads"])
+        logging.info(f"gclient sync: {time.time() - t:.1f}s")
         apply_patches(target, patch_dir, src_dir, None, False)
+    logging.info(f"fetch_webrtc total: {time.time() - t_total:.1f}s")
 
 
 def revert_webrtc(source_dir, patch_dir, target, webrtc_source_dir, patch, commit):
