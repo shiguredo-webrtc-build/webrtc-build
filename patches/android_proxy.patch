@@ -1,8 +1,8 @@
 diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
-index 9ea7f37a0d..9cd8cb3bc0 100644
+index 11254d6c7e..1f225dada7 100644
 --- a/sdk/android/BUILD.gn
 +++ b/sdk/android/BUILD.gn
-@@ -319,6 +319,7 @@ if (is_android) {
+@@ -320,6 +320,7 @@ if (is_android) {
        "api/org/webrtc/PeerConnection.java",
        "api/org/webrtc/PeerConnectionDependencies.java",
        "api/org/webrtc/PeerConnectionFactory.java",
@@ -199,25 +199,26 @@ index 0000000000..4afd909bda
 +  UNKNOWN,
 +}
 diff --git a/sdk/android/src/jni/pc/owned_factory_and_threads.cc b/sdk/android/src/jni/pc/owned_factory_and_threads.cc
-index ccf360c9b2..823e2dd88f 100644
+index 69b81d01a6..401e61cd0d 100644
 --- a/sdk/android/src/jni/pc/owned_factory_and_threads.cc
 +++ b/sdk/android/src/jni/pc/owned_factory_and_threads.cc
-@@ -26,11 +26,13 @@ OwnedFactoryAndThreads::OwnedFactoryAndThreads(
+@@ -27,12 +27,14 @@ OwnedFactoryAndThreads::OwnedFactoryAndThreads(
      std::unique_ptr<Thread> network_thread,
      std::unique_ptr<Thread> worker_thread,
      std::unique_ptr<Thread> signaling_thread,
 +    webrtc::scoped_refptr<webrtc::ConnectionContext> context,
+     const Environment& env,
      const scoped_refptr<PeerConnectionFactoryInterface>& factory)
      : socket_factory_(std::move(socket_factory)),
        network_thread_(std::move(network_thread)),
        worker_thread_(std::move(worker_thread)),
        signaling_thread_(std::move(signaling_thread)),
 +      context_(context),
+       env_(env),
        factory_(factory) {}
  
- }  // namespace jni
 diff --git a/sdk/android/src/jni/pc/owned_factory_and_threads.h b/sdk/android/src/jni/pc/owned_factory_and_threads.h
-index 4b22cb95ad..451a2cd0c1 100644
+index 1235da9c07..ec9eb6d5c1 100644
 --- a/sdk/android/src/jni/pc/owned_factory_and_threads.h
 +++ b/sdk/android/src/jni/pc/owned_factory_and_threads.h
 @@ -17,6 +17,7 @@
@@ -233,27 +234,27 @@ index 4b22cb95ad..451a2cd0c1 100644
        std::unique_ptr<Thread> worker_thread,
        std::unique_ptr<Thread> signaling_thread,
 +      webrtc::scoped_refptr<webrtc::ConnectionContext> context,
+       const Environment& env,
        const scoped_refptr<PeerConnectionFactoryInterface>& factory);
  
-   ~OwnedFactoryAndThreads() = default;
-@@ -44,6 +46,7 @@ class OwnedFactoryAndThreads {
+@@ -53,6 +55,7 @@ class OwnedFactoryAndThreads {
    Thread* network_thread() { return network_thread_.get(); }
    Thread* signaling_thread() { return signaling_thread_.get(); }
    Thread* worker_thread() { return worker_thread_.get(); }
 +  webrtc::ConnectionContext* connection_context() { return context_.get(); }
+   std::optional<Environment> env() const { return env_; }
  
   private:
-   // Usually implemented by the SocketServer associated with the network thread,
-@@ -52,6 +55,7 @@ class OwnedFactoryAndThreads {
+@@ -62,6 +65,7 @@ class OwnedFactoryAndThreads {
    const std::unique_ptr<Thread> network_thread_;
    const std::unique_ptr<Thread> worker_thread_;
    const std::unique_ptr<Thread> signaling_thread_;
 +  const webrtc::scoped_refptr<webrtc::ConnectionContext> context_;
+   const std::optional<Environment> env_;
    const scoped_refptr<PeerConnectionFactoryInterface> factory_;
  };
- 
 diff --git a/sdk/android/src/jni/pc/peer_connection_factory.cc b/sdk/android/src/jni/pc/peer_connection_factory.cc
-index bd26b84516..e83470c950 100644
+index 4fae2fb6d0..5a44ac0dd9 100644
 --- a/sdk/android/src/jni/pc/peer_connection_factory.cc
 +++ b/sdk/android/src/jni/pc/peer_connection_factory.cc
 @@ -43,6 +43,10 @@
@@ -267,35 +268,33 @@ index bd26b84516..e83470c950 100644
  #include "rtc_base/checks.h"
  #include "rtc_base/event_tracer.h"
  #include "rtc_base/logging.h"
-@@ -147,10 +151,11 @@ ScopedJavaLocalRef<jobject> NativeToScopedJavaPeerConnectionFactory(
-     std::unique_ptr<SocketFactory> socket_factory,
+@@ -148,10 +152,11 @@ ScopedJavaLocalRef<jobject> NativeToScopedJavaPeerConnectionFactory(
      std::unique_ptr<Thread> network_thread,
      std::unique_ptr<Thread> worker_thread,
--    std::unique_ptr<Thread> signaling_thread) {
-+    std::unique_ptr<Thread> signaling_thread,
-+    webrtc::scoped_refptr<webrtc::ConnectionContext> context) {
+     std::unique_ptr<Thread> signaling_thread,
++    webrtc::scoped_refptr<webrtc::ConnectionContext> context,
+     const Environment& webrtc_env) {
    OwnedFactoryAndThreads* owned_factory = new OwnedFactoryAndThreads(
        std::move(socket_factory), std::move(network_thread),
--      std::move(worker_thread), std::move(signaling_thread), pcf);
-+      std::move(worker_thread), std::move(signaling_thread), context, pcf);
+-      std::move(worker_thread), std::move(signaling_thread), webrtc_env, pcf);
++      std::move(worker_thread), std::move(signaling_thread), context,webrtc_env, pcf);
  
    jni_zero::ScopedJavaLocalRef<jobject> j_pcf =
        Java_PeerConnectionFactory_Constructor(
-@@ -187,10 +192,11 @@ jobject NativeToJavaPeerConnectionFactory(
-     std::unique_ptr<SocketFactory> socket_factory,
+@@ -189,10 +194,11 @@ jobject NativeToJavaPeerConnectionFactory(
      std::unique_ptr<Thread> network_thread,
      std::unique_ptr<Thread> worker_thread,
--    std::unique_ptr<Thread> signaling_thread) {
-+    std::unique_ptr<Thread> signaling_thread,
-+    webrtc::scoped_refptr<webrtc::ConnectionContext> context) {
+     std::unique_ptr<Thread> signaling_thread,
++    webrtc::scoped_refptr<webrtc::ConnectionContext> context,
+     const Environment& env) {
    return NativeToScopedJavaPeerConnectionFactory(
               jni, pcf, std::move(socket_factory), std::move(network_thread),
--             std::move(worker_thread), std::move(signaling_thread))
-+             std::move(worker_thread), std::move(signaling_thread), context)
+-             std::move(worker_thread), std::move(signaling_thread), env)
++             std::move(worker_thread), std::move(signaling_thread), context, env)
        .Release();
  }
  
-@@ -244,6 +250,36 @@ static void JNI_PeerConnectionFactory_ShutdownInternalTracer(JNIEnv* jni) {
+@@ -246,6 +252,36 @@ static void JNI_PeerConnectionFactory_ShutdownInternalTracer(JNIEnv* jni) {
    tracing::ShutdownInternalTracer();
  }
  
@@ -332,7 +331,7 @@ index bd26b84516..e83470c950 100644
  // Following parameters are optional:
  // `audio_device_module`, `jencoder_factory`, `jdecoder_factory`,
  // `audio_processor`, `fec_controller_factory`,
-@@ -326,9 +362,23 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
+@@ -328,9 +364,23 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
        absl::WrapUnique(CreateVideoDecoderFactory(jni, jdecoder_factory));
    EnableMedia(dependencies);
  
@@ -359,16 +358,16 @@ index bd26b84516..e83470c950 100644
    RTC_CHECK(factory) << "Failed to create the peer connection factory; "
                          "WebRTC/libjingle init likely failed on this device";
    // TODO(honghaiz): Maybe put the options as the argument of
-@@ -338,7 +388,7 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
+@@ -340,7 +390,7 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
  
    return NativeToScopedJavaPeerConnectionFactory(
        jni, factory, std::move(socket_server), std::move(network_thread),
--      std::move(worker_thread), std::move(signaling_thread));
-+      std::move(worker_thread), std::move(signaling_thread), context);
+-      std::move(worker_thread), std::move(signaling_thread), env);
++      std::move(worker_thread), std::move(signaling_thread), context, env);
  }
  
  static jni_zero::ScopedJavaLocalRef<jobject>
-@@ -464,13 +514,43 @@ static void JNI_PeerConnectionFactory_StopAecDump(JNIEnv* jni,
+@@ -466,13 +516,43 @@ static void JNI_PeerConnectionFactory_StopAecDump(JNIEnv* jni,
    PeerConnectionFactoryFromJava(native_factory)->StopAecDump();
  }
  
@@ -413,7 +412,7 @@ index bd26b84516..e83470c950 100644
    std::unique_ptr<PeerConnectionObserver> observer(
        reinterpret_cast<PeerConnectionObserver*>(observer_p));
  
-@@ -507,9 +587,51 @@ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
+@@ -509,9 +589,51 @@ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
              jni, j_sslCertificateVerifier);
    }
  
