@@ -404,3 +404,10 @@ ObjC ブリッジは leaf 証明書のみを渡していた。
 
 互換性のため、`verifyChain:` を実装していない場合は従来どおり `verify:` に leaf 証明書を渡してフォールバックする。
 
+## android_ssl_certificate_verifier_chain.patch
+
+Android の `SSLCertificateVerifier` に証明書チェーンを渡せるように JNI ブリッジを拡張するパッチ。
+
+既存の `verify(byte[])` は互換性のため維持しつつ、 `verifyChain(byte[][])` を追加する。
+C++ 側では `SSLCertChain` 全体を `byte[][]` として Java に渡し、証明書チェーン検証を可能にする。
+

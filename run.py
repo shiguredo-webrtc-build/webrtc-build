@@ -280,6 +280,7 @@ PATCHES = {
         "remove_crel.patch",
         "revert_siso.patch",
         "unsafe_buffers_optout_list.patch",
+        "android_ssl_certificate_verifier_chain.patch",
     ],
     "android_sdk": [
         "add_deps.patch",
@@ -300,6 +301,7 @@ PATCHES = {
         "android_audio_pause_resume.patch",
         "android_audio_track_sink.patch",
         "unsafe_buffers_optout_list.patch",
+        "android_ssl_certificate_verifier_chain.patch",
     ],
     "raspberry-pi-os_armv8": [
         "add_deps.patch",
