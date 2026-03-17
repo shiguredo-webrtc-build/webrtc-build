@@ -19,21 +19,12 @@ index a1c6c70..30bc208 100644
  
  class RTC_EXPORT PacketSocketFactory {
 diff --git a/api/peer_connection_interface.cc b/api/peer_connection_interface.cc
-index d656695..10badc0 100644
+index d656695..e45c929 100644
 --- a/api/peer_connection_interface.cc
 +++ b/api/peer_connection_interface.cc
-@@ -18,8 +18,43 @@
- 
+@@ -19,7 +19,38 @@
  namespace webrtc {
  
-+namespace {
-+
-+std::unique_ptr<SSLIdentity> CloneIdentity(const SSLIdentity* identity) {
-+  return identity ? identity->Clone() : nullptr;
-+}
-+
-+}  // namespace
-+
  PeerConnectionInterface::IceServer::IceServer() = default;
 -PeerConnectionInterface::IceServer::IceServer(const IceServer& rhs) = default;
 +PeerConnectionInterface::IceServer::IceServer(const IceServer& rhs)
@@ -45,7 +36,9 @@ index d656695..10badc0 100644
 +      hostname(rhs.hostname),
 +      tls_alpn_protocols(rhs.tls_alpn_protocols),
 +      tls_elliptic_curves(rhs.tls_elliptic_curves),
-+      tls_client_identity(CloneIdentity(rhs.tls_client_identity.get())) {}
++      tls_client_identity(rhs.tls_client_identity
++                              ? rhs.tls_client_identity->Clone()
++                              : nullptr) {}
 +
 +PeerConnectionInterface::IceServer& PeerConnectionInterface::IceServer::operator=(
 +    const IceServer& rhs) {
@@ -60,7 +53,9 @@ index d656695..10badc0 100644
 +  hostname = rhs.hostname;
 +  tls_alpn_protocols = rhs.tls_alpn_protocols;
 +  tls_elliptic_curves = rhs.tls_elliptic_curves;
-+  tls_client_identity = CloneIdentity(rhs.tls_client_identity.get());
++  tls_client_identity = rhs.tls_client_identity
++                            ? rhs.tls_client_identity->Clone()
++                            : nullptr;
 +  return *this;
 +}
 +
@@ -121,25 +116,10 @@ index 07d8eef..bc0b0ac 100644
      if (ssl_adapter->StartSSL(remote_address.hostname()) != 0) {
        return nullptr;
 diff --git a/p2p/base/port_allocator.cc b/p2p/base/port_allocator.cc
-index 0713e7f..dd565a6 100644
+index 0713e7f..a323a78 100644
 --- a/p2p/base/port_allocator.cc
 +++ b/p2p/base/port_allocator.cc
-@@ -33,6 +33,14 @@
- 
- namespace webrtc {
- 
-+namespace {
-+
-+std::unique_ptr<SSLIdentity> CloneIdentity(const SSLIdentity* identity) {
-+  return identity ? identity->Clone() : nullptr;
-+}
-+
-+}  // namespace
-+
- RelayServerConfig::RelayServerConfig() {}
- 
- RelayServerConfig::RelayServerConfig(const SocketAddress& address,
-@@ -66,7 +74,31 @@ RelayServerConfig::RelayServerConfig(absl::string_view address,
+@@ -66,7 +66,35 @@ RelayServerConfig::RelayServerConfig(absl::string_view address,
                          password,
                          (proto == PROTO_TCP && secure ? PROTO_TLS : proto)) {}
  
@@ -151,7 +131,9 @@ index 0713e7f..dd565a6 100644
 +      tls_alpn_protocols(other.tls_alpn_protocols),
 +      tls_elliptic_curves(other.tls_elliptic_curves),
 +      tls_cert_verifier(other.tls_cert_verifier),
-+      tls_client_identity(CloneIdentity(other.tls_client_identity.get())),
++      tls_client_identity(other.tls_client_identity
++                              ? other.tls_client_identity->Clone()
++                              : nullptr),
 +      turn_logging_id(other.turn_logging_id) {}
 +
 +RelayServerConfig& RelayServerConfig::operator=(
@@ -165,7 +147,9 @@ index 0713e7f..dd565a6 100644
 +  tls_alpn_protocols = other.tls_alpn_protocols;
 +  tls_elliptic_curves = other.tls_elliptic_curves;
 +  tls_cert_verifier = other.tls_cert_verifier;
-+  tls_client_identity = CloneIdentity(other.tls_client_identity.get());
++  tls_client_identity = other.tls_client_identity
++                            ? other.tls_client_identity->Clone()
++                            : nullptr;
 +  turn_logging_id = other.turn_logging_id;
 +  return *this;
 +}
