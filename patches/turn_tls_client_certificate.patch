@@ -1,16 +1,23 @@
 diff --git a/api/packet_socket_factory.h b/api/packet_socket_factory.h
-index a1c6c70..30bc208 100644
+index a1c6c70797..0fc391626a 100644
 --- a/api/packet_socket_factory.h
 +++ b/api/packet_socket_factory.h
-@@ -22,6 +22,7 @@
+@@ -20,12 +20,12 @@
+ #include "api/environment/environment.h"
+ #include "rtc_base/async_packet_socket.h"
  #include "rtc_base/checks.h"
++#include "rtc_base/proxy_info_revive.h"
  #include "rtc_base/socket_address.h"
  #include "rtc_base/ssl_certificate.h"
 +#include "rtc_base/ssl_identity.h"
  #include "rtc_base/system/rtc_export.h"
  
- #include "rtc_base/proxy_info_revive.h"
-@@ -39,6 +40,7 @@ struct PacketSocketTcpOptions {
+-#include "rtc_base/proxy_info_revive.h"
+-
+ namespace webrtc {
+ 
+ struct PacketSocketTcpOptions {
+@@ -39,6 +39,7 @@ struct PacketSocketTcpOptions {
    // inject their own certificate verification logic (not available to users
    // outside of the WebRTC repo).
    SSLCertificateVerifier* tls_cert_verifier = nullptr;
@@ -19,10 +26,10 @@ index a1c6c70..30bc208 100644
  
  class RTC_EXPORT PacketSocketFactory {
 diff --git a/api/peer_connection_interface.cc b/api/peer_connection_interface.cc
-index d656695..e45c929 100644
+index d656695dc0..de6d36d880 100644
 --- a/api/peer_connection_interface.cc
 +++ b/api/peer_connection_interface.cc
-@@ -19,7 +19,38 @@
+@@ -19,7 +19,37 @@
  namespace webrtc {
  
  PeerConnectionInterface::IceServer::IceServer() = default;
@@ -40,8 +47,8 @@ index d656695..e45c929 100644
 +                              ? rhs.tls_client_identity->Clone()
 +                              : nullptr) {}
 +
-+PeerConnectionInterface::IceServer& PeerConnectionInterface::IceServer::operator=(
-+    const IceServer& rhs) {
++PeerConnectionInterface::IceServer&
++PeerConnectionInterface::IceServer::operator=(const IceServer& rhs) {
 +  if (this == &rhs) {
 +    return *this;
 +  }
@@ -53,9 +60,8 @@ index d656695..e45c929 100644
 +  hostname = rhs.hostname;
 +  tls_alpn_protocols = rhs.tls_alpn_protocols;
 +  tls_elliptic_curves = rhs.tls_elliptic_curves;
-+  tls_client_identity = rhs.tls_client_identity
-+                            ? rhs.tls_client_identity->Clone()
-+                            : nullptr;
++  tls_client_identity =
++      rhs.tls_client_identity ? rhs.tls_client_identity->Clone() : nullptr;
 +  return *this;
 +}
 +
@@ -63,7 +69,7 @@ index d656695..e45c929 100644
  
  PeerConnectionInterface::RTCConfiguration::RTCConfiguration() = default;
 diff --git a/api/peer_connection_interface.h b/api/peer_connection_interface.h
-index 48b38d5..09d54ee 100644
+index 48b38d57ad..09d54ee8d4 100644
 --- a/api/peer_connection_interface.h
 +++ b/api/peer_connection_interface.h
 @@ -143,6 +143,7 @@
@@ -102,10 +108,37 @@ index 48b38d5..09d54ee 100644
      bool operator!=(const IceServer& o) const { return !(*this == o); }
    };
 diff --git a/p2p/base/basic_packet_socket_factory.cc b/p2p/base/basic_packet_socket_factory.cc
-index 07d8eef..bc0b0ac 100644
+index 07d8eefbb3..407e8cbe82 100644
 --- a/p2p/base/basic_packet_socket_factory.cc
 +++ b/p2p/base/basic_packet_socket_factory.cc
-@@ -208,6 +208,9 @@ BasicPacketSocketFactory::CreateClientTcpSocket(
+@@ -27,12 +27,11 @@
+ #include "rtc_base/logging.h"
+ #include "rtc_base/socket.h"
+ #include "rtc_base/socket_adapters.h"
++#include "rtc_base/socket_adapters_revive.h"
+ #include "rtc_base/socket_address.h"
+ #include "rtc_base/socket_factory.h"
+ #include "rtc_base/ssl_adapter.h"
+ 
+-#include "rtc_base/socket_adapters_revive.h"
+-
+ namespace webrtc {
+ 
+ BasicPacketSocketFactory::BasicPacketSocketFactory(
+@@ -181,9 +180,9 @@ BasicPacketSocketFactory::CreateClientTcpSocket(
+   }
+ 
+   if (proxy_info.type == webrtc::revive::PROXY_HTTPS) {
+-    socket.reset(
+-        new webrtc::revive::AsyncHttpsProxySocket(socket.release(), user_agent, proxy_info.address,
+-                                            proxy_info.username, proxy_info.password));
++    socket.reset(new webrtc::revive::AsyncHttpsProxySocket(
++        socket.release(), user_agent, proxy_info.address, proxy_info.username,
++        proxy_info.password));
+   }
+ 
+   // Assert that at most one TLS option is used.
+@@ -208,6 +207,9 @@ BasicPacketSocketFactory::CreateClientTcpSocket(
      ssl_adapter->SetAlpnProtocols(tcp_options.tls_alpn_protocols);
      ssl_adapter->SetEllipticCurves(tcp_options.tls_elliptic_curves);
      ssl_adapter->SetCertVerifier(tcp_options.tls_cert_verifier);
@@ -116,10 +149,10 @@ index 07d8eef..bc0b0ac 100644
      if (ssl_adapter->StartSSL(remote_address.hostname()) != 0) {
        return nullptr;
 diff --git a/p2p/base/port_allocator.cc b/p2p/base/port_allocator.cc
-index 0713e7f..a323a78 100644
+index 0713e7ff30..e664212207 100644
 --- a/p2p/base/port_allocator.cc
 +++ b/p2p/base/port_allocator.cc
-@@ -66,7 +66,35 @@ RelayServerConfig::RelayServerConfig(absl::string_view address,
+@@ -66,7 +66,34 @@ RelayServerConfig::RelayServerConfig(absl::string_view address,
                          password,
                          (proto == PROTO_TCP && secure ? PROTO_TLS : proto)) {}
  
@@ -147,9 +180,8 @@ index 0713e7f..a323a78 100644
 +  tls_alpn_protocols = other.tls_alpn_protocols;
 +  tls_elliptic_curves = other.tls_elliptic_curves;
 +  tls_cert_verifier = other.tls_cert_verifier;
-+  tls_client_identity = other.tls_client_identity
-+                            ? other.tls_client_identity->Clone()
-+                            : nullptr;
++  tls_client_identity =
++      other.tls_client_identity ? other.tls_client_identity->Clone() : nullptr;
 +  turn_logging_id = other.turn_logging_id;
 +  return *this;
 +}
@@ -157,18 +189,25 @@ index 0713e7f..a323a78 100644
  RelayServerConfig::~RelayServerConfig() = default;
  
 diff --git a/p2p/base/port_allocator.h b/p2p/base/port_allocator.h
-index 4616b39..3ab4399 100644
+index 4616b39865..88b48bb8d3 100644
 --- a/p2p/base/port_allocator.h
 +++ b/p2p/base/port_allocator.h
-@@ -33,6 +33,7 @@
+@@ -31,12 +31,12 @@
+ #include "rtc_base/checks.h"
+ #include "rtc_base/net_helper.h"
  #include "rtc_base/network.h"
++#include "rtc_base/proxy_info_revive.h"
  #include "rtc_base/socket_address.h"
  #include "rtc_base/ssl_certificate.h"
 +#include "rtc_base/ssl_identity.h"
  #include "rtc_base/system/rtc_export.h"
  
- #include "rtc_base/proxy_info_revive.h"
-@@ -175,10 +176,19 @@ struct RTC_EXPORT RelayServerConfig {
+-#include "rtc_base/proxy_info_revive.h"
+-
+ namespace webrtc {
+ 
+ class TurnCustomizer;
+@@ -175,10 +175,19 @@ struct RTC_EXPORT RelayServerConfig {
                      ProtocolType proto,
                      bool secure);
    RelayServerConfig(const RelayServerConfig&);
@@ -189,7 +228,7 @@ index 4616b39..3ab4399 100644
    }
    bool operator!=(const RelayServerConfig& o) const { return !(*this == o); }
  
-@@ -188,6 +198,7 @@ struct RTC_EXPORT RelayServerConfig {
+@@ -188,6 +197,7 @@ struct RTC_EXPORT RelayServerConfig {
    std::vector<std::string> tls_alpn_protocols;
    std::vector<std::string> tls_elliptic_curves;
    SSLCertificateVerifier* tls_cert_verifier = nullptr;
@@ -197,8 +236,29 @@ index 4616b39..3ab4399 100644
    std::string turn_logging_id;
  };
  
+@@ -582,16 +592,18 @@ class RTC_EXPORT PortAllocator {
+     return proxy_;
+   }
+ 
+-  void set_proxy(absl::string_view agent, const webrtc::revive::ProxyInfo& proxy) {
++  void set_proxy(absl::string_view agent,
++                 const webrtc::revive::ProxyInfo& proxy) {
+     CheckRunOnValidThreadIfInitialized();
+     agent_ = std::string(agent);
+     proxy_ = proxy;
+   }
++
+  private:
+   std::string agent_;
+   webrtc::revive::ProxyInfo proxy_;
+- public:
+ 
++ public:
+   // Gets/Sets the port range to use when choosing client ports.
+   int min_port() const {
+     CheckRunOnValidThreadIfInitialized();
 diff --git a/p2p/base/turn_port.cc b/p2p/base/turn_port.cc
-index 96952c1..6ed81b9 100644
+index 96952c1809..323381d40e 100644
 --- a/p2p/base/turn_port.cc
 +++ b/p2p/base/turn_port.cc
 @@ -335,6 +335,15 @@ void TurnPort::SetTlsCertPolicy(TlsCertPolicy tls_cert_policy) {
@@ -217,7 +277,7 @@ index 96952c1..6ed81b9 100644
  void TurnPort::SetTurnLoggingId(absl::string_view turn_logging_id) {
    turn_logging_id_ = std::string(turn_logging_id);
  }
-@@ -477,6 +486,9 @@ bool TurnPort::CreateTurnClientSocket() {
+@@ -477,11 +486,12 @@ bool TurnPort::CreateTurnClientSocket() {
      tcp_options.tls_alpn_protocols = tls_alpn_protocols_;
      tcp_options.tls_elliptic_curves = tls_elliptic_curves_;
      tcp_options.tls_cert_verifier = tls_cert_verifier_;
@@ -226,9 +286,15 @@ index 96952c1..6ed81b9 100644
 +    }
      owned_socket_ = socket_factory()->CreateClientTcpSocket(
          env(), SocketAddress(Network()->GetBestIP(), 0),
-         server_address_.address,
+-        server_address_.address,
+-        get_proxy(), get_user_agent(),
+-        tcp_options);
++        server_address_.address, get_proxy(), get_user_agent(), tcp_options);
+     socket_ = owned_socket_.get();
+   }
+ 
 diff --git a/p2p/base/turn_port.h b/p2p/base/turn_port.h
-index 28547e8..d401ae7 100644
+index 28547e83dd..9b9132942d 100644
 --- a/p2p/base/turn_port.h
 +++ b/p2p/base/turn_port.h
 @@ -42,6 +42,7 @@
@@ -248,18 +314,10 @@ index 28547e8..d401ae7 100644
          new TurnPort({.env = args.env,
                        .network_thread = args.network_thread,
                        .socket_factory = args.socket_factory,
-@@ -96,10 +97,14 @@ class TurnPort : public Port {
-                       .ice_password = args.password,
-                       .content_name = args.content_name,
-                       .lna_permission_factory = args.lna_permission_factory},
--                     socket, *args.server_address, args.config->credentials,
--                     args.relative_priority, args.config->tls_alpn_protocols,
--                     args.config->tls_elliptic_curves, args.turn_customizer,
--                     args.config->tls_cert_verifier));
-+                      socket, *args.server_address, args.config->credentials,
-+                      args.relative_priority, args.config->tls_alpn_protocols,
-+                      args.config->tls_elliptic_curves, args.turn_customizer,
-+                      args.config->tls_cert_verifier));
+@@ -100,6 +101,10 @@ class TurnPort : public Port {
+                      args.relative_priority, args.config->tls_alpn_protocols,
+                      args.config->tls_elliptic_curves, args.turn_customizer,
+                      args.config->tls_cert_verifier));
 +    if (args.config->tls_client_identity) {
 +      port->SetTlsClientIdentity(args.config->tls_client_identity->Clone());
 +    }
@@ -287,16 +345,17 @@ index 28547e8..d401ae7 100644
    }
  
    ~TurnPort() override;
-@@ -142,6 +151,8 @@ class TurnPort : public Port {
+@@ -142,6 +151,9 @@ class TurnPort : public Port {
  
    virtual TlsCertPolicy GetTlsCertPolicy() const;
    virtual void SetTlsCertPolicy(TlsCertPolicy tls_cert_policy);
-+  virtual void SetTlsClientIdentity(std::unique_ptr<SSLIdentity> client_identity);
++  virtual void SetTlsClientIdentity(
++      std::unique_ptr<SSLIdentity> client_identity);
 +  virtual const SSLIdentity* GetTlsClientIdentity() const;
  
    void SetTurnLoggingId(absl::string_view turn_logging_id);
  
-@@ -314,6 +325,7 @@ class TurnPort : public Port {
+@@ -314,6 +326,7 @@ class TurnPort : public Port {
    std::vector<std::string> tls_alpn_protocols_;
    std::vector<std::string> tls_elliptic_curves_;
    SSLCertificateVerifier* tls_cert_verifier_;
@@ -305,7 +364,7 @@ index 28547e8..d401ae7 100644
    AttemptedServerSet attempted_server_addresses_;
  
 diff --git a/pc/ice_server_parsing.cc b/pc/ice_server_parsing.cc
-index 6b357cc..315f807 100644
+index 6b357cce5c..315f80764d 100644
 --- a/pc/ice_server_parsing.cc
 +++ b/pc/ice_server_parsing.cc
 @@ -319,6 +319,9 @@ RTCError ParseIceServerUrl(const PeerConnectionInterface::IceServer& server,
