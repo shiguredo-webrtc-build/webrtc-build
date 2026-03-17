@@ -29,6 +29,10 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 20260-03-16 [UPDATE] Docker Image の削除コマンドをコメントアウトアウトする
+  - 不定期に `failed to connect to the docker API at npipe:////./pipe/docker_engine;` というエラーが出て Disk Cleanup が失敗することがあったためコメントアウトする
+  - Docker Image を削除しなくても libwebrtc のビルドするためのディスク容量が足りているため削除する
+  - @zztkm
 - 2026-03-13 [RELEASE] m146.7680.3.0
   - @miosakuma
 - 2026-03-10 [RELEASE] m146.7680.1.0
