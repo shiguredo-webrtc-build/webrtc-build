@@ -29,7 +29,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
-- 2026-03-17 [UPDATE] m147 ブランチのビルドエラーに対する対応
+- 2026-03-18 [UPDATE] m147 ブランチのビルドエラーに対する対応
   - h265_ios.patch について、ArrayView から std::span へ移行する
      - libwebrtc の ArrayView から std::span への移行に追従する
      - 参考 : https://issuetracker.google.com/issues/439801349
@@ -43,7 +43,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - @zztkm
 - 2026-03-17 [ADD] TURN-TLS 接続でクライアント証明書を設定する機能を追加する
   - @zztkm
-- 20260-03-16 [UPDATE] Docker Image の削除コマンドをコメントアウトアウトする
+- 2026-03-16 [UPDATE] Docker Image の削除コマンドをコメントアウトアウトする
   - 不定期に `failed to connect to the docker API at npipe:////./pipe/docker_engine;` というエラーが出て Disk Cleanup が失敗することがあったためコメントアウトする
   - Docker Image を削除しなくても libwebrtc のビルドするためのディスク容量が足りているため削除する
   - @zztkm
