@@ -189,6 +189,7 @@ PATCHES = {
         "remove_crel.patch",
         "windows_fix_adm_device_count.patch",
         "unsafe_buffers_optout_list.patch",
+        "turn_tls_client_certificate.patch",
     ],
     "windows_arm64": [
         "4k.patch",
@@ -202,6 +203,7 @@ PATCHES = {
         "fix_moved_function_call.patch",
         "remove_crel.patch",
         "unsafe_buffers_optout_list.patch",
+        "turn_tls_client_certificate.patch",
     ],
     "macos_arm64": [
         "add_deps.patch",
@@ -218,6 +220,7 @@ PATCHES = {
         "fix_moved_function_call.patch",
         "remove_crel.patch",
         "unsafe_buffers_optout_list.patch",
+        "turn_tls_client_certificate.patch",
     ],
     "ios": [
         "add_deps.patch",
@@ -239,6 +242,7 @@ PATCHES = {
         "revert_siso.patch",
         "unsafe_buffers_optout_list.patch",
         "ios_ssl_certificate_verifier_chain.patch",
+        "turn_tls_client_certificate.patch",
     ],
     "ios_sdk": [
         "add_deps.patch",
@@ -262,6 +266,7 @@ PATCHES = {
         "ios_audio_pause_resume.patch",
         "unsafe_buffers_optout_list.patch",
         "ios_ssl_certificate_verifier_chain.patch",
+        "turn_tls_client_certificate.patch",
     ],
     "android": [
         "add_deps.patch",
@@ -280,6 +285,8 @@ PATCHES = {
         "remove_crel.patch",
         "revert_siso.patch",
         "unsafe_buffers_optout_list.patch",
+        "android_ssl_certificate_verifier_chain.patch",
+        "turn_tls_client_certificate.patch",
     ],
     "android_sdk": [
         "add_deps.patch",
@@ -300,6 +307,8 @@ PATCHES = {
         "android_audio_pause_resume.patch",
         "android_audio_track_sink.patch",
         "unsafe_buffers_optout_list.patch",
+        "android_ssl_certificate_verifier_chain.patch",
+        "turn_tls_client_certificate.patch",
     ],
     "raspberry-pi-os_armv8": [
         "add_deps.patch",
@@ -311,6 +320,7 @@ PATCHES = {
         "fix_moved_function_call.patch",
         "remove_crel.patch",
         "unsafe_buffers_optout_list.patch",
+        "turn_tls_client_certificate.patch",
     ],
     "ubuntu-20.04_armv8": [
         "add_deps.patch",
@@ -322,6 +332,7 @@ PATCHES = {
         "fix_moved_function_call.patch",
         "remove_crel.patch",
         "unsafe_buffers_optout_list.patch",
+        "turn_tls_client_certificate.patch",
     ],
     "ubuntu-22.04_armv8": [
         "add_deps.patch",
@@ -333,6 +344,7 @@ PATCHES = {
         "fix_moved_function_call.patch",
         "remove_crel.patch",
         "unsafe_buffers_optout_list.patch",
+        "turn_tls_client_certificate.patch",
     ],
     "ubuntu-24.04_armv8": [
         "add_deps.patch",
@@ -344,6 +356,7 @@ PATCHES = {
         "fix_moved_function_call.patch",
         "remove_crel.patch",
         "unsafe_buffers_optout_list.patch",
+        "turn_tls_client_certificate.patch",
     ],
     "ubuntu-22.04_x86_64": [
         "add_deps.patch",
@@ -355,6 +368,7 @@ PATCHES = {
         "fix_moved_function_call.patch",
         "remove_crel.patch",
         "unsafe_buffers_optout_list.patch",
+        "turn_tls_client_certificate.patch",
     ],
     "ubuntu-24.04_x86_64": [
         "add_deps.patch",
@@ -366,6 +380,7 @@ PATCHES = {
         "fix_moved_function_call.patch",
         "remove_crel.patch",
         "unsafe_buffers_optout_list.patch",
+        "turn_tls_client_certificate.patch",
     ],
 }
 
