@@ -31,7 +31,14 @@ jobs:
         run: |
           Get-PSDrive
           # Cache 済み Docker Image の削除
-          docker rmi $(docker images -q -a)
+          #
+          # Docker Image の削除コマンドをコメントアウトアウトした背景
+          #
+          # `failed to connect to the docker API at npipe:////./pipe/docker_engine;` というエラーが出て
+          # Disk Cleanup が失敗する場合があったため Docker Image の削除コマンドはコメントアウトする
+          #
+          # docker rmi $(docker images -q -a)
+
           # Android SDK の削除
           if ($Env:ANDROID_HOME) {
             Remove-Item -Recurse -Force $Env:ANDROID_HOME -ErrorAction Ignore
