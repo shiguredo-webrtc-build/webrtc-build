@@ -29,11 +29,21 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-03-18 [UPDATE] m147 ブランチのビルドエラーに対する対応
+  - h265_ios.patch について、ArrayView から std::span へ移行する
+     - libwebrtc の ArrayView から std::span への移行に追従する
+     - 参考 : https://issuetracker.google.com/issues/439801349
+  - h265_ios.patch の単純なパッチ適用エラーを修正する
+  - android_simulcast.patch について sdk/android の simulcast_jni にenvironment_construction を追加する
+    - libwertc の以下のコミットにより allow_poison に environment_construction が追加されたため、android_simulcast.patch にも同様の変更を加える
+      - https://source.chromium.org/chromium/_/webrtc/src/+/7962f775089e67780c29381f086485d810af1385
+  - android_proxy.patch の単純なパッチ適用エラーを修正する
+  - @miosakuma
 - 2026-03-18 [RELEASE] m146.7680.3.1
   - @zztkm
 - 2026-03-17 [ADD] TURN-TLS 接続でクライアント証明書を設定する機能を追加する
   - @zztkm
-- 20260-03-16 [UPDATE] Docker Image の削除コマンドをコメントアウトアウトする
+- 2026-03-16 [UPDATE] Docker Image の削除コマンドをコメントアウトアウトする
   - 不定期に `failed to connect to the docker API at npipe:////./pipe/docker_engine;` というエラーが出て Disk Cleanup が失敗することがあったためコメントアウトする
   - Docker Image を削除しなくても libwebrtc のビルドするためのディスク容量が足りているため削除する
   - @zztkm
