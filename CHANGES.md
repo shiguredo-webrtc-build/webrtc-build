@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-03-18 [RELEASE] m147.7727.6.0
+  - @miosakuma
 - 2026-03-18 [UPDATE] m147 ブランチのビルドエラーに対する対応
   - h265_ios.patch について、ArrayView から std::span へ移行する
      - libwebrtc の ArrayView から std::span への移行に追従する
