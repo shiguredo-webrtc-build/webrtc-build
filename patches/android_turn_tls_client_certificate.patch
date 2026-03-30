@@ -1,0 +1,321 @@
+diff --git a/sdk/android/api/org/webrtc/PeerConnection.java b/sdk/android/api/org/webrtc/PeerConnection.java
+index 039ce01..b2ba4e9 100644
+--- a/sdk/android/api/org/webrtc/PeerConnection.java
++++ b/sdk/android/api/org/webrtc/PeerConnection.java
+@@ -189,7 +189,8 @@ public class PeerConnection {
+     public final List<String> tlsEllipticCurves;
+ 
+     // Client certificate and private key to present for TURN-TLS authentication.
+-    @Nullable public final RtcCertificatePem tlsClientCertificate;
++    @Nullable public final String tlsClientPrivateKeyPem;
++    @Nullable public final String tlsClientCertificatePem;
+ 
+     /** Convenience constructor for STUN servers. */
+     @Deprecated
+@@ -216,7 +217,8 @@ public class PeerConnection {
+ 
+     private IceServer(String uri, List<String> urls, String username, String password,
+         TlsCertPolicy tlsCertPolicy, String hostname, List<String> tlsAlpnProtocols,
+-        List<String> tlsEllipticCurves, @Nullable RtcCertificatePem tlsClientCertificate) {
++        List<String> tlsEllipticCurves, @Nullable String tlsClientPrivateKeyPem,
++        @Nullable String tlsClientCertificatePem) {
+       if (uri == null || urls == null || urls.isEmpty()) {
+         throw new IllegalArgumentException("uri == null || urls == null || urls.isEmpty()");
+       }
+@@ -234,6 +236,10 @@ public class PeerConnection {
+       if (hostname == null) {
+         throw new IllegalArgumentException("hostname == null");
+       }
++      if ((tlsClientPrivateKeyPem == null) != (tlsClientCertificatePem == null)) {
++        throw new IllegalArgumentException(
++            "tlsClientPrivateKeyPem and tlsClientCertificatePem must both be null or non-null");
++      }
+       this.uri = uri;
+       this.urls = urls;
+       this.username = username;
+@@ -242,14 +248,15 @@ public class PeerConnection {
+       this.hostname = hostname;
+       this.tlsAlpnProtocols = tlsAlpnProtocols;
+       this.tlsEllipticCurves = tlsEllipticCurves;
+-      this.tlsClientCertificate = tlsClientCertificate;
++      this.tlsClientPrivateKeyPem = tlsClientPrivateKeyPem;
++      this.tlsClientCertificatePem = tlsClientCertificatePem;
+     }
+ 
+     @Override
+     public String toString() {
+       return urls + " [" + username + ":" + password + "] [" + tlsCertPolicy + "] [" + hostname
+           + "] [" + tlsAlpnProtocols + "] [" + tlsEllipticCurves + "] ["
+-          + tlsClientCertificate + "]";
++          + tlsClientPrivateKeyPem + "] [" + tlsClientCertificatePem + "]";
+     }
+ 
+     @Override
+@@ -268,26 +275,25 @@ public class PeerConnection {
+           && password.equals(other.password) && tlsCertPolicy.equals(other.tlsCertPolicy)
+           && hostname.equals(other.hostname) && tlsAlpnProtocols.equals(other.tlsAlpnProtocols)
+           && tlsEllipticCurves.equals(other.tlsEllipticCurves)
+-          && rtcCertificatePemEquals(tlsClientCertificate, other.tlsClientCertificate));
++          && stringEquals(tlsClientPrivateKeyPem, other.tlsClientPrivateKeyPem)
++          && stringEquals(tlsClientCertificatePem, other.tlsClientCertificatePem));
+     }
+ 
+     @Override
+     public int hashCode() {
+       Object[] values = {uri, urls, username, password, tlsCertPolicy, hostname, tlsAlpnProtocols,
+-          tlsEllipticCurves, tlsClientCertificate == null ? null : tlsClientCertificate.privateKey,
+-          tlsClientCertificate == null ? null : tlsClientCertificate.certificate};
++          tlsEllipticCurves, tlsClientPrivateKeyPem, tlsClientCertificatePem};
+       return Arrays.hashCode(values);
+     }
+ 
+-    private static boolean rtcCertificatePemEquals(
+-        @Nullable RtcCertificatePem lhs, @Nullable RtcCertificatePem rhs) {
++    private static boolean stringEquals(@Nullable String lhs, @Nullable String rhs) {
+       if (lhs == rhs) {
+         return true;
+       }
+       if (lhs == null || rhs == null) {
+         return false;
+       }
+-      return lhs.privateKey.equals(rhs.privateKey) && lhs.certificate.equals(rhs.certificate);
++      return lhs.equals(rhs);
+     }
+ 
+     public static Builder builder(String uri) {
+@@ -306,7 +312,8 @@ public class PeerConnection {
+       private String hostname = "";
+       private List<String> tlsAlpnProtocols;
+       private List<String> tlsEllipticCurves;
+-      @Nullable private RtcCertificatePem tlsClientCertificate;
++      @Nullable private String tlsClientPrivateKeyPem;
++      @Nullable private String tlsClientCertificatePem;
+ 
+       private Builder(List<String> urls) {
+         if (urls == null || urls.isEmpty()) {
+@@ -345,14 +352,23 @@ public class PeerConnection {
+         return this;
+       }
+ 
+-      public Builder setTlsClientCertificate(@Nullable RtcCertificatePem tlsClientCertificate) {
+-        this.tlsClientCertificate = tlsClientCertificate;
++      public Builder setTlsClientCertificate(
++          String tlsClientPrivateKeyPem, String tlsClientCertificatePem) {
++        if (tlsClientPrivateKeyPem == null) {
++          throw new IllegalArgumentException("tlsClientPrivateKeyPem == null");
++        }
++        if (tlsClientCertificatePem == null) {
++          throw new IllegalArgumentException("tlsClientCertificatePem == null");
++        }
++        this.tlsClientPrivateKeyPem = tlsClientPrivateKeyPem;
++        this.tlsClientCertificatePem = tlsClientCertificatePem;
+         return this;
+       }
+ 
+       public IceServer createIceServer() {
+         return new IceServer(urls.get(0), urls, username, password, tlsCertPolicy, hostname,
+-            tlsAlpnProtocols, tlsEllipticCurves, tlsClientCertificate);
++            tlsAlpnProtocols, tlsEllipticCurves, tlsClientPrivateKeyPem,
++            tlsClientCertificatePem);
+       }
+     }
+ 
+@@ -397,8 +413,14 @@ public class PeerConnection {
+ 
+     @Nullable
+     @CalledByNative("IceServer")
+-    RtcCertificatePem getTlsClientCertificate() {
+-      return tlsClientCertificate;
++    String getTlsClientPrivateKeyPem() {
++      return tlsClientPrivateKeyPem;
++    }
++
++    @Nullable
++    @CalledByNative("IceServer")
++    String getTlsClientCertificatePem() {
++      return tlsClientCertificatePem;
+     }
+   }
+ 
+diff --git a/sdk/android/instrumentationtests/src/org/webrtc/PeerConnectionTest.java b/sdk/android/instrumentationtests/src/org/webrtc/PeerConnectionTest.java
+index 3bd3699..5fc29aa 100644
+--- a/sdk/android/instrumentationtests/src/org/webrtc/PeerConnectionTest.java
++++ b/sdk/android/instrumentationtests/src/org/webrtc/PeerConnectionTest.java
+@@ -49,7 +49,7 @@ public class PeerConnectionTest {
+             .setHostname("fakeHostname")
+             .setTlsAlpnProtocols(singletonList("fakeTlsAlpnProtocol"))
+             .setTlsEllipticCurves(singletonList("fakeTlsEllipticCurve"))
+-            .setTlsClientCertificate(certificate1)
++            .setTlsClientCertificate(certificate1.privateKey, certificate1.certificate)
+             .createIceServer();
+     // Same as iceServer1.
+     PeerConnection.IceServer iceServer2 =
+@@ -60,7 +60,7 @@ public class PeerConnectionTest {
+             .setHostname("fakeHostname")
+             .setTlsAlpnProtocols(singletonList("fakeTlsAlpnProtocol"))
+             .setTlsEllipticCurves(singletonList("fakeTlsEllipticCurve"))
+-            .setTlsClientCertificate(certificate1)
++            .setTlsClientCertificate(certificate1.privateKey, certificate1.certificate)
+             .createIceServer();
+     // Differs from iceServer1 by the url.
+     PeerConnection.IceServer iceServer3 =
+@@ -71,7 +71,7 @@ public class PeerConnectionTest {
+             .setHostname("fakeHostname")
+             .setTlsAlpnProtocols(singletonList("fakeTlsAlpnProtocol"))
+             .setTlsEllipticCurves(singletonList("fakeTlsEllipticCurve"))
+-            .setTlsClientCertificate(certificate1)
++            .setTlsClientCertificate(certificate1.privateKey, certificate1.certificate)
+             .createIceServer();
+     // Differs from iceServer1 by the username.
+     PeerConnection.IceServer iceServer4 =
+@@ -82,7 +82,7 @@ public class PeerConnectionTest {
+             .setHostname("fakeHostname")
+             .setTlsAlpnProtocols(singletonList("fakeTlsAlpnProtocol"))
+             .setTlsEllipticCurves(singletonList("fakeTlsEllipticCurve"))
+-            .setTlsClientCertificate(certificate1)
++            .setTlsClientCertificate(certificate1.privateKey, certificate1.certificate)
+             .createIceServer();
+     // Differs from iceServer1 by the password.
+     PeerConnection.IceServer iceServer5 =
+@@ -93,7 +93,7 @@ public class PeerConnectionTest {
+             .setHostname("fakeHostname")
+             .setTlsAlpnProtocols(singletonList("fakeTlsAlpnProtocol"))
+             .setTlsEllipticCurves(singletonList("fakeTlsEllipticCurve"))
+-            .setTlsClientCertificate(certificate1)
++            .setTlsClientCertificate(certificate1.privateKey, certificate1.certificate)
+             .createIceServer();
+     // Differs from iceServer1 by the TLS certificate policy.
+     PeerConnection.IceServer iceServer6 =
+@@ -104,7 +104,7 @@ public class PeerConnectionTest {
+             .setHostname("fakeHostname")
+             .setTlsAlpnProtocols(singletonList("fakeTlsAlpnProtocol"))
+             .setTlsEllipticCurves(singletonList("fakeTlsEllipticCurve"))
+-            .setTlsClientCertificate(certificate1)
++            .setTlsClientCertificate(certificate1.privateKey, certificate1.certificate)
+             .createIceServer();
+     // Differs from iceServer1 by the hostname.
+     PeerConnection.IceServer iceServer7 =
+@@ -115,7 +115,7 @@ public class PeerConnectionTest {
+             .setHostname("fakeHostname2")
+             .setTlsAlpnProtocols(singletonList("fakeTlsAlpnProtocol"))
+             .setTlsEllipticCurves(singletonList("fakeTlsEllipticCurve"))
+-            .setTlsClientCertificate(certificate1)
++            .setTlsClientCertificate(certificate1.privateKey, certificate1.certificate)
+             .createIceServer();
+     // Differs from iceServer1 by the TLS ALPN.
+     PeerConnection.IceServer iceServer8 =
+@@ -126,7 +126,7 @@ public class PeerConnectionTest {
+             .setHostname("fakeHostname")
+             .setTlsAlpnProtocols(singletonList("fakeTlsAlpnProtocol2"))
+             .setTlsEllipticCurves(singletonList("fakeTlsEllipticCurve"))
+-            .setTlsClientCertificate(certificate1)
++            .setTlsClientCertificate(certificate1.privateKey, certificate1.certificate)
+             .createIceServer();
+     // Differs from iceServer1 by the TLS elliptic curve.
+     PeerConnection.IceServer iceServer9 =
+@@ -137,7 +137,7 @@ public class PeerConnectionTest {
+             .setHostname("fakeHostname")
+             .setTlsAlpnProtocols(singletonList("fakeTlsAlpnProtocol"))
+             .setTlsEllipticCurves(singletonList("fakeTlsEllipticCurve2"))
+-            .setTlsClientCertificate(certificate1)
++            .setTlsClientCertificate(certificate1.privateKey, certificate1.certificate)
+             .createIceServer();
+     // Differs from iceServer1 by the TURN-TLS client certificate.
+     PeerConnection.IceServer iceServer10 =
+@@ -148,7 +148,7 @@ public class PeerConnectionTest {
+             .setHostname("fakeHostname")
+             .setTlsAlpnProtocols(singletonList("fakeTlsAlpnProtocol"))
+             .setTlsEllipticCurves(singletonList("fakeTlsEllipticCurve"))
+-            .setTlsClientCertificate(certificate2)
++            .setTlsClientCertificate(certificate2.privateKey, certificate2.certificate)
+             .createIceServer();
+ 
+     assertTrue(iceServer1.equals(iceServer2));
+@@ -184,7 +184,8 @@ public class PeerConnectionTest {
+         PeerConnection.IceServer.builder("turn:fake.example.com")
+             .setUsername("fakeUsername")
+             .setPassword("fakePassword")
+-            .setTlsClientCertificate(turnTlsClientCertificate)
++            .setTlsClientCertificate(
++                turnTlsClientCertificate.privateKey, turnTlsClientCertificate.certificate)
+             .createIceServer());
+     PeerConnection.RTCConfiguration config = new PeerConnection.RTCConfiguration(iceServers);
+     config.sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN;
+diff --git a/sdk/android/src/jni/pc/peer_connection.cc b/sdk/android/src/jni/pc/peer_connection.cc
+index 8566754..07ff14a 100644
+--- a/sdk/android/src/jni/pc/peer_connection.cc
++++ b/sdk/android/src/jni/pc/peer_connection.cc
+@@ -121,8 +121,10 @@ PeerConnectionInterface::IceServers JavaToNativeIceServers(
+         Java_IceServer_getTlsAlpnProtocols(jni, j_ice_server);
+     jni_zero::ScopedJavaLocalRef<jobject> tls_elliptic_curves =
+         Java_IceServer_getTlsEllipticCurves(jni, j_ice_server);
+-    jni_zero::ScopedJavaLocalRef<jobject> tls_client_certificate =
+-        Java_IceServer_getTlsClientCertificate(jni, j_ice_server);
++    jni_zero::ScopedJavaLocalRef<jstring> tls_client_private_key_pem =
++        Java_IceServer_getTlsClientPrivateKeyPem(jni, j_ice_server);
++    jni_zero::ScopedJavaLocalRef<jstring> tls_client_certificate_pem =
++        Java_IceServer_getTlsClientCertificatePem(jni, j_ice_server);
+     PeerConnectionInterface::IceServer server;
+     server.urls = JavaListToNativeVector<std::string, jstring>(
+         jni, urls, &JavaToNativeString);
+@@ -134,9 +136,10 @@ PeerConnectionInterface::IceServers JavaToNativeIceServers(
+         jni, tls_alpn_protocols, &JavaToNativeString);
+     server.tls_elliptic_curves = JavaListToNativeVector<std::string, jstring>(
+         jni, tls_elliptic_curves, &JavaToNativeString);
+-    if (!tls_client_certificate.is_null()) {
+-      server.tls_client_identity =
+-          JavaToNativeSSLIdentity(jni, tls_client_certificate);
++    if (!tls_client_private_key_pem.is_null() && !tls_client_certificate_pem.is_null()) {
++      server.tls_client_identity = JavaToNativeSSLIdentity(
++          JavaToNativeString(jni, tls_client_private_key_pem),
++          JavaToNativeString(jni, tls_client_certificate_pem));
+       RTC_CHECK(server.tls_client_identity != nullptr)
+           << "supplied TURN-TLS client certificate is malformed.";
+     }
+diff --git a/sdk/android/src/jni/pc/rtc_certificate.cc b/sdk/android/src/jni/pc/rtc_certificate.cc
+index 7ef00a5..c5fe4e0 100644
+--- a/sdk/android/src/jni/pc/rtc_certificate.cc
++++ b/sdk/android/src/jni/pc/rtc_certificate.cc
+@@ -55,14 +55,12 @@ RTCCertificatePEM JavaToNativeRTCCertificatePEM(
+ }
+ 
+ std::unique_ptr<SSLIdentity> JavaToNativeSSLIdentity(
+-    JNIEnv* jni,
+-    const jni_zero::JavaRef<jobject>& j_rtc_certificate) {
+-  RTCCertificatePEM pem = JavaToNativeRTCCertificatePEM(jni, j_rtc_certificate);
+-  if (HasPemCertificateChain(pem.certificate())) {
+-    return SSLIdentity::CreateFromPEMChainStrings(pem.private_key(),
+-                                                  pem.certificate());
++    const std::string& private_key,
++    const std::string& certificate) {
++  if (HasPemCertificateChain(certificate)) {
++    return SSLIdentity::CreateFromPEMChainStrings(private_key, certificate);
+   }
+-  return SSLIdentity::CreateFromPEMStrings(pem.private_key(), pem.certificate());
++  return SSLIdentity::CreateFromPEMStrings(private_key, certificate);
+ }
+ 
+ ScopedJavaLocalRef<jobject> NativeToJavaRTCCertificatePEM(
+diff --git a/sdk/android/src/jni/pc/rtc_certificate.h b/sdk/android/src/jni/pc/rtc_certificate.h
+index c84c690..c8396ac 100644
+--- a/sdk/android/src/jni/pc/rtc_certificate.h
++++ b/sdk/android/src/jni/pc/rtc_certificate.h
+@@ -14,6 +14,7 @@
+ #include <jni.h>
+ 
+ #include <memory>
++#include <string>
+ 
+ #include "rtc_base/rtc_certificate.h"
+ #include "rtc_base/ssl_identity.h"
+@@ -27,8 +28,8 @@ RTCCertificatePEM JavaToNativeRTCCertificatePEM(
+     const JavaRef<jobject>& j_rtc_certificate);
+ 
+ std::unique_ptr<SSLIdentity> JavaToNativeSSLIdentity(
+-    JNIEnv* jni,
+-    const JavaRef<jobject>& j_rtc_certificate);
++    const std::string& private_key,
++    const std::string& certificate);
+ 
+ ScopedJavaLocalRef<jobject> NativeToJavaRTCCertificatePEM(
+     JNIEnv* env,
