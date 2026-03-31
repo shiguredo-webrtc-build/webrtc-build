@@ -128,7 +128,7 @@ index 245c7a3..c9babf8 100644
  
    /** Java version of PeerConnectionInterface.IceTransportsType */
 diff --git a/sdk/android/src/jni/pc/peer_connection.cc b/sdk/android/src/jni/pc/peer_connection.cc
-index b81e7a2..cc36d1b 100644
+index b81e7a2..9263fbb 100644
 --- a/sdk/android/src/jni/pc/peer_connection.cc
 +++ b/sdk/android/src/jni/pc/peer_connection.cc
 @@ -121,6 +121,10 @@ PeerConnectionInterface::IceServers JavaToNativeIceServers(
@@ -142,13 +142,14 @@ index b81e7a2..cc36d1b 100644
      PeerConnectionInterface::IceServer server;
      server.urls = JavaListToNativeVector<std::string, jstring>(
          jni, urls, &JavaToNativeString);
-@@ -132,6 +136,12 @@ PeerConnectionInterface::IceServers JavaToNativeIceServers(
+@@ -132,6 +136,13 @@ PeerConnectionInterface::IceServers JavaToNativeIceServers(
          jni, tls_alpn_protocols, &JavaToNativeString);
      server.tls_elliptic_curves = JavaListToNativeVector<std::string, jstring>(
          jni, tls_elliptic_curves, &JavaToNativeString);
 +    if (!tls_client_private_key_pem.is_null() &&
 +        !tls_client_certificate_pem.is_null()) {
 +      server.tls_client_identity = JavaToNativeSSLIdentity(
++          jni,
 +          JavaToNativeString(jni, tls_client_private_key_pem),
 +          JavaToNativeString(jni, tls_client_certificate_pem));
 +    }
@@ -156,7 +157,7 @@ index b81e7a2..cc36d1b 100644
    }
    return ice_servers;
 diff --git a/sdk/android/src/jni/pc/rtc_certificate.cc b/sdk/android/src/jni/pc/rtc_certificate.cc
-index 72456c2..c5fe4e0 100644
+index 72456c2..50826c7 100644
 --- a/sdk/android/src/jni/pc/rtc_certificate.cc
 +++ b/sdk/android/src/jni/pc/rtc_certificate.cc
 @@ -13,6 +13,7 @@
@@ -189,24 +190,33 @@ index 72456c2..c5fe4e0 100644
  RTCCertificatePEM JavaToNativeRTCCertificatePEM(
      JNIEnv* jni,
      const jni_zero::JavaRef<jobject>& j_rtc_certificate) {
-@@ -38,6 +54,15 @@ RTCCertificatePEM JavaToNativeRTCCertificatePEM(
+@@ -38,6 +54,24 @@ RTCCertificatePEM JavaToNativeRTCCertificatePEM(
                             JavaToNativeString(jni, certificate_field));
  }
  
 +std::unique_ptr<SSLIdentity> JavaToNativeSSLIdentity(
++    JNIEnv* jni,
 +    const std::string& private_key,
 +    const std::string& certificate) {
++  std::unique_ptr<SSLIdentity> identity;
 +  if (HasPemCertificateChain(certificate)) {
-+    return SSLIdentity::CreateFromPEMChainStrings(private_key, certificate);
++    identity = SSLIdentity::CreateFromPEMChainStrings(private_key, certificate);
++  } else {
++    identity = SSLIdentity::CreateFromPEMStrings(private_key, certificate);
 +  }
-+  return SSLIdentity::CreateFromPEMStrings(private_key, certificate);
++  if (identity == nullptr) {
++    jni->ThrowNew(
++        jni_zero::GetClass(jni, "java/lang/IllegalArgumentException").obj(),
++        "Invalid TURN-TLS client certificate or private key.");
++  }
++  return identity;
 +}
 +
  ScopedJavaLocalRef<jobject> NativeToJavaRTCCertificatePEM(
      JNIEnv* jni,
      const RTCCertificatePEM& certificate) {
 diff --git a/sdk/android/src/jni/pc/rtc_certificate.h b/sdk/android/src/jni/pc/rtc_certificate.h
-index f3be2f5..c8396ac 100644
+index f3be2f5..f6a406f 100644
 --- a/sdk/android/src/jni/pc/rtc_certificate.h
 +++ b/sdk/android/src/jni/pc/rtc_certificate.h
 @@ -13,7 +13,11 @@
@@ -221,11 +231,12 @@ index f3be2f5..c8396ac 100644
  #include "sdk/android/native_api/jni/scoped_java_ref.h"
  
  namespace webrtc {
-@@ -23,6 +27,10 @@ RTCCertificatePEM JavaToNativeRTCCertificatePEM(
+@@ -23,6 +27,11 @@ RTCCertificatePEM JavaToNativeRTCCertificatePEM(
      JNIEnv* jni,
      const JavaRef<jobject>& j_rtc_certificate);
  
 +std::unique_ptr<SSLIdentity> JavaToNativeSSLIdentity(
++    JNIEnv* jni,
 +    const std::string& private_key,
 +    const std::string& certificate);
 +
