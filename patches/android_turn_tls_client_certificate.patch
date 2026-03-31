@@ -1,5 +1,5 @@
 diff --git a/sdk/android/api/org/webrtc/PeerConnection.java b/sdk/android/api/org/webrtc/PeerConnection.java
-index 245c7a3..c9babf8 100644
+index 245c7a3f90..c9babf84fe 100644
 --- a/sdk/android/api/org/webrtc/PeerConnection.java
 +++ b/sdk/android/api/org/webrtc/PeerConnection.java
 @@ -188,6 +188,10 @@ public class PeerConnection {
@@ -128,7 +128,7 @@ index 245c7a3..c9babf8 100644
  
    /** Java version of PeerConnectionInterface.IceTransportsType */
 diff --git a/sdk/android/src/jni/pc/peer_connection.cc b/sdk/android/src/jni/pc/peer_connection.cc
-index b81e7a2..9263fbb 100644
+index b81e7a2ef7..a470f846fc 100644
 --- a/sdk/android/src/jni/pc/peer_connection.cc
 +++ b/sdk/android/src/jni/pc/peer_connection.cc
 @@ -121,6 +121,10 @@ PeerConnectionInterface::IceServers JavaToNativeIceServers(
@@ -142,22 +142,21 @@ index b81e7a2..9263fbb 100644
      PeerConnectionInterface::IceServer server;
      server.urls = JavaListToNativeVector<std::string, jstring>(
          jni, urls, &JavaToNativeString);
-@@ -132,6 +136,13 @@ PeerConnectionInterface::IceServers JavaToNativeIceServers(
+@@ -132,6 +136,12 @@ PeerConnectionInterface::IceServers JavaToNativeIceServers(
          jni, tls_alpn_protocols, &JavaToNativeString);
      server.tls_elliptic_curves = JavaListToNativeVector<std::string, jstring>(
          jni, tls_elliptic_curves, &JavaToNativeString);
 +    if (!tls_client_private_key_pem.is_null() &&
 +        !tls_client_certificate_pem.is_null()) {
 +      server.tls_client_identity = JavaToNativeSSLIdentity(
-+          jni,
-+          JavaToNativeString(jni, tls_client_private_key_pem),
++          jni, JavaToNativeString(jni, tls_client_private_key_pem),
 +          JavaToNativeString(jni, tls_client_certificate_pem));
 +    }
      ice_servers.push_back(server);
    }
    return ice_servers;
 diff --git a/sdk/android/src/jni/pc/rtc_certificate.cc b/sdk/android/src/jni/pc/rtc_certificate.cc
-index 72456c2..50826c7 100644
+index 72456c242c..5ca7f03b0e 100644
 --- a/sdk/android/src/jni/pc/rtc_certificate.cc
 +++ b/sdk/android/src/jni/pc/rtc_certificate.cc
 @@ -13,6 +13,7 @@
@@ -181,8 +180,8 @@ index 72456c2..50826c7 100644
 +    return false;
 +  }
 +  return certificate_pem.find(kPemCertificateEndMarker,
-+                              first_end + sizeof(kPemCertificateEndMarker) - 1) !=
-+         std::string::npos;
++                              first_end + sizeof(kPemCertificateEndMarker) -
++                                  1) != std::string::npos;
 +}
 +
 +}  // namespace
@@ -216,7 +215,7 @@ index 72456c2..50826c7 100644
      JNIEnv* jni,
      const RTCCertificatePEM& certificate) {
 diff --git a/sdk/android/src/jni/pc/rtc_certificate.h b/sdk/android/src/jni/pc/rtc_certificate.h
-index f3be2f5..f6a406f 100644
+index f3be2f5a45..f6a406f785 100644
 --- a/sdk/android/src/jni/pc/rtc_certificate.h
 +++ b/sdk/android/src/jni/pc/rtc_certificate.h
 @@ -13,7 +13,11 @@
