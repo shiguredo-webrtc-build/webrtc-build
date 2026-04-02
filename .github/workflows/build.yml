@@ -66,7 +66,7 @@ jobs:
           python3 run.py build ${{ matrix.platform.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build' --no-history
           python3 run.py package ${{ matrix.platform.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build'
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: webrtc.${{ matrix.platform.name }}.zip
           path: _package/${{ matrix.platform.name }}/webrtc.${{ matrix.platform.name }}.zip
@@ -98,7 +98,7 @@ jobs:
           python3 run.py build ${{ matrix.platform.name }} --no-history
           python3 run.py package ${{ matrix.platform.name }}
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: webrtc.${{ matrix.platform.name }}.tar.gz
           path: _package/${{ matrix.platform.name }}/webrtc.${{ matrix.platform.name }}.tar.gz
@@ -106,7 +106,7 @@ jobs:
       # ios のみ webrtc.${{ matrix.platform.name }}.tar.gz だけでなく、WebRTC.xcframework.zip もアップロードする
       - name: Upload Artifact for ios (WebRTC.xcframework.zip)
         if: matrix.platform.name == 'ios_sdk'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: WebRTC.xcframework.zip
           path: _package/${{ matrix.platform.name }}/WebRTC.xcframework.zip
@@ -180,7 +180,7 @@ jobs:
           python3 run.py build ${{ matrix.platform.name }} --no-history
           python3 run.py package ${{ matrix.platform.name }}
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: webrtc.${{ matrix.platform.name }}.tar.gz
           path: _package/${{ matrix.platform.name }}/webrtc.${{ matrix.platform.name }}.tar.gz
