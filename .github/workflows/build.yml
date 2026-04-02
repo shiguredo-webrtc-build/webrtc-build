@@ -239,7 +239,7 @@ jobs:
         run: |
           PACKAGE_NAME=WebRTC.xcframework.zip
           echo "$PACKAGE_NAME/$PACKAGE_NAME" >> package_paths.env
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         with:
           name: WebRTC.xcframework.zip
           path: WebRTC.xcframework.zip
