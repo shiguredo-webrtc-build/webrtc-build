@@ -1,5 +1,5 @@
 diff --git a/sdk/android/api/org/webrtc/PeerConnection.java b/sdk/android/api/org/webrtc/PeerConnection.java
-index 245c7a3f90..a25dc19a5a 100644
+index 245c7a3f90..1bfd7de0ee 100644
 --- a/sdk/android/api/org/webrtc/PeerConnection.java
 +++ b/sdk/android/api/org/webrtc/PeerConnection.java
 @@ -188,6 +188,11 @@ public class PeerConnection {
@@ -19,7 +19,7 @@ index 245c7a3f90..a25dc19a5a 100644
          String hostname) {
        this(uri, Collections.singletonList(uri), username, password, tlsCertPolicy, hostname, null,
 -          null);
-+          null, null, null, null, null);
++          null, null, null, null);
      }
  
      private IceServer(String uri, List<String> urls, String username, String password,
