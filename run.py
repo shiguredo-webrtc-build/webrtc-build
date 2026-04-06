@@ -287,6 +287,7 @@ PATCHES = {
         "unsafe_buffers_optout_list.patch",
         "android_ssl_certificate_verifier_chain.patch",
         "turn_tls_client_certificate.patch",
+        "android_turn_tls_client_certificate.patch",
     ],
     "android_sdk": [
         "add_deps.patch",
@@ -309,6 +310,7 @@ PATCHES = {
         "unsafe_buffers_optout_list.patch",
         "android_ssl_certificate_verifier_chain.patch",
         "turn_tls_client_certificate.patch",
+        "android_turn_tls_client_certificate.patch",
     ],
     "raspberry-pi-os_armv8": [
         "add_deps.patch",
