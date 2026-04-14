@@ -29,9 +29,17 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-04-06 [RELEASE] m146.7680.6.1
+  - @zztkm
+- 2026-04-06 [ADD] TURN-TLS 接続でクライアント証明書を設定する機能を Android SDK から使えるようにする
+  - @zztkm
+- 2026-04-01 [RELEASE] m146.7680.6.0
+  - @torikizi
 - 2026-03-31 [RELEASE] m147.7727.9.0
   - @torikizi
 - 2026-03-27 [RELEASE] m147.7727.8.0
+  - @torikizi
+- 2026-03-27 [RELEASE] m146.7680.5.0
   - @torikizi
 - 2026-03-18 [RELEASE] m147.7727.6.0
   - @miosakuma
