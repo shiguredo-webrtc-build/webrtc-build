@@ -29,6 +29,19 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-05-05 [RELEASE] m148.7778.7.0
+  - @torikizi
+- 2026-04-30 [RELEASE] m148.7778.6.0
+  - @torikizi
+- 2026-04-23 [RELEASE] m148.7778.5.0
+  - @torikizi
+- 2026-04-22 [RELEASE] m148.7778.4.0
+  - @torikizi
+- 2026-04-16 [UPDATE] m148 ブランチのビルドエラーに対する対応
+  - h265.patch の単純なパッチ適用エラーを修正する
+  - libwebrtc の ArrayView から std::span への移行によって h265_vps_parser.cc の include が `array_view.h` から `span` に変わったことに伴う単純なパッチ適用エラーを修正する
+    - 参考 : https://issuetracker.google.com/issues/439801349
+  - @torikizi
 - 2026-04-06 [RELEASE] m146.7680.6.1
   - @zztkm
 - 2026-04-06 [ADD] TURN-TLS 接続でクライアント証明書を設定する機能を Android SDK から使えるようにする
