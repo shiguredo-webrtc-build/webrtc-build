@@ -29,6 +29,11 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-05-07 [UPDATE] m149 ブランチのビルドエラーに対する対応
+  - ios_simulcast.patch から scalabilityMode 関連の追加部分を削除する
+    - m149 の libwebrtc で `RTCRtpEncodingParameters` に `scalabilityMode` プロパティを追加する変更が upstream に取り込まれたため、ios_simulcast.patch で同機能を追加していた該当ハンクを削除する
+    - 対象コミット : https://source.chromium.org/chromium/_/webrtc/src/+/774a7fc42c0279b9f2ee4cfd899f6ea8fc309800
+  - @voluntas
 - 2026-05-05 [RELEASE] m148.7778.7.0
   - @torikizi
 - 2026-04-30 [RELEASE] m148.7778.6.0

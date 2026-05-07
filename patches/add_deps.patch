@@ -1,10 +1,10 @@
 diff --git a/BUILD.gn b/BUILD.gn
-index 533262e03b..9978e67db1 100644
+index 40ac574218..1342e932b9 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
-@@ -501,6 +501,11 @@ if (!build_with_chromium) {
+@@ -555,6 +555,11 @@ if (!build_with_chromium) {
+       "pc:libjingle_peerconnection",
        "pc:rtc_pc",
-       "sdk",
        "video",
 +      "//third_party/zlib",
 +      "rtc_base:log_sinks",
