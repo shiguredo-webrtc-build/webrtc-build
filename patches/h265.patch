@@ -1,5 +1,5 @@
 diff --git a/common_video/h264/sps_parser.cc b/common_video/h264/sps_parser.cc
-index cf99700a71..e789ec2ee4 100644
+index 77945fe..309f163 100644
 --- a/common_video/h264/sps_parser.cc
 +++ b/common_video/h264/sps_parser.cc
 @@ -167,9 +167,11 @@ std::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(
@@ -16,7 +16,7 @@ index cf99700a71..e789ec2ee4 100644
    sps.frame_mbs_only_flag = reader.ReadBit();
    if (!sps.frame_mbs_only_flag) {
 diff --git a/common_video/h264/sps_parser.h b/common_video/h264/sps_parser.h
-index b24194c6e9..e5017ed515 100644
+index 3091703..aaee570 100644
 --- a/common_video/h264/sps_parser.h
 +++ b/common_video/h264/sps_parser.h
 @@ -30,6 +30,8 @@ class RTC_EXPORT SpsParser {
@@ -29,12 +29,12 @@ index b24194c6e9..e5017ed515 100644
      uint32_t height = 0;
      uint32_t delta_pic_order_always_zero_flag = 0;
 diff --git a/common_video/h265/h265_vps_parser.cc b/common_video/h265/h265_vps_parser.cc
-index 8ebe5f96a1..0fc57985dd 100644
+index 83821c5..6065149 100644
 --- a/common_video/h265/h265_vps_parser.cc
 +++ b/common_video/h265/h265_vps_parser.cc
 @@ -15,6 +15,7 @@
+ #include <span>
  
- #include "api/array_view.h"
  #include "common_video/h265/h265_common.h"
 +#include "common_video/h265/h265_sps_parser.h"
  #include "rtc_base/bitstream_reader.h"
@@ -93,7 +93,7 @@ index 8ebe5f96a1..0fc57985dd 100644
  }
  
 diff --git a/common_video/h265/h265_vps_parser.h b/common_video/h265/h265_vps_parser.h
-index e890e4e64f..423ff28b2b 100644
+index ad423d2..895222f 100644
 --- a/common_video/h265/h265_vps_parser.h
 +++ b/common_video/h265/h265_vps_parser.h
 @@ -23,12 +23,16 @@ namespace webrtc {
@@ -114,10 +114,10 @@ index e890e4e64f..423ff28b2b 100644
  
    // Unpack RBSP and parse VPS state from the supplied buffer.
 diff --git a/webrtc.gni b/webrtc.gni
-index 103983dec4..530eea6ff7 100644
+index 6eb16cf..8498579 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
-@@ -196,7 +196,7 @@ declare_args() {
+@@ -176,7 +176,7 @@ declare_args() {
    if (build_with_chromium) {
      rtc_use_h265 = enable_hevc_parser_and_hw_decoder
    } else {
