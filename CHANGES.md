@@ -31,6 +31,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 - 2026-05-28 [RELEASE] m148.7778.12.0
   - @torikizi
+- 2026-05-08 [RELEASE] m149.7827.0.0
+  - @torikizi
 - 2026-05-07 [UPDATE] m149 ブランチのビルドエラーに対する対応
   - m149 で scalabilityMode が標準実装されたため、ios_simulcast.patch から追加部分を削除する
     - 対象コミット: https://source.chromium.org/chromium/_/webrtc/src/+/774a7fc42c0279b9f2ee4cfd899f6ea8fc309800
