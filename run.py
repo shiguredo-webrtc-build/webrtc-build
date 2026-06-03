@@ -691,7 +691,6 @@ COMMON_GN_ARGS = [
     "enable_rust_cxx=false",
     "enable_chromium_prelude=false",
     "rtc_rust=false",
-    "rtc_rusty_base64=false",
     "use_debug_fission=false",
 ]
 # - https://webrtc-review.googlesource.com/c/src/+/232600 が影響している可能性があるため use_lld=false を追加
