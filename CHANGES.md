@@ -29,8 +29,29 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-06-03 [RELEASE] m149.7827.5.0
+  - @torikizi
+- 2026-05-28 [RELEASE] m149.7827.4.0
+  - @torikizi
 - 2026-05-28 [RELEASE] m148.7778.12.0
   - @torikizi
+- 2026-05-08 [RELEASE] m149.7827.0.0
+  - @torikizi
+- 2026-05-07 [UPDATE] m149 ブランチのビルドエラーに対する対応
+  - m149 で scalabilityMode が標準実装されたため、ios_simulcast.patch から追加部分を削除する
+    - 対象コミット: https://source.chromium.org/chromium/_/webrtc/src/+/774a7fc42c0279b9f2ee4cfd899f6ea8fc309800
+  - RTCDefaultVideoEncoderFactory の拡張子変更（.m → .mm）に追従し、以下のパッチを更新する
+    - h265_ios.patch
+    - ios_simulcast.patch
+  - m149 の libwebrtc 変更に合わせて、以下のパッチを更新
+    - revive_proxy.patch
+    - ios_proxy.patch
+    - ios_add_scale_resolution_down_to.patch
+    - android_simulcast.patch
+    - android_audio_pause_resume.patch
+    - android_hardware_video_encoder.patch
+  - dav1d_config_change.patch の末尾空行を修正
+  - @voluntas
 - 2026-05-05 [RELEASE] m148.7778.7.0
   - @torikizi
 - 2026-04-30 [RELEASE] m148.7778.6.0

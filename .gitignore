@@ -4,3 +4,9 @@
 
 # python
 .mypy_cache/
+
+# agent
+.opencode/
+.claude/
+.codex/
+.cursor/

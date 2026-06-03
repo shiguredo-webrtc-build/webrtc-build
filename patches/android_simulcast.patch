@@ -1,5 +1,5 @@
 diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
-index 6e8db13..5f18215 100644
+index 1feaf8cddf..9de8c43249 100644
 --- a/sdk/android/BUILD.gn
 +++ b/sdk/android/BUILD.gn
 @@ -52,6 +52,7 @@ if (is_android) {
@@ -67,7 +67,7 @@ index 6e8db13..5f18215 100644
    # Native API targets #
    ######################
 diff --git a/sdk/android/api/org/webrtc/HardwareVideoEncoderFactory.java b/sdk/android/api/org/webrtc/HardwareVideoEncoderFactory.java
-index bdb10e9..f0e78a2 100644
+index bdb10e9698..f0e78a226a 100644
 --- a/sdk/android/api/org/webrtc/HardwareVideoEncoderFactory.java
 +++ b/sdk/android/api/org/webrtc/HardwareVideoEncoderFactory.java
 @@ -143,11 +143,15 @@ public class HardwareVideoEncoderFactory implements VideoEncoderFactory {
@@ -89,7 +89,7 @@ index bdb10e9..f0e78a2 100644
      }
  
 diff --git a/sdk/android/api/org/webrtc/RtpParameters.java b/sdk/android/api/org/webrtc/RtpParameters.java
-index eefe7af..a376afd 100644
+index 1166563bcd..e009705b19 100644
 --- a/sdk/android/api/org/webrtc/RtpParameters.java
 +++ b/sdk/android/api/org/webrtc/RtpParameters.java
 @@ -51,6 +51,27 @@ public class RtpParameters {
@@ -169,7 +169,7 @@ index eefe7af..a376afd 100644
    public static class Codec {
 diff --git a/sdk/android/api/org/webrtc/SimulcastVideoEncoder.java b/sdk/android/api/org/webrtc/SimulcastVideoEncoder.java
 new file mode 100644
-index 0000000..1368a9a
+index 0000000000..1368a9a9f7
 --- /dev/null
 +++ b/sdk/android/api/org/webrtc/SimulcastVideoEncoder.java
 @@ -0,0 +1,30 @@
@@ -205,7 +205,7 @@ index 0000000..1368a9a
 +}
 diff --git a/sdk/android/api/org/webrtc/SimulcastVideoEncoderFactory.java b/sdk/android/api/org/webrtc/SimulcastVideoEncoderFactory.java
 new file mode 100644
-index 0000000..1824cb5
+index 0000000000..1824cb595d
 --- /dev/null
 +++ b/sdk/android/api/org/webrtc/SimulcastVideoEncoderFactory.java
 @@ -0,0 +1,35 @@
@@ -245,7 +245,7 @@ index 0000000..1824cb5
 +}
 +
 diff --git a/sdk/android/api/org/webrtc/VideoCodecInfo.java b/sdk/android/api/org/webrtc/VideoCodecInfo.java
-index 4f97cf7..49ce048 100644
+index 363be347b5..be8fb7b7a4 100644
 --- a/sdk/android/api/org/webrtc/VideoCodecInfo.java
 +++ b/sdk/android/api/org/webrtc/VideoCodecInfo.java
 @@ -34,13 +34,22 @@ public class VideoCodecInfo {
@@ -303,7 +303,7 @@ index 4f97cf7..49ce048 100644
  
    @CalledByNative
 @@ -83,4 +93,9 @@ public class VideoCodecInfo {
-   Map getParams() {
+   Map<String, String> getParams() {
      return params;
    }
 +
@@ -313,7 +313,7 @@ index 4f97cf7..49ce048 100644
 +  }
  }
 diff --git a/sdk/android/src/jni/pc/rtp_parameters.cc b/sdk/android/src/jni/pc/rtp_parameters.cc
-index e2b97df..7dbd200 100644
+index e2b97dfd25..7dbd2003d6 100644
 --- a/sdk/android/src/jni/pc/rtp_parameters.cc
 +++ b/sdk/android/src/jni/pc/rtp_parameters.cc
 @@ -17,6 +17,7 @@
@@ -385,7 +385,7 @@ index e2b97df..7dbd200 100644
  
 diff --git a/sdk/android/src/jni/simulcast_video_encoder.cc b/sdk/android/src/jni/simulcast_video_encoder.cc
 new file mode 100644
-index 0000000..30182ee
+index 0000000000..30182eecf1
 --- /dev/null
 +++ b/sdk/android/src/jni/simulcast_video_encoder.cc
 @@ -0,0 +1,34 @@
@@ -425,7 +425,7 @@ index 0000000..30182ee
 +#endif
 diff --git a/sdk/android/src/jni/simulcast_video_encoder.h b/sdk/android/src/jni/simulcast_video_encoder.h
 new file mode 100644
-index 0000000..3674240
+index 0000000000..3674240535
 --- /dev/null
 +++ b/sdk/android/src/jni/simulcast_video_encoder.h
 @@ -0,0 +1,21 @@
@@ -452,7 +452,7 @@ index 0000000..3674240
 +#endif
 \ No newline at end of file
 diff --git a/sdk/android/src/jni/video_codec_info.cc b/sdk/android/src/jni/video_codec_info.cc
-index 8ba7274..1812543 100644
+index 8ba7274721..1812543ece 100644
 --- a/sdk/android/src/jni/video_codec_info.cc
 +++ b/sdk/android/src/jni/video_codec_info.cc
 @@ -22,9 +22,18 @@ namespace jni {
@@ -492,7 +492,7 @@ index 8ba7274..1812543 100644
  
  }  // namespace jni
 diff --git a/sdk/android/src/jni/video_encoder_wrapper.cc b/sdk/android/src/jni/video_encoder_wrapper.cc
-index b377869..a7ac146 100644
+index 023921bb2b..ee1a82ecb9 100644
 --- a/sdk/android/src/jni/video_encoder_wrapper.cc
 +++ b/sdk/android/src/jni/video_encoder_wrapper.cc
 @@ -448,6 +448,11 @@ CodecSpecificInfo VideoEncoderWrapper::ParseCodecSpecificInfo(

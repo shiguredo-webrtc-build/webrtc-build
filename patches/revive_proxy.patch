@@ -1,8 +1,8 @@
 diff --git a/api/packet_socket_factory.h b/api/packet_socket_factory.h
-index e87e9cd9b3..1db4f4f33e 100644
+index 06a2d2849e..a1c6c70797 100644
 --- a/api/packet_socket_factory.h
 +++ b/api/packet_socket_factory.h
-@@ -23,6 +23,8 @@
+@@ -24,6 +24,8 @@
  #include "rtc_base/ssl_certificate.h"
  #include "rtc_base/system/rtc_export.h"
  
@@ -11,7 +11,7 @@ index e87e9cd9b3..1db4f4f33e 100644
  namespace webrtc {
  
  struct PacketSocketTcpOptions {
-@@ -76,6 +78,8 @@ class RTC_EXPORT PacketSocketFactory {
+@@ -81,6 +83,8 @@ class RTC_EXPORT PacketSocketFactory {
        const Environment& env,
        const SocketAddress& local_address,
        const SocketAddress& remote_address,
@@ -21,10 +21,10 @@ index e87e9cd9b3..1db4f4f33e 100644
  
    virtual std::unique_ptr<AsyncDnsResolverInterface>
 diff --git a/p2p/base/basic_packet_socket_factory.cc b/p2p/base/basic_packet_socket_factory.cc
-index c410099bbc..d9b8260577 100644
+index 1093bd4bfa..07d8eefbb3 100644
 --- a/p2p/base/basic_packet_socket_factory.cc
 +++ b/p2p/base/basic_packet_socket_factory.cc
-@@ -32,6 +32,8 @@
+@@ -31,6 +31,8 @@
  #include "rtc_base/socket_factory.h"
  #include "rtc_base/ssl_adapter.h"
  
@@ -33,7 +33,7 @@ index c410099bbc..d9b8260577 100644
  namespace webrtc {
  
  BasicPacketSocketFactory::BasicPacketSocketFactory(
-@@ -96,6 +98,8 @@ BasicPacketSocketFactory::CreateClientTcpSocket(
+@@ -146,6 +148,8 @@ BasicPacketSocketFactory::CreateClientTcpSocket(
      const Environment& env,
      const SocketAddress& local_address,
      const SocketAddress& remote_address,
@@ -42,7 +42,7 @@ index c410099bbc..d9b8260577 100644
      const PacketSocketTcpOptions& tcp_options) {
    std::unique_ptr<Socket> socket =
        socket_factory_->Create(local_address.family(), SOCK_STREAM);
-@@ -126,6 +130,12 @@ BasicPacketSocketFactory::CreateClientTcpSocket(
+@@ -176,6 +180,12 @@ BasicPacketSocketFactory::CreateClientTcpSocket(
                        << socket->GetError();
    }
  
@@ -56,7 +56,7 @@ index c410099bbc..d9b8260577 100644
    int tlsOpts = tcp_options.opts & (PacketSocketFactory::OPT_TLS |
                                      PacketSocketFactory::OPT_TLS_FAKE |
 diff --git a/p2p/base/basic_packet_socket_factory.h b/p2p/base/basic_packet_socket_factory.h
-index b5c382ff29..2a45af41d3 100644
+index aaa3b854b8..ffaed314b2 100644
 --- a/p2p/base/basic_packet_socket_factory.h
 +++ b/p2p/base/basic_packet_socket_factory.h
 @@ -45,6 +45,8 @@ class RTC_EXPORT BasicPacketSocketFactory : public PacketSocketFactory {
@@ -69,10 +69,10 @@ index b5c382ff29..2a45af41d3 100644
  
    std::unique_ptr<AsyncDnsResolverInterface> CreateAsyncDnsResolver() override;
 diff --git a/p2p/base/port.h b/p2p/base/port.h
-index 0ab339e69c..6585740f9e 100644
+index 871e13db32..fd7b278769 100644
 --- a/p2p/base/port.h
 +++ b/p2p/base/port.h
-@@ -50,6 +50,8 @@
+@@ -49,6 +49,8 @@
  #include "rtc_base/thread_annotations.h"
  #include "rtc_base/weak_ptr.h"
  
@@ -81,7 +81,7 @@ index 0ab339e69c..6585740f9e 100644
  namespace webrtc {
  
  enum class MdnsNameRegistrationStatus {
-@@ -384,6 +386,17 @@ class RTC_EXPORT Port : public PortInterface, public sigslot::has_slots<> {
+@@ -415,6 +417,17 @@ class RTC_EXPORT Port : public PortInterface {
  
    void GetStunStats(std::optional<StunStats>* /* stats */) override {}
  
@@ -100,7 +100,7 @@ index 0ab339e69c..6585740f9e 100644
    void SubscribeRoleConflict(absl::AnyInvocable<void()> callback) override;
    void NotifyRoleConflict() override;
 diff --git a/p2p/base/port_allocator.h b/p2p/base/port_allocator.h
-index be91dae6d8..6095ef7f98 100644
+index 6eb699e3fb..4616b39865 100644
 --- a/p2p/base/port_allocator.h
 +++ b/p2p/base/port_allocator.h
 @@ -35,6 +35,8 @@
@@ -112,7 +112,7 @@ index be91dae6d8..6095ef7f98 100644
  namespace webrtc {
  
  class TurnCustomizer;
-@@ -531,6 +533,26 @@ class RTC_EXPORT PortAllocator {
+@@ -570,6 +572,26 @@ class RTC_EXPORT PortAllocator {
      flags_ = flags;
    }
  
@@ -140,19 +140,19 @@ index be91dae6d8..6095ef7f98 100644
    int min_port() const {
      CheckRunOnValidThreadIfInitialized();
 diff --git a/p2p/base/port_interface.h b/p2p/base/port_interface.h
-index 5182a049e6..b26cd5bb69 100644
+index 6ff4c4c04a..232c156665 100644
 --- a/p2p/base/port_interface.h
 +++ b/p2p/base/port_interface.h
-@@ -33,6 +33,8 @@
- #include "rtc_base/socket.h"
+@@ -37,6 +37,8 @@
  #include "rtc_base/socket_address.h"
+ #include "rtc_base/span_helpers.h"
  
 +#include "rtc_base/proxy_info_revive.h"
 +
  namespace webrtc {
  
  class Connection;
-@@ -174,6 +176,9 @@ class PortInterface {
+@@ -238,6 +240,9 @@ class PortInterface {
    // Called when the Connection discovers a local peer reflexive candidate.
    virtual void AddPrflxCandidate(const Candidate& local) = 0;
  
@@ -163,10 +163,10 @@ index 5182a049e6..b26cd5bb69 100644
    PortInterface();
    virtual void UpdateNetworkCost() = 0;
 diff --git a/p2p/base/tcp_port.cc b/p2p/base/tcp_port.cc
-index de01d116a2..4606b0c9d7 100644
+index 39253c65e7..df52d00ffd 100644
 --- a/p2p/base/tcp_port.cc
 +++ b/p2p/base/tcp_port.cc
-@@ -600,7 +600,9 @@ void TCPConnection::CreateOutgoingTcpSocket() {
+@@ -607,7 +607,9 @@ void TCPConnection::CreateOutgoingTcpSocket() {
    tcp_opts.opts = opts;
    socket_ = port()->socket_factory()->CreateClientTcpSocket(
        env(), SocketAddress(port()->Network()->GetBestIP(), 0),
@@ -178,10 +178,10 @@ index de01d116a2..4606b0c9d7 100644
      RTC_LOG(LS_VERBOSE) << ToString() << ": Connecting from "
                          << socket_->GetLocalAddress().ToSensitiveString()
 diff --git a/p2p/base/turn_port.cc b/p2p/base/turn_port.cc
-index 1abb21bb1e..d69a53ab04 100644
+index 10e9d1e49c..b0c361eedd 100644
 --- a/p2p/base/turn_port.cc
 +++ b/p2p/base/turn_port.cc
-@@ -457,7 +457,9 @@ bool TurnPort::CreateTurnClientSocket() {
+@@ -478,7 +478,9 @@ bool TurnPort::CreateTurnClientSocket() {
      tcp_options.tls_cert_verifier = tls_cert_verifier_;
      owned_socket_ = socket_factory()->CreateClientTcpSocket(
          env(), SocketAddress(Network()->GetBestIP(), 0),
@@ -193,7 +193,7 @@ index 1abb21bb1e..d69a53ab04 100644
    }
  
 diff --git a/p2p/client/basic_port_allocator.cc b/p2p/client/basic_port_allocator.cc
-index aa372be7d8..7f9c663a9f 100644
+index 22dc035103..544e587b06 100644
 --- a/p2p/client/basic_port_allocator.cc
 +++ b/p2p/client/basic_port_allocator.cc
 @@ -55,6 +55,8 @@
@@ -205,7 +205,7 @@ index aa372be7d8..7f9c663a9f 100644
  namespace webrtc {
  namespace {
  
-@@ -913,6 +915,8 @@ void BasicPortAllocatorSession::AddAllocatedPort(Port* port,
+@@ -915,6 +917,8 @@ void BasicPortAllocatorSession::AddAllocatedPort(Port* port,
    RTC_LOG(LS_INFO) << "Adding allocated port for " << content_name();
    port->set_component(component());
    port->set_generation(generation());
@@ -215,10 +215,10 @@ index aa372be7d8..7f9c663a9f 100644
        (flags() & PORTALLOCATOR_ENABLE_STUN_RETRANSMIT_ATTRIBUTE) != 0);
  
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 88f9f4295c..9af50e1fe3 100644
+index 15a55bdb3a..8f1af962c2 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
-@@ -1288,6 +1288,8 @@ rtc_library("socket_adapters") {
+@@ -1293,6 +1293,8 @@ rtc_library("socket_adapters") {
    sources = [
      "socket_adapters.cc",
      "socket_adapters.h",
@@ -235,7 +235,7 @@ index 88f9f4295c..9af50e1fe3 100644
    ]
  }
  
-@@ -1460,6 +1463,20 @@ rtc_library("dscp") {
+@@ -1447,6 +1450,20 @@ rtc_library("dscp") {
    sources = [ "dscp.h" ]
  }
  
@@ -256,7 +256,7 @@ index 88f9f4295c..9af50e1fe3 100644
  rtc_library("file_rotating_stream") {
    sources = [
      "file_rotating_stream.cc",
-@@ -1727,6 +1744,13 @@ rtc_library("ssl_adapter") {
+@@ -1714,6 +1731,13 @@ rtc_library("ssl_adapter") {
    }
  }
  
@@ -1101,7 +1101,7 @@ index 0000000000..5217436b2a
 +#endif
 diff --git a/rtc_base/socket_adapters_revive.cc b/rtc_base/socket_adapters_revive.cc
 new file mode 100644
-index 0000000000..446af9c557
+index 0000000000..b1eccc665e
 --- /dev/null
 +++ b/rtc_base/socket_adapters_revive.cc
 @@ -0,0 +1,268 @@

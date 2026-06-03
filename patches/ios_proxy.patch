@@ -1,8 +1,8 @@
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnection+Private.h b/sdk/objc/api/peerconnection/RTCPeerConnection+Private.h
-index c9a955ec63..45ab5eae79 100644
+index 86991da690..aaaf6bbc30 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnection+Private.h
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnection+Private.h
-@@ -107,6 +107,19 @@ class PeerConnectionDelegateAdapter : public PeerConnectionObserver {
+@@ -106,6 +106,19 @@ class PeerConnectionDelegateAdapter : public PeerConnectionObserver {
                 delegate:(nullable id<RTC_OBJC_TYPE(RTCPeerConnectionDelegate)>)
                              delegate;
  
@@ -41,7 +41,7 @@ index fb5c414815..a1fd77a74d 100644
      RTC_OBJC_TYPE(RTCSessionDescription) *_Nullable sdp,
      NSError *_Nullable error);
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnection.mm b/sdk/objc/api/peerconnection/RTCPeerConnection.mm
-index 7b6b3bfc27..a67a18d3a8 100644
+index 093e95706e..811d82ec52 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnection.mm
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnection.mm
 @@ -28,6 +28,8 @@
@@ -53,7 +53,7 @@ index 7b6b3bfc27..a67a18d3a8 100644
  #include "api/jsep.h"
  #include "api/rtc_event_log_output_file.h"
  #include "api/set_local_description_observer_interface.h"
-@@ -473,6 +475,37 @@ void PeerConnectionDelegateAdapter::OnRemoveTrack(
+@@ -469,6 +471,37 @@ IceCandidate remote_candidate_wrapper(
  
  }  // namespace webrtc
  
@@ -91,7 +91,7 @@ index 7b6b3bfc27..a67a18d3a8 100644
  @implementation RTC_OBJC_TYPE (RTCPeerConnection) {
    RTC_OBJC_TYPE(RTCPeerConnectionFactory) * _factory;
    NSMutableArray<RTC_OBJC_TYPE(RTCMediaStream) *> *_localStreams;
-@@ -506,6 +539,54 @@ void PeerConnectionDelegateAdapter::OnRemoveTrack(
+@@ -502,6 +535,54 @@ @implementation RTC_OBJC_TYPE (RTCPeerConnection) {
                             delegate:delegate];
  }
  
@@ -147,7 +147,7 @@ index 7b6b3bfc27..a67a18d3a8 100644
      initWithDependencies:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
             configuration:(RTC_OBJC_TYPE(RTCConfiguration) *)configuration
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory+Private.h b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory+Private.h
-index 510ee32614..3ef2a0e64d 100644
+index 510ee32614..7dfa3f1ad0 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory+Private.h
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory+Private.h
 @@ -13,6 +13,7 @@
@@ -200,10 +200,10 @@ index abfa679a1c..8287bcf3d0 100644
  - (void)setOptions:
      (nonnull RTC_OBJC_TYPE(RTCPeerConnectionFactoryOptions) *)options;
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
-index 79afe271da..7e3f2e23f8 100644
+index 2ea5393960..0924fc2b30 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
-@@ -53,6 +53,68 @@
+@@ -58,6 +58,68 @@
  #import "sdk/objc/native/api/audio_device_module.h"
  #endif
  
@@ -270,17 +270,17 @@ index 79afe271da..7e3f2e23f8 100644
 +} // namespace webrtc
 +
  @implementation RTC_OBJC_TYPE (RTCPeerConnectionFactory) {
+   std::optional<webrtc::Environment> _env;
    std::unique_ptr<webrtc::Thread> _networkThread;
-   std::unique_ptr<webrtc::Thread> _workerThread;
-@@ -61,6 +123,7 @@ @implementation RTC_OBJC_TYPE (RTCPeerConnectionFactory) {
+@@ -67,6 +129,7 @@ @implementation RTC_OBJC_TYPE (RTCPeerConnectionFactory) {
  }
  
  @synthesize nativeFactory = _nativeFactory;
 +@synthesize connectionContext = _connectionContext;
  
- - (webrtc::scoped_refptr<webrtc::AudioDeviceModule>)audioDeviceModule {
- #if defined(WEBRTC_IOS)
-@@ -160,7 +223,7 @@ - (instancetype)initWithNativeDependencies:
+ - (instancetype)init {
+   webrtc::PeerConnectionFactoryDependencies dependencies;
+@@ -166,7 +229,7 @@ - (instancetype)initWithNativeDependencies:
      }
  
      _nativeFactory =
@@ -289,7 +289,7 @@ index 79afe271da..7e3f2e23f8 100644
      NSAssert(_nativeFactory, @"Failed to initialize PeerConnectionFactory!");
    }
    return self;
-@@ -336,6 +399,31 @@ - (instancetype)initWithMediaAndDependencies:
+@@ -334,6 +397,31 @@ - (instancetype)initWithMediaAndDependencies:
                                                         streamId:streamId];
  }
  
