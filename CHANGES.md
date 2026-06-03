@@ -29,6 +29,10 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-06-03 [UPDATE] m150 ブランチのビルドエラーに対する対応
+  - m150 で追加された Rust ターゲット (rate_tracker_rust 等) が rtc_rust=true デフォルトで有効になり enable_rust=false と矛盾する問題を修正
+    - run.py の COMMON_GN_ARGS に rtc_rust=false を追加
+  - @torikizi
 - 2026-06-03 [RELEASE] m149.7827.5.0
   - @torikizi
 - 2026-05-28 [RELEASE] m149.7827.4.0

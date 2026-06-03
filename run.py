@@ -690,6 +690,7 @@ COMMON_GN_ARGS = [
     "enable_rust=false",
     "enable_rust_cxx=false",
     "enable_chromium_prelude=false",
+    "rtc_rust=false",
     "rtc_rusty_base64=false",
     "use_debug_fission=false",
 ]
