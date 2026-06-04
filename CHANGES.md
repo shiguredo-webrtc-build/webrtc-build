@@ -30,12 +30,12 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 ## タイムライン
 
 - 2026-06-03 [UPDATE] m150 ブランチのビルドエラーに対する対応
-  - m150 で追加された Rust ターゲット (rate_tracker_rust 等) が rtc_rust=true デフォルトで有効になり enable_rust=false と矛盾する問題を修正
-    - run.py の COMMON_GN_ARGS に rtc_rust=false を追加
-    - 参考 : libwebrtc で変更された rust 関連のビルドのリンク
+  - m150 で追加された `rate_tracker_rust` が `rtc_rust=true` デフォルトで有効化され、`enable_rust=false` と衝突して `gn gen` が停止する問題を修正
+    - run.py の COMMON_GN_ARGS に `rtc_rust=false` を追加
+    - 参考: Rust 版の RateTracker が追加されたコミットのリンク
       - https://webrtc-review.googlesource.com/c/src/+/470180
-  - m150 で `rtc_rusty_base64` は削除されたため、不要となった COMMON_GN_ARGS の `"rtc_rusty_base64=false"` を削除する
-    - 参考: libwebrtc の変更リンク
+  - m150 の WebRTC で Rust base64 実装が使われなくなったため、従来の `rtc_rusty_base64` フラグの定義が消失。不要となった `"rtc_rusty_base64=false"` を削除
+    - 参考: rtc_rusty_base64 が削除されたコミットのリンク
       - https://webrtc-review.googlesource.com/c/src/+/470000
   - @torikizi
 - 2026-06-03 [RELEASE] m149.7827.5.0
