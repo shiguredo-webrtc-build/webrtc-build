@@ -24,9 +24,3 @@ jobs:
           # コピーして消されないようにする
           cp ./scripts/version_update.sh _version_update.sh
           ./_version_update.sh
-      - name: お試しRun
-        run: |
-          echo "foo" > FOO.tmp
-          git add FOO.tmp
-          git commit -m "test"
-          git push origin master
