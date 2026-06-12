@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-06-12 [RELEASE] m149.7827.7.0
+  - @torikizi
 - 2026-06-03 [UPDATE] m150 ブランチのビルドエラーに対する対応
   - m150 で追加された `rate_tracker_rust` が `rtc_rust=true` デフォルトで有効化され、`enable_rust=false` と衝突して `gn gen` が停止する問題を修正
     - run.py の COMMON_GN_ARGS に `rtc_rust=false` を追加
