@@ -15,8 +15,8 @@ index 37bcbf457f..d6d793b2bd 100644
    }
  
 +  /**
-+   * track() が関連付けられているストリームのリストを返す。
-+   * W3C 仕様上の AssociatedRemoteMediaStreams 内部スロットに相当する。
++   * track() が関連付けられているストリーム ID のリストを返す。
++   * W3C 仕様上の [[AssociatedRemoteMediaStreams]] 内部スロットに相当する。
 +   */
 +  public List<String> getStreams() {
 +    checkRtpReceiverExists();
