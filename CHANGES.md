@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-06-17 [RELEASE] m150.7871.2.1
+  - @t-miya
 - 2026-06-17 [ADD] Android の RtpReceiver に getStreams() を追加する
   - `RtpSender` にのみ実装されていた `RtpSender.getStreams()` と同一パターンの実装
   - @t-miya
