@@ -1,0 +1,61 @@
+diff --git a/sdk/android/api/org/webrtc/RtpReceiver.java b/sdk/android/api/org/webrtc/RtpReceiver.java
+index 37bcbf457f..d6d793b2bd 100644
+--- a/sdk/android/api/org/webrtc/RtpReceiver.java
++++ b/sdk/android/api/org/webrtc/RtpReceiver.java
+@@ -11,6 +11,7 @@
+ package org.webrtc;
+ 
+ import androidx.annotation.Nullable;
++import java.util.List;
+ import org.webrtc.MediaStreamTrack;
+ 
+ /** Java wrapper for a C++ RtpReceiverInterface. */
+@@ -55,6 +56,15 @@ public class RtpReceiver {
+     return nativeGetId(nativeRtpReceiver);
+   }
+ 
++  /**
++   * track() が関連付けられているストリーム ID のリストを返す。
++   * W3C 仕様上の [[AssociatedRemoteMediaStreams]] 内部スロットに相当する。
++   */
++  public List<String> getStreams() {
++    checkRtpReceiverExists();
++    return nativeGetStreams(nativeRtpReceiver);
++  }
++
+   /** Returns a pointer to webrtc::RtpReceiverInterface. */
+   long getNativeRtpReceiver() {
+     checkRtpReceiverExists();
+@@ -98,6 +108,7 @@ public class RtpReceiver {
+   private static native long nativeGetTrack(long rtpReceiver);
+   private static native RtpParameters nativeGetParameters(long rtpReceiver);
+   private static native String nativeGetId(long rtpReceiver);
++  private static native List<String> nativeGetStreams(long rtpReceiver);
+   private static native long nativeSetObserver(long rtpReceiver, Observer observer);
+   private static native void nativeUnsetObserver(long rtpReceiver, long nativeObserver);
+   private static native void nativeSetFrameDecryptor(long rtpReceiver, long nativeFrameDecryptor);
+diff --git a/sdk/android/src/jni/pc/rtp_receiver.cc b/sdk/android/src/jni/pc/rtp_receiver.cc
+index 772bbb737f..9c7bb8c115 100644
+--- a/sdk/android/src/jni/pc/rtp_receiver.cc
++++ b/sdk/android/src/jni/pc/rtp_receiver.cc
+@@ -108,6 +108,20 @@ static jni_zero::ScopedJavaLocalRef<jstring> JNI_RtpReceiver_GetId(
+       reinterpret_cast<RtpReceiverInterface*>(j_rtp_receiver_pointer)->id());
+ }
+ 
++// RtpReceiver.getStreams() の JNI 実装。
++// RtpReceiverInterface::stream_ids() を呼び出し、Java の List<String> に変換して返す。
++static jni_zero::ScopedJavaLocalRef<jobject> JNI_RtpReceiver_GetStreams(
++    JNIEnv* jni,
++    jlong j_rtp_receiver_pointer) {
++  jni_zero::ScopedJavaLocalRef<jstring> (*convert_function)(
++      JNIEnv*, const std::string&) = &NativeToJavaString;
++  return NativeToJavaList(
++      jni,
++      reinterpret_cast<RtpReceiverInterface*>(j_rtp_receiver_pointer)
++          ->stream_ids(),
++      convert_function);
++}
++
+ static jlong JNI_RtpReceiver_SetObserver(
+     JNIEnv* jni,
+     jlong j_rtp_receiver_pointer,
