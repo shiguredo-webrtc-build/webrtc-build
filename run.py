@@ -288,6 +288,7 @@ PATCHES = {
         "android_ssl_certificate_verifier_chain.patch",
         "turn_tls_client_certificate.patch",
         "android_turn_tls_client_certificate.patch",
+        "android_rtp_receiver_get_streams.patch",
     ],
     "android_sdk": [
         "add_deps.patch",
@@ -311,6 +312,7 @@ PATCHES = {
         "android_ssl_certificate_verifier_chain.patch",
         "turn_tls_client_certificate.patch",
         "android_turn_tls_client_certificate.patch",
+        "android_rtp_receiver_get_streams.patch",
     ],
     "raspberry-pi-os_armv8": [
         "add_deps.patch",
@@ -690,7 +692,7 @@ COMMON_GN_ARGS = [
     "enable_rust=false",
     "enable_rust_cxx=false",
     "enable_chromium_prelude=false",
-    "rtc_rusty_base64=false",
+    "rtc_rust=false",
     "use_debug_fission=false",
 ]
 # - https://webrtc-review.googlesource.com/c/src/+/232600 が影響している可能性があるため use_lld=false を追加
