@@ -275,16 +275,6 @@ h265.patch と併用することを前提とした iOS で H.265 を利用でき
 WebKit で施されている H.265 対応差分を最新の libwebrtc に適用します。おそらく macOS も同様のコードで動作しますが現状では検証しておりません。
 libwebrtc の iOS ハードウェアエンコード実装が H.265 に対応すると不要となると考えています。
 
-## fix_moved_function_call.patch
-
-SesseionDescription のコールバック実行中に PeerConnection が破棄された時にクラッシュする問題を修正するパッチ。
-
-https://github.com/shiguredo/sora-cpp-sdk/blob/e1257a3e358e62512c0c77db5ba82f90e2e26353/src/session_description.cpp#L84-L94
-
-ここの中で sleep して、その間に SoraSignaling を破棄すると発生する。
-
-多分パッチを送った方がいいやつ。
-
 ## ios_simulcast.patch
 
 iOS でのサイマルキャストのサポートを追加するパッチ。この実装は C++ の `SimulcastEncoderAdapter` の簡単なラッパーであり、既存の仕様に破壊的変更も行わない。
