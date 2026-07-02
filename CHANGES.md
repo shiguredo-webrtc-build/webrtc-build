@@ -30,8 +30,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 ## タイムライン
 
 - 2026-07-02 [UPDATE] m151 ブランチのビルドエラーに対する対応
-  - macOS と iOS のビルドエラーを修正する
-    - m151 で `fix_moved_function_call.patch` が修正していたコードが libwebrtc で修正されたため、パッチが不要になったので削除する
+  - 全ターゲットの PATCHES リストから `fix_moved_function_call.patch` を削除する
+    - m151 で libwebrtc 側でこのパッチが修正していた問題が解消されたためパッチが不要になったので削除する
     - 参考: WebRtcSessionDescriptionFactory の callback 呼び出しで use-after-move を修正したコミット
         - https://webrtc-review.googlesource.com/c/src/+/478842
   - @torikizi
