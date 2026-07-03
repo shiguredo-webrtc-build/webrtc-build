@@ -60,17 +60,17 @@ index ac62308aa3..a420002af8 100644
     * to be recorded. Feeds recorded data to the native counterpart as a
 @@ -394,6 +403,14 @@ class WebRtcAudioRecord {
    @CalledByNative
-   private boolean startRecording() {
-     threadChecker.checkIsOnValidThread();
-+    if (recordingState == RecordingState.RECORDING) {
-+      Logging.w(TAG, "startRecording invoked while already recording");
-+      return true;
-+    }
-+    if (recordingState == RecordingState.PAUSED) {
-+      Logging.e(TAG, "startRecording not allowed while paused; call resumeRecording instead");
-+      return false;
-+    }
-     Logging.d(TAG, "startRecording");
+  private boolean startRecording() {
+    threadChecker.checkIsOnValidThread();
+    Logging.d(TAG, "startRecording");
+    if (recordingState == RecordingState.RECORDING) {
+      Logging.w(TAG, "startRecording invoked while already recording");
+      return true;
+    }
+    if (recordingState == RecordingState.PAUSED) {
+      Logging.e(TAG, "startRecording not allowed while paused; call resumeRecording instead");
+      return false;
+    }
      assertTrue(audioRecord != null);
      assertTrue(audioThread == null);
 @@ -412,14 +429,18 @@ class WebRtcAudioRecord {
@@ -82,13 +82,13 @@ index ac62308aa3..a420002af8 100644
    }
 
    @CalledByNative
-   private boolean stopRecording() {
-     threadChecker.checkIsOnValidThread();
-+    if (recordingState == RecordingState.IDLE || recordingState == RecordingState.STOPPED) {
-+      Logging.d(TAG, "stopRecording called in state " + recordingState);
-+      return true;
-+    }
-     Logging.d(TAG, "stopRecording");
+  private boolean stopRecording() {
+    threadChecker.checkIsOnValidThread();
+    Logging.d(TAG, "stopRecording");
+    if (recordingState == RecordingState.IDLE || recordingState == RecordingState.STOPPED) {
+      Logging.d(TAG, "stopRecording called in state " + recordingState);
+      return true;
+    }
 -    assertTrue(audioThread != null);
      if (future != null) {
        if (!future.isDone()) {
