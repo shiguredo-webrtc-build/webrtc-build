@@ -73,7 +73,7 @@ index ac62308aa3..a420002af8 100644
 +   }
      assertTrue(audioRecord != null);
      assertTrue(audioThread == null);
-@@ -412,18 +429,18 @@ class WebRtcAudioRecord {
+@@ -412,14 +429,18 @@ class WebRtcAudioRecord {
      audioThread = new AudioRecordThread("AudioRecordJavaThread");
      audioThread.start();
      scheduleLogRecordingConfigurationsTask(audioRecord);
@@ -85,10 +85,10 @@ index ac62308aa3..a420002af8 100644
   private boolean stopRecording() {
     threadChecker.checkIsOnValidThread();
     Logging.d(TAG, "stopRecording");
-    if (recordingState == RecordingState.IDLE || recordingState == RecordingState.STOPPED) {
-      Logging.d(TAG, "stopRecording called in state " + recordingState);
-      return true;
-    }
++    if (recordingState == RecordingState.IDLE || recordingState == RecordingState.STOPPED) {
++      Logging.d(TAG, "stopRecording called in state " + recordingState);
++      return true;
++    }
 -    assertTrue(audioThread != null);
      if (future != null) {
        if (!future.isDone()) {
