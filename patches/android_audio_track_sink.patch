@@ -2,7 +2,7 @@ diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
 index dcdd999bf6..0d474a50f8 100644
 --- a/sdk/android/BUILD.gn
 +++ b/sdk/android/BUILD.gn
-@@ -893,6 +893,7 @@ if (is_android) {
+@@ -893,4 +893,5 @@ if (is_android) {
        "api/org/webrtc/AudioTrack.java",
        "api/org/webrtc/AudioTrackSink.java",
        "api/org/webrtc/CandidatePairChangeEvent.java",
@@ -12,10 +12,10 @@ diff --git a/sdk/android/api/org/webrtc/AudioTrack.java b/sdk/android/api/org/we
 index 725f371..f95d9bf 100644
 --- a/sdk/android/api/org/webrtc/AudioTrack.java
 +++ b/sdk/android/api/org/webrtc/AudioTrack.java
-@@ -12,12 +12,51 @@ package org.webrtc;
-
+@@ -12,12 +12,48 @@ package org.webrtc;
+ 
  import org.jni_zero.NativeMethods;
-
+ 
 -/** Java wrapper for a C++ AudioTrackInterface */
 +import java.util.IdentityHashMap;
 +
@@ -27,7 +27,7 @@ index 725f371..f95d9bf 100644
    public AudioTrack(long nativeTrack) {
      super(nativeTrack);
    }
-
+ 
 +  private final IdentityHashMap<AudioTrackSink, Long> sinks = new IdentityHashMap<>();
 +
 +  public void addSink(AudioTrackSink sink) {

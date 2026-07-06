@@ -17,7 +17,7 @@ index 18f280b2cc..bf740e92ac 100644
 @@ -25,12 +25,32 @@ public final class PeerConnectionDependencies {
    // Optional fields.
    private final SSLCertificateVerifier sslCertificateVerifier;
-
+ 
 +  private final ProxyType proxyType;
 +  private final String proxyAgent;
 +  private final String proxyHostname;
@@ -28,7 +28,7 @@ index 18f280b2cc..bf740e92ac 100644
    public static class Builder {
      private final PeerConnection.Observer observer;
      private SSLCertificateVerifier sslCertificateVerifier;
-
+ 
 +    private ProxyType proxyType;
 +    private String proxyAgent;
 +    private String proxyHostname;
@@ -45,12 +45,12 @@ index 18f280b2cc..bf740e92ac 100644
 +      this.proxyUsername = "";
 +      this.proxyPassword = "";
      }
-
+ 
      public Builder setSSLCertificateVerifier(SSLCertificateVerifier sslCertificateVerifier) {
 @@ -38,9 +58,22 @@ public final class PeerConnectionDependencies {
        return this;
      }
-
+ 
 +    public Builder setProxy(ProxyType proxyType, String proxyAgent, String proxyHostname,
 +        int proxyPort, String proxyUsername, String proxyPassword) {
 +      this.proxyType = proxyType;
@@ -70,11 +70,11 @@ index 18f280b2cc..bf740e92ac 100644
 +        this.proxyUsername, this.proxyPassword);
      }
    }
-
+ 
 @@ -57,9 +90,36 @@ public final class PeerConnectionDependencies {
      return sslCertificateVerifier;
    }
-
+ 
 +  ProxyType getProxyType() {
 +    return proxyType;
 +  }
@@ -147,7 +147,7 @@ index 5319a29..0da9d03 100644
 +        /* proxyUsername= */ "",
 +        /* proxyPassword= */ "");
    }
-
+ 
    /**
 @@ -453,7 +462,13 @@ public class PeerConnectionFactory {
    public PeerConnection createPeerConnection(
@@ -162,7 +162,7 @@ index 5319a29..0da9d03 100644
 +        dependencies.getProxyUsername(),
 +        dependencies.getProxyPassword());
    }
-
+ 
    public MediaStream createLocalMediaStream(String label) {
 @@ -658,7 +673,9 @@ public class PeerConnectionFactory {
          PeerConnection.RTCConfiguration rtcConfig,
@@ -172,9 +172,9 @@ index 5319a29..0da9d03 100644
 +        SSLCertificateVerifier sslCertificateVerifier,
 +        ProxyType proxyType, String proxyAgent, String proxyHostname, int proxyPort,
 +        String proxyUsername, String proxyPassword);
-
+ 
      long createLocalMediaStream(long factory, String label);
-
+ 
 diff --git a/sdk/android/api/org/webrtc/ProxyType.java b/sdk/android/api/org/webrtc/ProxyType.java
 new file mode 100644
 index 0000000000..4afd909bda
@@ -226,7 +226,7 @@ index 768f2e0..f63fed9 100644
 +#include "pc/connection_context.h"
  #include "rtc_base/socket_factory.h"
  #include "rtc_base/thread.h"
-
+ 
 @@ -36,6 +37,7 @@ class OwnedFactoryAndThreads {
        std::unique_ptr<Thread> network_thread,
        std::unique_ptr<Thread> worker_thread,
@@ -234,14 +234,14 @@ index 768f2e0..f63fed9 100644
 +      webrtc::scoped_refptr<webrtc::ConnectionContext> context,
        const Environment& env,
        const scoped_refptr<PeerConnectionFactoryInterface>& factory);
-
+ 
 @@ -54,6 +56,7 @@ class OwnedFactoryAndThreads {
    Thread* network_thread() { return network_thread_.get(); }
    Thread* signaling_thread() { return signaling_thread_.get(); }
    Thread* worker_thread() { return worker_thread_.get(); }
 +  webrtc::ConnectionContext* connection_context() { return context_.get(); }
    std::optional<Environment> env() const { return env_; }
-
+ 
   private:
 @@ -64,9 +67,11 @@ class OwnedFactoryAndThreads {
    //    threads can safely marshal tasks (e.g. proxy releases) to the signaling
@@ -281,7 +281,7 @@ index 4fae2fb6d0..5a44ac0dd9 100644
        std::move(socket_factory), std::move(network_thread),
 -      std::move(worker_thread), std::move(signaling_thread), webrtc_env, pcf);
 +      std::move(worker_thread), std::move(signaling_thread), context,webrtc_env, pcf);
-
+ 
    jni_zero::ScopedJavaLocalRef<jobject> j_pcf =
        Java_PeerConnectionFactory_Constructor(
 @@ -189,10 +194,11 @@ jobject NativeToJavaPeerConnectionFactory(
@@ -296,11 +296,11 @@ index 4fae2fb6d0..5a44ac0dd9 100644
 +             std::move(worker_thread), std::move(signaling_thread), context, env)
        .Release();
  }
-
+ 
 @@ -246,6 +252,36 @@ static void JNI_PeerConnectionFactory_ShutdownInternalTracer(JNIEnv* jni) {
    tracing::ShutdownInternalTracer();
  }
-
+ 
 +// webrtc::PeerConnectionFactory から ConnectionContext
 +// を取り出す方法が無いので、 継承して無理やり使えるようにする
 +class CustomPeerConnectionFactory : public webrtc::PeerConnectionFactory {
@@ -337,7 +337,7 @@ index 4fae2fb6d0..5a44ac0dd9 100644
 @@ -328,9 +364,23 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
        absl::WrapUnique(CreateVideoDecoderFactory(jni, jdecoder_factory));
    EnableMedia(dependencies);
-
+ 
 -  scoped_refptr<PeerConnectionFactoryInterface> factory =
 -      CreateModularPeerConnectionFactory(std::move(dependencies));
 -
@@ -362,18 +362,18 @@ index 4fae2fb6d0..5a44ac0dd9 100644
                          "WebRTC/libjingle init likely failed on this device";
    // TODO(honghaiz): Maybe put the options as the argument of
 @@ -340,7 +390,7 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
-
+ 
    return NativeToScopedJavaPeerConnectionFactory(
        jni, factory, std::move(socket_server), std::move(network_thread),
 -      std::move(worker_thread), std::move(signaling_thread), env);
 +      std::move(worker_thread), std::move(signaling_thread), context, env);
  }
-
+ 
  static jni_zero::ScopedJavaLocalRef<jobject>
 @@ -466,13 +516,43 @@ static void JNI_PeerConnectionFactory_StopAecDump(JNIEnv* jni,
    PeerConnectionFactoryFromJava(native_factory)->StopAecDump();
  }
-
+ 
 +class RawCryptString : public webrtc::revive::CryptStringImpl {
 + public:
 +  RawCryptString(const std::string& str) : str_(str) {}
@@ -414,11 +414,11 @@ index 4fae2fb6d0..5a44ac0dd9 100644
 +    const jni_zero::JavaRef<jstring>& j_proxyPassword) {
    std::unique_ptr<PeerConnectionObserver> observer(
        reinterpret_cast<PeerConnectionObserver*>(observer_p));
-
-@@ -509,9 +589,51 @@ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
+ 
+@@ -509,8 +589,50 @@ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
              jni, j_sslCertificateVerifier);
    }
-
+ 
 -  auto result =
 -      PeerConnectionFactoryFromJava(factory)->CreatePeerConnectionOrError(
 -          rtc_config, std::move(peer_connection_dependencies));
