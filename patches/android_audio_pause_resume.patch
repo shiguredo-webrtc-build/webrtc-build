@@ -49,31 +49,31 @@ index ac62308aa3..a420002af8 100644
    private final Context context;
    private final AudioManager audioManager;
    private final int audioSource;
-@@ -108,6 +115,8 @@ class WebRtcAudioRecord {
+@@ -107,6 +114,8 @@ class WebRtcAudioRecord {
+   private final @Nullable SamplesReadyCallback audioSamplesReadyCallback;
    private final boolean isAcousticEchoCancelerSupported;
    private final boolean isNoiseSuppressorSupported;
- 
-+  private RecordingState recordingState = RecordingState.IDLE;
 +
++  private RecordingState recordingState = RecordingState.IDLE;
+   private final ThreadUtils.ThreadChecker threadChecker = new ThreadUtils.ThreadChecker();
+ 
    /**
-    * Audio thread which keeps calling ByteBuffer.read() waiting for audio
-    * to be recorded. Feeds recorded data to the native counterpart as a
-@@ -394,6 +403,14 @@ class WebRtcAudioRecord {
-   @CalledByNative
-  private boolean startRecording() {
-    threadChecker.checkIsOnValidThread();
-    Logging.d(TAG, "startRecording");
-+   if (recordingState == RecordingState.RECORDING) {
-+     Logging.w(TAG, "startRecording invoked while already recording");
-+     return true;
-+   }
-+   if (recordingState == RecordingState.PAUSED) {
-+     Logging.e(TAG, "startRecording not allowed while paused; call resumeRecording instead");
-+     return false;
-+   }
+@@ -397,6 +406,14 @@ class WebRtcAudioRecord {
+   private boolean startRecording() {
+     threadChecker.checkIsOnValidThread();
+     Logging.d(TAG, "startRecording");
++    if (recordingState == RecordingState.RECORDING) {
++      Logging.w(TAG, "startRecording invoked while already recording");
++      return true;
++    }
++    if (recordingState == RecordingState.PAUSED) {
++      Logging.e(TAG, "startRecording not allowed while paused; call resumeRecording instead");
++      return false;
++    }
      assertTrue(audioRecord != null);
      assertTrue(audioThread == null);
-@@ -412,14 +429,18 @@ class WebRtcAudioRecord {
+     try {
+@@ -415,6 +432,7 @@ class WebRtcAudioRecord {
      audioThread = new AudioRecordThread("AudioRecordJavaThread");
      audioThread.start();
      scheduleLogRecordingConfigurationsTask(audioRecord);
@@ -81,26 +81,22 @@ index ac62308aa3..a420002af8 100644
      return true;
    }
  
-   @CalledByNative
-  private boolean stopRecording() {
-    threadChecker.checkIsOnValidThread();
-    Logging.d(TAG, "stopRecording");
+@@ -422,7 +440,10 @@ class WebRtcAudioRecord {
+   private boolean stopRecording() {
+     threadChecker.checkIsOnValidThread();
+     Logging.d(TAG, "stopRecording");
+-    assertTrue(audioThread != null);
 +    if (recordingState == RecordingState.IDLE || recordingState == RecordingState.STOPPED) {
 +      Logging.d(TAG, "stopRecording called in state " + recordingState);
 +      return true;
 +    }
--    assertTrue(audioThread != null);
      if (future != null) {
        if (!future.isDone()) {
          // Might be needed if the client calls startRecording(), stopRecording() back-to-back.
-@@ -428,13 +449,103 @@ class WebRtcAudioRecord {
+@@ -430,14 +451,104 @@ class WebRtcAudioRecord {
        }
        future = null;
      }
--    audioThread.stopThread();
--    if (!ThreadUtils.joinUninterruptibly(audioThread, AUDIO_RECORD_THREAD_JOIN_TIMEOUT_MS)) {
--      Logging.e(TAG, "Join of AudioRecordJavaThread timed out");
--      WebRtcAudioUtils.logAudioState(TAG, context, audioManager);
 +    if (audioThread != null) {
 +      audioThread.stopThread();
 +      if (!ThreadUtils.joinUninterruptibly(audioThread, AUDIO_RECORD_THREAD_JOIN_TIMEOUT_MS)) {
@@ -108,10 +104,9 @@ index ac62308aa3..a420002af8 100644
 +        WebRtcAudioUtils.logAudioState(TAG, context, audioManager);
 +      }
 +      audioThread = null;
-     }
--    audioThread = null;
-     effects.release();
-     releaseAudioResources();
++    }
++    effects.release();
++    releaseAudioResources();
 +    recordingState = RecordingState.STOPPED;
 +    return true;
 +  }
@@ -137,12 +132,14 @@ index ac62308aa3..a420002af8 100644
 +      }
 +      future = null;
 +    }
-+    audioThread.stopThread();
-+    if (!ThreadUtils.joinUninterruptibly(audioThread, AUDIO_RECORD_THREAD_JOIN_TIMEOUT_MS)) {
-+      Logging.e(TAG, "Join of AudioRecordJavaThread timed out");
-+      WebRtcAudioUtils.logAudioState(TAG, context, audioManager);
-+    }
-+    audioThread = null;
+     audioThread.stopThread();
+     if (!ThreadUtils.joinUninterruptibly(audioThread, AUDIO_RECORD_THREAD_JOIN_TIMEOUT_MS)) {
+       Logging.e(TAG, "Join of AudioRecordJavaThread timed out");
+       WebRtcAudioUtils.logAudioState(TAG, context, audioManager);
+     }
+     audioThread = null;
+-    effects.release();
+-    releaseAudioResources();
 +    recordingState = RecordingState.PAUSED;
 +    Logging.d(TAG, "pauseRecording succeeded");
 +    return true;
