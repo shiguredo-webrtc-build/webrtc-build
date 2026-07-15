@@ -34,6 +34,16 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
     - m151 で libwebrtc 側でこのパッチが修正していた問題が解消されたためパッチが不要になったので削除する
     - 参考: WebRtcSessionDescriptionFactory の callback 呼び出しで use-after-move を修正したコミット
         - https://webrtc-review.googlesource.com/c/src/+/478842
+  - `android` と `android_sdk` ターゲットの PATCHES リストから `android_rtp_receiver_get_streams.patch` を削除し、ファイルごと削除する
+    - m151 で libwebrtc 側で対応されたためパッチが不要になったので削除する
+  - Android パッチの offset 修正と Proxy Natives 移行に対応する
+    - android_audio_pause_resume.patch: 単純な offset 修正
+    - android_audio_track_sink.patch: BUILD.gn の構造変化対応、Proxy Natives パターンへの追従
+    - android_proxy.patch: Proxy Natives パターンへの追従、offset 修正
+  - `windows_add_deps.patch` の offset 修正と `rtc_base:socket_adapters` の削除
+    - m151 で upstream の BUILD.gn に既に含まれているため重複を削除
+    - 先頭の `Updating depot_tools...` ゴミ行を削除
+  - `revive_proxy.patch` の offset 修正
   - @torikizi
 - 2026-06-23 [RELEASE] m150.7871.3.0
   - @torikizi
