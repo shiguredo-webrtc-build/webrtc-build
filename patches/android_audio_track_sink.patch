@@ -30,16 +30,17 @@ diff --git a/sdk/android/api/org/webrtc/AudioTrack.java b/sdk/android/api/org/we
 index 725f371..f95d9bf 100644
 --- a/sdk/android/api/org/webrtc/AudioTrack.java
 +++ b/sdk/android/api/org/webrtc/AudioTrack.java
-@@ -12,12 +12,48 @@ package org.webrtc;
+@@ -12,12 +12,49 @@ package org.webrtc;
  
  import org.jni_zero.NativeMethods;
  
 -/** Java wrapper for a C++ AudioTrackInterface */
 +import java.util.IdentityHashMap;
 +
-+/** Java wrapper for a C++ AudioTrackInterface.
-+ *  スレッドセーフに AudioTrackSink の追加と削除を行う。
-+ *  sinks は IdentityHashMap で管理し、同一インスタンスの重複登録を防ぐ。
++/**
++ * Java wrapper for a C++ AudioTrackInterface
++ *
++ * NOTE: addSink, removeSink, dispose の実装は VideoTrack の実装を真似しています。
 + */
  public class AudioTrack extends MediaStreamTrack {
    public AudioTrack(long nativeTrack) {
@@ -80,7 +81,7 @@ index 725f371..f95d9bf 100644
    /** Sets the volume for the underlying MediaSource. Volume is a gain value in the range
     *  0 to 10.
     */
-@@ -33,5 +69,13 @@ public class AudioTrack extends MediaStreamTrack {
+@@ -33,5 +70,13 @@ public class AudioTrack extends MediaStreamTrack {
    @NativeMethods
    interface Natives {
      void setVolume(long track, double volume);
