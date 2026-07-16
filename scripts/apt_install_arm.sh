@@ -25,7 +25,6 @@ apt-get -y install \
   libstdc++6 \
   locales \
   lsb-release \
-  multistrap \
   ninja-build \
   python3 \
   python3-setuptools \
@@ -35,6 +34,14 @@ apt-get -y install \
   unzip \
   vim \
   xz-utils
+
+# multistrap は Ubuntu 26.04 のリポジトリに存在しないため、24.04 の .deb からインストールする
+if ! apt-get -y install multistrap 2>/dev/null; then
+  wget -q "http://archive.ubuntu.com/ubuntu/pool/universe/m/multistrap/multistrap_2.2.11_all.deb" -O /tmp/multistrap.deb
+  apt-get -y install libconfig-auto-perl libparse-debian-packages-perl
+  dpkg -i /tmp/multistrap.deb
+  apt-get -f -y install
+fi
 
 # Ubuntu 18.04 で multistrap が動かない問題の修正。
 # https://github.com/volumio/Build/issues/348#issuecomment-462271607 を参照
