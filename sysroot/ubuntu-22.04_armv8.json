@@ -1,0 +1,24 @@
+{
+    "name": "ubuntu-22.04_armv8",
+    "arch": "arm64",
+    "triplet": "aarch64-linux-gnu",
+    "packages": [
+        "libc6-dev",
+        "libstdc++-dev",
+        "libasound2-dev",
+        "libpulse-dev",
+        "libudev-dev",
+        "libexpat1-dev",
+        "libnss3-dev",
+        "python-dev-is-python3",
+        "libgtk-3-dev"
+    ],
+    "repositories": [
+        {
+            "url": "https://ports.ubuntu.com/ubuntu-ports",
+            "suite": "jammy",
+            "components": ["main"],
+            "signed_by": "/usr/share/keyrings/ubuntu-archive-keyring.gpg"
+        }
+    ]
+}
