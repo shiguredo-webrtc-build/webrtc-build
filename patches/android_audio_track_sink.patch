@@ -30,7 +30,7 @@ diff --git a/sdk/android/api/org/webrtc/AudioTrack.java b/sdk/android/api/org/we
 index 725f371..f95d9bf 100644
 --- a/sdk/android/api/org/webrtc/AudioTrack.java
 +++ b/sdk/android/api/org/webrtc/AudioTrack.java
-@@ -12,12 +12,49 @@ package org.webrtc;
+@@ -12,12 +12,51 @@ package org.webrtc;
  
  import org.jni_zero.NativeMethods;
  
@@ -49,6 +49,7 @@ index 725f371..f95d9bf 100644
  
 +  private final IdentityHashMap<AudioTrackSink, Long> sinks = new IdentityHashMap<>();
 +
++  /** この AudioTrack から PCM データを受け取るための AudioTrackSink を追加する */
 +  public void addSink(AudioTrackSink sink) {
 +    if (sink == null) {
 +      throw new IllegalArgumentException("AudioTrackSink must not be null");
@@ -60,6 +61,7 @@ index 725f371..f95d9bf 100644
 +    }
 +  }
 +
++  /** AudioTrackSink の登録を解除する */
 +  public void removeSink(AudioTrackSink sink) {
 +    final Long nativeSink = sinks.remove(sink);
 +    if (nativeSink != null) {
