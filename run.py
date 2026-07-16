@@ -289,6 +289,7 @@ PATCHES = {
         "turn_tls_client_certificate.patch",
         "android_turn_tls_client_certificate.patch",
         "android_rtp_receiver_get_streams.patch",
+        "android_jni_zero_final_registration.patch",
     ],
     "android_sdk": [
         "add_deps.patch",
@@ -313,6 +314,7 @@ PATCHES = {
         "turn_tls_client_certificate.patch",
         "android_turn_tls_client_certificate.patch",
         "android_rtp_receiver_get_streams.patch",
+        "android_jni_zero_final_registration.patch",
     ],
     "raspberry-pi-os_armv8": [
         "add_deps.patch",
