@@ -199,3 +199,4 @@ index ac62308aa3..a420002af8 100644
 +    Logging.d(TAG, "resumeRecording succeeded");
      return true;
    }
+ 
