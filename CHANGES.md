@@ -42,7 +42,6 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
     - android_proxy.patch: Proxy Natives パターンへの追従、offset 修正
   - `windows_add_deps.patch` の offset 修正と `rtc_base:socket_adapters` の削除
     - m151 で upstream の BUILD.gn に既に含まれているため重複を削除
-    - 先頭の `Updating depot_tools...` ゴミ行を削除
   - `revive_proxy.patch` の offset 修正
   - @torikizi
 - 2026-06-23 [RELEASE] m150.7871.3.0
