@@ -98,6 +98,7 @@ webrtc-build/
   - `android`, `android_sdk`, `raspberry-pi-os_armv8`, `ubuntu-*_armv8` あたりの ARM 環境は Ubuntu のバージョンに関係なくビルド可能
   - `ubuntu-22.04_x86_64` の場合は Ubuntu 22.04 が必要
   - `ubuntu-24.04_x86_64` の場合は Ubuntu 24.04 が必要
+  - `ubuntu-26.04_x86_64` の場合は Ubuntu 26.04 が必要
 - Ubuntu の x86_64 でない環境ではビルド不可能。
 - Ubuntu 以外の Linux 系 OS ではビルド不可能。
 

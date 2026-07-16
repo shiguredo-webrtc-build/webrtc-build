@@ -123,10 +123,14 @@ jobs:
             runs-on: ubuntu-22.04
           - name: ubuntu-24.04_armv8
             runs-on: ubuntu-24.04
+          - name: ubuntu-26.04_armv8
+            runs-on: ubuntu-26.04
           - name: ubuntu-22.04_x86_64
             runs-on: ubuntu-22.04
           - name: ubuntu-24.04_x86_64
             runs-on: ubuntu-24.04
+          - name: ubuntu-26.04_x86_64
+            runs-on: ubuntu-26.04
           - name: android
             runs-on: ubuntu-24.04
           - name: android_sdk
@@ -223,10 +227,16 @@ jobs:
           platform: ubuntu-24.04_armv8
       - uses: ./.github/actions/download
         with:
+          platform: ubuntu-26.04_armv8
+      - uses: ./.github/actions/download
+        with:
           platform: ubuntu-22.04_x86_64
       - uses: ./.github/actions/download
         with:
           platform: ubuntu-24.04_x86_64
+      - uses: ./.github/actions/download
+        with:
+          platform: ubuntu-26.04_x86_64
       - uses: ./.github/actions/download
         with:
           platform: android

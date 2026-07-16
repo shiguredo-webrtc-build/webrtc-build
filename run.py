@@ -362,6 +362,18 @@ PATCHES = {
         "unsafe_buffers_optout_list.patch",
         "turn_tls_client_certificate.patch",
     ],
+    "ubuntu-26.04_armv8": [
+        "add_deps.patch",
+        "4k.patch",
+        "revive_proxy.patch",
+        "add_license_dav1d.patch",
+        "ssl_verify_callback_with_native_handle.patch",
+        "h265.patch",
+        "fix_moved_function_call.patch",
+        "remove_crel.patch",
+        "unsafe_buffers_optout_list.patch",
+        "turn_tls_client_certificate.patch",
+    ],
     "ubuntu-22.04_x86_64": [
         "add_deps.patch",
         "4k.patch",
@@ -375,6 +387,18 @@ PATCHES = {
         "turn_tls_client_certificate.patch",
     ],
     "ubuntu-24.04_x86_64": [
+        "add_deps.patch",
+        "4k.patch",
+        "revive_proxy.patch",
+        "add_license_dav1d.patch",
+        "ssl_verify_callback_with_native_handle.patch",
+        "h265.patch",
+        "fix_moved_function_call.patch",
+        "remove_crel.patch",
+        "unsafe_buffers_optout_list.patch",
+        "turn_tls_client_certificate.patch",
+    ],
+    "ubuntu-26.04_x86_64": [
         "add_deps.patch",
         "4k.patch",
         "revive_proxy.patch",
@@ -624,6 +648,11 @@ MULTISTRAP_CONFIGS = {
     ),
     "ubuntu-24.04_armv8": MultistrapConfig(
         config_file=["multistrap", "ubuntu-24.04_armv8.conf"],
+        arch="arm64",
+        triplet="aarch64-linux-gnu",
+    ),
+    "ubuntu-26.04_armv8": MultistrapConfig(
+        config_file=["multistrap", "ubuntu-26.04_armv8.conf"],
         arch="arm64",
         triplet="aarch64-linux-gnu",
     ),
@@ -1077,6 +1106,7 @@ def build_webrtc(
             "ubuntu-20.04_armv8",
             "ubuntu-22.04_armv8",
             "ubuntu-24.04_armv8",
+            "ubuntu-26.04_armv8",
         ):
             sysroot = os.path.join(source_dir, "rootfs")
             arm64_set = (
@@ -1084,6 +1114,7 @@ def build_webrtc(
                 "ubuntu-20.04_armv8",
                 "ubuntu-22.04_armv8",
                 "ubuntu-24.04_armv8",
+                "ubuntu-26.04_armv8",
             )
             gn_args += [
                 'target_os="linux"',
@@ -1091,7 +1122,7 @@ def build_webrtc(
                 f'target_sysroot="{sysroot}"',
                 "rtc_use_pipewire=false",
             ]
-        elif target in ("ubuntu-22.04_x86_64", "ubuntu-24.04_x86_64"):
+        elif target in ("ubuntu-22.04_x86_64", "ubuntu-24.04_x86_64", "ubuntu-26.04_x86_64"):
             gn_args += [
                 'target_os="linux"',
                 "rtc_use_pipewire=false",
@@ -1402,9 +1433,11 @@ TARGETS = [
     "macos_arm64",
     "ubuntu-22.04_x86_64",
     "ubuntu-24.04_x86_64",
+    "ubuntu-26.04_x86_64",
     "ubuntu-20.04_armv8",
     "ubuntu-22.04_armv8",
     "ubuntu-24.04_armv8",
+    "ubuntu-26.04_armv8",
     "raspberry-pi-os_armv8",
     "android",
     "android_sdk",
@@ -1440,6 +1473,7 @@ def check_target(target):
             "ubuntu-20.04_armv8",
             "ubuntu-22.04_armv8",
             "ubuntu-24.04_armv8",
+            "ubuntu-26.04_armv8",
             "raspberry-pi-os_armv8",
             "android",
             "android_sdk",
@@ -1452,6 +1486,8 @@ def check_target(target):
         if target == "ubuntu-22.04_x86_64" and osver == "22.04":
             return True
         if target == "ubuntu-24.04_x86_64" and osver == "24.04":
+            return True
+        if target == "ubuntu-26.04_x86_64" and osver == "26.04":
             return True
 
         return False
@@ -1723,7 +1759,7 @@ def main():
                 init_rootfs(sysroot, MULTISTRAP_CONFIGS[args.target], args.rootfs_fetch_force)
 
             dir = get_depot_tools(source_dir, fetch=args.depottools_fetch)
-            add_path(dir)
+            add_path(dir, is_after=True)
             if args.target in ["windows_x86_64", "windows_arm64"]:
                 cmd(["git", "config", "--global", "core.longpaths", "true"])
 
@@ -1785,7 +1821,7 @@ def main():
 
         with cd(BASE_DIR):
             dir = get_depot_tools(source_dir, fetch=False)
-            add_path(dir)
+            add_path(dir, is_after=True)
             fetch_webrtc(
                 source_dir=source_dir,
                 patch_dir=patch_dir,
@@ -1799,7 +1835,7 @@ def main():
 
         with cd(BASE_DIR):
             dir = get_depot_tools(source_dir, fetch=False)
-            add_path(dir)
+            add_path(dir, is_after=True)
             revert_webrtc(
                 source_dir=source_dir,
                 patch_dir=patch_dir,
@@ -1814,7 +1850,7 @@ def main():
 
         with cd(BASE_DIR):
             dir = get_depot_tools(source_dir, fetch=False)
-            add_path(dir)
+            add_path(dir, is_after=True)
             diff_webrtc(
                 source_dir=source_dir,
                 webrtc_source_dir=webrtc_source_dir,
@@ -1824,7 +1860,7 @@ def main():
         mkdir_p(package_dir)
         with cd(BASE_DIR):
             dir = get_depot_tools(source_dir, fetch=args.depottools_fetch)
-            add_path(dir)
+            add_path(dir, is_after=True)
 
             package_webrtc(
                 source_dir=source_dir,
