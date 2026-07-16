@@ -30,13 +30,13 @@ diff --git a/sdk/android/api/org/webrtc/AudioTrack.java b/sdk/android/api/org/we
 index 725f371..f95d9bf 100644
 --- a/sdk/android/api/org/webrtc/AudioTrack.java
 +++ b/sdk/android/api/org/webrtc/AudioTrack.java
-@@ -12,12 +12,51 @@ package org.webrtc;
+@@ -12,12 +12,50 @@ package org.webrtc;
  
- import org.jni_zero.NativeMethods;
+-import org.jni_zero.NativeMethods;
++import java.util.IdentityHashMap;
++import org.jni_zero.NativeMethods;
  
 -/** Java wrapper for a C++ AudioTrackInterface */
-+import java.util.IdentityHashMap;
-+
 +/**
 + * Java wrapper for a C++ AudioTrackInterface
 + *
