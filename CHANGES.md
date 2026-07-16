@@ -33,7 +33,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - 全ターゲットの PATCHES リストから `fix_moved_function_call.patch` を削除する
     - m151 で libwebrtc 側でこのパッチが修正していた問題が解消されたためパッチが不要になったので削除する
     - 参考: WebRtcSessionDescriptionFactory の callback 呼び出しで use-after-move を修正したコミット
-        - https://webrtc-review.googlesource.com/c/src/+/478842
+      - https://webrtc-review.googlesource.com/c/src/+/478842
   - `android` と `android_sdk` ターゲットの PATCHES リストから `android_rtp_receiver_get_streams.patch` を削除し、ファイルごと削除する
     - m151 で libwebrtc 側で対応されたためパッチが不要になったので削除する
   - Android パッチの offset 修正と Proxy Natives 移行に対応する
