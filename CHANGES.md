@@ -29,6 +29,11 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-07-16 [UPDATE] ARM 向け sysroot 生成を独自実装へ移行する
+  - multistrap への依存を削除する
+  - @voluntas
+- 2026-07-15 [ADD] Ubuntu 26.04 (armv8 / x86_64) ビルドを追加する
+  - @t-miya
 - 2026-06-23 [RELEASE] m150.7871.3.0
   - @torikizi
 - 2026-06-17 [RELEASE] m150.7871.2.1

@@ -17,7 +17,9 @@ export DEBIAN_FRONTEND=noninteractive
 
 apt-get -y install \
   build-essential \
+  ca-certificates \
   curl \
+  debian-archive-keyring \
   git \
   gtk+-3.0 \
   lbzip2 \
@@ -25,23 +27,12 @@ apt-get -y install \
   libstdc++6 \
   locales \
   lsb-release \
-  multistrap \
   ninja-build \
   python3 \
   python3-setuptools \
   rsync \
-  software-properties-common \
   sudo \
   unzip \
+  ubuntu-keyring \
   vim \
   xz-utils
-
-# Ubuntu 18.04 で multistrap が動かない問題の修正。
-# https://github.com/volumio/Build/issues/348#issuecomment-462271607 を参照
-sed -e 's/Apt::Get::AllowUnauthenticated=true/Apt::Get::AllowUnauthenticated=true";\n$config_str .= " -o Acquire::AllowInsecureRepositories=true/' -i /usr/sbin/multistrap
-
-# Ubuntu 18.04 では GLIBCXX_3.4.26 が無いためエラーになったので、
-# 新しい libstdc++6 のパッケージがある場所からインストールする
-add-apt-repository -y ppa:ubuntu-toolchain-r/test
-apt-get update
-apt-get install -y --only-upgrade libstdc++6
