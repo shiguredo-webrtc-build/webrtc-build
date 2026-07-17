@@ -16,6 +16,18 @@ python3 run.py build <target>
 
 これで `_build` 以下のディレクトリに `libwebrtc.a` 等のライブラリが生成される。
 
+### sysroot の生成
+
+ARM 向けクロスコンパイルで利用する sysroot だけを生成する場合は、以下を実行する。
+
+```
+python3 run.py sysroot <target>
+```
+
+`<target>` には `ubuntu-26.04_armv8` 等の ARM ターゲット名を指定する。
+生成先はデフォルトで `_source/<target>/rootfs` となる。
+設定変更後に既存の sysroot を置き換える場合は `--force` を指定する。
+
 初回の build コマンド実行時には、自動的に WebRTC のソースやツールのダウンロードやパッチの適用をした上でビルドされる。
 
 2回目の build コマンドの実行時には、ビルドのみ行われる。WebRTC ソースの更新や、gn gen の再実行は行われない。
@@ -98,6 +110,7 @@ webrtc-build/
   - `android`, `android_sdk`, `raspberry-pi-os_armv8`, `ubuntu-*_armv8` あたりの ARM 環境は Ubuntu のバージョンに関係なくビルド可能
   - `ubuntu-22.04_x86_64` の場合は Ubuntu 22.04 が必要
   - `ubuntu-24.04_x86_64` の場合は Ubuntu 24.04 が必要
+  - `ubuntu-26.04_x86_64` の場合は Ubuntu 26.04 が必要
 - Ubuntu の x86_64 でない環境ではビルド不可能。
 - Ubuntu 以外の Linux 系 OS ではビルド不可能。
 
