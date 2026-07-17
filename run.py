@@ -641,7 +641,7 @@ SYSROOT_CONFIGS = {
 }
 
 
-def init_sysroot(target: str, output_dir: str, force: bool = False) -> None:
+def init_sysroot(target: str, output_dir: str, force: bool) -> None:
     config_path = Path(BASE_DIR) / "sysroot" / SYSROOT_CONFIGS[target]
     config = load_sysroot_config(config_path)
     if config.name != target:
