@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-07-17 [RELEASE] m150.7871.3.1
+  - @t-miya
 - 2026-07-16 [UPDATE] ARM 向け sysroot 生成を独自実装へ移行する
   - multistrap への依存を削除する
   - @voluntas
