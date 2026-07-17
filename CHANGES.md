@@ -29,6 +29,11 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-07-17 [UPDATE] Android 向け Java 成果物を JNI Zero の最終 registration 構成に追従する
+  - `webrtc.jar` と AAR の `classes.jar` に `JniZeroJni.class`、最終 `GEN_JNI.class`、`J/N.class` を含める
+  - WebRTC M149 が参照する JNI Zero の class loader 初期化変更に追従
+    - JNI Zero の変更 commit: https://chromium.googlesource.com/chromium/src/third_party/jni_zero/+/d3c7cd15e366abf83461e9c407368227bbe57168
+  - @zztkm
 - 2026-06-23 [RELEASE] m150.7871.3.0
   - @torikizi
 - 2026-06-17 [RELEASE] m150.7871.2.1
