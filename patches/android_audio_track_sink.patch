@@ -2,7 +2,7 @@ diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
 index dcdd999bf6..0d474a50f8 100644
 --- a/sdk/android/BUILD.gn
 +++ b/sdk/android/BUILD.gn
-@@ -290,6 +290,7 @@ if (is_android) {
+@@ -297,6 +297,7 @@ if (is_android) {
        "api/org/webrtc/AudioProcessingFactory.java",
        "api/org/webrtc/AudioSource.java",
        "api/org/webrtc/AudioTrack.java",
@@ -10,15 +10,15 @@ index dcdd999bf6..0d474a50f8 100644
        "api/org/webrtc/CallSessionFileRotatingLogSink.java",
        "api/org/webrtc/CandidatePairChangeEvent.java",
        "api/org/webrtc/CryptoOptions.java",
-@@ -788,6 +789,7 @@ if (current_os == "linux" || is_android) {
+@@ -793,6 +794,7 @@ if (current_os == "linux" || is_android) {
+       "src/jni/pc/add_ice_candidate_observer.cc",
        "src/jni/pc/add_ice_candidate_observer.h",
        "src/jni/pc/android_network_monitor.h",
-       "src/jni/pc/audio_track.cc",
 +      "src/jni/audio_track_sink.cc",
+       "src/jni/pc/audio_track.cc",
        "src/jni/pc/call_session_file_rotating_log_sink.cc",
        "src/jni/pc/crypto_options.cc",
-       "src/jni/pc/crypto_options.h",
-@@ -1535,6 +1537,7 @@ if (current_os == "linux" || is_android) {
+@@ -1563,6 +1565,7 @@ if (current_os == "linux" || is_android) {
      sources = [
        "api/org/webrtc/AddIceObserver.java",
        "api/org/webrtc/AudioTrack.java",
@@ -27,37 +27,37 @@ index dcdd999bf6..0d474a50f8 100644
        "api/org/webrtc/CandidatePairChangeEvent.java",
        "api/org/webrtc/CryptoOptions.java",
 diff --git a/sdk/android/api/org/webrtc/AudioTrack.java b/sdk/android/api/org/webrtc/AudioTrack.java
-index ca745db634..408dfcd4df 100644
+index 725f371..f95d9bf 100644
 --- a/sdk/android/api/org/webrtc/AudioTrack.java
 +++ b/sdk/android/api/org/webrtc/AudioTrack.java
-@@ -10,12 +10,51 @@
+@@ -12,12 +12,50 @@ package org.webrtc;
  
- package org.webrtc;
+-import org.jni_zero.NativeMethods;
++import java.util.IdentityHashMap;
++import org.jni_zero.NativeMethods;
  
 -/** Java wrapper for a C++ AudioTrackInterface */
-+import java.util.IdentityHashMap;
-+
 +/**
 + * Java wrapper for a C++ AudioTrackInterface
 + *
 + * NOTE: addSink, removeSink, dispose の実装は VideoTrack の実装を真似しています。
 + */
  public class AudioTrack extends MediaStreamTrack {
-+  private final IdentityHashMap<AudioTrackSink, Long> sinks = new IdentityHashMap<>();
-+
    public AudioTrack(long nativeTrack) {
      super(nativeTrack);
    }
  
++  private final IdentityHashMap<AudioTrackSink, Long> sinks = new IdentityHashMap<>();
++
 +  /** この AudioTrack から PCM データを受け取るための AudioTrackSink を追加する */
 +  public void addSink(AudioTrackSink sink) {
 +    if (sink == null) {
 +      throw new IllegalArgumentException("AudioTrackSink must not be null");
 +    }
 +    if (!sinks.containsKey(sink)) {
-+      final long nativeSink = nativeWrapSink(sink);
++      final long nativeSink = AudioTrackJni.get().wrapSink(sink);
 +      sinks.put(sink, nativeSink);
-+      nativeAddSink(getNativeAudioTrack(), nativeSink);
++      AudioTrackJni.get().addSink(getNativeAudioTrack(), nativeSink);
 +    }
 +  }
 +
@@ -65,16 +65,16 @@ index ca745db634..408dfcd4df 100644
 +  public void removeSink(AudioTrackSink sink) {
 +    final Long nativeSink = sinks.remove(sink);
 +    if (nativeSink != null) {
-+      nativeRemoveSink(getNativeAudioTrack(), nativeSink);
-+      nativeFreeSink(nativeSink);
++      AudioTrackJni.get().removeSink(getNativeAudioTrack(), nativeSink);
++      AudioTrackJni.get().freeSink(nativeSink);
 +    }
 +  }
 +
 +  @Override
 +  public void dispose() {
 +    for (long nativeSink : sinks.values()) {
-+      nativeRemoveSink(getNativeAudioTrack(), nativeSink);
-+      nativeFreeSink(nativeSink);
++      AudioTrackJni.get().removeSink(getNativeAudioTrack(), nativeSink);
++      AudioTrackJni.get().freeSink(nativeSink);
 +    }
 +    sinks.clear();
 +    super.dispose();
@@ -83,14 +83,19 @@ index ca745db634..408dfcd4df 100644
    /** Sets the volume for the underlying MediaSource. Volume is a gain value in the range
     *  0 to 10.
     */
-@@ -29,4 +68,8 @@ public class AudioTrack extends MediaStreamTrack {
+@@ -33,5 +70,13 @@ public class AudioTrack extends MediaStreamTrack {
+   @NativeMethods
+   interface Natives {
+     void setVolume(long track, double volume);
++
++    void addSink(long audioTrackHandle, long sinkHandle);
++
++    long wrapSink(AudioTrackSink sink);
++
++    void removeSink(long audioTrackHandle, long sinkHandle);
++
++    void freeSink(long sink);
    }
- 
-   private static native void nativeSetVolume(long track, double volume);
-+  private static native void nativeAddSink(long audioTrackHandle, long sinkHandle);
-+  private static native long nativeWrapSink(AudioTrackSink sink);
-+  private static native void nativeRemoveSink(long audioTrackHandle, long sinkHandle);
-+  private static native void nativeFreeSink(long sink);
  }
 diff --git a/sdk/android/api/org/webrtc/AudioTrackSink.java b/sdk/android/api/org/webrtc/AudioTrackSink.java
 new file mode 100644
@@ -150,7 +155,7 @@ index 0000000000..f7b2faae5a
 +// 戻り値は direct ByteBuffer なので GetDirectBufferAddress から PCM 書き込み用のポインタを
 +// 安全に取得できる。
 +ScopedJavaLocalRef<jobject> CreateDirectByteBuffer(JNIEnv* env,
-+                                                    size_t capacity_bytes) {
++                                                   size_t capacity_bytes) {
 +  // allocateDirect(int) の引数は int なので、サイズが 32bit を超えないことを確認。
 +  RTC_CHECK_LE(capacity_bytes,
 +               static_cast<size_t>(std::numeric_limits<jint>::max()));
@@ -261,8 +266,8 @@ index 1ec0f44e95..261eb24faa 100644
  #include "api/scoped_refptr.h"
  #include "sdk/android/generated_peerconnection_jni/AudioTrack_jni.h"
 +#include "sdk/android/native_api/jni/scoped_java_ref.h"
-+#include "sdk/android/src/jni/jni_helpers.h"
 +#include "sdk/android/src/jni/audio_track_sink.h"
++#include "sdk/android/src/jni/jni_helpers.h"
  
  namespace webrtc {
  namespace jni {

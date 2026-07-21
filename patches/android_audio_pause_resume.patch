@@ -49,18 +49,18 @@ index ac62308aa3..a420002af8 100644
    private final Context context;
    private final AudioManager audioManager;
    private final int audioSource;
-@@ -108,6 +115,8 @@ class WebRtcAudioRecord {
+@@ -107,6 +114,8 @@ class WebRtcAudioRecord {
+   private final @Nullable SamplesReadyCallback audioSamplesReadyCallback;
    private final boolean isAcousticEchoCancelerSupported;
    private final boolean isNoiseSuppressorSupported;
- 
-+  private RecordingState recordingState = RecordingState.IDLE;
 +
++  private RecordingState recordingState = RecordingState.IDLE;
+   private final ThreadUtils.ThreadChecker threadChecker = new ThreadUtils.ThreadChecker();
+ 
    /**
-    * Audio thread which keeps calling ByteBuffer.read() waiting for audio
-    * to be recorded. Feeds recorded data to the native counterpart as a
-@@ -374,6 +383,14 @@ class WebRtcAudioRecord {
-   @CalledByNative
+@@ -397,6 +406,14 @@ class WebRtcAudioRecord {
    private boolean startRecording() {
+     threadChecker.checkIsOnValidThread();
      Logging.d(TAG, "startRecording");
 +    if (recordingState == RecordingState.RECORDING) {
 +      Logging.w(TAG, "startRecording invoked while already recording");
@@ -73,7 +73,7 @@ index ac62308aa3..a420002af8 100644
      assertTrue(audioRecord != null);
      assertTrue(audioThread == null);
      try {
-@@ -392,13 +409,17 @@ class WebRtcAudioRecord {
+@@ -415,6 +432,7 @@ class WebRtcAudioRecord {
      audioThread = new AudioRecordThread("AudioRecordJavaThread");
      audioThread.start();
      scheduleLogRecordingConfigurationsTask(audioRecord);
@@ -81,8 +81,9 @@ index ac62308aa3..a420002af8 100644
      return true;
    }
  
-   @CalledByNative
+@@ -422,7 +440,10 @@ class WebRtcAudioRecord {
    private boolean stopRecording() {
+     threadChecker.checkIsOnValidThread();
      Logging.d(TAG, "stopRecording");
 -    assertTrue(audioThread != null);
 +    if (recordingState == RecordingState.IDLE || recordingState == RecordingState.STOPPED) {
@@ -92,7 +93,7 @@ index ac62308aa3..a420002af8 100644
      if (future != null) {
        if (!future.isDone()) {
          // Might be needed if the client calls startRecording(), stopRecording() back-to-back.
-@@ -406,14 +427,104 @@ class WebRtcAudioRecord {
+@@ -430,14 +451,104 @@ class WebRtcAudioRecord {
        }
        future = null;
      }
