@@ -34,13 +34,14 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
     - JNI Zero は、Chromium が Android の Java と native code を接続する JNI binding を生成する仕組みで、WebRTC も利用している
     - WebRTC M149 では、class loader の初期化方法を変更した JNI Zero の commit が取り込まれた
     - 該当 commit: https://chromium.googlesource.com/chromium/src/third_party/jni_zero/+/d3c7cd15e366abf83461e9c407368227bbe57168
-    - この変更により、`JniZero.setJniClassLoader()` は JNI Zero が生成する `JniZeroJni` を呼び出すようになった
+    - この変更により、JNI Zero の初期化後は `JniZero.setJniClassLoader()` が生成クラスの `JniZeroJni` を直接呼び出すようになった
   - 変更前の問題
     - Android 向け Java 成果物には、JNI Zero 関連のクラスとして `JniZero.class` と `JniZero$Natives.class` しか含まれず、`JniZeroJni.class` が欠落していた
-    - R8 が `JniZero.setJniClassLoader()` の参照先を解析する構成では、`JniZeroJni.class` の Missing class エラーになる
+    - WebRTC M149 では `JniZero` から `JniZeroJni` への直接参照があるため、R8 が参照先を解析する構成では Missing class エラーになる
+    - `JniZeroJni` は `GEN_JNI` を経由して native method を呼び出すため、`JniZeroJni.class` だけを追加しても実行時に必要なクラスは揃わない
   - 対応
-    - Java と native の依存関係から最終的な JNI registration の Java クラスを生成する
-    - `JniZeroJni.class` と最終的な `GEN_JNI.class` を含む JNI registration の Java クラスを配布用 jar に含める
+    - Java と native の依存関係から、native library の JNI symbol に対応する最終的な JNI registration の Java クラスを生成する
+    - `JniZeroJni.class` と最終的な JNI registration の Java クラスを配布用 jar に含める
     - `android` と `android_sdk` に適用し、`webrtc.jar` と AAR の `classes.jar` に反映する
   - @zztkm
 - 2026-06-23 [RELEASE] m150.7871.3.0
