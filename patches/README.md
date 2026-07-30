@@ -322,6 +322,14 @@ Android SDK 向けに AudioTrackSink を提供し、AudioTrack ごとに PCM デ
 
 パッチの詳細は [android_audio_track_sink.patch の解説](./android_audio_track_sink.md) を参照
 
+## android_jni_zero_generated_java.patch
+
+m151 で JNI コード生成が jni_zero に移行したことに伴い、`dist_jar("libwebrtc")` に FooJni.class の生成ターゲット（`generated_*_jni_java`）と jni_zero registration Java クラスを含めるためのパッチ。
+
+`dist_jar` のインライン deps を変数 `_libwebrtc_java_deps` に切り出すことで、`generate_jni_registration` ターゲットと deps を共有している。
+
+併せて `third_party/jni_zero/BUILD.gn` の `generate_jni` ターゲットの visibility に `//sdk/android:*` を追加する。
+
 ## windows_fix_adm_device_count.patch
 
 Windows 向け ADM の RecordingDevices() と PlayoutDevices() の返す値を修正するパッチ。
