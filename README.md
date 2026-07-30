@@ -44,7 +44,9 @@ Please read <https://github.com/shiguredo/oss/blob/master/README.en.md> before u
   - Jetson Orin Nano
 - ubuntu-22.04_x86_64
 - ubuntu-24.04_armv8
+- ubuntu-26.04_armv8
 - ubuntu-24.04_x86_64
+- ubuntu-26.04_x86_64
 - android_arm64
 - ios_arm64
 
