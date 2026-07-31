@@ -30,7 +30,7 @@ index 1a7fd8e3f6..03a7f586c3 100644
          ":base_native_additions_objc",
          ":base_objc",
          ":helpers_objc",
-@@ -769,6 +764,22 @@ if (is_ios || is_mac) {
+@@ -769,6 +764,32 @@ if (is_ios || is_mac) {
        }
      }
  
@@ -45,8 +45,18 @@ index 1a7fd8e3f6..03a7f586c3 100644
 +      deps = [
 +        ":base_objc",
 +        ":wrapped_native_codec_objc",
-+        "../media:rtc_media_base",
++        ":native_api",
++        ":videocodec_objc",
++        "../api/video_codecs:scalability_mode",
++        "../api/video_codecs:video_codecs_api",
++        "../media:media_constants",
 +        "../media:rtc_simulcast_encoder_adapter",
++        "../modules/video_coding:webrtc_h264",
++        "../modules/video_coding:webrtc_vp8",
++        "../modules/video_coding:webrtc_vp8_scalability",
++        "../modules/video_coding:webrtc_vp9",
++        "../modules/video_coding/codecs/av1:av1_svc_config",
++        "//third_party/abseil-cpp/absl/container:inlined_vector",
 +      ]
 +    }
 +
