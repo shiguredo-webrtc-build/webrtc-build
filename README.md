@@ -104,9 +104,9 @@ H.265 が利用可能なバイナリを配布する事は、ライセンスが�
 Apache License 2.0
 
 ```
-Copyright 2019-2025, Wandbox LLC (Original Author)
-Copyright 2019-2025, tnoho (Original Author)
-Copyright 2019-2025, Shiguredo Inc.
+Copyright 2019 Wandbox LLC (Original Author)
+Copyright 2019 tnoho (Original Author)
+Copyright 2019 Shiguredo Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
