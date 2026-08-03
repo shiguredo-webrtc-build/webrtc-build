@@ -1,0 +1,36 @@
+[project]
+name = "libwebrtc-update-check"
+version = "0.1.0"
+description = "libwebrtc のアップデートでビルドが壊れていないか、パッチが当たるかを確認する LLM エージェント"
+requires-python = ">=3.14"
+dependencies = [
+  # LLM との通信に利用する OpenAI 互換 API クライアント
+  "openai~=2.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.16.1",
+    "ty>=0.0.65",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+# 推奨セットを基本にする。ANN はシグネチャの型ヒント、PT は pytest の書き方、RUF は Ruff 固有のルール
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "C4", "PT", "ANN", "RUF"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+addopts = ["-ra", "--strict-markers", "--strict-config"]
+testpaths = ["tests"]
+# プロジェクトルートの tools モジュールを import できるようにする
+pythonpath = ["."]
+
+[tool.ty]
+# ty は Astral 製の静的型チェッカ。設定詳細は ty のドキュメントを参照すること

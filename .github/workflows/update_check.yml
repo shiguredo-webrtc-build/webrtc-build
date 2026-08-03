@@ -1,0 +1,95 @@
+name: update check
+on:
+  schedule:
+    # 毎日 10:00 JST (version_update.yml の後に実行される)
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+    inputs:
+      target:
+        description: build target
+        required: false
+        default: macos_arm64
+      build:
+        description: run full build
+        type: boolean
+        required: false
+        default: false
+concurrency:
+  group: update-check
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: macos-26
+    timeout-minutes: 360
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ secrets.GARUN_APP_CLIENT_ID }}
+          private-key: ${{ secrets.GARUN_APP_PRIVATE_KEY }}
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+      - name: Run version_update.sh
+        run: |
+          # 自身のファイルがチェックアウトによって消えると困るので
+          # コピーして消されないようにする
+          cp ./scripts/version_update.sh _version_update.sh
+          ./_version_update.sh
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v9
+      - name: Run update check agent
+        id: agent
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+        run: |
+          uv --directory agents/libwebrtc-update-check sync
+          TARGET="${{ inputs.target || 'macos_arm64' }}"
+          BUILD_FLAG=""
+          if [ "${{ inputs.build || 'false' }}" == "true" ]; then
+            BUILD_FLAG="--build"
+          fi
+          set +e
+          uv --directory agents/libwebrtc-update-check run python libwebrtc_update_check.py --target "${TARGET}" ${BUILD_FLAG} > update_check_report.md 2>&1
+          AGENT_EXIT=$?
+          set -e
+          echo "agent-exit=${AGENT_EXIT}" >> "$GITHUB_OUTPUT"
+          cat update_check_report.md
+      - name: Commit VERSION and libwebrtc-follow
+        run: |
+          git add VERSION libwebrtc-follow/
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "libwebrtc 追従確認の記録とバージョンを更新する"
+            git push origin HEAD
+          fi
+      - name: Upload report
+        uses: actions/upload-artifact@v7
+        with:
+          name: update-check-report
+          path: update_check_report.md
+      - name: Fail if patch failed
+        if: steps.agent.outputs.agent-exit == '1'
+        run: exit 1
+  notify:
+    needs: run
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+    steps:
+      - uses: shiguredo/github-actions/.github/actions/slack-notify@main
+        with:
+          status: ${{ needs.run.result }}
+          slack_webhook: ${{ secrets.SLACK_WEBHOOK }}
+          slack_channel: webrtc-build
+          slack_title: libwebrtc 追従確認
+          notify_mode: failure_and_fixed
+        env:
+          GH_TOKEN: ${{ github.token }}
