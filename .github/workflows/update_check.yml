@@ -76,20 +76,3 @@ jobs:
       - name: Fail if patch failed
         if: steps.agent.outputs.agent-exit == '1'
         run: exit 1
-  notify:
-    needs: run
-    if: always()
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      actions: read
-    steps:
-      - uses: shiguredo/github-actions/.github/actions/slack-notify@main
-        with:
-          status: ${{ needs.run.result }}
-          slack_webhook: ${{ secrets.SLACK_WEBHOOK }}
-          slack_channel: webrtc-build
-          slack_title: libwebrtc 追従確認
-          notify_mode: failure_and_fixed
-        env:
-          GH_TOKEN: ${{ github.token }}
