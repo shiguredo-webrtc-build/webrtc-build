@@ -2,7 +2,7 @@ diff --git a/BUILD.gn b/BUILD.gn
 index 442d5f212f..49ccdfcd21 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
-@@ -578,6 +578,11 @@ if (!build_with_chromium) {
+@@ -578,6 +578,12 @@ if (!build_with_chromium) {
        "pc:rtc_pc",
        "pc:webrtc_sdp",
        "video",
