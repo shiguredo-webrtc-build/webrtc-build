@@ -12,6 +12,7 @@ index 3b1c52b6ad..87e4c1f479 100644
 +      "rtc_base:log_sinks",
 +      "media:rtc_simulcast_encoder_adapter",
 +      "api:enable_media_with_defaults",
++      "api/video:adapted_video_track_source",
      ]
  
      if (rtc_include_builtin_audio_codecs) {

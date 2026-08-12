@@ -11,6 +11,7 @@ index 442d5f212f..49ccdfcd21 100644
 +      "rtc_base:socket_adapters",
 +      "media:rtc_simulcast_encoder_adapter",
 +      "api:enable_media_with_defaults",
++      "api/video:adapted_video_track_source",
      ]
  
      if (rtc_include_builtin_audio_codecs) {
