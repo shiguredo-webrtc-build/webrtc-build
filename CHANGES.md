@@ -36,10 +36,10 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
       - `../api/video_codecs:scalability_mode`: `api/video_codecs/scalability_mode.h`
       - `../api/video_codecs:video_codecs_api`: `api/video_codecs/video_codec.h` と `api/video_codecs/sdp_video_format.h`
     - 参考: https://source.chromium.org/chromium/_/webrtc/src/+/91dbc17ae49f9fbf2071b5d60bf1b823973c4a4f
-  - windows_add_deps.patch のコンテキストを m152 の BUILD.gn に合わせる
+  - windows_add_deps.patch のパッチのずれを修正する
     - m152 で `stats` deps が削除されたため
     - 参考: https://source.chromium.org/chromium/_/webrtc/src/+/cd7885ddf46e657672db275706a54b5da4c9db6b
-  - add_deps.patch のコンテキストを m152 の BUILD.gn に合わせる
+  - add_deps.patch のパッチのずれを修正する
     - m152 で `pc:libjingle_peerconnection` deps が削除されたため
   - @torikizi
 - 2026-07-17 [RELEASE] m150.7871.3.1
