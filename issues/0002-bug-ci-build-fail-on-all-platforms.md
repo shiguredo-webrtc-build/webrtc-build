@@ -2,12 +2,12 @@
 
 - Created: 2026-08-19
 - Completed: {YYYY-MM-DD}
-- Branch: feature/fix-m153.8010.0.0
+- Branch: feature/fix-m153.8010
 - Polished: 2026-08-19
 
 ## 目的
 
-CI の全プラットフォーム (Linux / macOS / android / windows) のビルドが失敗しているため、ビルドを通るようにする。
+CI の全プラットフォーム (Linux / macOS / ios / android / windows) のビルドが失敗しているため、ビルドを通るようにする。
 
 ## 現状
 
@@ -17,7 +17,7 @@ CI の全プラットフォーム (Linux / macOS / android / windows) のビル�
 
 失敗した CI: https://github.com/shiguredo-webrtc-build/webrtc-build/actions/runs/32203010950
 
-原因は WebRTC リビジョン更新 (2026-08-14 時点の 9ea5afc) に伴うもので、以下の 3 つの問題に分かれる。
+原因は WebRTC リビジョン更新 (WEBRTC_COMMIT=9ea5afc) に伴うもので、以下の 3 つの問題に分かれる。
 
 ### sframe ライセンスエラー (Linux / macOS、11 ジョブ)
 
@@ -26,6 +26,8 @@ Linux 8 ジョブ + macOS 3 ジョブが、パッケージング時に失敗す�
 原因は、`generate_licenses.py` の `LIB_TO_LICENSES_DICT` に `third_party/sframe` のライセンスエントリが登録されていないこと。ライセンスファイル (`third_party/sframe/src/LICENSE`) 自体は存在する。
 
 `third_party/sframe` の追加は upstream の chromium コミット 8ceb47263b18fed0a573187024faa1a5ed4dee6e (Include SFrame library to Chromium third party) によるものである。参照: https://source.chromium.org/chromium/chromium/src/+/8ceb47263b18fed0a573187024faa1a5ed4dee6e
+
+sframe がビルド対象に加わったのは m153 (webrtc コミット 42995c384b、2026-08-13) のため、このエラーは m153 から発生する。
 
 ### android の jni_zero API 廃止による gn gen 失敗 (2 ジョブ)
 
@@ -57,11 +59,11 @@ windows_x86_64 / windows_arm64 ジョブが `gn gen` で失敗する。エラー
 
 ### windows の toolchain 失敗
 
-CI の windows runner に SDK `10.0.28000.0` を手動でインストールする。起票者のローカルビルドでは、SDK `10.0.28000.0` をインストールすればビルドが通ることを確認済み
+CI の windows runner に SDK `10.0.28000.0` を明示的にインストールする。起票者のローカルビルドでは、SDK `10.0.28000.0` をインストールすればビルドが通ることを確認済み
 
 - インストール処理は `scripts/` 配下に新規作成する PowerShell スクリプト (例: `scripts/install_windows_sdk.ps1`) に実装し、`.github/workflows/build.yml` の build-windows ジョブの Build ステップ前から呼び出す (Linux の `scripts/apt_install_*.sh` を build.yml から呼ぶ構成と同様の方式)
-- インストール方法は winget と winsdksetup.exe のどちらにするか、実装時に検証して確定する
-  - winget: `winget install --id Microsoft.WindowsSDK.10.0.28000.0 --exact --accept-package-agreements --accept-source-agreements`。windows-2022 runner には winget がプリインストールされているが、対象バージョンのパッケージが winget に存在するか、およびインストール先が `setup_toolchain.py` が参照する `C:\Program Files (x86)\Windows Kits\10\` 配下になるかを確認する必要がある
+- インストール方法は winget を優先し、winget が利用できない、対象バージョンのパッケージが存在しない、またはインストール先が想定と異なる場合は winsdksetup.exe に切り替える。インストールの成否は `C:\Program Files (x86)\Windows Kits\10\Include\10.0.28000.0` の存在で判定する
+  - winget: `winget install --id Microsoft.WindowsSDK.10.0.28000.0 --exact --accept-package-agreements --accept-source-agreements`。runner 上で winget が利用可能か、対象バージョンのパッケージが winget に存在するか、およびインストール先が `setup_toolchain.py` が参照する `C:\Program Files (x86)\Windows Kits\10\` 配下になるかを確認する必要がある
   - winsdksetup.exe: Microsoft のダウンロードセンターから `winsdksetup.exe` を取得して、Windows Desktop 向け SDK をサイレントインストールする (`winsdksetup.exe /features OptionId.WindowsDesktopSoftwareDevelopmentKit /quiet /norestart /ceip off`)
 
 ## 不採用とした設計案
@@ -74,12 +76,13 @@ CI の windows runner に SDK `10.0.28000.0` を手動でインストールす�
 
 ### windows の toolchain 失敗
 
-- `build/vs_toolchain.py` / `build/toolchain/win/setup_toolchain.py` の `SDK_VERSION` を m152 の値である `10.0.26100.0` に戻すパッチを当てる案。runner に `10.0.26100.0` が存在することは未確認で、`10.0.28000.0` 前提のビルドが `10.0.26100.0` で通る保証がないため
+- `build/vs_toolchain.py` / `build/toolchain/win/setup_toolchain.py` の `SDK_VERSION` を m152 の値である `10.0.26100.0` に戻すパッチを当てる案。`10.0.28000.0` 前提の m153 のビルドが `10.0.26100.0` で通る保証がないため
 - windows runner のバージョン更新 (例: `windows-2022` を新しい runner に変更する) で対応する案。2026-08-19 時点の runner (`windows-2022`) には `10.0.28000.0` がインストールされていないことは確認済みだが、runner の更新が来て `10.0.28000.0` がインストールされる保証がないため
 
 ## 完了条件
 
 - CI の全ジョブ (15 ジョブ) が成功すること
+- `patches/android_jni_zero_generated_java.patch` の `generate_jni_registration` を `generate_final_jni` に置き換えていること
 - `scripts/` 配下に SDK インストール用の PowerShell スクリプトを新規作成し、`.github/workflows/build.yml` の build-windows ジョブから呼び出していること
 - `CHANGES.md` に修正内容を記録すること
 - `patches/README.md` に新規パッチ `add_license_sframe.patch` の解説を追記すること
