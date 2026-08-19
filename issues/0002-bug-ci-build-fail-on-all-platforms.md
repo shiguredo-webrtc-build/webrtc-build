@@ -25,11 +25,13 @@ Linux 8 ジョブ + macOS 3 ジョブが、パッケージング時に失敗す�
 
 原因は、`generate_licenses.py` の `LIB_TO_LICENSES_DICT` に `third_party/sframe` のライセンスエントリが登録されていないこと。ライセンスファイル (`third_party/sframe/src/LICENSE`) 自体は存在する。
 
+`third_party/sframe` の追加は upstream の chromium コミット 8ceb47263b18fed0a573187024faa1a5ed4dee6e (Include SFrame library to Chromium third party) によるものである。参照: https://source.chromium.org/chromium/chromium/src/+/8ceb47263b18fed0a573187024faa1a5ed4dee6e
+
 ### android の jni_zero API 廃止による gn gen 失敗 (2 ジョブ)
 
 android / android_sdk ジョブが `gn gen` で失敗する。エラーは `sdk/android/BUILD.gn` で `generate_jni_registration` が Unknown function。
 
-原因は、パッチ `patches/android_jni_zero_generated_java.patch` が `sdk/android/BUILD.gn` に `generate_jni_registration("libwebrtc_jni_registration")` を追加していること。このテンプレートは jni_zero の `jni_zero.gni` で定義されるが、WebRTC が参照する jni_zero の更新で `generate_final_jni` にリネームされた (chromium のリネームコミット 78a5ecddd742、2026-07-30)。
+原因は、パッチ `patches/android_jni_zero_generated_java.patch` が `sdk/android/BUILD.gn` に `generate_jni_registration("libwebrtc_jni_registration")` を追加していること。このテンプレートは jni_zero の `jni_zero.gni` で定義されるが、WebRTC が参照する jni_zero の更新で `generate_final_jni` にリネームされた (chromium のリネームコミット 78a5ecddd742853edfb420ab4a89bd6894ce4240、2026-07-30)。参照: https://source.chromium.org/chromium/chromium/src/+/78a5ecddd742853edfb420ab4a89bd6894ce4240
 
 ### windows の SDK バージョン不一致による toolchain 失敗 (2 ジョブ)
 
@@ -37,21 +39,48 @@ windows_x86_64 / windows_arm64 ジョブが `gn gen` で失敗する。エラー
 
 原因は、WebRTC が参照する chromium build の `SDK_VERSION` が `10.0.28000.0` に更新されたが、GitHub Actions の windows runner には `10.0.28000.0` がインストールされていないこと (CI ログで確認済み)。
 
+この `SDK_VERSION` の更新は upstream の chromium コミット 5e7ea61dd227b6521dcbc299be43fa92d37e42ae (Update Win toolchain to SDK 10.0.28000.2270) によるものである。参照: https://source.chromium.org/chromium/chromium/src/+/5e7ea61dd227b6521dcbc299be43fa92d37e42ae
+
 ## 設計方針
 
 3 つの問題それぞれを個別に対応する。
 
-- sframe ライセンスエラー: `patches/add_license_sframe.patch` を新規作成する (`patches/add_license_dav1d.patch` と同様の方式で、`generate_licenses.py` の `LIB_TO_LICENSES_DICT` に `'sframe': ['third_party/sframe/src/LICENSE']` を追加する)
-  - WebRTC 側のリビジョンで修正されるのを待つ案は不採用とする。m153.8010 はコミット固定 (WEBRTC_COMMIT=9ea5afc) のため、上流の修正を待ってもこのブランチには反映されない
-  - このパッチは全 15 ターゲットの `run.py` の `PATCHES` リストに登録する。`add_license_dav1d.patch` が全ターゲットに登録されているのと同様に、android / windows も `gn gen` で早期失敗して sframe エラーに未到達のため、それらの修正後にパッケージングへ到達した際の再発を防ぐ
-- android の gn gen 失敗: `patches/android_jni_zero_generated_java.patch` の `generate_jni_registration` を `generate_final_jni` に置き換える (引数は互換)
-- windows の toolchain 失敗: 以下の 2 案から実装時に検証して確定する
-  - 案 1: CI の windows runner に SDK `10.0.28000.0` をインストールする (`.github/workflows/build.yml` の build-windows ジョブにインストールステップを追加する)。起票者のローカルビルドでは、SDK `10.0.28000.0` をインストールすればビルドが通ることを確認済み
-  - 案 2: `build/vs_toolchain.py` / `build/toolchain/win/setup_toolchain.py` の `SDK_VERSION` を m152 の値である `10.0.26100.0` に戻すパッチを当てる。ただし runner に `10.0.26100.0` が存在することは未確認で、`10.0.28000.0` 前提のビルドが `10.0.26100.0` で通る保証はない
+### sframe ライセンスエラー
+
+`patches/add_license_sframe.patch` を新規作成する (`patches/add_license_dav1d.patch` と同様の方式で、`generate_licenses.py` の `LIB_TO_LICENSES_DICT` に `'sframe': ['third_party/sframe/src/LICENSE']` を追加する)
+
+- このパッチは全 15 ターゲットの `run.py` の `PATCHES` リストに登録する。`add_license_dav1d.patch` が全ターゲットに登録されているのと同様に、android / windows も `gn gen` で早期失敗して sframe エラーに未到達のため、それらの修正後にパッケージングへ到達した際の再発を防ぐ
+
+### android の gn gen 失敗
+
+`patches/android_jni_zero_generated_java.patch` の `generate_jni_registration` を `generate_final_jni` に置き換える (引数は互換)
+
+### windows の toolchain 失敗
+
+CI の windows runner に SDK `10.0.28000.0` を手動でインストールする。起票者のローカルビルドでは、SDK `10.0.28000.0` をインストールすればビルドが通ることを確認済み
+
+- インストール処理は `scripts/` 配下に新規作成する PowerShell スクリプト (例: `scripts/install_windows_sdk.ps1`) に実装し、`.github/workflows/build.yml` の build-windows ジョブの Build ステップ前から呼び出す (Linux の `scripts/apt_install_*.sh` を build.yml から呼ぶ構成と同様の方式)
+- インストール方法は winget と winsdksetup.exe のどちらにするか、実装時に検証して確定する
+  - winget: `winget install --id Microsoft.WindowsSDK.10.0.28000.0 --exact --accept-package-agreements --accept-source-agreements`。windows-2022 runner には winget がプリインストールされているが、対象バージョンのパッケージが winget に存在するか、およびインストール先が `setup_toolchain.py` が参照する `C:\Program Files (x86)\Windows Kits\10\` 配下になるかを確認する必要がある
+  - winsdksetup.exe: Microsoft のダウンロードセンターから `winsdksetup.exe` を取得して、Windows Desktop 向け SDK をサイレントインストールする (`winsdksetup.exe /features OptionId.WindowsDesktopSoftwareDevelopmentKit /quiet /norestart /ceip off`)
+
+## 不採用とした設計案
+
+検討したが実装しない方針。理由とともに記録しておく。
+
+### sframe ライセンスエラー
+
+- WebRTC 側のリビジョンで修正されるのを待つ案。m153.8010 はコミット固定 (WEBRTC_COMMIT=9ea5afc) のため、上流の修正を待ってもこのブランチには反映されない
+
+### windows の toolchain 失敗
+
+- `build/vs_toolchain.py` / `build/toolchain/win/setup_toolchain.py` の `SDK_VERSION` を m152 の値である `10.0.26100.0` に戻すパッチを当てる案。runner に `10.0.26100.0` が存在することは未確認で、`10.0.28000.0` 前提のビルドが `10.0.26100.0` で通る保証がないため
+- windows runner のバージョン更新 (例: `windows-2022` を新しい runner に変更する) で対応する案。2026-08-19 時点の runner (`windows-2022`) には `10.0.28000.0` がインストールされていないことは確認済みだが、runner の更新が来て `10.0.28000.0` がインストールされる保証がないため
 
 ## 完了条件
 
 - CI の全ジョブ (15 ジョブ) が成功すること
+- `scripts/` 配下に SDK インストール用の PowerShell スクリプトを新規作成し、`.github/workflows/build.yml` の build-windows ジョブから呼び出していること
 - `CHANGES.md` に修正内容を記録すること
 - `patches/README.md` に新規パッチ `add_license_sframe.patch` の解説を追記すること
 - `patches/README.md` の `android_jni_zero_generated_java.patch` の解説にある `generate_jni_registration` への言及を `generate_final_jni` に更新すること
