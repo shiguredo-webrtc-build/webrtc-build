@@ -1,16 +1,17 @@
 diff --git a/BUILD.gn b/BUILD.gn
-index 40ac574218..1342e932b9 100644
+index 442d5f212f..49ccdfcd21 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
-@@ -555,6 +555,11 @@ if (!build_with_chromium) {
-       "pc:libjingle_peerconnection",
+@@ -578,6 +578,12 @@ if (!build_with_chromium) {
        "pc:rtc_pc",
+       "pc:webrtc_sdp",
        "video",
 +      "//third_party/zlib",
 +      "rtc_base:log_sinks",
 +      "rtc_base:socket_adapters",
 +      "media:rtc_simulcast_encoder_adapter",
 +      "api:enable_media_with_defaults",
++      "api/video:adapted_video_track_source",
      ]
  
      if (rtc_include_builtin_audio_codecs) {

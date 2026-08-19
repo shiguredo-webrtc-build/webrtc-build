@@ -30,7 +30,7 @@ index 1a7fd8e3f6..03a7f586c3 100644
          ":base_native_additions_objc",
          ":base_objc",
          ":helpers_objc",
-@@ -769,6 +764,22 @@ if (is_ios || is_mac) {
+@@ -769,6 +764,23 @@ if (is_ios || is_mac) {
        }
      }
  
@@ -45,7 +45,8 @@ index 1a7fd8e3f6..03a7f586c3 100644
 +      deps = [
 +        ":base_objc",
 +        ":wrapped_native_codec_objc",
-+        "../media:rtc_media_base",
++        "../api/video_codecs:scalability_mode",
++        "../api/video_codecs:video_codecs_api",
 +        "../media:rtc_simulcast_encoder_adapter",
 +      ]
 +    }

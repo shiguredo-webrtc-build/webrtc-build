@@ -2,17 +2,17 @@ diff --git a/BUILD.gn b/BUILD.gn
 index 3b1c52b6ad..87e4c1f479 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
-@@ -564,8 +564,13 @@ if (!build_with_chromium) {
-      "pc:peer_connection_factory",
-      "pc:rtc_pc",
-      "pc:webrtc_sdp",
-      "stats",
-      "video",
+@@ -577,7 +577,13 @@ if (!build_with_chromium) {
+       "pc:peer_connection_factory",
+       "pc:rtc_pc",
+       "pc:webrtc_sdp",
+       "video",
 +      "modules/audio_device:audio_device_module_from_input_and_output",
 +      "//third_party/zlib",
 +      "rtc_base:log_sinks",
 +      "media:rtc_simulcast_encoder_adapter",
 +      "api:enable_media_with_defaults",
++      "api/video:adapted_video_track_source",
      ]
  
      if (rtc_include_builtin_audio_codecs) {

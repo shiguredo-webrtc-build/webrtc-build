@@ -29,6 +29,19 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-07-31 [UPDATE] m152 ブランチのビルドエラーに対する対応
+  - ios_simulcast.patch を m152 の変更に対応する
+    - m152 で `rtc_media_base` ターゲットが削除されたため、ios_simulcast.patch で使用する deps を定義する
+    - 必要な deps は、`rtc_media_base` の deps に含まれていた以下のとおり
+      - `../api/video_codecs:scalability_mode`: `api/video_codecs/scalability_mode.h`
+      - `../api/video_codecs:video_codecs_api`: `api/video_codecs/video_codec.h` と `api/video_codecs/sdp_video_format.h`
+    - 参考: https://source.chromium.org/chromium/_/webrtc/src/+/91dbc17ae49f9fbf2071b5d60bf1b823973c4a4f
+  - windows_add_deps.patch のパッチのずれを修正する
+    - m152 で `stats` deps が削除されたため
+    - 参考: https://source.chromium.org/chromium/_/webrtc/src/+/cd7885ddf46e657672db275706a54b5da4c9db6b
+  - add_deps.patch のパッチのずれを修正する
+    - m152 で `pc:libjingle_peerconnection` deps が削除されたため
+  - @torikizi
 - 2026-07-17 [RELEASE] m150.7871.3.1
   - @t-miya
 - 2026-07-16 [UPDATE] ARM 向け sysroot 生成を独自実装へ移行する
