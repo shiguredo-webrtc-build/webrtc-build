@@ -1,7 +1,7 @@
 # add_license_dav1d.patch を削除する
 
 - Created: 2026-08-19
-- Completed: {YYYY-MM-DD}
+- Completed: 2026-08-20
 - Branch: feature/remove-add-license-dav1d-patch
 - Polished: {YYYY-MM-DD}
 
