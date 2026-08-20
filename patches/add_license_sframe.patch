@@ -1,12 +1,10 @@
 diff --git a/tools_webrtc/libs/generate_licenses.py b/tools_webrtc/libs/generate_licenses.py
-index 35e32c23a0..b67eb4a5f9 100755
+index ac65a97b48c5..86961baa496a 100755
 --- a/tools_webrtc/libs/generate_licenses.py
 +++ b/tools_webrtc/libs/generate_licenses.py
-@@ -89,7 +89,8 @@ LIB_TO_LICENSES_DICT = {
+@@ -89,6 +89,7 @@ LIB_TO_LICENSES_DICT = {
      # Compile time dependencies, no license needed:
      'ow2_asm': [],
      'jdk': [],
- 
-     'dav1d': ['third_party/dav1d/LICENSE'],
 +    'sframe': ['third_party/sframe/src/LICENSE'],
  }
