@@ -29,7 +29,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
-- 2026-08-20 [UPDATE] 冗長な add_license_dav1d.patch を削除する
+- 2026-08-20 [UPDATE] 不要となっている add_license_dav1d.patch を削除する
   - dav1d のライセンスエントリは upstream に既に存在するため、削除する
   - 重複して適用してもビルドや動作には影響はない
   - @torikizi
