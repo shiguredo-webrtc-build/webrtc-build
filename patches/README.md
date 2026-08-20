@@ -332,7 +332,7 @@ Android SDK 向けに AudioTrackSink を提供し、AudioTrack ごとに PCM デ
 
 m151 で JNI コード生成が jni_zero に移行したことに伴い、`dist_jar("libwebrtc")` に FooJni.class の生成ターゲット（`generated_*_jni_java`）と jni_zero registration Java クラスを含めるためのパッチ。
 
-`dist_jar` のインライン deps を変数 `_libwebrtc_java_deps` に切り出すことで、`generate_jni_registration` ターゲットと deps を共有している。
+`dist_jar` のインライン deps を変数 `_libwebrtc_java_deps` に切り出すことで、`generate_final_jni` ターゲットと deps を共有している。
 
 併せて `third_party/jni_zero/BUILD.gn` の `generate_jni` ターゲットの visibility に `//sdk/android:*` を追加する。
 
