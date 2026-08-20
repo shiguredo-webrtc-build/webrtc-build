@@ -30,10 +30,6 @@ v4l2 で 4K に対応するパッチ。
 
 zlib, log_sinks, サイマルキャストのエンコーダーアダプターを追加するパッチ。
 
-## add_license_dav1d.patch
-
-AV1 デコーダー (dav1d) のライセンスを追加するパッチ。
-
 ## add_license_sframe.patch
 
 SFrame のライセンスを追加するパッチ。

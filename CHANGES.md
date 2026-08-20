@@ -38,6 +38,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - install_windows_sdk.ps1 を追加し、build.yml の build-windows ジョブから呼び出す
     - m153 で Windows SDK 10.0.28000.0 が必要になるが、runner にインストールされていないため
     - インストーラーは Microsoft 公式のダウンロードリンク (fwlink) から取得する
+- 2026-08-20 [UPDATE] 不要となっている add_license_dav1d.patch を削除する
+  - dav1d のライセンスエントリは upstream に既に存在するため、削除する
+  - 重複して適用してもビルドや動作には影響はない
   - @torikizi
 - 2026-07-31 [UPDATE] m152 ブランチのビルドエラーに対する対応
   - ios_simulcast.patch を m152 の変更に対応する
