@@ -32,4 +32,8 @@
 
 ## 解決方法
 
-未着手
+- `git rm` で `patches/add_license_dav1d.patch` を削除した。
+- `run.py` の `PATCHES` 辞書の全 15 ターゲットのリストから `add_license_dav1d.patch` を削除した。
+- `patches/README.md` から `add_license_dav1d.patch` の解説節を削除した。
+
+dav1d のライセンスエントリは upstream のコミット d44badf409 に既に存在するため、パッチ削除後もライセンス生成で dav1d が欠落しないことは設計方針の通り維持される。
