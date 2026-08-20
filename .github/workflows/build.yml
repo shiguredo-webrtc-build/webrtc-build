@@ -58,6 +58,8 @@ jobs:
         run: |
           git config --global user.name  "${{ github.actor }}"
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+      - name: Install Windows SDK
+        run: scripts/install_windows_sdk.ps1
       - name: Build ${{ matrix.platform.name }}
         run: |
           # リポジトリの下に置きたいが、GitHub Actions の D:\ の容量が少なくてビルド出来ない問題があるので

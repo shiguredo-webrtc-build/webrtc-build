@@ -29,6 +29,16 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-08-20 [UPDATE] m153 ブランチのビルドエラーに対する対応
+  - add_license_sframe.patch を追加する
+    - m153 で sframe がビルド対象に加わり、generate_licenses.py のライセンスエントリが無くパッケージングに失敗するため
+    - 全ターゲットの PATCHES リストに登録する
+  - android_jni_zero_generated_java.patch の generate_jni_registration を generate_final_jni に置き換える
+    - jni_zero のテンプレート名が変更されたため
+  - install_windows_sdk.ps1 を追加し、build.yml の build-windows ジョブから呼び出す
+    - m153 で Windows SDK 10.0.28000.0 が必要になるが、runner にインストールされていないため
+    - インストーラーは Microsoft 公式のダウンロードリンク (fwlink) から取得する
+  - @torikizi
 - 2026-07-31 [UPDATE] m152 ブランチのビルドエラーに対する対応
   - ios_simulcast.patch を m152 の変更に対応する
     - m152 で `rtc_media_base` ターゲットが削除されたため、ios_simulcast.patch で使用する deps を定義する
