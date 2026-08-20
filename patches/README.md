@@ -30,10 +30,6 @@ v4l2 で 4K に対応するパッチ。
 
 zlib, log_sinks, サイマルキャストのエンコーダーアダプターを追加するパッチ。
 
-## add_license_dav1d.patch
-
-AV1 デコーダー (dav1d) のライセンスを追加するパッチ。
-
 ## android_fixsegv.patch
 
 Android にて映像フレームの処理時にクラッシュするいくつかの現象を修正するパッチ。
