@@ -88,6 +88,31 @@ CI の windows runner に SDK `10.0.28000.0` を明示的にインストール�
 - `patches/README.md` に新規パッチ `add_license_sframe.patch` の解説を追記すること
 - `patches/README.md` の `android_jni_zero_generated_java.patch` の解説にある `generate_jni_registration` への言及を `generate_final_jni` に更新すること
 
+## 検証
+
+- CI の全 15 ジョブが成功すること
+- 本リポジトリのビルド成果物を sora-cpp-sdk が参照してビルドし、動作確認ができること (期待値)
+
 ## 解決方法
 
-未着手
+3 つの問題それぞれに対応した。
+
+### sframe ライセンスエラー
+
+- `patches/add_license_sframe.patch` を新規作成し、`tools_webrtc/libs/generate_licenses.py` の `LIB_TO_LICENSES_DICT` に `'sframe': ['third_party/sframe/src/LICENSE']` を追加した
+- `run.py` の全 15 ターゲットの `PATCHES` リストに `add_license_sframe.patch` を登録した
+- `patches/README.md` に `add_license_sframe.patch` の解説を追記した
+- CI で `corrupt patch` エラーが発生したため、パッチの `index` 行とハンクヘッダーを修正した
+
+### android の gn gen 失敗
+
+- `patches/android_jni_zero_generated_java.patch` の `generate_jni_registration("libwebrtc_jni_registration")` を `generate_final_jni("libwebrtc_jni_registration")` に置き換えた
+- `patches/README.md` の `android_jni_zero_generated_java.patch` の解説にある `generate_jni_registration` への言及を `generate_final_jni` に更新した
+
+### windows の toolchain 失敗
+
+- `scripts/install_windows_sdk.ps1` を新規作成した
+  - `winsdksetup.exe` (Microsoft 公式の fwlink から取得) で Windows SDK `10.0.28000.0` をサイレントインストールする
+  - インストールの成否は `include` / `lib` 配下のパス存在で判定する
+- `.github/workflows/build.yml` の build-windows ジョブに `Install Windows SDK` ステップを追加し、`scripts/install_windows_sdk.ps1` を呼び出すようにした
+- `CHANGES.md` に修正内容を記録した
