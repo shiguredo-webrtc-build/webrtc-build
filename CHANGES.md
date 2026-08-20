@@ -29,6 +29,10 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-08-20 [UPDATE] 不要となっている add_license_dav1d.patch を削除する
+  - dav1d のライセンスエントリは upstream に既に存在するため、削除する
+  - 重複して適用してもビルドや動作には影響はない
+  - @torikizi
 - 2026-07-31 [UPDATE] m152 ブランチのビルドエラーに対する対応
   - ios_simulcast.patch を m152 の変更に対応する
     - m152 で `rtc_media_base` ターゲットが削除されたため、ios_simulcast.patch で使用する deps を定義する
