@@ -1,7 +1,7 @@
 # CI ビルドが m153 の更新で全プラットフォーム失敗する
 
 - Created: 2026-08-19
-- Completed: {YYYY-MM-DD}
+- Completed: 2026-08-21
 - Branch: feature/fix-m153.8010
 - Polished: 2026-08-19
 
