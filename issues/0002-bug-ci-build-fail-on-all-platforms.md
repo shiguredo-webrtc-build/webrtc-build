@@ -93,6 +93,41 @@ CI の windows runner に SDK `10.0.28000.0` を明示的にインストール�
 - CI の全 15 ジョブが成功すること
 - 本リポジトリのビルド成果物を sora-cpp-sdk が参照してビルドし、動作確認ができること (期待値)
 
+## m153 移行時の SDK 影響分析
+
+CI 修正完了後、ビルド成果物を各 SDK へ持ち込む際に必要な対応を把握するため、m152 から m153 の libwebrtc 差分から影響分析を行った。
+
+調査方法は、m152 の `WEBRTC_COMMIT=6f37672d` と m153 の `WEBRTC_COMMIT=9ea5afc` の間の差分を取得し、各 SDK が直接 `#include` する webrtc ヘッダと突き合わせる方法である。差分は 293 ファイル (+8272 / -5906) で、大半は libwebrtc 内部実装の変更 (mac オーディオのリングバッファリファクタ、ビデオトラック内部実装、ジッタバッファとデコードタイミングの field trial 整理、sframe 追加など) である。
+
+### sora-cpp-sdk
+
+sora-cpp-sdk が直接 include する webrtc ヘッダは約 140 本で、m152→m153 で変更されたのは以下の 8 本のみ。いずれも破壊的変更ではなく、コード修正は不要な見込みである。
+
+- `api/rtp_parameters.h`: deprecated な `RtpExtension` / `RtpHeaderExtensionCapability` の `int` ID オーバーロードを削除。sora-cpp-sdk は `RtpEncodingParameters` / `RtpParameters` のみ使用しており影響なし
+- `api/video/video_bitrate_allocator.h`: `VideoBitrateAllocationObserver` を削除。sora-cpp-sdk は `VideoBitrateAllocation` のみ使用しており影響なし
+- `api/video_codecs/sdp_video_format.h`: move コンストラクタを追加 (追加のみ)
+- `api/video_codecs/video_codec.h`: `PayloadStringToCodecType` の引数を `const std::string&` から `absl::string_view` に変更。暗黙変換により source compatible で、sora-cpp-sdk の使用箇所も影響なし
+- `common_video/libyuv/include/webrtc_libyuv.h`: `ConvertToI420` を追加 (追加のみ。sora-cpp-sdk は libyuv 側の `ConvertToI420` を使用)
+- `media/base/codec.h`: コンストラクタの引数を `absl::string_view` に変更し move コンストラクタを追加 (追加/互換のみ)
+- `modules/video_capture/video_capture.h`: `VideoCaptureModule` に `SetStride` / `GetStride` を default 実装付きで追加 (追加のみ)
+- `rtc_base/network.h`: `NetworkManager::Stats` と `MergeNetworkList` の Stats 付きオーバーロードを削除。sora-cpp-sdk は未使用のため影響なし
+
+### sora-ios-sdk
+
+`WebRTC.framework` の ObjC API (`sdk/objc/`) は m152→m153 で `OWNERS` メタデータのみの変更で、API 変更はゼロ。
+
+### sora-android-sdk
+
+`org.webrtc.*` の Java API (`sdk/android/api/`) は変更ゼロ。sdk/ 配下の変更は Android ネイティブ実装の `sdk/android/native_api/stacktrace/stacktrace.cc` のみで、Kotlin 層への影響はなし。
+
+### sora-python-sdk
+
+直接 include する webrtc ヘッダで変更されたのは `common_video/libyuv/include/webrtc_libyuv.h` の 1 本のみで、`ConvertToI420` の追加のみのため影響なし。
+
+### 結論
+
+4 つの SDK すべてでコンパイル/API 面のコード修正は不要な見込み。確認すべきは実行時の挙動 (mac オーディオのリングバッファリファクタ、ジッタバッファとデコードタイミングの field trial 整理、sframe 追加による動作影響など) のみとなる。
+
 ## 解決方法
 
 CI の全 15 ジョブが成功した:
