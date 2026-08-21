@@ -1,7 +1,7 @@
 # CI ビルドが m153 の更新で全プラットフォーム失敗する
 
 - Created: 2026-08-19
-- Completed: 2026-08-21
+- Completed: {YYYY-MM-DD}
 - Branch: feature/fix-m153.8010
 - Polished: 2026-08-19
 
@@ -94,6 +94,9 @@ CI の windows runner に SDK `10.0.28000.0` を明示的にインストール�
 - 本リポジトリのビルド成果物を sora-cpp-sdk が参照してビルドし、動作確認ができること (期待値)
 
 ## 解決方法
+
+CI の全 15 ジョブが成功した:
+https://github.com/shiguredo-webrtc-build/webrtc-build/actions/runs/32393692712
 
 3 つの問題それぞれに対応した。
 
