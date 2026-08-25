@@ -1,4 +1,21 @@
 # Windows SDK 10.0.28000.0 をインストールするスクリプト。
+#
+# このスクリプトを追加した背景
+#
+# m153 で chromium build の SDK_VERSION が 10.0.28000.0 に更新されたが、
+# GitHub Actions の windows runner (windows-2022) には 10.0.28000.0 が
+# インストールされておらず、setup_toolchain.py が include 環境変数内の
+# 10.0.28000.0 のパスが存在しないエラーを出して gn gen が失敗した。
+# そのため build.yml の build-windows ジョブ (Build ステップの前) から
+# 呼び出して SDK を明示的にインストールする。
+#
+# このスクリプトを外す条件
+#
+# GitHub Actions の windows runner (例: windows-2022 の更新や新しい runner
+# イメージ) に Windows SDK 10.0.28000.0 が標準でインストールされるように
+# なった場合は、build.yml の Install Windows SDK ステップごと削除してよい。
+# なお SDK_VERSION が再び別のバージョンへ更新された場合は、このスクリプトの
+# $sdkVersion (と必要に応じて各所のバージョン表記) を新しい値に更新すること。
 
 [CmdletBinding()]
 param(
