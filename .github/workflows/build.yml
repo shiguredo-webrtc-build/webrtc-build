@@ -58,6 +58,27 @@ jobs:
         run: |
           git config --global user.name  "${{ github.actor }}"
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+      # Windows SDK 10.0.28000.0 をインストールする
+      #
+      # このステップを追加した背景
+      #
+      # m153 で chromium build の SDK_VERSION が 10.0.28000.0 に更新されたが、
+      # GitHub Actions の windows runner (windows-2022) には 10.0.28000.0 が
+      # インストールされておらず、setup_toolchain.py が include 環境変数内の
+      # 10.0.28000.0 のパスが存在しないエラーを出して gn gen が失敗した。
+      # そのため scripts/install_windows_sdk.ps1 を新規作成して、Build ステップの
+      # 前に SDK を明示的にインストールする (Linux の scripts/apt_install_*.sh を
+      # build.yml から呼ぶ構成と同様の方式)。
+      #
+      # このステップを外す条件
+      #
+      # GitHub Actions の windows runner (例: windows-2022 の更新や新しい runner
+      # イメージ) に Windows SDK 10.0.28000.0 が標準でインストールされるように
+      # なった場合は、このステップごと削除してよい。
+      # なお SDK_VERSION が再び別のバージョンへ更新された場合は、
+      # install_windows_sdk.ps1 側の $sdkVersion と合わせて見直すこと。
+      - name: Install Windows SDK
+        run: scripts/install_windows_sdk.ps1
       - name: Build ${{ matrix.platform.name }}
         run: |
           # リポジトリの下に置きたいが、GitHub Actions の D:\ の容量が少なくてビルド出来ない問題があるので
