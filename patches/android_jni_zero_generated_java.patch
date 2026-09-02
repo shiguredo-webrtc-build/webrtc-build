@@ -55,7 +55,7 @@ diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
 +    ":generated_video_jni_java",
 +  ]
  
-+  generate_jni_registration("libwebrtc_jni_registration") {
++  generate_final_jni("libwebrtc_jni_registration") {
 +    add_stubs_for_missing_jni = true
 +    java_targets = _libwebrtc_java_deps
 +    native_deps = [ ":libjingle_peerconnection_so" ]
