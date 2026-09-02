@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-09-02 [RELEASE] m154.8037.0.0
+  - @voluntas
 - 2026-09-02 [UPDATE] m154 ブランチのパッチのずれを修正する
   - unsafe_buffers_optout_list.patch の hunk 行番号を m154 upstream の unsafe_buffers_paths.txt に合わせる
   - @voluntas
