@@ -30,6 +30,12 @@ v4l2 で 4K に対応するパッチ。
 
 zlib, log_sinks, サイマルキャストのエンコーダーアダプターを追加するパッチ。
 
+## add_license_sframe.patch
+
+SFrame のライセンスを追加するパッチ。
+
+m153 で sframe がビルド対象に加わり、パッケージング時に `generate_licenses.py` が「Missing licenses for third_party targets: sframe」というエラーを出すようになったため、ライセンスエントリを追加する。
+
 ## android_fixsegv.patch
 
 Android にて映像フレームの処理時にクラッシュするいくつかの現象を修正するパッチ。
@@ -322,7 +328,7 @@ Android SDK 向けに AudioTrackSink を提供し、AudioTrack ごとに PCM デ
 
 m151 で JNI コード生成が jni_zero に移行したことに伴い、`dist_jar("libwebrtc")` に FooJni.class の生成ターゲット（`generated_*_jni_java`）と jni_zero registration Java クラスを含めるためのパッチ。
 
-`dist_jar` のインライン deps を変数 `_libwebrtc_java_deps` に切り出すことで、`generate_jni_registration` ターゲットと deps を共有している。
+`dist_jar` のインライン deps を変数 `_libwebrtc_java_deps` に切り出すことで、`generate_final_jni` ターゲットと deps を共有している。
 
 併せて `third_party/jni_zero/BUILD.gn` の `generate_jni` ターゲットの visibility に `//sdk/android:*` を追加する。
 
@@ -412,3 +418,14 @@ libwebrtc 本体の `PeerConnectionInterface::IceServer::tls_client_identity` �
 `tls_client_identity` を生成する。
 
 `IceServer.toString()` には、秘密鍵や証明書 PEM は出力しない。
+
+## disable_pacer_keyframe_flush.patch
+
+キーフレーム到着時に pacer が同一 SSRC のキューを flush する処理を削除し、強制的に無効化するパッチ。
+
+m152 以降の libwebrtc では、キーフレームの先頭パケット enqueue 時にメディア SSRC（および RTX SSRC）の保留パケットをすべて削除する。
+デルタフレームを一部送信した状態でキーフレームが来ると、H.265 / H.264 の FU 終端 (`E=1`) や Marker 付き終端パケットが捨てられ、送信途中の RTP フレームが切断される。
+
+このパッチを適用すると flush は常に無効になる。
+
+暫定回避であり、送信途中フレームを保護する本修正とは別である。
