@@ -30,10 +30,6 @@ v4l2 で 4K に対応するパッチ。
 
 zlib, log_sinks, サイマルキャストのエンコーダーアダプターを追加するパッチ。
 
-## add_license_dav1d.patch
-
-AV1 デコーダー (dav1d) のライセンスを追加するパッチ。
-
 ## android_fixsegv.patch
 
 Android にて映像フレームの処理時にクラッシュするいくつかの現象を修正するパッチ。
@@ -416,3 +412,14 @@ libwebrtc 本体の `PeerConnectionInterface::IceServer::tls_client_identity` �
 `tls_client_identity` を生成する。
 
 `IceServer.toString()` には、秘密鍵や証明書 PEM は出力しない。
+
+## disable_pacer_keyframe_flush.patch
+
+キーフレーム到着時に pacer が同一 SSRC のキューを flush する処理を削除し、強制的に無効化するパッチ。
+
+m152 以降の libwebrtc では、キーフレームの先頭パケット enqueue 時にメディア SSRC（および RTX SSRC）の保留パケットをすべて削除する。
+デルタフレームを一部送信した状態でキーフレームが来ると、H.265 / H.264 の FU 終端 (`E=1`) や Marker 付き終端パケットが捨てられ、送信途中の RTP フレームが切断される。
+
+このパッチを適用すると flush は常に無効になる。
+
+暫定回避であり、送信途中フレームを保護する本修正とは別である。

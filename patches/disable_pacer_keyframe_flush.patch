@@ -1,0 +1,59 @@
+diff --git a/modules/pacing/pacing_controller.cc b/modules/pacing/pacing_controller.cc
+index 11c0af241e..5e669162a0 100644
+--- a/modules/pacing/pacing_controller.cc
++++ b/modules/pacing/pacing_controller.cc
+@@ -199,20 +199,10 @@ void PacingController::EnqueuePacket(std::unique_ptr<RtpPacketToSend> packet) {
+       << "SetPacingRate must be called before InsertPacket.";
+   RTC_CHECK(packet->packet_type());
+ 
+-  if (packet->packet_type() == RtpPacketMediaType::kVideo &&
+-      packet->is_key_frame() && packet->is_first_packet_of_frame() &&
+-      !packet_queue_.HasKeyframePackets(packet->Ssrc())) {
+-    // First packet of a keyframe (and no keyframe packets currently in the
+-    // queue). Flush any pending packets currently in the queue for that stream
+-    // in order to get the new keyframe out as quickly as possible.
+-    packet_queue_.RemovePacketsForSsrc(packet->Ssrc());
+-    std::optional<uint32_t> rtx_ssrc =
+-        packet_sender_->GetRtxSsrcForMedia(packet->Ssrc());
+-    if (rtx_ssrc) {
+-      packet_queue_.RemovePacketsForSsrc(*rtx_ssrc);
+-    }
+-  }
+-
++  // Keyframe queue flushing is disabled. Flushing pending packets on a new
++  // keyframe can truncate an in-flight RTP frame (e.g. H.265/H.264 FU without
++  // E=1) because sequence numbers are assigned only after the pacer selects a
++  // packet for transmission.
+   prober_.OnIncomingPacket(DataSize::Bytes(packet->size()));
+ 
+   const Timestamp now = CurrentTime();
+diff --git a/modules/pacing/pacing_controller_unittest.cc b/modules/pacing/pacing_controller_unittest.cc
+index 416ccf13b5..189c3dfa4b 100644
+--- a/modules/pacing/pacing_controller_unittest.cc
++++ b/modules/pacing/pacing_controller_unittest.cc
+@@ -2478,7 +2478,7 @@ TEST_F(PacingControllerTest, DoesNotPadIfProcessThreadIsBorked) {
+   EXPECT_LE(callback.padding_sent(), kMaxPadding.bytes<size_t>());
+ }
+ 
+-TEST_F(PacingControllerTest, FlushesPacketsOnKeyFrames) {
++TEST_F(PacingControllerTest, DoesNotFlushPacketsOnKeyFrames) {
+   const uint32_t kSsrc = 12345;
+   const uint32_t kRtxSsrc = 12346;
+ 
+@@ -2506,14 +2506,8 @@ TEST_F(PacingControllerTest, FlushesPacketsOnKeyFrames) {
+   packet->set_first_packet_of_frame(true);
+   pacer->EnqueuePacket(std::move(packet));
+ 
+-  // Only they new keyframe packet should be left in the queue.
+-  EXPECT_EQ(pacer->QueueSizePackets(), 1u);
+-
+-  EXPECT_CALL(callback_, SendPacket(kSsrc, /*sequence_number=*/2,
+-                                    /*timestamp=*/2, /*is_retrnamission=*/false,
+-                                    /*is_padding=*/false));
+-  AdvanceTimeUntil(pacer->NextSendTime());
+-  pacer->ProcessPackets();
++  // Keyframe flushing is disabled, so previously queued packets remain.
++  EXPECT_EQ(pacer->QueueSizePackets(), 3u);
+ }
+ 
+ TEST_F(PacingControllerTest, CanControlQueueSizeUsingTtl) {
