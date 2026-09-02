@@ -14,6 +14,7 @@
 - コメントはしっかり入れること
 - テストはコメントを重視すること
 - モックやスタブは絶対に利用しないこと
+- grep ではなく ripgrep (rg) を使うこと
 
 ## リポジトリ固有の設定について
 
@@ -30,6 +31,10 @@
 ## issues について
 
 - issues を作成・管理するときは `shiguredo-issues` スキルを参照すること
+
+## GitHub Actions について
+
+- GitHub Actions を作成・変更・レビューするときは `shiguredo-github-actions` スキルを参照すること
 
 ## 言語について
 
