@@ -29,10 +29,22 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-09-02 [RELEASE] m153.8010.0.0
+  - @voluntas
 - 2026-09-02 [RELEASE] m152.7977.0.2
   - @voluntas
 - 2026-09-02 [RELEASE] m152.7977.0.1
   - @voluntas
+- 2026-09-02 [UPDATE] m153 ブランチのビルドエラーに対する対応
+  - add_license_sframe.patch を追加する
+    - m153 で sframe がビルド対象に加わり、generate_licenses.py のライセンスエントリが無くパッケージングに失敗するため
+    - 全ターゲットの PATCHES リストに登録する
+  - android_jni_zero_generated_java.patch の generate_jni_registration を generate_final_jni に置き換える
+    - jni_zero のテンプレート名が変更されたため
+  - install_windows_sdk.ps1 を追加し、build.yml の build-windows ジョブから呼び出す
+    - m153 で Windows SDK 10.0.28000.0 が必要になるが、runner にインストールされていないため
+    - インストーラーは Microsoft 公式のダウンロードリンク (fwlink) から取得する
+  - @torikizi
 - 2026-09-01 [ADD] disable_pacer_keyframe_flush.patch を追加する
   - キーフレーム到着時の pacer キュー flush を削除して強制無効化する
   - 送信途中の RTP フレームが切断される問題を回避する
