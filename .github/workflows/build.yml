@@ -2,7 +2,12 @@ name: build
 on:
   push:
     paths-ignore:
-      - "**.md"
+      # ルート直下とサブディレクトリの Markdown を分ける
+      #
+      # GitHub Actions の glob では `**.md` はルートの `CHANGES.md` 等に
+      # マッチしない。`*.md` と `**/*.md` の両方が必要。
+      - "*.md"
+      - "**/*.md"
       - "LICENSE"
       - "NOTICE"
       - ".gitignore"
