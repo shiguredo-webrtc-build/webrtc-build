@@ -1,7 +1,7 @@
 # Android 向け Java 成果物を JNI Zero の最終 registration に追従させる
 
 - Created: 2026-09-02
-- Completed: {YYYY-MM-DD}
+- Completed: 2026-09-02
 - Branch: feature/fix-android-jni-zero-final-registration
 - Polished: {YYYY-MM-DD}
 
@@ -44,3 +44,12 @@ R8 ルールに `-dontwarn org.jni_zero.**` を導入し、Missing class 警告�
 ### 残作業
 
 `generate_jni_registration` は jni_zero の更新で `generate_final_jni` にリネームされた (chromium コミット 78a5ecddd742853edfb420ab4a89bd6894ce4240)。この API 変更への追従は `issues/0002-bug-ci-build-fail-on-all-platforms.md` で扱う。
+
+## 解決方法
+
+本 issue は対応不要のため closed にする。
+
+- PR #159 の提案内容は、master の `patches/android_jni_zero_generated_java.patch` によって既にカバーされている
+- PR #159 は master へのマージ対象ではなく、`feature/m150.7871` 向けの提案として陳腐化したため閉じる
+- `generate_jni_registration` → `generate_final_jni` への API 追従は issues/0002 に委譲する
+- R8 ワークアラウンド (`-dontwarn org.jni_zero.**`) は採用しない。パッチで生成クラスを jar / AAR に含める方針を維持する
