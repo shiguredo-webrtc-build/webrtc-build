@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-09-02 [RELEASE] m152.7977.0.2
+  - @voluntas
 - 2026-09-02 [RELEASE] m152.7977.0.1
   - @voluntas
 - 2026-09-01 [ADD] disable_pacer_keyframe_flush.patch を追加する
