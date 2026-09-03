@@ -267,6 +267,7 @@ PATCHES = {
         "revert_siso.patch",
         "ios_audio_track_sink.patch",
         "ios_audio_pause_resume.patch",
+        "ios_stereo_audio_output.patch",
         "unsafe_buffers_optout_list.patch",
         "ios_ssl_certificate_verifier_chain.patch",
         "turn_tls_client_certificate.patch",

@@ -1,0 +1,1128 @@
+diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
+index c0fb5c7..1520b22 100644
+--- a/sdk/BUILD.gn
++++ b/sdk/BUILD.gn
+@@ -312,8 +312,11 @@ if (is_ios || is_mac) {
+           "objc/native/src/audio/audio_device_ios.mm",
+           "objc/native/src/audio/audio_device_module_ios.h",
+           "objc/native/src/audio/audio_device_module_ios.mm",
++          "objc/native/src/audio/audio_unit_interface.h",
+           "objc/native/src/audio/helpers.h",
+           "objc/native/src/audio/helpers.mm",
++          "objc/native/src/audio/remote_io_audio_unit.h",
++          "objc/native/src/audio/remote_io_audio_unit.mm",
+           "objc/native/src/audio/voice_processing_audio_unit.h",
+           "objc/native/src/audio/voice_processing_audio_unit.mm",
+         ]
+diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.h b/sdk/objc/components/audio/RTCAudioDeviceModule.h
+index 858ceb9..8c59e3f 100644
+--- a/sdk/objc/components/audio/RTCAudioDeviceModule.h
++++ b/sdk/objc/components/audio/RTCAudioDeviceModule.h
+@@ -16,4 +16,21 @@ RTC_OBJC_EXPORT
+ // 録音を再開する。内部で AudioDeviceModuleIOS::ResumeRecording() を呼ぶ
+ - (NSInteger)resumeRecording;
+ 
++// iOS 向けステレオ音声出力 (playout) を有効化する。
++// 呼び出し順序: 本メソッドは RTCPeerConnectionFactory に本 ADM を渡す前、
++// かつ ADM 側の InitPlayout の前に呼ぶ必要がある。内部で ADM を Init() 済み
++// でない場合は先に Init() する。
++// スレッド: 本 ADM を生成したスレッドから呼ぶこと。ADM のスレッド制約に従う。
++// 副作用: 有効化により playout は VoiceProcessingIO ではなく RemoteIO 経路に
++// 切り替わり、iOS の AEC / AGC は使えなくなる。AVAudioSession の mode は
++// ステレオ有効時のみ AVAudioSessionModeDefault に一時差し替えされる。
++// 戻り値: 0 が成功、負値が失敗。先行して呼ばれる Init が失敗した場合は Init の
++// 戻り値、それ以外は ADM の SetStereoPlayout 戻り値をそのまま返す。
++- (NSInteger)setStereoPlayoutEnabled:(BOOL)enabled;
++
++// 現在のステレオ playout 有効フラグを取得する。
++// スレッド: 本 ADM を生成したスレッドから呼ぶこと。
++// ADM が未初期化 (Init 未実行) の場合は NO を返す。
++- (BOOL)stereoPlayoutEnabled;
++
+ @end
+diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.mm b/sdk/objc/components/audio/RTCAudioDeviceModule.mm
+index 30fbcfd..87d3c24 100644
+--- a/sdk/objc/components/audio/RTCAudioDeviceModule.mm
++++ b/sdk/objc/components/audio/RTCAudioDeviceModule.mm
+@@ -41,4 +41,28 @@ - (NSInteger)resumeRecording {
+   return ptr->ResumeRecording();
+ }
+ 
++- (NSInteger)setStereoPlayoutEnabled:(BOOL)enabled {
++  // SetStereoPlayout は ADM 初期化済みが前提のため、未初期化なら
++  // 冪等な Init() で先に初期化する。
++  if (!_adm->Initialized()) {
++    int32_t init_result = _adm->Init();
++    if (init_result != 0) {
++      return init_result;
++    }
++  }
++  return _adm->SetStereoPlayout(enabled);
++}
++
++- (BOOL)stereoPlayoutEnabled {
++  // ADM 未初期化のときは状態を取得できないため NO を返す。
++  if (!_adm->Initialized()) {
++    return NO;
++  }
++  bool enabled = false;
++  if (_adm->StereoPlayout(&enabled) != 0) {
++    return NO;
++  }
++  return enabled ? YES : NO;
++}
++
+ @end
+diff --git a/sdk/objc/native/src/audio/audio_device_ios.h b/sdk/objc/native/src/audio/audio_device_ios.h
+index a3355a0..dbe07dd 100644
+--- a/sdk/objc/native/src/audio/audio_device_ios.h
++++ b/sdk/objc/native/src/audio/audio_device_ios.h
+@@ -24,6 +24,7 @@
+ #include "rtc_base/thread.h"
+ #include "rtc_base/thread_annotations.h"
+ #include "sdk/objc/base/RTCMacros.h"
++#include "audio_unit_interface.h"
+ #include "voice_processing_audio_unit.h"
+ 
+ RTC_FWD_DECL_OBJC_CLASS(RTCNativeAudioSessionDelegateAdapter);
+@@ -270,7 +271,9 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
+   AudioParameters record_parameters_;
+ 
+   // The AudioUnit used to play and record audio.
+-  std::unique_ptr<VoiceProcessingAudioUnit> audio_unit_;
++  // ステレオ出力有効時は RemoteIOAudioUnit、それ以外は VoiceProcessingAudioUnit
++  // が入る。両者は AudioUnitInterface を実装している。
++  std::unique_ptr<AudioUnitInterface> audio_unit_;
+ 
+   // FineAudioBuffer takes an AudioDeviceBuffer which delivers audio data
+   // in chunks of 10ms. It then allows for this data to be pulled in
+diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
+index d64e5e4..4dcc156 100644
+--- a/sdk/objc/native/src/audio/audio_device_ios.mm
++++ b/sdk/objc/native/src/audio/audio_device_ios.mm
+@@ -17,6 +17,9 @@
+ #include <cmath>
+ #include <span>
+ 
++#include "audio_unit_interface.h"
++#include "remote_io_audio_unit.h"
++
+ #include "api/environment/environment.h"
+ #include "api/task_queue/pending_task_safety_flag.h"
+ #include "helpers.h"
+@@ -245,7 +248,7 @@ static void LogDeviceInfo() {
+     fine_audio_buffer_->ResetPlayout();
+   }
+   if (!recording_.load() &&
+-      audio_unit_->GetState() == VoiceProcessingAudioUnit::kInitialized) {
++      audio_unit_->GetState() == AudioUnitInterface::kInitialized) {
+     OSStatus result = audio_unit_->Start();
+     if (result != noErr) {
+       RTC_OBJC_TYPE(RTCAudioSession)* session =
+@@ -310,7 +313,7 @@ static void LogDeviceInfo() {
+     fine_audio_buffer_->ResetRecord();
+   }
+   if (!playing_.load() &&
+-      audio_unit_->GetState() == VoiceProcessingAudioUnit::kInitialized) {
++      audio_unit_->GetState() == AudioUnitInterface::kInitialized) {
+     OSStatus result = audio_unit_->Start();
+     if (result != noErr) {
+       RTC_OBJC_TYPE(RTCAudioSession)* session =
+@@ -390,14 +393,14 @@ static void LogDeviceInfo() {
+     RTC_LOG(LS_ERROR) << "ReinitAudioUnitForMicrophoneMute called with null audio unit";
+     return -1;
+   }
+-  if (audio_unit_->GetState() < VoiceProcessingAudioUnit::kUninitialized) {
++  if (audio_unit_->GetState() < AudioUnitInterface::kUninitialized) {
+     RTC_LOG(LS_ERROR) << "ReinitAudioUnitForMicrophoneMute called in invalid audio unit state="
+                       << audio_unit_->GetState();
+     return -1;
+   }
+ 
+   // AudioUnit を停止します
+-  if (audio_unit_->GetState() == VoiceProcessingAudioUnit::kStarted) {
++  if (audio_unit_->GetState() == AudioUnitInterface::kStarted) {
+     if (!audio_unit_->Stop()) {
+       RTC_LOG(LS_ERROR) << "ReinitAudioUnitForMicrophoneMute failed to stop audio unit";
+       return -1;
+@@ -530,7 +533,7 @@ static void LogDeviceInfo() {
+   AudioBuffer* audio_buffer = &audio_buffer_list.mBuffers[0];
+   audio_buffer->mNumberChannels = record_parameters_.channels();
+   audio_buffer->mDataByteSize =
+-      record_audio_buffer_.size() * VoiceProcessingAudioUnit::kBytesPerSample;
++      record_audio_buffer_.size() * AudioUnitInterface::kBytesPerSample;
+   audio_buffer->mData = reinterpret_cast<int8_t*>(record_audio_buffer_.data());
+ 
+   // Obtain the recorded audio samples by initiating a rendering cycle.
+@@ -565,16 +568,21 @@ static void LogDeviceInfo() {
+                                           UInt32 num_frames,
+                                           AudioBufferList* io_data) {
+   RTC_DCHECK_RUN_ON(&io_thread_checker_);
+-  // Verify 16-bit, noninterleaved mono PCM signal format.
++  // Verify 16-bit interleaved PCM signal format (RemoteIO 経路も interleaved で扱う)。
+   RTC_DCHECK_EQ(1, io_data->mNumberBuffers);
+   AudioBuffer* audio_buffer = &io_data->mBuffers[0];
+-  RTC_DCHECK_EQ(1, audio_buffer->mNumberChannels);
++  // playout チャンネル数はステレオ有効時に 2 となるため、
++  // ADM の playout_parameters_ の channels と動的に比較する。
++  RTC_DCHECK_EQ(playout_parameters_.channels(), audio_buffer->mNumberChannels);
+ 
+   // Produce silence and give audio unit a hint about it if playout is not
+   // activated.
+   if (!playing_.load(std::memory_order_acquire)) {
+     const size_t size_in_bytes = audio_buffer->mDataByteSize;
+-    RTC_CHECK_EQ(size_in_bytes / VoiceProcessingAudioUnit::kBytesPerSample,
++    // ステレオでは 1 フレームあたり channels 倍のバイト数となるため
++    // channels を含めた計算にする。
++    RTC_CHECK_EQ(size_in_bytes / (AudioUnitInterface::kBytesPerSample *
++                                  playout_parameters_.channels()),
+                  num_frames);
+     *flags |= kAudioUnitRenderAction_OutputIsSilence;
+     memset(static_cast<int8_t*>(audio_buffer->mData), 0, size_in_bytes);
+@@ -632,9 +640,11 @@ static void LogDeviceInfo() {
+   // Read decoded 16-bit PCM samples from WebRTC (using a size that matches
+   // the native I/O audio unit) and copy the result to the audio buffer in the
+   // `io_data` destination.
++  // ステレオ再生では 1 フレームあたり channels 個のサンプルを要求するため、
++  // 要求サンプル数を num_frames * channels に拡張する。
+   fine_audio_buffer_->GetPlayoutData(
+       std::span<int16_t>(static_cast<int16_t*>(audio_buffer->mData),
+-                         num_frames),
++                         num_frames * playout_parameters_.channels()),
+       playout_delay_ms);
+ 
+   last_hw_output_latency_update_sample_count_ += num_frames;
+@@ -664,7 +674,7 @@ static void LogDeviceInfo() {
+   RTCLog(@"Interruption begin. IsInterrupted changed from %d to 1.",
+          is_interrupted_);
+   if (audio_unit_ &&
+-      audio_unit_->GetState() == VoiceProcessingAudioUnit::kStarted) {
++      audio_unit_->GetState() == AudioUnitInterface::kStarted) {
+     RTCLog(@"Stopping the audio unit due to interruption begin.");
+     if (!audio_unit_->Stop()) {
+       RTCLogError(@"Failed to stop the audio unit for interruption begin.");
+@@ -684,11 +694,11 @@ static void LogDeviceInfo() {
+   if (env_.field_trials().IsEnabled("WebRTC-Audio-iOS-Holding")) {
+     // Work around an issue where audio does not restart properly after an
+     // interruption by restarting the audio unit when the interruption ends.
+-    if (audio_unit_->GetState() == VoiceProcessingAudioUnit::kStarted) {
++    if (audio_unit_->GetState() == AudioUnitInterface::kStarted) {
+       audio_unit_->Stop();
+       PrepareForNewStart();
+     }
+-    if (audio_unit_->GetState() == VoiceProcessingAudioUnit::kInitialized) {
++    if (audio_unit_->GetState() == AudioUnitInterface::kInitialized) {
+       audio_unit_->Uninitialize();
+     }
+     // Allocate new buffers given the potentially new stream format.
+@@ -724,7 +734,7 @@ static void LogDeviceInfo() {
+   // If we don't have an audio unit yet, or the audio unit is uninitialized,
+   // there is no work to do.
+   if (!audio_unit_ ||
+-      audio_unit_->GetState() < VoiceProcessingAudioUnit::kInitialized) {
++      audio_unit_->GetState() < AudioUnitInterface::kInitialized) {
+     return;
+   }
+ 
+@@ -767,12 +777,12 @@ static void LogDeviceInfo() {
+   // stop and uninitialize the audio unit to deallocate its resources.
+   RTCLog(@"Stopping and uninitializing audio unit to adjust buffers.");
+   bool restart_audio_unit = false;
+-  if (audio_unit_->GetState() == VoiceProcessingAudioUnit::kStarted) {
++  if (audio_unit_->GetState() == AudioUnitInterface::kStarted) {
+     audio_unit_->Stop();
+     restart_audio_unit = true;
+     PrepareForNewStart();
+   }
+-  if (audio_unit_->GetState() == VoiceProcessingAudioUnit::kInitialized) {
++  if (audio_unit_->GetState() == AudioUnitInterface::kInitialized) {
+     audio_unit_->Uninitialize();
+   }
+ 
+@@ -847,7 +857,8 @@ static void LogDeviceInfo() {
+   RTC_DCHECK(audio_device_buffer_) << "AttachAudioBuffer must be called first";
+   RTC_DCHECK_GT(playout_parameters_.sample_rate(), 0);
+   RTC_DCHECK_GT(record_parameters_.sample_rate(), 0);
+-  RTC_DCHECK_EQ(playout_parameters_.channels(), 1);
++  // playout はステレオ有効時に 2ch となるためモノラル固定 DCHECK を持たない。
++  // recording 側はステレオ非対応のためモノラル固定 DCHECK を残す。
+   RTC_DCHECK_EQ(record_parameters_.channels(), 1);
+   // Inform the audio device buffer (ADB) about the new audio format.
+   audio_device_buffer_->SetPlayoutSampleRate(playout_parameters_.sample_rate());
+@@ -923,8 +934,17 @@ static void LogDeviceInfo() {
+     return false;
+   }
+   BOOL detect_mute_speech_ = (muted_speech_event_handler_ != 0);
+-  audio_unit_.reset(new VoiceProcessingAudioUnit(
+-      bypass_voice_processing_, detect_mute_speech_, this));
++  // playout がステレオ有効の場合は VoiceProcessingIO では成立しにくいため
++  // RemoteIO を選ぶ。それ以外は既定の VoiceProcessingIO を使う。
++  if (playout_parameters_.channels() == 2) {
++    audio_unit_.reset(new RemoteIOAudioUnit(
++        this,
++        static_cast<UInt32>(playout_parameters_.channels()),
++        static_cast<UInt32>(record_parameters_.channels())));
++  } else {
++    audio_unit_.reset(new VoiceProcessingAudioUnit(
++        bypass_voice_processing_, detect_mute_speech_, this));
++  }
+   if (!audio_unit_->Init()) {
+     audio_unit_.reset();
+     return false;
+@@ -957,23 +977,23 @@ static void LogDeviceInfo() {
+   bool should_stop_audio_unit = false;
+ 
+   switch (audio_unit_->GetState()) {
+-    case VoiceProcessingAudioUnit::kInitRequired:
+-      RTCLog(@"VPAU state: InitRequired");
++    case AudioUnitInterface::kInitRequired:
++      RTCLog(@"AudioUnit state: InitRequired");
+       RTC_DCHECK_NOTREACHED();
+       break;
+-    case VoiceProcessingAudioUnit::kUninitialized:
+-      RTCLog(@"VPAU state: Uninitialized");
++    case AudioUnitInterface::kUninitialized:
++      RTCLog(@"AudioUnit state: Uninitialized");
+       should_initialize_audio_unit = can_play_or_record;
+       should_start_audio_unit = should_initialize_audio_unit &&
+           (playing_.load() || recording_.load());
+       break;
+-    case VoiceProcessingAudioUnit::kInitialized:
+-      RTCLog(@"VPAU state: Initialized");
++    case AudioUnitInterface::kInitialized:
++      RTCLog(@"AudioUnit state: Initialized");
+       should_start_audio_unit =
+           can_play_or_record && (playing_.load() || recording_.load());
+       should_uninitialize_audio_unit = !can_play_or_record;
+       break;
+-    case VoiceProcessingAudioUnit::kStarted:
+-      RTCLog(@"VPAU state: Started");
++    case AudioUnitInterface::kStarted:
++      RTCLog(@"AudioUnit state: Started");
+       RTC_DCHECK(playing_.load() || recording_.load());
+       should_stop_audio_unit = !can_play_or_record;
+@@ -1032,8 +1052,27 @@ static void LogDeviceInfo() {
+   RTC_OBJC_TYPE(RTCAudioSession)* session =
+       [RTC_OBJC_TYPE(RTCAudioSession) sharedInstance];
++  // ステレオ出力有効時のみ、既定の AVAudioSessionModeVoiceChat を
++  // AVAudioSessionModeDefault に差し替えて WebRTC セッションを構成する。
++  // 復元は @try/@finally で保証し、途中で例外が投げられても既定 mode を
++  // 上書きしたままにならないようにする。setup を lockForConfiguration より
++  // 先に済ませることで、setup が例外を投げても未 lock 状態のまま抜ける。
++  RTC_OBJC_TYPE(RTCAudioSessionConfiguration)* webRTCConfig =
++      [RTC_OBJC_TYPE(RTCAudioSessionConfiguration) webRTCConfiguration];
++  const bool stereo_playout = (playout_parameters_.channels() == 2);
++  NSString* saved_mode = webRTCConfig.mode;
++  bool success = false;
+   [session lockForConfiguration];
+-  bool success = [session configureWebRTCSession:nil];
+-  [session unlockForConfiguration];
++  @try {
++    if (stereo_playout) {
++      webRTCConfig.mode = AVAudioSessionModeDefault;
++    }
++    success = [session configureWebRTCSession:nil];
++  } @finally {
++    if (stereo_playout) {
++      webRTCConfig.mode = saved_mode;
++    }
++    [session unlockForConfiguration];
++  }
+   if (success) {
+     has_configured_session_ = true;
+     RTCLog(@"Configured audio session.");
+@@ -1052,7 +1090,23 @@ static void LogDeviceInfo() {
+   }
+   RTC_OBJC_TYPE(RTCAudioSession)* session =
+       [RTC_OBJC_TYPE(RTCAudioSession) sharedInstance];
+-  bool success = [session configureWebRTCSession:nil];
++  // ステレオ出力有効時のみ mode を Default に差し替えて構成する。
++  // 復元は @try/@finally で保証する。
++  RTC_OBJC_TYPE(RTCAudioSessionConfiguration)* webRTCConfig =
++      [RTC_OBJC_TYPE(RTCAudioSessionConfiguration) webRTCConfiguration];
++  const bool stereo_playout = (playout_parameters_.channels() == 2);
++  NSString* saved_mode = webRTCConfig.mode;
++  bool success = false;
++  @try {
++    if (stereo_playout) {
++      webRTCConfig.mode = AVAudioSessionModeDefault;
++    }
++    success = [session configureWebRTCSession:nil];
++  } @finally {
++    if (stereo_playout) {
++      webRTCConfig.mode = saved_mode;
++    }
++  }
+   if (success) {
+     has_configured_session_ = true;
+     RTCLog(@"Configured audio session.");
+@@ -1259,7 +1313,7 @@ static void LogDeviceInfo() {
+ int32_t AudioDeviceIOS::SetMicrophoneMute(bool enable) {
+   // Set microphone mute only if the audio unit is started.
+   if (audio_unit_ &&
+-      audio_unit_->GetState() == VoiceProcessingAudioUnit::kStarted) {
++      audio_unit_->GetState() == AudioUnitInterface::kStarted) {
+     BOOL result = audio_unit_->SetMicrophoneMute(enable);
+     if (!result) {
+       RTCLogError(@"Set microphone %s failed.", enable ? "mute" : "unmute");
+@@ -1290,17 +1344,36 @@ static void LogDeviceInfo() {
+ }
+ 
+ int32_t AudioDeviceIOS::StereoPlayoutIsAvailable(bool& available) {
+-  available = false;
++  RTC_DCHECK_RUN_ON(thread_);
++  // playout_parameters_ を単一の source of truth として使う。
++  // 別途 play_channels_ のようなメンバを持たない。
++  available = (playout_parameters_.channels() == 2);
+   return 0;
+ }
+ 
+ int32_t AudioDeviceIOS::SetStereoPlayout(bool enable) {
+-  RTC_LOG_F(LS_WARNING) << "Not implemented";
+-  return -1;
++  RTC_DCHECK_RUN_ON(thread_);
++  // InitPlayOrRecord 後は audio_unit_ の種別が確定してしまうため、
++  // ここで channels を書き換えても CreateAudioUnit の再選択が走らず
++  // AudioUnit 種別と playout_parameters_ の食い違いを生む。上位の
++  // AudioDeviceModuleIOS::SetStereoPlayout に同種のガードがあるが、
++  // 直接呼ばれた場合の防御として明示的にチェックする。
++  if (audio_is_initialized_) {
++    RTC_LOG(LS_ERROR)
++        << "unable to set stereo mode while playing side is initialized";
++    return -1;
++  }
++  // playout_parameters_ の channels を書き換え、以降の CreateAudioUnit で
++  // RemoteIOAudioUnit を選択させる。
++  playout_parameters_.reset(playout_parameters_.sample_rate(),
++                            enable ? 2 : 1,
++                            playout_parameters_.frames_per_buffer());
++  return 0;
+ }
+ 
+ int32_t AudioDeviceIOS::StereoPlayout(bool& enabled) const {
+-  enabled = false;
++  RTC_DCHECK_RUN_ON(thread_);
++  enabled = (playout_parameters_.channels() == 2);
+   return 0;
+ }
+ 
+diff --git a/sdk/objc/native/src/audio/audio_unit_interface.h b/sdk/objc/native/src/audio/audio_unit_interface.h
+new file mode 100644
+index 0000000..d1a8ae0
+--- /dev/null
++++ b/sdk/objc/native/src/audio/audio_unit_interface.h
+@@ -0,0 +1,79 @@
++/*
++ *  Copyright 2016 The WebRTC Project Authors. All rights reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#ifndef SDK_OBJC_NATIVE_SRC_AUDIO_AUDIO_UNIT_INTERFACE_H_
++#define SDK_OBJC_NATIVE_SRC_AUDIO_AUDIO_UNIT_INTERFACE_H_
++
++#include <AudioUnit/AudioUnit.h>
++
++namespace webrtc {
++namespace ios_adm {
++
++// iOS ADM が扱う AudioUnit ラッパーの抽象基底クラス。
++// VoiceProcessingIO 実装と RemoteIO 実装をランタイムで切り替えるための
++// 共通インタフェースを提供する。両実装は本 interface を独立に実装し、
++// 派生クラス間の継承関係は持たない。
++class AudioUnitInterface {
++ public:
++  // AudioUnit のライフサイクル状態。
++  // VoiceProcessingAudioUnit の従来定義をそのまま interface 側に移し、
++  // 参照コードは AudioUnitInterface::kInitialized 等でアクセスする。
++  enum State : int32_t {
++    // Init() を呼ぶ必要がある状態。
++    kInitRequired,
++    // AudioUnit は生成済みだが Initialize() 未実行の状態。
++    kUninitialized,
++    // Initialize() 済みで Start() 待ちの状態。Stop() 直後もここに戻る。
++    kInitialized,
++    // Start() 済みで実際に I/O が走っている状態。
++    kStarted,
++  };
++
++  // 16bit 符号付き整数の 1 サンプルあたりのバイト数。
++  // VoiceProcessingIO / RemoteIO のいずれの実装からも参照するため
++  // interface 側に定数として置く。
++  static const UInt32 kBytesPerSample;
++
++  virtual ~AudioUnitInterface() = default;
++
++  // 実装ごとの AudioUnit インスタンスを生成し、コールバックや
++  // 入出力バスの有効化までの前段設定を行う。
++  virtual bool Init() = 0;
++
++  // 現在の状態を返す。
++  virtual State GetState() const = 0;
++
++  // 与えられたサンプルレートでフォーマットを設定し AudioUnit を初期化する。
++  virtual bool Initialize(Float64 sample_rate) = 0;
++
++  // AudioUnit を開始する。
++  virtual OSStatus Start() = 0;
++
++  // AudioUnit を停止する。
++  virtual bool Stop() = 0;
++
++  // AudioUnit の初期化を解除する。
++  virtual bool Uninitialize() = 0;
++
++  // マイクミュートを設定する。実装によっては no-op となる。
++  virtual bool SetMicrophoneMute(bool enable) = 0;
++
++  // I/O コールバック内から AudioUnitRender を呼ぶための橋渡し。
++  virtual OSStatus Render(AudioUnitRenderActionFlags* flags,
++                          const AudioTimeStamp* time_stamp,
++                          UInt32 output_bus_number,
++                          UInt32 num_frames,
++                          AudioBufferList* io_data) = 0;
++};
++
++}  // namespace ios_adm
++}  // namespace webrtc
++
++#endif  // SDK_OBJC_NATIVE_SRC_AUDIO_AUDIO_UNIT_INTERFACE_H_
+diff --git a/sdk/objc/native/src/audio/remote_io_audio_unit.h b/sdk/objc/native/src/audio/remote_io_audio_unit.h
+new file mode 100644
+index 0000000..4013948
+--- /dev/null
++++ b/sdk/objc/native/src/audio/remote_io_audio_unit.h
+@@ -0,0 +1,113 @@
++/*
++ *  Copyright 2016 The WebRTC Project Authors. All rights reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#ifndef SDK_OBJC_NATIVE_SRC_AUDIO_REMOTE_IO_AUDIO_UNIT_H_
++#define SDK_OBJC_NATIVE_SRC_AUDIO_REMOTE_IO_AUDIO_UNIT_H_
++
++#include <AudioUnit/AudioUnit.h>
++
++#include "audio_unit_interface.h"
++#include "voice_processing_audio_unit.h"
++
++namespace webrtc {
++namespace ios_adm {
++
++// AudioUnitInterface の RemoteIO 実装。
++// VoiceProcessingIO ではステレオ playout が事実上成立しないため、
++// ステレオ出力有効時のみ AudioDeviceIOS がこの実装を選択する。
++// VoiceProcessingAudioUnit を継承しない独立実装であり、内部の
++// AudioUnit インスタンス、状態、コールバック配線をすべて自前で持つ。
++// AEC / AGC は VoiceProcessingIO 固有機能であり RemoteIO 使用時は失われる。
++class RemoteIOAudioUnit : public AudioUnitInterface {
++ public:
++  // playout / record のチャンネル数はコンストラクタで固定する。
++  // observer は既存 VoiceProcessingAudioUnitObserver 型を流用する
++  // (OnGetPlayoutData / OnDeliverRecordedData の通知経路を統一するため)。
++  RemoteIOAudioUnit(VoiceProcessingAudioUnitObserver* observer,
++                    UInt32 play_channels,
++                    UInt32 rec_channels);
++  ~RemoteIOAudioUnit() override;
++
++  // AudioUnit を生成して入出力バスとコールバックを配線する。
++  bool Init() override;
++
++  State GetState() const override;
++
++  // 与えられたサンプルレートでストリームフォーマットを設定して
++  // AudioUnit を初期化する。
++  bool Initialize(Float64 sample_rate) override;
++
++  // AudioUnit を開始する。
++  OSStatus Start() override;
++
++  // AudioUnit を停止する。
++  bool Stop() override;
++
++  // AudioUnit の初期化を解除する。
++  bool Uninitialize() override;
++
++  // RemoteIO には VoiceProcessing 固有のマイクミュート機構は無い。
++  // interface 実装上の存在意義のためだけに残す。
++  bool SetMicrophoneMute(bool enable) override;
++
++  // 入力バス側の AudioUnitRender を呼ぶ。
++  OSStatus Render(AudioUnitRenderActionFlags* flags,
++                  const AudioTimeStamp* time_stamp,
++                  UInt32 output_bus_number,
++                  UInt32 num_frames,
++                  AudioBufferList* io_data) override;
++
++ private:
++  // Core Audio の C API は static コールバックを要求するため、
++  // in_ref_con をこのクラスのポインタに戻して instance method へ橋渡しする。
++  static OSStatus OnGetPlayoutData(void* in_ref_con,
++                                   AudioUnitRenderActionFlags* flags,
++                                   const AudioTimeStamp* time_stamp,
++                                   UInt32 bus_number,
++                                   UInt32 num_frames,
++                                   AudioBufferList* io_data);
++  static OSStatus OnDeliverRecordedData(void* in_ref_con,
++                                        AudioUnitRenderActionFlags* flags,
++                                        const AudioTimeStamp* time_stamp,
++                                        UInt32 bus_number,
++                                        UInt32 num_frames,
++                                        AudioBufferList* io_data);
++
++  // observer への通知ヘルパ。
++  OSStatus NotifyGetPlayoutData(AudioUnitRenderActionFlags* flags,
++                                const AudioTimeStamp* time_stamp,
++                                UInt32 bus_number,
++                                UInt32 num_frames,
++                                AudioBufferList* io_data);
++  OSStatus NotifyDeliverRecordedData(AudioUnitRenderActionFlags* flags,
++                                     const AudioTimeStamp* time_stamp,
++                                     UInt32 bus_number,
++                                     UInt32 num_frames,
++                                     AudioBufferList* io_data);
++
++  // チャンネル数を引数で受ける GetFormat。playout / record で異なる
++  // チャンネル数 (2ch playout + 1ch record など) を扱えるようにする。
++  AudioStreamBasicDescription GetFormat(Float64 sample_rate,
++                                        UInt32 channels) const;
++
++  // AudioUnit インスタンスの破棄。
++  void DisposeAudioUnit();
++
++  VoiceProcessingAudioUnitObserver* observer_;
++  const UInt32 play_channels_;
++  const UInt32 rec_channels_;
++  AudioUnit rio_unit_;
++  State state_;
++};
++
++}  // namespace ios_adm
++}  // namespace webrtc
++
++#endif  // SDK_OBJC_NATIVE_SRC_AUDIO_REMOTE_IO_AUDIO_UNIT_H_
+diff --git a/sdk/objc/native/src/audio/remote_io_audio_unit.mm b/sdk/objc/native/src/audio/remote_io_audio_unit.mm
+new file mode 100644
+index 0000000..bb1c0f1
+--- /dev/null
++++ b/sdk/objc/native/src/audio/remote_io_audio_unit.mm
+@@ -0,0 +1,396 @@
++/*
++ *  Copyright 2016 The WebRTC Project Authors. All rights reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#import "remote_io_audio_unit.h"
++
++#include "rtc_base/checks.h"
++
++#import "base/RTCLogging.h"
++
++namespace webrtc {
++namespace ios_adm {
++
++// AudioUnitInitialize がまれに一時失敗するので、短い sleep を挟んで
++// リトライする回数の上限。VoiceProcessingAudioUnit と同じ方針だが、
++// RemoteIO 実装として独立に持つ。
++static const int kMaxNumberOfAudioUnitInitializeAttempts = 5;
++// RemoteIO の入力バス (マイク) は 1 に固定されている。
++static const AudioUnitElement kInputBus = 1;
++// RemoteIO の出力バス (スピーカ) は 0 に固定されている。
++static const AudioUnitElement kOutputBus = 0;
++
++RemoteIOAudioUnit::RemoteIOAudioUnit(
++    VoiceProcessingAudioUnitObserver* observer,
++    UInt32 play_channels,
++    UInt32 rec_channels)
++    : observer_(observer),
++      play_channels_(play_channels),
++      rec_channels_(rec_channels),
++      rio_unit_(nullptr),
++      state_(AudioUnitInterface::kInitRequired) {
++  RTC_DCHECK(observer);
++  RTC_DCHECK_GT(play_channels, 0u);
++  RTC_DCHECK_GT(rec_channels, 0u);
++}
++
++RemoteIOAudioUnit::~RemoteIOAudioUnit() {
++  // VoiceProcessingAudioUnit と同じく、破棄時に AudioUnit を必ず解放する。
++  // = default では AudioComponentInstanceDispose が呼ばれず Core Audio 資源が
++  // リークするため、明示的に DisposeAudioUnit を呼ぶ実装を .mm 側に置く。
++  DisposeAudioUnit();
++}
++
++bool RemoteIOAudioUnit::Init() {
++  RTC_DCHECK_EQ(state_, AudioUnitInterface::kInitRequired);
++
++  // Remote I/O audio unit を識別する AudioComponentDescription を用意する。
++  AudioComponentDescription rio_unit_description;
++  rio_unit_description.componentType = kAudioUnitType_Output;
++  rio_unit_description.componentSubType = kAudioUnitSubType_RemoteIO;
++  rio_unit_description.componentManufacturer = kAudioUnitManufacturer_Apple;
++  rio_unit_description.componentFlags = 0;
++  rio_unit_description.componentFlagsMask = 0;
++
++  // 記述に一致する AudioComponent を検索する。
++  AudioComponent found_rio_unit_ref =
++      AudioComponentFindNext(nullptr, &rio_unit_description);
++
++  // Remote I/O audio unit のインスタンスを生成する。
++  OSStatus result = noErr;
++  result = AudioComponentInstanceNew(found_rio_unit_ref, &rio_unit_);
++  if (result != noErr) {
++    rio_unit_ = nullptr;
++    RTCLogError(@"AudioComponentInstanceNew failed for RemoteIO. Error=%ld.",
++                (long)result);
++    return false;
++  }
++
++  // 入力バスの入力スコープで入力 (マイク) を有効化する。
++  UInt32 enable_input = 1;
++  result = AudioUnitSetProperty(rio_unit_,
++                                kAudioOutputUnitProperty_EnableIO,
++                                kAudioUnitScope_Input,
++                                kInputBus,
++                                &enable_input,
++                                sizeof(enable_input));
++  if (result != noErr) {
++    DisposeAudioUnit();
++    RTCLogError(@"Failed to enable input on input scope of input element for "
++                 "RemoteIO. Error=%ld.",
++                (long)result);
++    return false;
++  }
++
++  // 出力バスの出力スコープで出力 (スピーカ) を有効化する。
++  UInt32 enable_output = 1;
++  result = AudioUnitSetProperty(rio_unit_,
++                                kAudioOutputUnitProperty_EnableIO,
++                                kAudioUnitScope_Output,
++                                kOutputBus,
++                                &enable_output,
++                                sizeof(enable_output));
++  if (result != noErr) {
++    DisposeAudioUnit();
++    RTCLogError(@"Failed to enable output on output scope of output element "
++                 "for RemoteIO. Error=%ld.",
++                (long)result);
++    return false;
++  }
++
++  // 出力バスに render callback を登録する。playout データはこの callback で
++  // 供給される。
++  AURenderCallbackStruct render_callback;
++  render_callback.inputProc = OnGetPlayoutData;
++  render_callback.inputProcRefCon = this;
++  result = AudioUnitSetProperty(rio_unit_,
++                                kAudioUnitProperty_SetRenderCallback,
++                                kAudioUnitScope_Input,
++                                kOutputBus,
++                                &render_callback,
++                                sizeof(render_callback));
++  if (result != noErr) {
++    DisposeAudioUnit();
++    RTCLogError(@"Failed to specify the render callback on the output bus for "
++                 "RemoteIO. Error=%ld.",
++                (long)result);
++    return false;
++  }
++
++  // 入力バスの AU buffer の自動割り当てを無効化する。録音バッファは呼び出し
++  // 側 (AudioDeviceIOS) が用意するため。
++  UInt32 flag = 0;
++  result = AudioUnitSetProperty(rio_unit_,
++                                kAudioUnitProperty_ShouldAllocateBuffer,
++                                kAudioUnitScope_Output,
++                                kInputBus,
++                                &flag,
++                                sizeof(flag));
++  if (result != noErr) {
++    DisposeAudioUnit();
++    RTCLogError(@"Failed to disable buffer allocation on the input bus for "
++                 "RemoteIO. Error=%ld.",
++                (long)result);
++    return false;
++  }
++
++  // 入力バスに input callback を登録する。録音データ到着はここで通知される。
++  AURenderCallbackStruct input_callback;
++  input_callback.inputProc = OnDeliverRecordedData;
++  input_callback.inputProcRefCon = this;
++  result = AudioUnitSetProperty(rio_unit_,
++                                kAudioOutputUnitProperty_SetInputCallback,
++                                kAudioUnitScope_Global,
++                                kInputBus,
++                                &input_callback,
++                                sizeof(input_callback));
++  if (result != noErr) {
++    DisposeAudioUnit();
++    RTCLogError(@"Failed to specify the input callback on the input bus for "
++                 "RemoteIO. Error=%ld.",
++                (long)result);
++    return false;
++  }
++
++  state_ = AudioUnitInterface::kUninitialized;
++  return true;
++}
++
++AudioUnitInterface::State RemoteIOAudioUnit::GetState() const {
++  return state_;
++}
++
++bool RemoteIOAudioUnit::Initialize(Float64 sample_rate) {
++  RTC_DCHECK_GE(state_, AudioUnitInterface::kUninitialized);
++  RTCLog(@"Initializing RemoteIO audio unit with sample rate: %f", sample_rate);
++
++  OSStatus result = noErr;
++
++  // 入力側 (マイク) のフォーマット。入力バスの出力スコープに設定する。
++  // channels は record 側で決定する。
++  AudioStreamBasicDescription input_format =
++      GetFormat(sample_rate, rec_channels_);
++  UInt32 size = sizeof(input_format);
++  result = AudioUnitSetProperty(rio_unit_,
++                                kAudioUnitProperty_StreamFormat,
++                                kAudioUnitScope_Output,
++                                kInputBus,
++                                &input_format,
++                                size);
++  if (result != noErr) {
++    RTCLogError(@"Failed to set format on output scope of input bus for "
++                 "RemoteIO. Error=%ld.",
++                (long)result);
++    return false;
++  }
++
++  // 出力側 (スピーカ) のフォーマット。出力バスの入力スコープに設定する。
++  // channels は playout 側で決定する。ステレオ出力有効時はここが 2 になる。
++  AudioStreamBasicDescription output_format =
++      GetFormat(sample_rate, play_channels_);
++  size = sizeof(output_format);
++  result = AudioUnitSetProperty(rio_unit_,
++                                kAudioUnitProperty_StreamFormat,
++                                kAudioUnitScope_Input,
++                                kOutputBus,
++                                &output_format,
++                                size);
++  if (result != noErr) {
++    RTCLogError(@"Failed to set format on input scope of output bus for "
++                 "RemoteIO. Error=%ld.",
++                (long)result);
++    return false;
++  }
++
++  // AudioUnitInitialize は連続呼び出しで一時的に失敗することがあるため、
++  // 短い sleep を挟んで最大 kMaxNumberOfAudioUnitInitializeAttempts 回リトライ
++  // する。
++  int failed_initialize_attempts = 0;
++  result = AudioUnitInitialize(rio_unit_);
++  while (result != noErr) {
++    RTCLogError(@"Failed to initialize the RemoteIO audio unit. Error=%ld.",
++                (long)result);
++    ++failed_initialize_attempts;
++    if (failed_initialize_attempts == kMaxNumberOfAudioUnitInitializeAttempts) {
++      RTCLogError(@"Too many initialization attempts for RemoteIO.");
++      return false;
++    }
++    RTCLog(@"Pause 100ms and try RemoteIO audio unit initialization again...");
++    [NSThread sleepForTimeInterval:0.1f];
++    result = AudioUnitInitialize(rio_unit_);
++  }
++  RTCLog(@"RemoteIO audio unit is now initialized.");
++
++  state_ = AudioUnitInterface::kInitialized;
++  return true;
++}
++
++OSStatus RemoteIOAudioUnit::Start() {
++  RTC_DCHECK_GE(state_, AudioUnitInterface::kUninitialized);
++  RTCLog(@"Starting RemoteIO audio unit.");
++
++  OSStatus result = AudioOutputUnitStart(rio_unit_);
++  if (result != noErr) {
++    RTCLogError(@"Failed to start RemoteIO audio unit. Error=%ld",
++                (long)result);
++    return result;
++  }
++  RTCLog(@"Started RemoteIO audio unit");
++  state_ = AudioUnitInterface::kStarted;
++  return noErr;
++}
++
++bool RemoteIOAudioUnit::Stop() {
++  RTC_DCHECK_GE(state_, AudioUnitInterface::kUninitialized);
++  RTCLog(@"Stopping RemoteIO audio unit.");
++
++  OSStatus result = AudioOutputUnitStop(rio_unit_);
++  if (result != noErr) {
++    RTCLogError(@"Failed to stop RemoteIO audio unit. Error=%ld",
++                (long)result);
++    return false;
++  }
++  RTCLog(@"Stopped RemoteIO audio unit");
++  state_ = AudioUnitInterface::kInitialized;
++  return true;
++}
++
++bool RemoteIOAudioUnit::Uninitialize() {
++  RTC_DCHECK_GE(state_, AudioUnitInterface::kUninitialized);
++  RTCLog(@"Unintializing RemoteIO audio unit.");
++
++  OSStatus result = AudioUnitUninitialize(rio_unit_);
++  if (result != noErr) {
++    RTCLogError(@"Failed to uninitialize RemoteIO audio unit. Error=%ld",
++                (long)result);
++    return false;
++  }
++  RTCLog(@"Uninitialized RemoteIO audio unit.");
++  state_ = AudioUnitInterface::kUninitialized;
++  return true;
++}
++
++bool RemoteIOAudioUnit::SetMicrophoneMute(bool enable) {
++  // RemoteIO には VoiceProcessing 由来のマイクミュート機構
++  // (kAUVoiceIOProperty_MuteOutput 等) が存在しないため実質的な動作は行わない。
++  // ここで false を返すと AudioDeviceIOS::ReinitAudioUnitForMicrophoneMute 側で
++  // エラー扱いになるため no-op で true を返す。
++  RTCLog(@"RemoteIO does not support microphone mute, ignoring request "
++          "enable=%s.",
++         enable ? "true" : "false");
++  return true;
++}
++
++OSStatus RemoteIOAudioUnit::Render(AudioUnitRenderActionFlags* flags,
++                                   const AudioTimeStamp* time_stamp,
++                                   UInt32 output_bus_number,
++                                   UInt32 num_frames,
++                                   AudioBufferList* io_data) {
++  RTC_DCHECK(rio_unit_) << "Init() not called.";
++
++  OSStatus result = AudioUnitRender(
++      rio_unit_, flags, time_stamp, output_bus_number, num_frames, io_data);
++  if (result != noErr) {
++    RTCLogError(@"Failed to render RemoteIO audio unit. Error=%ld",
++                (long)result);
++  }
++  return result;
++}
++
++OSStatus RemoteIOAudioUnit::OnGetPlayoutData(
++    void* in_ref_con,
++    AudioUnitRenderActionFlags* flags,
++    const AudioTimeStamp* time_stamp,
++    UInt32 bus_number,
++    UInt32 num_frames,
++    AudioBufferList* io_data) {
++  RemoteIOAudioUnit* audio_unit =
++      static_cast<RemoteIOAudioUnit*>(in_ref_con);
++  return audio_unit->NotifyGetPlayoutData(
++      flags, time_stamp, bus_number, num_frames, io_data);
++}
++
++OSStatus RemoteIOAudioUnit::OnDeliverRecordedData(
++    void* in_ref_con,
++    AudioUnitRenderActionFlags* flags,
++    const AudioTimeStamp* time_stamp,
++    UInt32 bus_number,
++    UInt32 num_frames,
++    AudioBufferList* io_data) {
++  RemoteIOAudioUnit* audio_unit =
++      static_cast<RemoteIOAudioUnit*>(in_ref_con);
++  return audio_unit->NotifyDeliverRecordedData(
++      flags, time_stamp, bus_number, num_frames, io_data);
++}
++
++OSStatus RemoteIOAudioUnit::NotifyGetPlayoutData(
++    AudioUnitRenderActionFlags* flags,
++    const AudioTimeStamp* time_stamp,
++    UInt32 bus_number,
++    UInt32 num_frames,
++    AudioBufferList* io_data) {
++  return observer_->OnGetPlayoutData(
++      flags, time_stamp, bus_number, num_frames, io_data);
++}
++
++OSStatus RemoteIOAudioUnit::NotifyDeliverRecordedData(
++    AudioUnitRenderActionFlags* flags,
++    const AudioTimeStamp* time_stamp,
++    UInt32 bus_number,
++    UInt32 num_frames,
++    AudioBufferList* io_data) {
++  return observer_->OnDeliverRecordedData(
++      flags, time_stamp, bus_number, num_frames, io_data);
++}
++
++AudioStreamBasicDescription RemoteIOAudioUnit::GetFormat(
++    Float64 sample_rate,
++    UInt32 channels) const {
++  // 入出力で個別のチャンネル数を持てるようにするため、channels を引数で受ける。
++  // ステレオ playout 有効時は出力側で channels=2 を渡す。
++  AudioStreamBasicDescription format;
++  format.mSampleRate = sample_rate;
++  format.mFormatID = kAudioFormatLinearPCM;
++  format.mFormatFlags =
++      kLinearPCMFormatFlagIsSignedInteger | kLinearPCMFormatFlagIsPacked;
++  format.mBytesPerPacket = AudioUnitInterface::kBytesPerSample * channels;
++  format.mFramesPerPacket = 1;  // uncompressed
++  format.mBytesPerFrame = AudioUnitInterface::kBytesPerSample * channels;
++  format.mChannelsPerFrame = channels;
++  format.mBitsPerChannel = 8 * AudioUnitInterface::kBytesPerSample;
++  format.mReserved = 0;
++  return format;
++}
++
++void RemoteIOAudioUnit::DisposeAudioUnit() {
++  if (rio_unit_) {
++    switch (state_) {
++      case AudioUnitInterface::kStarted:
++        Stop();
++        [[fallthrough]];
++      case AudioUnitInterface::kInitialized:
++        Uninitialize();
++        break;
++      case AudioUnitInterface::kUninitialized:
++      case AudioUnitInterface::kInitRequired:
++        break;
++    }
++
++    RTCLog(@"Disposing RemoteIO audio unit.");
++    OSStatus result = AudioComponentInstanceDispose(rio_unit_);
++    if (result != noErr) {
++      RTCLogError(@"AudioComponentInstanceDispose failed for RemoteIO. "
++                   "Error=%ld.",
++                  (long)result);
++    }
++    rio_unit_ = nullptr;
++  }
++}
++
++}  // namespace ios_adm
++}  // namespace webrtc
+diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.h b/sdk/objc/native/src/audio/voice_processing_audio_unit.h
+index 99586a9..84002fd 100644
+--- a/sdk/objc/native/src/audio/voice_processing_audio_unit.h
++++ b/sdk/objc/native/src/audio/voice_processing_audio_unit.h
+@@ -13,6 +13,8 @@
+ 
+ #include <AudioUnit/AudioUnit.h>
+ 
++#include "audio_unit_interface.h"
++
+ namespace webrtc {
+ namespace ios_adm {
+ 
+@@ -49,58 +51,43 @@ class VoiceProcessingAudioUnitObserver {
+ // output) and adds AEC for for two-way duplex communication. It also adds AGC,
+ // adjustment of voice-processing quality, and muting. Hence, ideal for
+ // VoIP applications.
+-class VoiceProcessingAudioUnit {
++class VoiceProcessingAudioUnit : public AudioUnitInterface {
+  public:
+   VoiceProcessingAudioUnit(bool bypass_voice_processing,
+                            bool detect_mute_speech,
+                            VoiceProcessingAudioUnitObserver* observer);
+-  ~VoiceProcessingAudioUnit();
+-
+-  // TODO(tkchin): enum for state and state checking.
+-  enum State : int32_t {
+-    // Init() should be called.
+-    kInitRequired,
+-    // Audio unit created but not initialized.
+-    kUninitialized,
+-    // Initialized but not started. Equivalent to stopped.
+-    kInitialized,
+-    // Initialized and started.
+-    kStarted,
+-  };
+-
+-  // Number of bytes per audio sample for 16-bit signed integer representation.
+-  static const UInt32 kBytesPerSample;
++  ~VoiceProcessingAudioUnit() override;
+ 
+   // Initializes this class by creating the underlying audio unit instance.
+   // Creates a Voice-Processing I/O unit and configures it for full-duplex
+   // audio. The selected stream format is selected to avoid internal resampling
+   // and to match the 10ms callback rate for WebRTC as well as possible.
+   // Does not intialize the audio unit.
+-  bool Init();
++  bool Init() override;
+ 
+-  VoiceProcessingAudioUnit::State GetState() const;
++  State GetState() const override;
+ 
+   // Initializes the underlying audio unit with the given sample rate.
+-  bool Initialize(Float64 sample_rate);
++  bool Initialize(Float64 sample_rate) override;
+ 
+   // Starts the underlying audio unit.
+-  OSStatus Start();
++  OSStatus Start() override;
+ 
+   // Stops the underlying audio unit.
+-  bool Stop();
++  bool Stop() override;
+ 
+   // Uninitializes the underlying audio unit.
+-  bool Uninitialize();
++  bool Uninitialize() override;
+ 
+   // Mutes the microphone.
+-  bool SetMicrophoneMute(bool enable);
++  bool SetMicrophoneMute(bool enable) override;
+ 
+   // Calls render on the underlying audio unit.
+   OSStatus Render(AudioUnitRenderActionFlags* flags,
+                   const AudioTimeStamp* time_stamp,
+                   UInt32 output_bus_number,
+                   UInt32 num_frames,
+-                  AudioBufferList* io_data);
++                  AudioBufferList* io_data) override;
+ 
+  private:
+   // The C API used to set callbacks requires static functions. When these are
+@@ -143,7 +130,7 @@ class VoiceProcessingAudioUnit {
+   const bool detect_mute_speech_;
+   VoiceProcessingAudioUnitObserver* observer_;
+   AudioUnit vpio_unit_;
+-  VoiceProcessingAudioUnit::State state_;
++  State state_;
+ };
+ }  // namespace ios_adm
+ }  // namespace webrtc
+diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.mm b/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
+index 066f3b1..4ff7034 100644
+--- a/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
++++ b/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
+@@ -89,7 +89,7 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
+   DisposeAudioUnit();
+ }
+ 
+-const UInt32 VoiceProcessingAudioUnit::kBytesPerSample = 2;
++const UInt32 AudioUnitInterface::kBytesPerSample = 2;
+ 
+ bool VoiceProcessingAudioUnit::Init() {
+   RTC_DCHECK_EQ(state_, kInitRequired);
+@@ -208,7 +208,7 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
+   return true;
+ }
+ 
+-VoiceProcessingAudioUnit::State VoiceProcessingAudioUnit::GetState() const {
++AudioUnitInterface::State VoiceProcessingAudioUnit::GetState() const {
+   return state_;
+ }
+ 
