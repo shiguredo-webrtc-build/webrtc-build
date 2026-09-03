@@ -2,8 +2,8 @@
 
 - Created: 2026-09-03
 - Completed:
-- Branch: feature/m150.7871
-- Polished:
+- Branch: feature/add-ios-stereo-audio-output
+- Polished: 2026-09-03
 
 ## 目的
 
@@ -30,7 +30,7 @@ libwebrtc の iOS 向け Audio Device Module (ADM) はステレオ playout が�
 出力経路がモノラル前提になっている。
 
 - `RTCAudioSessionConfiguration` の `kRTCAudioSessionPreferredNumberOfChannels` が `1`（コメントに stereo 対応の TODO あり）
-- `VoiceProcessingAudioUnit::GetFormat` が `mChannelsPerFrame = 1` をハードコード
+- `VoiceProcessingAudioUnit::GetFormat` が `mChannelsPerFrame` に `kRTCAudioSessionPreferredNumberOfChannels`（= 1）を設定し、直前の `RTC_DCHECK_EQ(1, kRTCAudioSessionPreferredNumberOfChannels)` で 1 に固定されている
 - `AudioDeviceIOS::UpdateAudioDeviceBuffer` が playout `channels() == 1` を `RTC_DCHECK`
 - `AudioDeviceIOS::OnGetPlayoutData` が `mNumberChannels == 1` を `RTC_DCHECK`
 
@@ -75,8 +75,8 @@ Opus デコーダは SDP fmtp の `stereo=1` で 2ch にできる。ボトルネ
 - `AudioDeviceIOS::StereoPlayoutIsAvailable` が `record_parameters_.channels()` を参照している。`playout_parameters_` を参照すべきコピペミスで、playout 可否を recording 側の状態で判定してしまう
 - `AudioDeviceIOS::OnGetPlayoutData` に `mNumberChannels == 1` の `RTC_DCHECK` が残ったままで、ステレオ playout 時に Debug ビルドが即死する。`play_channels_` と比較する形へ差し替える
 - `RemoteIOAudioUnit` のデストラクタがヘッダ宣言のみで `.mm` に定義が無く、リンクエラーになり得る
-- `RemoteIOAudioUnit::CreateAudioUnit` から `GetFormat(sample_rate, 2)` と常に 2ch 固定で呼んでおり、`play_channels_` に連動していない。`GetFormat` の引数を動的に渡す
-- チャンネル数を `play_channels_` と `playout_parameters_.channels()` の二系統で管理しているが同期していない。`SetStereoPlayout` は `play_channels_` しか更新せず、`CreateAudioUnit` は `playout_parameters_.channels() == 2` で RemoteIO を選ぶため、設定経路によって AudioUnit 種別と実チャンネル数が食い違う。単一の source of truth に統一する
+- `RemoteIOAudioUnit::Initialize` の内部で `GetFormat(sample_rate, 2)` を 2 箇所で常に 2ch 固定で呼んでおり、`play_channels_` に連動していない。`GetFormat` の引数を動的に渡す
+- チャンネル数を `play_channels_` と `playout_parameters_.channels()` の二系統で管理しているが同期していない。`AudioDeviceIOS::SetStereoPlayout` は `play_channels_` しか更新せず、`AudioDeviceIOS::CreateAudioUnit` は `playout_parameters_.channels() == 2` で RemoteIO を選ぶため、設定経路によって AudioUnit 種別と実チャンネル数が食い違う。単一の source of truth に統一する
 
 ### 品質・未完事項
 
@@ -108,11 +108,12 @@ Opus デコーダは SDP fmtp の `stereo=1` で 2ch にできる。ボトルネ
 
 ## 完了条件
 
-- iOS 向けパッチが `patches/` に追加され、`feature/m150.7871` 上の iOS ビルドターゲットのパッチ適用リストに登録されていること
+- iOS 向けパッチが `patches/` に追加され、`run.py` の `PATCHES` dict に登録されていること。core 側（`sdk/objc/native/src/audio/` 配下の `audio_device_ios.mm` 等）を触る場合は `ios` と `ios_sdk` の両方に、SDK 拡張 API のみを追加する場合は `ios_sdk` のみに登録する
 - ステレオ出力有効時に `StereoPlayoutIsAvailable` / `SetStereoPlayout` が成功し、AudioUnit の playout 経路が 2ch で動作すること
+- SDK または利用側から iOS のステレオ出力を有効化できる経路（`RTCAudioDeviceModule` 相当の Objective-C API 拡張、または他の内部設定手段）が `ios_sdk` ビルド側から呼び出せること
 - 既定（ステレオ未指定）では従来どおりモノラル（VoiceChat / VPIO）の挙動を維持すること
 - 実機でステレオ再生が確認できること
-- AEC / AGC が使えないこと、Bluetooth（HFP / A2DP）の制約など、利用上の注意がパッチ解説または関連ドキュメントに残っていること
+- ステレオ出力有効時に AEC / AGC が使えないこと、Bluetooth（HFP / A2DP）の制約など、利用上の注意がパッチ解説または関連ドキュメントに残っていること
 - CHANGES.md に追記があること
 
 ## 変更履歴案
