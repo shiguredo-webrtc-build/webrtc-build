@@ -3,7 +3,7 @@
 - Created: 2026-09-03
 - Completed:
 - Branch: feature/add-android-stereo-audio-receive
-- Polished:
+- Polished: 2026-09-03
 
 ## 目的
 
@@ -38,11 +38,11 @@ Java 側 AudioTrack は生成時に固定の `AudioAttributes` を使う。`WebR
 
 Android の AudioPolicy は `USAGE_VOICE_COMMUNICATION` + `CONTENT_TYPE_SPEECH` を通話音声として扱い、STREAM_VOICE_CALL 系のミキサへルーティングされる。この経路では出力デバイスや音源が 2ch であっても実質モノラルへダウンミックスされる可能性がある (実機検証未実施の推測)。この推測は sora-android-sdk 0022 の「SDP 書き換えで `WebRtcAudioTrackExternal.initPlayout` が `channels=2` を出すところまで到達しても実機イヤホンでステレオ受信できない」現象と整合する。
 
-### AAudio 側
+### AAudio 側 (本 issue のスコープ外)
 
-`sdk/android/src/jni/audio_device/aaudio_wrapper.cc` は `AAudioStreamBuilder_setUsage` と `AAudioStreamBuilder_setContentType` を呼んでおらず、AAudio デフォルト (`USAGE_MEDIA` 相当) を使用する。AAudio 経路では上記の懸念は薄いが、明示指定が無いため OS バージョンやデバイスによって挙動が揺れる可能性がある。
+`sdk/android/src/jni/audio_device/aaudio_wrapper.cc` は `AAudioStreamBuilder_setUsage` と `AAudioStreamBuilder_setContentType` を呼んでおらず、AAudio デフォルト (`USAGE_MEDIA` 相当) を使用する。AAudio 経路では USAGE 経由のダウンミックスの懸念は薄い。
 
-Sora Android SDK は現状 `JavaAudioDeviceModule` を利用するため、通常は Java の `AudioTrack` 経路 (上記の USAGE_VOICE_COMMUNICATION 側) を通る。
+Sora Android SDK は現状 `JavaAudioDeviceModule` を利用するため、通常は Java の `AudioTrack` 経路 (上記の USAGE_VOICE_COMMUNICATION 側) を通り、AAudio 経路は使わない。したがって本 issue のスコープは Java の `AudioTrack` 経路のみとし、AAudio 経路の挙動安定化 (`setUsage` / `setContentType` の明示指定など) が必要になった場合は別 issue を切る。
 
 ## 設計方針
 
@@ -52,8 +52,8 @@ Sora Android SDK は現状 `JavaAudioDeviceModule` を利用するため、通�
    - 実機検証で受信ステレオが成立するなら、本 issue は closed する
 2. **受信ステレオが成立しなかった場合に選ぶパッチ案**
    - (a) `WebRtcAudioTrack.java` の `DEFAULT_USAGE` / デフォルト `CONTENT_TYPE` を切り替え可能にする。デフォルトは既存挙動のまま維持し、SDK 側から明示的に切り替えられる形が望ましい
-   - (b) `aaudio_wrapper.cc` で `AAudioStreamBuilder_setUsage` と `setContentType` を明示指定する (AAudio 経路のみ関係)
-   - (c) 実行時に `AudioAttributes` を差し替えられる公開 API を `JavaAudioDeviceModule` に追加する (`WebRtcAudioTrack` の再初期化を伴うため大がかりになる)
+   - (b) 実行時に `AudioAttributes` を差し替えられる公開 API を `JavaAudioDeviceModule` に追加する (`WebRtcAudioTrack` の再初期化を伴うため大がかりになる)
+   - AAudio 経路 (`aaudio_wrapper.cc` の `setUsage` / `setContentType` 明示指定) は Sora Android SDK が通らないため本 issue の対象外とする
 3. **既定挙動を破壊しないこと**
    - 通常の VoIP 用途 (モノラル VoIP、Bluetooth SCO ルーティング、通話音量) の挙動を壊さないパッチ形態にする
    - ステレオ有効時のみ挙動を変える形を優先する
@@ -62,7 +62,7 @@ Sora Android SDK は現状 `JavaAudioDeviceModule` を利用するため、通�
 
 - shiguredo/sora-android-sdk 0081 / 0082 の対応後の実機検証結果が揃っていること
 - 実機検証で libwebrtc パッチが不要と判明した場合は、その結果を本 issue に記録して closed にすること
-- 必要と判明した場合は上記 (a) / (b) / (c) のいずれかを `patches/` に追加し、`feature/m150.7871` 上の Android ビルドターゲットのパッチ適用リストに登録すること
+- 必要と判明した場合は上記 (a) / (b) のいずれかを `patches/` に追加し、`run.py` の `PATCHES` dict の Android ビルドターゲットに登録すること。core 側 (`sdk/android/api/org/webrtc/audio/` や `sdk/android/src/java/org/webrtc/audio/` 配下) を触るため、`android` と `android_sdk` の両方に登録する
 - 通常の VoIP 用途 (モノラル VoIP) の実機動作にレグレッションが無いこと
 - 追加したパッチの解説を `patches/README.md` に記載すること
 - CHANGES.md に追記があること
