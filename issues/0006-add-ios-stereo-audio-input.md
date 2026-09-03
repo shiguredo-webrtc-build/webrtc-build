@@ -66,6 +66,27 @@ Opus エンコーダは SDP fmtp の `stereo=1` で 2ch にできる。ボトル
 - 内蔵マイクの L/R 役割設定、ステレオマイクの挿抜などデバイスハンドリングが未整備
 - モノラルマイクしかない場合のフォールバックが未整理
 
+## 過去試作パッチの既知バグと未完事項
+
+過去試作は `feature/ios-stereo-audio` ブランチの `patches/ios_stereo_audio.patch` にある。新規パッチが試作を再利用する場合、少なくとも次は必ず対処すること。
+
+### 致命的・重要な残存バグ（recording 経路）
+
+- `RemoteIOAudioUnit::Init` に入力側の配線が欠落している。upstream の `VoiceProcessingAudioUnit::Init` に相当する入力 bus の `kAudioOutputUnitProperty_EnableIO` 有効化と、`kAudioOutputUnitProperty_SetInputCallback` による `OnDeliverRecordedData` の登録を追加しないと、ステレオ以前に録音自体が成立しない
+- `AudioDeviceIOS::SetStereoRecording` の失敗時エラー報告が `kStereoPlayoutFailed` になっている。`kStereoRecordingFailed` に修正する
+- `RemoteIOAudioUnit` のデストラクタがヘッダ宣言のみで `.mm` に定義が無く、リンクエラーになり得る
+- `RemoteIOAudioUnit::CreateAudioUnit` から `GetFormat(sample_rate, 2)` と常に 2ch 固定で呼んでおり、`rec_channels_` に連動していない。`GetFormat` の引数を動的に渡す
+- チャンネル数を `rec_channels_` と `record_parameters_.channels()` の二系統で管理しているが同期していない。`SetStereoRecording` は `rec_channels_` しか更新せず、`CreateAudioUnit` は `record_parameters_.channels() == 2` で RemoteIO を選ぶため、設定経路によって AudioUnit 種別と実チャンネル数が食い違う。単一の source of truth に統一する
+
+### 品質・未完事項
+
+- 内蔵マイクのステレオ向き設定が `AVAudioStereoOrientationLandscapeRight` 決め打ちになっており、端末の姿勢や利用側からの制御に追従できない
+- `STEREO_LOG:` の暫定デバッグログが本番パッチに残っているため削除する
+- `RTCAudioSessionConfiguration.m` の hunk が空行追加のみで意味を持たない
+- タブとスペースのインデントが混在している
+- 対象ベースが m138 系のため、`feature/m150.7871` への再ベースが必須
+- VPIO から RemoteIO へ切り替える結果として AEC / AGC が失われる点を、パッチのヘッダコメントまたは関連ドキュメントに必ず明記する
+
 ## 設計方針
 
 1. **パッチで iOS ADM のステレオ recording 経路を実装する**
