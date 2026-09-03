@@ -66,6 +66,27 @@ Opus デコーダは SDP fmtp の `stereo=1` で 2ch にできる。ボトルネ
 - ステレオイヤホンの挿抜などデバイスハンドリングが未整備
 - Bluetooth は HFP だとモノラル、A2DP ならステレオ可。カテゴリオプションの扱いは影響範囲の整理とドキュメントが必要
 
+## 過去試作パッチの既知バグと未完事項
+
+過去試作は `feature/ios-stereo-audio` ブランチの `patches/ios_stereo_audio.patch` にある。新規パッチが試作を再利用する場合、少なくとも次は必ず対処すること。
+
+### 致命的・重要な残存バグ（playout 経路）
+
+- `AudioDeviceIOS::StereoPlayoutIsAvailable` が `record_parameters_.channels()` を参照している。`playout_parameters_` を参照すべきコピペミスで、playout 可否を recording 側の状態で判定してしまう
+- `AudioDeviceIOS::OnGetPlayoutData` に `mNumberChannels == 1` の `RTC_DCHECK` が残ったままで、ステレオ playout 時に Debug ビルドが即死する。`play_channels_` と比較する形へ差し替える
+- `RemoteIOAudioUnit` のデストラクタがヘッダ宣言のみで `.mm` に定義が無く、リンクエラーになり得る
+- `RemoteIOAudioUnit::CreateAudioUnit` から `GetFormat(sample_rate, 2)` と常に 2ch 固定で呼んでおり、`play_channels_` に連動していない。`GetFormat` の引数を動的に渡す
+- チャンネル数を `play_channels_` と `playout_parameters_.channels()` の二系統で管理しているが同期していない。`SetStereoPlayout` は `play_channels_` しか更新せず、`CreateAudioUnit` は `playout_parameters_.channels() == 2` で RemoteIO を選ぶため、設定経路によって AudioUnit 種別と実チャンネル数が食い違う。単一の source of truth に統一する
+
+### 品質・未完事項
+
+- `STEREO_LOG:` の暫定デバッグログが本番パッチに残っているため削除する
+- `RTCAudioSessionConfiguration.m` の hunk が空行追加のみで意味を持たない
+- タブとスペースのインデントが混在している
+- 対象ベースが m138 系のため、`feature/m150.7871` への再ベースが必須
+- VPIO から RemoteIO へ切り替える結果として AEC / AGC が失われる点を、パッチのヘッダコメントまたは関連ドキュメントに必ず明記する
+- 送受信共通で単一の RemoteIO を使う構成にする場合は、`0006-add-ios-stereo-audio-input` 側で扱う入力 bus の配線（`kAudioOutputUnitProperty_EnableIO` と `SetInputCallback`）を欠落させないよう整合を取ること
+
 ## 設計方針
 
 1. **パッチで iOS ADM のステレオ playout 経路を実装する**
