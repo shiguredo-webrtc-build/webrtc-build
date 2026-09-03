@@ -1,7 +1,7 @@
 # RemoteIOAudioUnit の親クラスとの重複を整理する
 
 - Created: 2026-09-03
-- Completed:
+- Completed: 2026-09-03
 - Branch: feature/refactor-remote-io-audio-unit-duplication
 - Polished:
 
@@ -38,3 +38,15 @@
 ## 変更履歴案
 
 - [UPDATE] RemoteIOAudioUnit の親クラスとの重複を整理する
+
+## 解決方法
+
+本 issue は着手せず closed にする。上位の設計判断で issue の前提そのものが崩れたため。
+
+- 0005 (`iOS のステレオ音声出力に対応する`) の PR #171 は「継承前提の設計が upstream の `VoiceProcessingAudioUnit` を無理やり派生用に改変しており品質上マージできない」との判断で close された
+- 0005 の設計方針を **AudioUnitInterface 抽象クラスを導入し、`VoiceProcessingAudioUnit` と `RemoteIOAudioUnit` はそれぞれ独立に interface を実装する** 方式に転換した (`0005-add-ios-stereo-audio-output.md` の「## 設計方針」参照)
+- 新方針では `RemoteIOAudioUnit` は最初から `VoiceProcessingAudioUnit` を継承しない。したがって「派生クラスと親クラスの重複を整理する」という本 issue の前提自体が発生しない
+- Init のプロパティ設定シーケンスと Initialize のリトライループは新方針でも VP と RIO で似た形になるが、これは **共有せず独立に持つことを許容する** と 0005 の設計方針で明示している (upstream 追従で片方だけ古くなるリスクは独立性で管理する)
+- 定数 (`kInputBus` / `kOutputBus` / `kMaxNumberOfAudioUnitInitializeAttempts`) の重複、`~RemoteIOAudioUnit()` の空実装の話も、新実装の中で自然な形で決まる (`= default` にするかどうかは実装時判断) ので独立 issue で追跡する必要がない
+
+新実装で同種の重複整理を後追いで整理したくなった場合は、その時点で別 issue を立てる。
