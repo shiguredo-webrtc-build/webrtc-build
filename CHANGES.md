@@ -29,6 +29,10 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-09-03 [ADD] iOS のステレオ音声出力に対応する
+  - `RTCAudioDeviceModule` に `setStereoPlayoutEnabled:` と `stereoPlayoutEnabled` を追加する
+  - ステレオ有効時のみ `RemoteIO` に切り替え、ハードウェア AEC / AGC が失われることに注意
+  - @voluntas
 - 2026-07-17 [RELEASE] m150.7871.3.1
   - @t-miya
 - 2026-07-16 [UPDATE] ARM 向け sysroot 生成を独自実装へ移行する
