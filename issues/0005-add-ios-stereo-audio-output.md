@@ -1,7 +1,7 @@
 # iOS のステレオ音声出力に対応する
 
 - Created: 2026-09-03
-- Completed:
+- Completed: 2026-09-03
 - Branch: feature/add-ios-stereo-audio-output
 - Polished: 2026-09-03
 
@@ -119,3 +119,64 @@ Opus デコーダは SDP fmtp の `stereo=1` で 2ch にできる。ボトルネ
 ## 変更履歴案
 
 - [ADD] iOS のステレオ音声出力に対応する
+
+## 解決方法
+
+### 追加した成果物
+
+- `patches/ios_stereo_audio_output.patch`: libwebrtc iOS ADM のステレオ playout 経路と SDK 公開 API を単一パッチで追加
+- `patches/ios_stereo_audio_output.md`: パッチの解説と利用上の注意 (AEC/AGC 喪失、mode 切替、Bluetooth 制約、マイク権限、呼び出しタイミング、実機検証の必要性)
+- `run.py` の `PATCHES["ios_sdk"]` に `ios_audio_pause_resume.patch` の直後として登録
+
+### 実装した変更
+
+- `AudioDeviceIOS`
+  - `StereoPlayoutIsAvailable` / `SetStereoPlayout` / `StereoPlayout` を実装し、`playout_parameters_.channels()` を単一の source of truth として参照
+  - `UpdateAudioDeviceBuffer` の playout モノラル DCHECK を削除
+  - `OnGetPlayoutData` の `mNumberChannels == 1` ハードコード DCHECK を動的比較へ差し替え
+  - `CreateAudioUnit` を stereo 有効時のみ `RemoteIOAudioUnit` を選ぶ形に分岐
+  - `ConfigureAudioSession` / `ConfigureAudioSessionLocked` で stereo 有効時のみ AVAudioSession の mode を `AVAudioSessionModeDefault` に一時差し替え、`@try/@finally` で復元を保証
+  - stereo 関連 3 関数 (`StereoPlayoutIsAvailable` / `SetStereoPlayout` / `StereoPlayout`) に `RTC_DCHECK_RUN_ON(thread_)` を付与
+- `VoiceProcessingAudioUnit`
+  - デストラクタ、`Init`、`Initialize` を virtual 化
+  - private セクション全体を protected に格上げし、`RemoteIOAudioUnit` から static コールバック等にアクセス可能にする
+- `RemoteIOAudioUnit` (新規)
+  - `VoiceProcessingAudioUnit` を継承し `kAudioUnitSubType_RemoteIO` を使う
+  - `Init` で入力/出力 bus を両方 EnableIO し、`OnGetPlayoutData` と `OnDeliverRecordedData` の両コールバックを登録 (入力配線を欠くと stereo playout 時に recording が壊れるため必ず配線)
+  - `Initialize` で `play_channels_` / `rec_channels_` を反映した stream format を設定
+  - デストラクタ実装を `.mm` に明示的に置く
+- `RTCAudioDeviceModule` (SDK 公開 API)
+  - `setStereoPlayoutEnabled:` と `stereoPlayoutEnabled` を追加。docstring に呼び出し順序・スレッド・副作用・戻り値を明記
+- `sdk/BUILD.gn` に `remote_io_audio_unit.h/.mm` を追加
+
+### 設計判断
+
+- **登録先は `ios_sdk` のみ**: 完了条件は「core を触る場合は `ios` と `ios_sdk` の両方」と書いているが、本パッチは `ios_audio_pause_resume.patch` が作る `RTCAudioDeviceModule` に依存する SDK 拡張と一体で提供されるため `ios_sdk` にのみ登録。raw `ios` ビルド (Sora C++ SDK 相当) には本機能は含まれない。パッチ md でこの割り切りを明記
+- **SDK API はメソッド方式**: `RTCAudioSessionConfiguration` シングルトンを SDK 利用者が触る方式は捨て、`RTCAudioDeviceModule` にメソッド追加 (`setStereoPlayoutEnabled:` / `stereoPlayoutEnabled`) する形にした。既存 `pauseRecording` / `resumeRecording` と一貫し、意図が明示的で型が効く
+- **単一の source of truth**: `AudioDeviceIOS` 側に `play_channels_` メンバは持たず、`playout_parameters_.channels()` に一本化。過去試作が持っていた二系統管理の食い違いバグを構造的に排除
+
+### 実機検証
+
+本パッチは iOS 実機での 2ch playout 動作を自動テストで確認できない。CI (`build.yml`) は `ios` / `ios_sdk` のビルド成功 (パッチ適用と compile pass) までカバーするが、実行時挙動 (`setStereoPlayoutEnabled:YES` 呼び出し後に AudioUnit の 2ch stream format が実際に L/R 別々の音として出るか、既定 mono パスに影響がないか) はマージ前に実機での聴感確認が必要。
+
+### 保留した改善事項
+
+以下は本パッチのスコープ外とし、必要になれば別 issue で扱う。
+
+- `RemoteIOAudioUnit::Init` / `Initialize` の大部分が `VoiceProcessingAudioUnit` と重複している (Init のプロパティ設定シーケンス、Initialize の `AudioUnitInitialize` リトライループ)。upstream 追従保守のため hook 化する余地がある
+- `kInputBus` / `kOutputBus` / `kMaxNumberOfAudioUnitInitializeAttempts` が親クラスの .mm と派生クラスの .mm で同一値の重複定義
+- `~RemoteIOAudioUnit` を `= default` にすれば .mm 側の空実装を削れる
+- SDK API を将来 recording 側 (0006) と足並みを揃える際、個別メソッドを増やすか `RTCAudioDeviceModuleConfiguration` 相当の設定オブジェクトに集約するかの判断
+- md の読み順を SDK 利用者向けと開発者向けで節分けする再構成余地
+- SDK 側 API 呼び出し例に Objective-C 版のスニペットも用意する余地
+
+### review-diff-code ループ結果
+
+3 周 (本審 + 深掘り 2 周) 実施。以下を反映して致命的 0 件・重要 0 件で終了。
+
+- Round 1 致命的 1 件: `voice_processing_audio_unit.h` の `OnGetPlayoutData` / `OnDeliverRecordedData` が private のまま派生から参照されコンパイルエラー → private セクション全体を protected に格上げ
+- Round 1 重要 3 件: `RTCAudioSessionConfiguration.mode` 一時書き換えを `@try/@finally` で保証、パッチ内コメントから `0006` 除去、`RemoteIOAudioUnit::CreateAudioUnit` という存在しないシンボル名の削除 (実際は `Initialize`)
+- Round 2 重要 1 件: `setStereoPlayoutEnabled:` docstring にスレッド制約と `Init` 副作用を追記
+- Round 2 重要 1 件: `AudioDeviceIOS` の stereo 3 関数に `RTC_DCHECK_RUN_ON(thread_)` を追加
+- Round 3 重要 1 件: `stereoPlayoutEnabled` (getter) の docstring にスレッド制約を追記
+- 副次: md の「呼び出し順序」「Terminate 跨ぎ」節を「呼び出しタイミングとスレッドの制約」に統合。マイク権限必須の注記と Bluetooth A2DP category option 未設定の注記を追加
