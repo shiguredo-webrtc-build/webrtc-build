@@ -615,7 +615,7 @@ new file mode 100644
 index 0000000..bb1c0f1
 --- /dev/null
 +++ b/sdk/objc/native/src/audio/remote_io_audio_unit.mm
-@@ -0,0 +1,396 @@
+@@ -0,0 +1,397 @@
 +/*
 + *  Copyright 2016 The WebRTC Project Authors. All rights reserved.
 + *
