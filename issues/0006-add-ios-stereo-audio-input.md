@@ -2,8 +2,8 @@
 
 - Created: 2026-09-03
 - Completed:
-- Branch: feature/m150.7871
-- Polished:
+- Branch: feature/add-ios-stereo-audio-input
+- Polished: 2026-09-03
 
 ## 目的
 
@@ -30,7 +30,7 @@ libwebrtc の iOS 向け Audio Device Module (ADM) はステレオ recording が
 入力経路がモノラル前提になっている。
 
 - `RTCAudioSessionConfiguration` の `kRTCAudioSessionPreferredNumberOfChannels` が `1`
-- `VoiceProcessingAudioUnit::GetFormat` が `mChannelsPerFrame = 1` をハードコード
+- `VoiceProcessingAudioUnit::GetFormat` が `mChannelsPerFrame` に `kRTCAudioSessionPreferredNumberOfChannels`（= 1）を設定し、直前の `RTC_DCHECK_EQ(1, kRTCAudioSessionPreferredNumberOfChannels)` で 1 に固定されている
 - `AudioDeviceIOS::UpdateAudioDeviceBuffer` が recording `channels() == 1` を `RTC_DCHECK`
 - 録音コールバック側もモノラル前提のバッファ扱いになっている
 
@@ -75,8 +75,8 @@ Opus エンコーダは SDP fmtp の `stereo=1` で 2ch にできる。ボトル
 - `RemoteIOAudioUnit::Init` に入力側の配線が欠落している。upstream の `VoiceProcessingAudioUnit::Init` に相当する入力 bus の `kAudioOutputUnitProperty_EnableIO` 有効化と、`kAudioOutputUnitProperty_SetInputCallback` による `OnDeliverRecordedData` の登録を追加しないと、ステレオ以前に録音自体が成立しない
 - `AudioDeviceIOS::SetStereoRecording` の失敗時エラー報告が `kStereoPlayoutFailed` になっている。`kStereoRecordingFailed` に修正する
 - `RemoteIOAudioUnit` のデストラクタがヘッダ宣言のみで `.mm` に定義が無く、リンクエラーになり得る
-- `RemoteIOAudioUnit::CreateAudioUnit` から `GetFormat(sample_rate, 2)` と常に 2ch 固定で呼んでおり、`rec_channels_` に連動していない。`GetFormat` の引数を動的に渡す
-- チャンネル数を `rec_channels_` と `record_parameters_.channels()` の二系統で管理しているが同期していない。`SetStereoRecording` は `rec_channels_` しか更新せず、`CreateAudioUnit` は `record_parameters_.channels() == 2` で RemoteIO を選ぶため、設定経路によって AudioUnit 種別と実チャンネル数が食い違う。単一の source of truth に統一する
+- `RemoteIOAudioUnit::Initialize` の内部で `GetFormat(sample_rate, 2)` を 2 箇所で常に 2ch 固定で呼んでおり、`rec_channels_` に連動していない。`GetFormat` の引数を動的に渡す
+- チャンネル数を `rec_channels_` と `record_parameters_.channels()` の二系統で管理しているが同期していない。`AudioDeviceIOS::SetStereoRecording` は `rec_channels_` しか更新せず、`AudioDeviceIOS::CreateAudioUnit` は `record_parameters_.channels() == 2` で RemoteIO を選ぶため、設定経路によって AudioUnit 種別と実チャンネル数が食い違う。単一の source of truth に統一する
 
 ### 品質・未完事項
 
@@ -108,11 +108,12 @@ Opus エンコーダは SDP fmtp の `stereo=1` で 2ch にできる。ボトル
 
 ## 完了条件
 
-- iOS 向けパッチが `patches/` に追加され、`feature/m150.7871` 上の iOS ビルドターゲットのパッチ適用リストに登録されていること
+- iOS 向けパッチが `patches/` に追加され、`run.py` の `PATCHES` dict に登録されていること。core 側（`sdk/objc/native/src/audio/` 配下の `audio_device_ios.mm` 等）を触る場合は `ios` と `ios_sdk` の両方に、SDK 拡張 API のみを追加する場合は `ios_sdk` のみに登録する
 - ステレオ入力有効時に `StereoRecordingIsAvailable` / `SetStereoRecording` が成功し、AudioUnit の recording 経路が 2ch で動作すること
+- SDK または利用側から iOS のステレオ入力を有効化できる経路（`RTCAudioDeviceModule` 相当の Objective-C API 拡張、または他の内部設定手段）が `ios_sdk` ビルド側から呼び出せること
 - 既定（ステレオ未指定）では従来どおりモノラル（VoiceChat / VPIO）の挙動を維持すること
 - 実機でステレオ録音（送信）が確認できること
-- AEC / AGC が使えないこと、モノラルマイク時の挙動など、利用上の注意がパッチ解説または関連ドキュメントに残っていること
+- ステレオ入力有効時に AEC / AGC が使えないこと、モノラルマイク時の挙動など、利用上の注意がパッチ解説または関連ドキュメントに残っていること
 - CHANGES.md に追記があること
 
 ## 変更履歴案
