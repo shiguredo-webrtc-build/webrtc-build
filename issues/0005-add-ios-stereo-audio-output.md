@@ -1,7 +1,7 @@
 # iOS のステレオ音声出力に対応する
 
 - Created: 2026-09-03
-- Completed:
+- Completed: 2026-09-03
 - Branch: feature/add-ios-stereo-playout
 - Polished: 2026-09-03
 
@@ -130,3 +130,67 @@ Opus デコーダは SDP fmtp の `stereo=1` で 2ch にできる。ボトルネ
 ## 変更履歴案
 
 - [ADD] iOS のステレオ音声出力に対応する
+
+## 解決方法
+
+### 追加した成果物
+
+- `patches/ios_stereo_audio_output.patch` (1128 行): AudioUnitInterface 抽象クラス導入 + `VoiceProcessingAudioUnit` への継承追加 + `RemoteIOAudioUnit` 独立実装 + `AudioDeviceIOS` の State 参照書き換え (17 箇所) + `RTCAudioDeviceModule` に stereo 制御メソッド追加を単一パッチで実現
+- `patches/ios_stereo_audio_output.md` (113 行): パッチ解説 (SDK 利用者向け節と開発者向け節に分割)
+- `run.py` の `PATCHES["ios_sdk"]` に `ios_audio_pause_resume.patch` の直後として登録
+
+### 実装した設計
+
+- **新規 abstract class `AudioUnitInterface`** (`sdk/objc/native/src/audio/audio_unit_interface.h`)
+  - pure virtual メソッド: `Init` / `Initialize(sample_rate)` / `Start` / `Stop` / `Uninitialize` / `SetMicrophoneMute(bool)` / `Render(...)` / `GetState()`
+  - `State { kInitRequired, kUninitialized, kInitialized, kStarted }` を interface 側に集約
+  - `kBytesPerSample` も interface 側に集約
+- **`VoiceProcessingAudioUnit` への upstream 変更は最小改造** (継承追加 + `override` + State enum 削除のみ)。private セクションの protected 昇格や既存メソッドの virtual 後付けはしない
+- **`RemoteIOAudioUnit` は VoiceProcessingAudioUnit を継承せず、AudioUnitInterface を直接実装した完全独立クラス** として実装
+  - `componentSubType = kAudioUnitSubType_RemoteIO`
+  - 入力 bus / 出力 bus の両方に `EnableIO` と対応コールバック (`OnGetPlayoutData` / `OnDeliverRecordedData`) を配線
+  - `GetFormat(sample_rate, channels)` で play / rec 個別のチャンネル数を扱う
+  - `~RemoteIOAudioUnit()` は `= default` にせず `DisposeAudioUnit()` を明示的に呼ぶ (Core Audio 資源リーク回避)
+- **`AudioDeviceIOS::audio_unit_` の型を `std::unique_ptr<AudioUnitInterface>` に変更**
+  - `CreateAudioUnit` で stereo 有効時のみ `RemoteIOAudioUnit` を生成
+  - `VoiceProcessingAudioUnit::kInitialized` 等の 17 箇所を `AudioUnitInterface::kInitialized` 等に機械的に書き換え
+  - State ログのラベルを `VPAU state:` から `AudioUnit state:` に変更 (RemoteIO 使用時にも同じログが出るため汎化)
+- **`AudioDeviceIOS::SetStereoPlayout` / `StereoPlayoutIsAvailable` / `StereoPlayout` を実装**
+  - `playout_parameters_.channels()` を単一の source of truth
+  - `SetStereoPlayout` に `audio_is_initialized_` チェック (状態遷移ガード)
+  - 3 関数に `RTC_DCHECK_RUN_ON(thread_)` を付与
+  - `UpdateAudioDeviceBuffer` の playout モノラル DCHECK 削除、`OnGetPlayoutData` の DCHECK を動的比較に置換
+- **`ConfigureAudioSession` / `ConfigureAudioSessionLocked` で stereo 有効時のみ mode を `AVAudioSessionModeDefault` に一時差し替え**
+  - 復元は `@try/@finally` で保証
+  - setup を `lockForConfiguration` より前に置き、setup が例外を投げても未 lock 状態で抜ける形に整理
+- **SDK 公開 API**: `RTCAudioDeviceModule` に `setStereoPlayoutEnabled:` と `stereoPlayoutEnabled` を追加。docstring に呼び出し順序・スレッド・副作用 (Init 冪等呼び出し / RemoteIO 切替 / AEC/AGC 喪失 / mode 切替) を明記
+
+### 主な設計判断
+
+- **VoiceProcessingAudioUnit を継承させず独立実装**: 前回 PR #171 の継承前提設計は upstream の VP を無理やり派生用に改造しており品質上マージ不可だった。今回は AudioUnitInterface 経由で独立実装することで upstream 変更を最小化 (継承 + override 追加のみ)
+- **`RemoteIOAudioUnit::SetMicrophoneMute` は no-op で true を返す**: RemoteIO には VoiceProcessing 由来のマイクミュート機構がない。false 返却だと `ReinitAudioUnitForMicrophoneMute` がエラー扱いになるため no-op で true。組み合わせないでほしい旨は md 側に集約
+- **登録先は `ios_sdk` のみ**: 依存する `ios_audio_pause_resume.patch` が `ios_sdk` のみ登録されている先例踏襲。raw `ios` ビルドには本機能は含まれない
+- **`preferredOutputNumberOfChannels` は 1 のまま据え置き**: 実チャンネル数は RemoteIO の stream format で決まるためシングルトンを触らずに済ませる
+- **mode 一時差し替えのみシングルトンを触る**: VoiceChat のままだと 1ch にクランプされるため mode 差し替えは避けられない。`@try/@finally` で復元保証し、書き換え窓を最小化
+
+### 実機検証
+
+CI (`build.yml`) は macOS runner で `ios` / `ios_sdk` のビルド成功 (パッチ適用と compile pass) までカバーする。実行時挙動 (2ch 出力が実際に L/R 別々の音として出るか、既定 mono パスに影響がないか、Bluetooth A2DP でのステレオ挙動、マイク権限有無での成否) はマージ前に iOS 実機での聴感確認が必要。詳細な検証項目は `patches/ios_stereo_audio_output.md` の「実機検証」節を参照。
+
+### 保留した改善事項
+
+以下はスコープ外とし、必要になれば別 issue で扱う。
+
+- `ConfigureAudioSession` と `ConfigureAudioSessionLocked` のロジック重複 (ヘルパ関数化で解消可能)
+- `AudioUnitInterface` に `SetMicrophoneMute` を含める設計 (Interface Segregation 観点では望ましくないが、既存 shape 維持のため現状維持)
+- md の追加改善は `0009-doc-improve-ios-stereo-audio-output-md` で扱う予定
+
+### review-diff-code ループ結果
+
+3 周実施、致命的 0 件・重要 0 件で終了。
+
+- Round 1 致命的 1 反映: `~RemoteIOAudioUnit() = default` による Core Audio 資源リークを実定義 + `DisposeAudioUnit()` 呼び出しに修正
+- Round 1 重要 5 反映: SetStereoPlayout の状態遷移ガード、md 注記追加 3 件 (pauseRecording 形骸化 / bypass 無視 / mode 一時差し替え設計判断)、パッチ内「本 issue」除去
+- Round 2 重要 1 反映: `ConfigureAudioSession` の lockForConfiguration を setup 後・@try 前に配置
+- Round 3 重要 1 反映: `VPAU state:` ログラベルを `AudioUnit state:` に汎化
+- 改善レベル数件を並行反映 (docstring 戻り値記述、SetMicrophoneMute コメント整理、md 表記統一等)
