@@ -29,6 +29,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-09-04 [RELEASE] m150.7871.3.2
+  - @voluntas
 - 2026-09-03 [ADD] iOS のステレオ音声出力に対応する
   - `AudioUnitInterface` 抽象クラスを導入し、`VoiceProcessingAudioUnit` と `RemoteIOAudioUnit` を独立実装として切り替える設計
   - `RTCAudioDeviceModule` に `setStereoPlayoutEnabled:` / `stereoPlayoutEnabled` を追加
