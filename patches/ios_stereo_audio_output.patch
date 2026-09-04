@@ -365,14 +365,13 @@ index d64e5e4..4dcc156 100644
      BOOL result = audio_unit_->SetMicrophoneMute(enable);
      if (!result) {
        RTCLogError(@"Set microphone %s failed.", enable ? "mute" : "unmute");
-@@ -1290,17 +1344,36 @@ static void LogDeviceInfo() {
+@@ -1290,17 +1344,35 @@ static void LogDeviceInfo() {
  }
  
  int32_t AudioDeviceIOS::StereoPlayoutIsAvailable(bool& available) {
 -  available = false;
 +  RTC_DCHECK_RUN_ON(thread_);
 +  // playout_parameters_ を単一の source of truth として使う。
-+  // 別途 play_channels_ のようなメンバを持たない。
 +  available = (playout_parameters_.channels() == 2);
    return 0;
  }
@@ -411,7 +410,7 @@ new file mode 100644
 index 0000000..d1a8ae0
 --- /dev/null
 +++ b/sdk/objc/native/src/audio/audio_unit_interface.h
-@@ -0,0 +1,79 @@
+@@ -0,0 +1,76 @@
 +/*
 + *  Copyright 2016 The WebRTC Project Authors. All rights reserved.
 + *
@@ -432,13 +431,10 @@ index 0000000..d1a8ae0
 +
 +// iOS ADM が扱う AudioUnit ラッパーの抽象基底クラス。
 +// VoiceProcessingIO 実装と RemoteIO 実装をランタイムで切り替えるための
-+// 共通インタフェースを提供する。両実装は本 interface を独立に実装し、
-+// 派生クラス間の継承関係は持たない。
++// 共通インタフェースを提供する。
 +class AudioUnitInterface {
 + public:
 +  // AudioUnit のライフサイクル状態。
-+  // VoiceProcessingAudioUnit の従来定義をそのまま interface 側に移し、
-+  // 参照コードは AudioUnitInterface::kInitialized 等でアクセスする。
 +  enum State : int32_t {
 +    // Init() を呼ぶ必要がある状態。
 +    kInitRequired,
@@ -496,7 +492,7 @@ new file mode 100644
 index 0000000..4013948
 --- /dev/null
 +++ b/sdk/objc/native/src/audio/remote_io_audio_unit.h
-@@ -0,0 +1,113 @@
+@@ -0,0 +1,112 @@
 +/*
 + *  Copyright 2016 The WebRTC Project Authors. All rights reserved.
 + *
@@ -521,8 +517,7 @@ index 0000000..4013948
 +// AudioUnitInterface の RemoteIO 実装。
 +// VoiceProcessingIO ではステレオ playout が事実上成立しないため、
 +// ステレオ出力有効時のみ AudioDeviceIOS がこの実装を選択する。
-+// VoiceProcessingAudioUnit を継承しない独立実装であり、内部の
-+// AudioUnit インスタンス、状態、コールバック配線をすべて自前で持つ。
++// AudioUnit インスタンス、状態、コールバック配線を自前で持つ。
 +// AEC / AGC は VoiceProcessingIO 固有機能であり RemoteIO 使用時は失われる。
 +class RemoteIOAudioUnit : public AudioUnitInterface {
 + public:
@@ -615,7 +610,7 @@ new file mode 100644
 index 0000000..bb1c0f1
 --- /dev/null
 +++ b/sdk/objc/native/src/audio/remote_io_audio_unit.mm
-@@ -0,0 +1,397 @@
+@@ -0,0 +1,394 @@
 +/*
 + *  Copyright 2016 The WebRTC Project Authors. All rights reserved.
 + *
@@ -636,8 +631,7 @@ index 0000000..bb1c0f1
 +namespace ios_adm {
 +
 +// AudioUnitInitialize がまれに一時失敗するので、短い sleep を挟んで
-+// リトライする回数の上限。VoiceProcessingAudioUnit と同じ方針だが、
-+// RemoteIO 実装として独立に持つ。
++// リトライする回数の上限。
 +static const int kMaxNumberOfAudioUnitInitializeAttempts = 5;
 +// RemoteIO の入力バス (マイク) は 1 に固定されている。
 +static const AudioUnitElement kInputBus = 1;
@@ -659,9 +653,7 @@ index 0000000..bb1c0f1
 +}
 +
 +RemoteIOAudioUnit::~RemoteIOAudioUnit() {
-+  // VoiceProcessingAudioUnit と同じく、破棄時に AudioUnit を必ず解放する。
-+  // = default では AudioComponentInstanceDispose が呼ばれず Core Audio 資源が
-+  // リークするため、明示的に DisposeAudioUnit を呼ぶ実装を .mm 側に置く。
++  // 破棄時に AudioUnit を必ず解放する。
 +  DisposeAudioUnit();
 +}
 +

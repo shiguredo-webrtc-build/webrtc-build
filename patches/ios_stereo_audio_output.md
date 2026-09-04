@@ -75,7 +75,6 @@ RTCPeerConnectionFactory *factory =
 - 標準の libwebrtc iOS ADM (`AudioDeviceIOS`) は `StereoPlayoutIsAvailable` / `SetStereoPlayout` / `StereoPlayout` が `Not implemented` のスタブ実装であり、実際に呼び出しても常にモノラルに潰される
 - 出力経路の AudioUnit も `VoiceProcessingIO` + `mChannelsPerFrame = 1` 固定になっており、`OnGetPlayoutData` / `UpdateAudioDeviceBuffer` で `mNumberChannels == 1` を `RTC_DCHECK` している
 - Opus デコーダは SDP fmtp `stereo=1` で 2ch を出せるため、ボトルネックは ADM から AudioUnit までの playout 経路である
-- 過去の試作 (`patches/ios_stereo_audio.patch`) は継承ベースだったが、`VoiceProcessingAudioUnit` の private 昇格や virtual 後付けを含み upstream 追従が難しくなるため未マージのまま閉じられていた
 
 ### 変更点の概要
 
