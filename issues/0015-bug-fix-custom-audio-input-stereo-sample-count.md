@@ -1,8 +1,8 @@
 # カスタム音声入力の inputData 経路で 2 ch の PCM が半分しか取り込まれない不具合を修正する
 
 - Created: 2026-09-07
-- Completed: {YYYY-MM-DD}
-- Branch: feature/m150.7871
+- Completed: 2026-09-07
+- Branch: feature/fix-custom-audio-input-stereo-sample-count
 - Polished: 2026-09-07
 
 ## 目的
@@ -34,7 +34,7 @@ upstream に存在する不具合に対し、webrtc-build の修正パッチで�
 
 Sora iOS SDK の PR #381 では、`DummyAudioDevice` が `renderBlock` を使って回避している。
 この回避は本体の修正ではなく、既存の stereo E2E テストの成功も `inputData` 経路の正常性を示さない。
-確認済みなのはソースコード上のサンプル数の不整合であり、専用の再現テストによる欠落量や受信音声への影響の測定は未実施である。
+起票時点で確認済みだったのはソースコード上のサンプル数の不整合であり、専用の再現テストによる欠落量の測定結果は「解決方法」に記録する。
 
 ## 設計方針
 
@@ -47,7 +47,8 @@ Sora iOS SDK の PR #381 では、`DummyAudioDevice` が `renderBlock` を使っ
 
 ## 対応ブランチと依存関係
 
-ユーザー指定により、`feature/m150.7871` で対応する。
+ユーザー指定により、`feature/m150.7871` をベースに作成した `feature/fix-custom-audio-input-stereo-sample-count` で対応する。
+PR のマージ先は `feature/m150.7871` とし、自動マージは行わない。
 issue 0011 から 0014 のネイティブ音声の改善とは独立して進める。
 修正ビルドを Sora iOS SDK の PR #381 に取り込む場合は、SDK issue 0130 の依存更新と合わせてバージョン、checksum、`WebRTCInfo` を揃える。
 ネイティブ stereo 録音を追加する既存 issue 0006 とは対象経路が異なる。
@@ -74,3 +75,27 @@ issue 0011 から 0014 のネイティブ音声の改善とは独立して進め
 - ビルド・検証結果とパッチの理由が記録され、upstream に由来する不具合であることが説明されている。
 
 ## 解決方法
+
+`objc_audio_device_input.patch` を追加し、`macos_arm64`、`ios`、`ios_sdk` に登録した。
+`inputData` から `FineAudioBuffer` に渡す要素数をフレーム数 × 録音チャンネル数に修正した。
+録音中はバッファ数、録音設定と入力のチャンネル数、バッファ長、データポインターを検査し、不正な入力には `kAudio_ParamError` を返す。
+長さの検査には除算を用い、後続のサンプル数の乗算が桁あふれしないことも保証する。
+エラー時と 0 フレーム入力時は、それまでの正常な PCM の蓄積を保持する。
+
+実際のカスタム ADM を使う回帰テストと実行スクリプトを追加した。
+音声デバイスと転送は、メモリー上で録音・再生する実装を使い、モック、スタブ、音声ハードウェアは使用していない。
+macOS の CI では、ソースの差し替えを行わず、ビルドした配布ライブラリそのものを検証する。
+
+- 修正前の `m150.7871.3.2` の配布ライブラリでは、48 kHz / 2 ch / 20 ms の入力が通知 1 回・960 サンプルになり、回帰テストが失敗することを再現した。
+- 修正後は、1 ch / 2 ch と `inputData` / `renderBlock` の全組み合わせで、通知 2 回と PCM の完全一致を確認した。2 ch は全 1,920 サンプルが届く。
+- 10 ms 境界をまたぐ分割入力、不正入力と 0 フレーム入力の前後での蓄積保持、余剰バッファ、未対応の録音チャンネル数も確認した。
+- 修正後の ObjC ADM を直接コンパイルするローカル検証は、AddressSanitizer / UndefinedBehaviorSanitizer 有効で成功した。既存の配布ライブラリ部分は再コンパイルしていない。
+- 既存 Python テスト 15 件、新規実行スクリプトの ruff / ty、差分の空白検査が成功した。既存の `run.py` と workflow に新しい lint 指摘はない。
+- 2 系統で 3 周レビューし、指摘を修正して再確認した結果、致命的・重要な指摘は 0 件となった。
+
+実装コミット `34727fc` の [CI](https://github.com/shiguredo-webrtc-build/webrtc-build/actions/runs/34074384867) で、ビルド 15 ジョブがすべて成功した。
+`macos_arm64`、`ios`、`ios_sdk` の既存パッチを含む適用、フルビルド、パッケージ作成、および macOS の配布ライブラリを使う回帰テストの成功を確認した。
+タグの push ではないため、リリース作成は実行されていない。
+
+[PR #173](https://github.com/shiguredo-webrtc-build/webrtc-build/pull/173) のベースは `feature/m150.7871` とし、ユーザー指定によりマージは行わない。
+Sora iOS SDK への依存更新と `renderBlock` による回避の除去は本対応に含めていない。
