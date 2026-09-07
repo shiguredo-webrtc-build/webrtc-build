@@ -22,19 +22,26 @@
 入力未初期化の状態でミュート解除を要求しても、入力を有効化しない。
 新しい入力不要プロファイルは追加しない。
 
-Sora iOS SDK は公開 API `setAudioHardMute` でステレオ時の操作を拒否している。
-SDK 側での解除は、本変更を含む依存ビルドへの更新と公開 API の統合検証が必要である。
-SDK の issue 0133 が扱う既存の入力初期化呼び出しの復元と、公開ハードミュートの制約解除は区別する。
+Sora iOS SDK の issue 0133 で、既存の入力初期化呼び出しの復元と、ステレオの初期ミュート・公開ハードミュートの制約解除を扱う。
+SDK 側で独自に持つミュート状態のキャッシュも除く。
+本変更を含む依存ビルドへの更新と公開 API の統合検証が必要である。
 
 ## 設計方針
 
 - `RemoteIOAudioUnit::SetMicrophoneMute` で、入力 bus `1` の `kAudioUnitScope_Input` にある `kAudioOutputUnitProperty_EnableIO` を制御する。mute は `0`、unmute は `1` とする。
 - 出力 bus `0` の EnableIO は変更しない。[Apple の EnableIO リファレンス](https://developer.apple.com/documentation/audiotoolbox/kaudiooutputunitproperty_enableio) の入出力それぞれの設定を使う。
 - 入力未初期化なら `false` を返す。0014 の `ReinitAudioUnitForMicrophoneMute` による事前確認も維持し、受信専用で拒否するときは再生を停止しない。
-- 既存の Stop → Uninitialize → SetMicrophoneMute → バッファ設定 → Initialize → Start の順序を使う。切り替え時は再生が一時中断し、成功すると再開する。
+- 既存の Stop → Uninitialize → SetMicrophoneMute → バッファ設定 → Initialize の順序を使い、再生中または録音再開要求の場合だけ Start する。切り替え時は再生が一時中断し、成功すると再開する。送信専用の停止要求では AudioUnit を開始しない。
 - `Initialize` では EnableIO を設定し直さず、指定した入力状態を維持する。
 - `AudioUnitSetProperty` が失敗したら、要求と OSStatus を英語のログに記録して `false` を返す。既存の再初期化経路のエラー伝播を維持する。
-- VPIO のミュート機構、入力初期化と初期ミュート、SDK の role 判断は変更しない。
+- `ResumeRecording` は録音の論理状態だけでなく AudioUnit の実際のミュート状態を確認する。初期ミュートでは録音の論理状態が開始済みでも入力 I/O は無効なため、最初の解除を省略しない。
+- `PauseRecording` も実際のミュート状態を確認し、解除が途中で失敗して入力 I/O だけ有効になった場合もミュートを反映する。
+- 早期成功の条件には AudioUnit の開始状態も含める。直前のミュート・解除が途中で失敗して AudioUnit が停止していた場合は、次の解除で再初期化する。
+- 手動音声停止や割り込み中は入力状態だけを反映し、AudioUnit の初期化・開始は既存の音声再開通知に任せる。
+- VPIO のミュート音声検出が有効な場合も、初期ミュートからの解除で入力 I/O を戻す。音声検出時のミュートは従来の MuteOutput を使う。
+- 公開 ObjC の pause / resume は factory の worker で同期実行する。factory を弱参照で登録し、呼び出し中は強参照で保持する。factory がない場合は失敗を返す。
+- 同じ ADM を複数の factory に渡すことを拒否する。factory の初期化は nullable として公開し、SDK 側でも失敗を処理する。
+- `Terminate` で worker 専用のデバイスとバッファを破棄し、ObjC ADM の最後の参照がアプリ側で解放されても worker を参照しない。終了後のネイティブ操作は初期化ガードで拒否する。
 
 ## テスト方針
 
@@ -42,6 +49,8 @@ SDK の issue 0133 が扱う既存の入力初期化呼び出しの復元と、�
 
 - 実際の RemoteIO の EnableIO を読み戻し、入力初期化前のミュート解除が拒否されることと、初期化後の同一要求の繰り返し・反転で入力だけが切り替わることを確認する。
 - 実際の AudioDeviceIOS で再生と録音を開始し、既存 API で入力を初期化した後、pause / resume の戻り値、再初期化後の入力 I/O、録音の論理状態、AudioUnit の再開を確認する。
+- 初期ミュートの後に pause を挟まず、最初の resume で入力 I/O が有効になることを確認する。
+- 実際の factory / PC に渡した ObjC ADM で、アプリ側と同じ worker からの操作、同じ factory の再初期化、factory 終了後の拒否、二重受け渡しの拒否を確認する。
 - 0014 の受信専用テストと入力初期化テストを再実行し、初期ミュートと入力未使用の契約を壊さないことを確認する。
 - 実機で sendrecv / sendonly のマイク音声、インジケーター、ミュート中と切り替え後の左右の再生音、Bluetooth、割り込みと経路変更を確認する。
 
@@ -81,4 +90,20 @@ SDK の issue 0133 が扱う既存の入力初期化呼び出しの復元と、�
 Simulator の音声入力初期化が再実行時に不安定になる原因と対処は未確定であり、クラッシュを修正済みとは扱わない。
 テスト実行ではメインの run loop を動かして worker を待ち、XCTest の実行タイムアウトを有効にする。
 
-実機の完了条件が残るため、issue は open、既存 PR #174 は draft を維持する。
+実機の完了条件が残るため、issue は open とする。ユーザーの指示に従い、既存 PR #174 の draft は解除済みである。
+
+### 初期ミュート解除と SDK 統合に伴う追加修正
+
+2026-09-07、初期ミュートでも `recording_=1` になるため最初の `ResumeRecording` が入力 I/O を有効にせず終了する不具合を、実際の AudioDeviceIOS を使うテストで再現した。
+AudioUnit の実際のミュート状態を使う判定へ変更し、VPIO の音声検出時も初期ミュートの入力 I/O を戻すようにした。
+また、SDK の GCD キューから worker 専用の録音処理を直接呼んでいた経路を、ObjC API 境界で worker に渡すようにした。
+実際の factory を使う `RTCAudioDeviceModuleThreadingTests` を追加した。
+
+- 追加した実装・XCTest の 10 ファイルは、実機向け・Simulator 向けの debug / release でコンパイルできた。
+- 実際の AudioUnit の初期ミュート解除と EnableIO の読み戻し、ネイティブ ADM の終了後の拒否・再初期化を検査する `RTCStereoAudioOutputTests` の 7 件が成功した。
+- 修正前の `testStereoInitiallyMutedInputCanResume` は、解除後の EnableIO が 0 のままであることを検出して失敗した。
+- 修正後の実入出力テストは AudioUnitInitialize 内の既存の RPC タイムアウトで停止したため、通過を確認した結果として扱わない。
+- factory / PC を使う新しい XCTest はコンパイル確認までであり、今回の最小構成の実行用プロジェクトでは未実行である。
+- 追加修正前の HEAD `9fbb8c2` の全 CI ビルドは成功した。今回の追加修正の CI 成功とは区別する。
+
+対応するネイティブビルドへの SDK の依存更新と、公開 API を通した実機検証が残る。

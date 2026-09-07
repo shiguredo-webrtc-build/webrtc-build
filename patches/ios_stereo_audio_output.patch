@@ -13,16 +13,17 @@ diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
            "objc/native/src/audio/voice_processing_audio_unit.h",
            "objc/native/src/audio/voice_processing_audio_unit.mm",
          ]
-@@ -1219,6 +1222,8 @@
+@@ -1219,6 +1222,9 @@
              "objc/unittests/RTCAudioDeviceModule_xctest.mm",
              "objc/unittests/RTCAudioDevice_xctest.mm",
              "objc/unittests/RTCAudioSessionTest.mm",
 +            "objc/unittests/RTCStereoAudioOutput_xctest.mm",
++            "objc/unittests/RTCAudioDeviceModuleThreading_xctest.mm",
 +            "objc/unittests/RTCManualAudioInput_xctest.mm",
              "objc/unittests/RTCCVPixelBuffer_xctest.mm",
              "objc/unittests/RTCCallbackLogger_xctest.m",
              "objc/unittests/RTCCameraVideoCapturerTests.mm",
-@@ -1288,6 +1293,7 @@
+@@ -1288,6 +1294,7 @@
              "../media:codec",
              "../media:rtc_media_base",
              "../media:rtc_media_tests_utils",
@@ -30,11 +31,82 @@ diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
              "../modules/video_coding:video_codec_interface",
              "../rtc_base:refcount",
              "../rtc_base:rtc_event",
+diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h
+--- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h
++++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h
+@@ -64,9 +64,10 @@
+                    (nullable id<RTC_OBJC_TYPE(RTCAudioDevice)>)audioDevice;
+
+ /**
+- * Video encoder/decoder ファクトリと RTCAudioDeviceModule 差し込みによる初期化
++ * Video encoder/decoder ファクトリと RTCAudioDeviceModule 差し込みによる初期化。
++ * 同じ ADM を複数の factory に渡した場合は nil を返す。
+  */
+-- (instancetype)
++- (nullable instancetype)
+     initWithEncoderFactory:
+         (nullable id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)>)encoderFactory
+             decoderFactory:(nullable id<RTC_OBJC_TYPE(RTCVideoDecoderFactory)>)
+diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
+--- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
++++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
+@@ -224,11 +224,19 @@
+   }
+   if (audioDeviceModule) {
+     auto adm_ptr = [audioDeviceModule nativeAudioDeviceModule];
++    // 同じ ADM を異なる worker で初期化・終了することを防ぐ。
++    if (!adm_ptr) {
++      return nil;
++    }
+     dependencies.adm = adm_ptr;
+   } else {
+     dependencies.adm = webrtc::CreateAudioDeviceModule(*dependencies.env);
+   }
+-  return [self initWithMediaAndDependencies:dependencies];
++  self = [self initWithMediaAndDependencies:dependencies];
++  if (self && audioDeviceModule) {
++    [audioDeviceModule bindToFactory:self workerThread:self.workerThread];
++  }
++  return self;
+ #endif
+ }
+
+diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule+Private.h b/sdk/objc/components/audio/RTCAudioDeviceModule+Private.h
+--- a/sdk/objc/components/audio/RTCAudioDeviceModule+Private.h
++++ b/sdk/objc/components/audio/RTCAudioDeviceModule+Private.h
+@@ -3,9 +3,18 @@
+ #import "RTCAudioDeviceModule.h"
+
+ #include "api/audio/audio_device.h"
++#include "api/scoped_refptr.h"
++
++namespace webrtc {
++class Thread;
++}
+
+ @interface RTC_OBJC_TYPE(RTCAudioDeviceModule) ()
+
++// ADM の worker は 1 つの factory が所有するため、受け渡しは 1 回だけ許可する。
+ - (webrtc::scoped_refptr<webrtc::AudioDeviceModule>)nativeAudioDeviceModule;
+
++// 初期化に成功した factory を録音操作の実行先として登録する。
++- (void)bindToFactory:(id)factory workerThread:(webrtc::Thread*)worker;
++
+ @end
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.h b/sdk/objc/components/audio/RTCAudioDeviceModule.h
 --- a/sdk/objc/components/audio/RTCAudioDeviceModule.h
 +++ b/sdk/objc/components/audio/RTCAudioDeviceModule.h
-@@ -16,4 +16,19 @@
- // 録音を再開する。内部で AudioDeviceModuleIOS::ResumeRecording() を呼ぶ
+@@ -11,9 +11,26 @@
+ // 内部で AudioDeviceModuleIOS を生成する。`enabled` が true の場合は
+ // VoiceProcessing のバイパス有効を初期値として生成する。
+ - (instancetype)initWithBypassVoiceProcessing:(BOOL)enabled;
+-// 録音を一時停止する。内部で AudioDeviceModuleIOS::PauseRecording() を呼ぶ
++// 録音を一時停止する。factory の worker で同期実行し、成功時は 0 を返す。
++// factory へ渡す前、破棄後、または録音操作に失敗した場合は負値を返す。
+ - (NSInteger)pauseRecording;
+-// 録音を再開する。内部で AudioDeviceModuleIOS::ResumeRecording() を呼ぶ
++// 録音を再開する。初期ミュートからの解除にも使用できる。
++// 実行先と戻り値は pauseRecording と同じ。入力初期化の要求は別途必要。
  - (NSInteger)resumeRecording;
 
 +// iOS 向けステレオ音声出力 (playout) を有効化する。
@@ -56,21 +128,34 @@ diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.h b/sdk/objc/compone
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.mm b/sdk/objc/components/audio/RTCAudioDeviceModule.mm
 --- a/sdk/objc/components/audio/RTCAudioDeviceModule.mm
 +++ b/sdk/objc/components/audio/RTCAudioDeviceModule.mm
-@@ -7,6 +7,8 @@
+@@ -1,12 +1,17 @@
+-#import "RTCAudioDeviceModule.h"
++#import "RTCAudioDeviceModule+Private.h"
+
+ #include "api/environment/environment_factory.h"
+ #include "api/scoped_refptr.h"
++#include "rtc_base/thread.h"
+ #include "sdk/objc/native/api/audio_device_module.h"
+ #include "sdk/objc/native/src/audio/audio_device_module_ios.h"
 
  @interface RTC_OBJC_TYPE(RTCAudioDeviceModule) () {
    webrtc::scoped_refptr<webrtc::AudioDeviceModule> _adm;
 +  BOOL _stereoPlayoutEnabled;
 +  BOOL _nativeAudioDeviceModuleRetrieved;
++  __weak id _factory;
++  webrtc::Thread* _workerThread;
  }
  @end
 
-@@ -26,7 +28,11 @@
+@@ -26,19 +31,70 @@
  }
 
  - (webrtc::scoped_refptr<webrtc::AudioDeviceModule>)nativeAudioDeviceModule {
 -  return _adm;
 +  @synchronized(self) {
++    if (_nativeAudioDeviceModuleRetrieved) {
++      return nullptr;
++    }
 +    // factory への受け渡し時に設定を固定し、worker スレッドでの初期化と競合させない。
 +    _nativeAudioDeviceModuleRetrieved = YES;
 +    return _adm;
@@ -78,10 +163,45 @@ diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.mm b/sdk/objc/compon
  }
 
  - (NSInteger)pauseRecording {
-@@ -41,4 +47,26 @@
-   return ptr->ResumeRecording();
+-  auto ptr =
+-      static_cast<webrtc::ios_adm::AudioDeviceModuleIOS*>(_adm.get());
+-  return ptr->PauseRecording();
++  return [self setRecordingPaused:YES];
  }
 
+ - (NSInteger)resumeRecording {
+-  auto ptr =
+-      static_cast<webrtc::ios_adm::AudioDeviceModuleIOS*>(_adm.get());
+-  return ptr->ResumeRecording();
++  return [self setRecordingPaused:NO];
++}
++
++- (void)bindToFactory:(id)factory workerThread:(webrtc::Thread*)worker {
++  @synchronized(self) {
++    _factory = factory;
++    _workerThread = worker;
++  }
++}
++
++- (NSInteger)setRecordingPaused:(BOOL)paused {
++  // worker を所有する factory を同期処理の終了まで保持する。
++  // ADM を factory より長く保持しても、破棄済みの worker にはアクセスしない。
++  id __attribute__((objc_precise_lifetime)) factory;
++  webrtc::Thread* worker;
++  @synchronized(self) {
++    factory = _factory;
++    worker = _workerThread;
++  }
++  if (!factory || !worker) {
++    return -1;
++  }
++  auto operation = [ptr = static_cast<webrtc::ios_adm::AudioDeviceModuleIOS*>(_adm.get()), paused] {
++    return paused ? ptr->PauseRecording() : ptr->ResumeRecording();
++  };
++  // 録音の転送と AudioUnit の操作を、初期化・終了と同じ worker で直列化する。
++  return worker->IsCurrent() ? operation() : worker->BlockingCall(operation);
++}
++
 +- (NSInteger)setStereoPlayoutEnabled:(BOOL)enabled {
 +  @synchronized(self) {
 +    if (_nativeAudioDeviceModuleRetrieved) {
@@ -102,8 +222,8 @@ diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.mm b/sdk/objc/compon
 +    // worker スレッドで更新されるネイティブ ADM の状態には触れない。
 +    return _stereoPlayoutEnabled;
 +  }
-+}
-+
+ }
+
  @end
 diff --git a/sdk/objc/components/audio/RTCAudioSession+Private.h b/sdk/objc/components/audio/RTCAudioSession+Private.h
 --- a/sdk/objc/components/audio/RTCAudioSession+Private.h
@@ -453,8 +573,13 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.h b/sdk/objc/native/src/
    // Called by the relevant AudioSessionObserver methods on `thread_`.
    void HandleInterruptionBegin();
    void HandleInterruptionEnd();
-@@ -230,6 +232,10 @@
-   // のフローで処理を行います。
+@@ -227,9 +229,14 @@
+   // AudioUnit の SetMicrophoneMute() 実行によりマイクミュートの有効無効を切り替えます。
+   // AudioUnit の state が Uninitialized になっている必要があるため
+   // AudioUnit に対して、Stop -> Uninitialize -> SetMicrophoneMute -> Initialize -> Start
+-  // のフローで処理を行います。
++  // のフローで処理を行います。停止中の再生をミュート要求で開始せず、
++  // 手動音声停止・割り込み中は既存の再開通知まで Initialize / Start を待ちます。
    // この関数は PauseRecording()/ResumeRecording() から呼ばれることを想定しています。
    int32_t ReinitAudioUnitForMicrophoneMute(bool mute);
 +
@@ -464,7 +589,7 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.h b/sdk/objc/native/src/
 
    const Environment env_;
 
-@@ -270,7 +276,12 @@
+@@ -270,7 +277,12 @@
    AudioParameters record_parameters_;
 
    // The AudioUnit used to play and record audio.
@@ -529,7 +654,36 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src
      OSStatus result = audio_unit_->Start();
      if (result != noErr) {
        RTC_OBJC_TYPE(RTCAudioSession)* session =
-@@ -390,14 +399,16 @@
+@@ -348,7 +357,13 @@
+     RTC_LOG(LS_WARNING) << "PauseRecording called before audio is initialized";
+     return 0;
+   }
+-  if (!recording_.load()) {
++  // 録音停止中でも、直前の解除が途中で失敗して入力 I/O だけ有効な場合がある。
++  bool muted;
++  if (MicrophoneMute(muted) != 0) return -1;
++  const auto paused_state = playing_.load() ? AudioUnitInterface::kStarted
++                                            : AudioUnitInterface::kInitialized;
++  if (!recording_.load() && muted &&
++      audio_unit_->GetState() == paused_state) {
+     RTC_LOG(LS_WARNING) << "PauseRecording called while not recording";
+     return 0;
+   }
+@@ -369,7 +384,12 @@
+     RTC_LOG(LS_WARNING) << "ResumeRecording called before audio is initialized";
+     return 0;
+   }
+-  if (recording_.load()) {
++  // 初期ミュートでは録音の転送が開始済みでも入力 I/O は無効になっている。
++  bool muted;
++  if (MicrophoneMute(muted) != 0) return -1;
++  // 前のミュート操作が途中で失敗した場合は、停止した AudioUnit の復旧も必要になる。
++  if (recording_.load() && !muted &&
++      audio_unit_->GetState() == AudioUnitInterface::kStarted) {
+     RTC_LOG(LS_WARNING) << "ResumeRecording called while recording";
+     return 0;
+   }
+@@ -390,14 +410,16 @@
      RTC_LOG(LS_ERROR) << "ReinitAudioUnitForMicrophoneMute called with null audio unit";
      return -1;
    }
@@ -548,7 +702,52 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src
      if (!audio_unit_->Stop()) {
        RTC_LOG(LS_ERROR) << "ReinitAudioUnitForMicrophoneMute failed to stop audio unit";
        return -1;
-@@ -530,7 +541,7 @@
+@@ -412,12 +434,28 @@
+     return -1;
+   }
+
++  RTC_OBJC_TYPE(RTCAudioSession)* session =
++      [RTC_OBJC_TYPE(RTCAudioSession) sharedInstance];
++  const bool can_play_or_record = session.canPlayOrRecord;
++  if (!can_play_or_record) {
++    // 停止通知より先に未初期化へ移った場合も、通常の手動停止と同じ後処理を行う。
++    [session deferInputInitializationForOwner:this];
++    UnconfigureAudioSession();
++  }
++
+   // AudioUnit の入力を無効化/有効化します。マイクインジケータ消灯/点灯のために必要です
+   if (!audio_unit_->SetMicrophoneMute(mute)) {
+     RTC_LOG(LS_ERROR) << "ReinitAudioUnitForMicrophoneMute failed to set microphone mute=" << mute;
+     return -1;
+   }
+
++  // 手動音声停止や割り込み中は、入力状態だけ反映して再開通知を待つ。
++  // ミュートの切り替えを理由にアプリや OS の音声停止を解除しない。
++  if (is_interrupted_ || !can_play_or_record) return 0;
++
++  // 音声再開通知に先行した操作でも、セッションの有効化を済ませてから初期化する。
++  if (!has_configured_session_ && !ConfigureAudioSession()) return -1;
++
+   // 音声パラメータとバッファを作り直します。AudioUnit 再初期化後の想定フレームずれを防ぎます
+   SetupAudioBuffersForActiveAudioSession();
+
+@@ -427,11 +465,13 @@
+     return -1;
+   }
+
++  // 送信専用の停止要求や録音開始前の停止要求では、AudioUnit を開始しない。
++  // 再生中の場合だけ出力を再開し、解除要求は録音のために開始する。
++  if (mute && !playing_.load()) return 0;
++
+   // AudioUnit を再開して出力を戻します
+   OSStatus result = audio_unit_->Start();
+   if (result != noErr) {
+-    RTC_OBJC_TYPE(RTCAudioSession)* session =
+-        [RTC_OBJC_TYPE(RTCAudioSession) sharedInstance];
+     [session notifyAudioUnitStartFailedWithError:result];
+     RTC_LOG(LS_ERROR)
+         << "ReinitAudioUnitForMicrophoneMute failed to restart audio unit, OSStatus="
+@@ -530,7 +570,7 @@
    AudioBuffer* audio_buffer = &audio_buffer_list.mBuffers[0];
    audio_buffer->mNumberChannels = record_parameters_.channels();
    audio_buffer->mDataByteSize =
@@ -557,7 +756,7 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src
    audio_buffer->mData = reinterpret_cast<int8_t*>(record_audio_buffer_.data());
 
    // Obtain the recorded audio samples by initiating a rendering cycle.
-@@ -565,16 +576,21 @@
+@@ -565,16 +605,21 @@
                                            UInt32 num_frames,
                                            AudioBufferList* io_data) {
    RTC_DCHECK_RUN_ON(&io_thread_checker_);
@@ -582,7 +781,7 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src
                   num_frames);
      *flags |= kAudioUnitRenderAction_OutputIsSilence;
      memset(static_cast<int8_t*>(audio_buffer->mData), 0, size_in_bytes);
-@@ -632,9 +648,11 @@
+@@ -632,9 +677,11 @@
    // Read decoded 16-bit PCM samples from WebRTC (using a size that matches
    // the native I/O audio unit) and copy the result to the audio buffer in the
    // `io_data` destination.
@@ -595,7 +794,7 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src
        playout_delay_ms);
 
    last_hw_output_latency_update_sample_count_ += num_frames;
-@@ -664,7 +682,7 @@
+@@ -664,7 +711,7 @@
    RTCLog(@"Interruption begin. IsInterrupted changed from %d to 1.",
           is_interrupted_);
    if (audio_unit_ &&
@@ -604,7 +803,7 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src
      RTCLog(@"Stopping the audio unit due to interruption begin.");
      if (!audio_unit_->Stop()) {
        RTCLogError(@"Failed to stop the audio unit for interruption begin.");
-@@ -684,11 +702,11 @@
+@@ -684,11 +731,11 @@
    if (env_.field_trials().IsEnabled("WebRTC-Audio-iOS-Holding")) {
      // Work around an issue where audio does not restart properly after an
      // interruption by restarting the audio unit when the interruption ends.
@@ -618,7 +817,7 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src
        audio_unit_->Uninitialize();
      }
      // Allocate new buffers given the potentially new stream format.
-@@ -724,7 +742,7 @@
+@@ -724,7 +771,7 @@
    // If we don't have an audio unit yet, or the audio unit is uninitialized,
    // there is no work to do.
    if (!audio_unit_ ||
@@ -627,7 +826,7 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src
      return;
    }
 
-@@ -767,12 +785,12 @@
+@@ -767,12 +814,12 @@
    // stop and uninitialize the audio unit to deallocate its resources.
    RTCLog(@"Stopping and uninitializing audio unit to adjust buffers.");
    bool restart_audio_unit = false;
@@ -642,7 +841,7 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src
      audio_unit_->Uninitialize();
    }
 
-@@ -847,7 +865,8 @@
+@@ -847,7 +894,8 @@
    RTC_DCHECK(audio_device_buffer_) << "AttachAudioBuffer must be called first";
    RTC_DCHECK_GT(playout_parameters_.sample_rate(), 0);
    RTC_DCHECK_GT(record_parameters_.sample_rate(), 0);
@@ -652,7 +851,7 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src
    RTC_DCHECK_EQ(record_parameters_.channels(), 1);
    // Inform the audio device buffer (ADB) about the new audio format.
    audio_device_buffer_->SetPlayoutSampleRate(playout_parameters_.sample_rate());
-@@ -903,8 +922,9 @@
+@@ -903,8 +951,9 @@
                     << playout_parameters_.frames_per_buffer();
    RTC_LOG(LS_INFO) << " bytes per I/O buffer: "
                     << playout_parameters_.GetBytesPerBuffer();
@@ -664,7 +863,7 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src
 
    // Update the ADB parameters since the sample rate might have changed.
    UpdateAudioDeviceBuffer();
-@@ -923,8 +943,17 @@
+@@ -923,8 +972,17 @@
      return false;
    }
    BOOL detect_mute_speech_ = (muted_speech_event_handler_ != 0);
@@ -684,7 +883,7 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src
    if (!audio_unit_->Init()) {
      audio_unit_.reset();
      return false;
-@@ -957,24 +986,24 @@
+@@ -957,24 +1015,24 @@
    bool should_stop_audio_unit = false;
 
    switch (audio_unit_->GetState()) {
@@ -717,7 +916,7 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src
        RTC_DCHECK(playing_.load() || recording_.load());
        should_stop_audio_unit = !can_play_or_record;
        should_uninitialize_audio_unit = should_stop_audio_unit;
-@@ -983,10 +1012,14 @@
+@@ -983,10 +1041,14 @@
 
    if (should_initialize_audio_unit) {
      RTCLog(@"Initializing audio unit for UpdateAudioUnit");
@@ -733,7 +932,7 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src
        return;
      }
    }
-@@ -1001,6 +1034,7 @@
+@@ -1001,6 +1063,7 @@
      if (result != noErr) {
        [session notifyAudioUnitStartFailedWithError:result];
        RTCLogError(@"Failed to start audio unit, reason %d", result);
@@ -741,7 +940,7 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src
        return;
      }
    }
-@@ -1016,9 +1050,13 @@
+@@ -1016,9 +1079,13 @@
    }
 
    if (should_uninitialize_audio_unit) {
@@ -755,7 +954,7 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src
    }
  }
 
-@@ -1031,9 +1069,28 @@
+@@ -1031,9 +1098,28 @@
    }
    RTC_OBJC_TYPE(RTCAudioSession)* session =
        [RTC_OBJC_TYPE(RTCAudioSession) sharedInstance];
@@ -786,7 +985,7 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src
    if (success) {
      has_configured_session_ = true;
      RTCLog(@"Configured audio session.");
-@@ -1052,7 +1109,23 @@
+@@ -1052,7 +1138,23 @@
    }
    RTC_OBJC_TYPE(RTCAudioSession)* session =
        [RTC_OBJC_TYPE(RTCAudioSession) sharedInstance];
@@ -811,7 +1010,7 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src
    if (success) {
      has_configured_session_ = true;
      RTCLog(@"Configured audio session.");
-@@ -1073,90 +1146,116 @@
+@@ -1073,90 +1175,116 @@
        [RTC_OBJC_TYPE(RTCAudioSession) sharedInstance];
    [session lockForConfiguration];
    [session unconfigureWebRTCSession:nil];
@@ -987,7 +1186,7 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src
  }
 
  void AudioDeviceIOS::PrepareForNewStart() {
-@@ -1264,9 +1363,10 @@
+@@ -1264,9 +1392,10 @@
  }
 
  int32_t AudioDeviceIOS::SetMicrophoneMute(bool enable) {
@@ -1000,7 +1199,19 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src
      BOOL result = audio_unit_->SetMicrophoneMute(enable);
      if (!result) {
        RTCLogError(@"Set microphone %s failed.", enable ? "mute" : "unmute");
-@@ -1297,17 +1397,35 @@
+@@ -1277,8 +1406,9 @@
+ }
+
+ int32_t AudioDeviceIOS::MicrophoneMute(bool& enabled) const {
+-  RTC_DCHECK_NOTREACHED() << "Not implemented";
+-  return -1;
++  RTC_DCHECK_RUN_ON(thread_);
++  if (!audio_unit_) return -1;
++  return audio_unit_->GetMicrophoneMute(enabled) ? 0 : -1;
+ }
+
+ int32_t AudioDeviceIOS::StereoRecordingIsAvailable(bool& available) {
+@@ -1297,17 +1427,35 @@
  }
 
  int32_t AudioDeviceIOS::StereoPlayoutIsAvailable(bool& available) {
@@ -1040,7 +1251,7 @@ diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src
    return 0;
  }
 
-@@ -1387,7 +1505,7 @@
+@@ -1387,7 +1535,7 @@
        .total_samples_count = total_samples_count,
    };
    return playout_stats;
@@ -1064,7 +1275,15 @@ diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.h b/sdk/objc/nati
 diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.mm b/sdk/objc/native/src/audio/audio_device_module_ios.mm
 --- a/sdk/objc/native/src/audio/audio_device_module_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_module_ios.mm
-@@ -110,6 +110,12 @@
+@@ -73,6 +73,7 @@
+
+ int32_t AudioDeviceModuleIOS::ActiveAudioLayer(AudioLayer* audioLayer) const {
+   RTC_DLOG(LS_INFO) << __FUNCTION__;
++  CHECKinitialized_();
+   AudioLayer activeAudio;
+   if (audio_device_->ActiveAudioLayer(activeAudio) == -1) {
+     ReportError(kNoActiveAudioLayer);
+@@ -110,6 +111,12 @@
      return -1;
    }
    initialized_ = true;
@@ -1077,7 +1296,17 @@ diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.mm b/sdk/objc/nat
    return 0;
  }
 
-@@ -379,7 +385,11 @@
+@@ -121,6 +128,9 @@
+     return -1;
+   }
+   initialized_ = false;
++  // ObjC ADM が factory より長く保持されても、worker 専用の破棄を遅延させない。
++  audio_device_.reset();
++  audio_device_buffer_.reset();
+   return 0;
+ }
+
+@@ -379,7 +389,11 @@
 
  int32_t AudioDeviceModuleIOS::SetStereoPlayout(bool enable) {
    RTC_DLOG(LS_INFO) << __FUNCTION__ << "(" << enable << ")";
@@ -1090,11 +1319,35 @@ diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.mm b/sdk/objc/nat
    if (audio_device_->PlayoutIsInitialized()) {
      RTC_LOG(LS_ERROR)
          << "unable to set stereo mode while playing side is initialized";
+@@ -701,6 +715,7 @@
+ int32_t AudioDeviceModuleIOS::RegisterAudioCallback(
+     AudioTransport* audioCallback) {
+   RTC_DLOG(LS_INFO) << __FUNCTION__;
++  CHECKinitialized_();
+   int32_t result =
+       audio_device_buffer_.get()->RegisterAudioCallback(audioCallback);
+   if (result < 0) {
+@@ -796,6 +811,7 @@
+ int AudioDeviceModuleIOS::GetPlayoutAudioParameters(
+     AudioParameters* params) const {
+   RTC_DLOG(LS_INFO) << __FUNCTION__;
++  CHECKinitialized_();
+   int r = audio_device_->GetPlayoutAudioParameters(params);
+   RTC_DLOG(LS_INFO) << "output: " << r;
+   return r;
+@@ -804,6 +820,7 @@
+ int AudioDeviceModuleIOS::GetRecordAudioParameters(
+     AudioParameters* params) const {
+   RTC_DLOG(LS_INFO) << __FUNCTION__;
++  CHECKinitialized_();
+   int r = audio_device_->GetRecordAudioParameters(params);
+   RTC_DLOG(LS_INFO) << "output: " << r;
+   return r;
 diff --git a/sdk/objc/native/src/audio/audio_unit_interface.h b/sdk/objc/native/src/audio/audio_unit_interface.h
 new file mode 100644
 --- /dev/null
 +++ b/sdk/objc/native/src/audio/audio_unit_interface.h
-@@ -0,0 +1,82 @@
+@@ -0,0 +1,85 @@
 +/*
 + *  Copyright 2016 The WebRTC Project Authors. All rights reserved.
 + *
@@ -1165,6 +1418,9 @@ new file mode 100644
 +  // マイクミュートを設定する。
 +  virtual bool SetMicrophoneMute(bool enable) = 0;
 +
++  // 録音の転送状態とは独立した、実際のマイクミュート状態を取得する。
++  virtual bool GetMicrophoneMute(bool& enabled) const = 0;
++
 +  // I/O コールバック内から AudioUnitRender を呼ぶための橋渡し。
 +  virtual OSStatus Render(AudioUnitRenderActionFlags* flags,
 +                          const AudioTimeStamp* time_stamp,
@@ -1181,7 +1437,7 @@ diff --git a/sdk/objc/native/src/audio/remote_io_audio_unit.h b/sdk/objc/native/
 new file mode 100644
 --- /dev/null
 +++ b/sdk/objc/native/src/audio/remote_io_audio_unit.h
-@@ -0,0 +1,120 @@
+@@ -0,0 +1,121 @@
 +/*
 + *  Copyright 2016 The WebRTC Project Authors. All rights reserved.
 + *
@@ -1243,6 +1499,7 @@ new file mode 100644
 +  // 入力バスの I/O を切り替え、マイクの捕捉を停止 / 再開する。
 +  // pause / resume では AudioUnit の初期化を解除してから呼ぶ。出力 I/O は維持する。
 +  bool SetMicrophoneMute(bool enable) override;
++  bool GetMicrophoneMute(bool& enabled) const override;
 +
 +  // 入力バス側の AudioUnitRender を呼ぶ。
 +  OSStatus Render(AudioUnitRenderActionFlags* flags,
@@ -1306,7 +1563,7 @@ diff --git a/sdk/objc/native/src/audio/remote_io_audio_unit.mm b/sdk/objc/native
 new file mode 100644
 --- /dev/null
 +++ b/sdk/objc/native/src/audio/remote_io_audio_unit.mm
-@@ -0,0 +1,409 @@
+@@ -0,0 +1,424 @@
 +/*
 + *  Copyright 2016 The WebRTC Project Authors. All rights reserved.
 + *
@@ -1608,6 +1865,21 @@ new file mode 100644
 +  return true;
 +}
 +
++bool RemoteIOAudioUnit::GetMicrophoneMute(bool& enabled) const {
++  if (!input_initialized_) return false;
++  UInt32 input_enabled = 0;
++  UInt32 size = sizeof(input_enabled);
++  OSStatus result = AudioUnitGetProperty(
++      rio_unit_, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Input,
++      kInputBus, &input_enabled, &size);
++  if (result != noErr) {
++    RTCLogError(@"Failed to get RemoteIO microphone state. OSStatus=%ld.", (long)result);
++    return false;
++  }
++  enabled = input_enabled == 0;
++  return true;
++}
++
 +OSStatus RemoteIOAudioUnit::Render(AudioUnitRenderActionFlags* flags,
 +                                   const AudioTimeStamp* time_stamp,
 +                                   UInt32 output_bus_number,
@@ -1728,7 +2000,7 @@ diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.h b/sdk/objc/
 
  namespace webrtc {
  namespace ios_adm {
-@@ -49,60 +51,50 @@
+@@ -49,60 +51,51 @@
  // output) and adds AEC for for two-way duplex communication. It also adds AGC,
  // adjustment of voice-processing quality, and muting. Hence, ideal for
  // VoIP applications.
@@ -1790,6 +2062,7 @@ diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.h b/sdk/objc/
    // Mutes the microphone.
 -  bool SetMicrophoneMute(bool enable);
 +  bool SetMicrophoneMute(bool enable) override;
++  bool GetMicrophoneMute(bool& enabled) const override;
 
    // Calls render on the underlying audio unit.
    OSStatus Render(AudioUnitRenderActionFlags* flags,
@@ -1805,7 +2078,7 @@ diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.h b/sdk/objc/
    // The C API used to set callbacks requires static functions. When these are
    // called, they will invoke the relevant instance method by casting
    // in_ref_con to VoiceProcessingAudioUnit*.
-@@ -143,7 +135,9 @@
+@@ -143,7 +136,9 @@
    const bool detect_mute_speech_;
    VoiceProcessingAudioUnitObserver* observer_;
    AudioUnit vpio_unit_;
@@ -2019,11 +2292,121 @@ diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.mm b/sdk/objc
    RTC_DCHECK_GE(state_, kUninitialized);
 
    RTCLog(@"Setting microphone %s.", enable ? "mute" : "unmute");
+@@ -452,7 +441,9 @@
+                                   kInputBus,
+                                   &muteUplinkOutput,
+                                   sizeof(muteUplinkOutput));
+-  } else {
++  }
++  // 初期ミュートでは入力 I/O 自体が無効なので、音声検出を使う場合も解除時に戻す。
++  if (result == noErr && (!detect_mute_speech_ || !enable)) {
+     UInt32 enableInput = enable ? 0 : 1;
+     result = AudioUnitSetProperty(vpio_unit_,
+                                   kAudioOutputUnitProperty_EnableIO,
+@@ -470,6 +461,33 @@
+   }
+
+   RTCLog(@"Set microphone %s.", enable ? "mute" : "unmute");
++  return true;
++}
++
++bool VoiceProcessingAudioUnit::GetMicrophoneMute(bool& enabled) const {
++  if (!input_initialized_) return false;
++  UInt32 input_enabled = 0;
++  UInt32 size = sizeof(input_enabled);
++  OSStatus result = AudioUnitGetProperty(
++      vpio_unit_, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Input,
++      kInputBus, &input_enabled, &size);
++  if (result != noErr) {
++    RTCLogError(@"Failed to get microphone input state. OSStatus=%ld.", (long)result);
++    return false;
++  }
++  enabled = input_enabled == 0;
++  if (enabled || !detect_mute_speech_) return true;
++  // 発話検出用に入力 I/O を残すミュートでは、出力のミュート状態も確認する。
++  UInt32 output_muted = 0;
++  size = sizeof(output_muted);
++  result = AudioUnitGetProperty(
++      vpio_unit_, kAUVoiceIOProperty_MuteOutput, kAudioUnitScope_Global,
++      kInputBus, &output_muted, &size);
++  if (result != noErr) {
++    RTCLogError(@"Failed to get microphone output mute state. OSStatus=%ld.", (long)result);
++    return false;
++  }
++  enabled = output_muted != 0;
+   return true;
+ }
+
+diff --git a/sdk/objc/unittests/RTCAudioDeviceModuleThreading_xctest.mm b/sdk/objc/unittests/RTCAudioDeviceModuleThreading_xctest.mm
+new file mode 100644
+--- /dev/null
++++ b/sdk/objc/unittests/RTCAudioDeviceModuleThreading_xctest.mm
+@@ -0,0 +1,60 @@
++#import <XCTest/XCTest.h>
++
++#import "sdk/objc/api/peerconnection/RTCConfiguration.h"
++#import "sdk/objc/api/peerconnection/RTCMediaConstraints.h"
++#import "sdk/objc/api/peerconnection/RTCPeerConnection.h"
++#import "sdk/objc/api/peerconnection/RTCPeerConnectionFactory+Private.h"
++#import "sdk/objc/components/audio/RTCAudioDeviceModule.h"
++
++@interface RTCAudioDeviceModuleThreadingTests : XCTestCase
++@end
++
++@implementation RTCAudioDeviceModuleThreadingTests
++
++- (void)testRecordingOperationsFollowFactoryLifetime {
++  // 実際の factory と PC を使い、公開 ObjC API から worker へ渡す経路を検証する。
++  // SDP やトラックを設定しないため、AudioUnit の入出力は開始しない。
++  RTC_OBJC_TYPE(RTCAudioDeviceModule)* module = [[RTC_OBJC_TYPE(RTCAudioDeviceModule) alloc] init];
++  XCTAssertEqual(-1, [module resumeRecording], @"factory へ渡す前は解除要求を拒否すること");
++  __weak RTC_OBJC_TYPE(RTCPeerConnectionFactory)* releasedFactory;
++  @autoreleasepool {
++    RTC_OBJC_TYPE(RTCPeerConnectionFactory)* factory =
++        [[RTC_OBJC_TYPE(RTCPeerConnectionFactory) alloc] initWithEncoderFactory:nil
++                                                               decoderFactory:nil
++                                                            audioDeviceModule:module];
++    XCTAssertNotNil(factory, @"実際の factory を生成できること");
++    if (!factory) return;
++    releasedFactory = factory;
++    XCTAssertNil([[RTC_OBJC_TYPE(RTCPeerConnectionFactory) alloc] initWithEncoderFactory:nil
++                                                                        decoderFactory:nil
++                                                                     audioDeviceModule:module],
++                 @"同じ ADM を別の worker へ二重に渡さないこと");
++    for (int iteration = 0; iteration < 2; ++iteration) {
++      @autoreleasepool {
++        RTC_OBJC_TYPE(RTCPeerConnection)* peer =
++            [factory peerConnectionWithConfiguration:[[RTC_OBJC_TYPE(RTCConfiguration) alloc] init]
++                                         constraints:[[RTC_OBJC_TYPE(RTCMediaConstraints) alloc]
++                                                         initWithMandatoryConstraints:nil
++                                                                  optionalConstraints:nil]
++                                            delegate:nil];
++        XCTAssertNotNil(peer, @"PC の生成で media engine と ADM を初期化できること");
++        // worker 以外から呼んでも AudioDeviceIOS と AudioDeviceBuffer のスレッド制約を守る。
++        XCTAssertEqual(0, [module pauseRecording], @"アプリ側から worker で停止を実行できること");
++        XCTAssertEqual(0, [module resumeRecording], @"アプリ側から worker で再開を実行できること");
++        factory.workerThread->BlockingCall([&] {
++          XCTAssertEqual(0, [module pauseRecording], @"同じ worker では同期呼び出しで待ち合わないこと");
++          XCTAssertEqual(0, [module resumeRecording], @"同じ worker から再開できること");
++        });
++        [peer close];
++      }
++      // 最後の PC を解放して ADM が終了しても、同じ factory の次の PC で再初期化できる。
++      factory.signalingThread->BlockingCall([] {});
++      XCTAssertEqual(-1, [module resumeRecording], @"最後の PC 解放後は ADM が終了していること");
++    }
++  }
++  XCTAssertNil(releasedFactory, @"ObjC ADM が factory を循環参照しないこと");
++  XCTAssertEqual(-1, [module pauseRecording], @"factory 終了後の停止要求を拒否すること");
++  XCTAssertEqual(-1, [module resumeRecording], @"factory 終了後の解除要求を拒否すること");
++}
++
++@end
 diff --git a/sdk/objc/unittests/RTCManualAudioInput_xctest.mm b/sdk/objc/unittests/RTCManualAudioInput_xctest.mm
 new file mode 100644
 --- /dev/null
 +++ b/sdk/objc/unittests/RTCManualAudioInput_xctest.mm
-@@ -0,0 +1,329 @@
+@@ -0,0 +1,394 @@
 +#import <XCTest/XCTest.h>
 +
 +#include "api/environment/environment_factory.h"
@@ -2266,6 +2649,65 @@ new file mode 100644
 +  }];
 +}
 +
++- (void)checkInitiallyMutedResumeWithStereo:(BOOL)stereo {
++  [self createDeviceWithStereo:stereo input:YES];
++  RTC_OBJC_TYPE(RTCAudioSession)* session = [RTC_OBJC_TYPE(RTCAudioSession) sharedInstance];
++  XCTAssertTrue([session setInitialMicrophoneMute:YES], @"初期状態をミュートにできること");
++  [self runOnWorker:^{
++    XCTAssertEqual(0, self->_device->InitPlayout(), @"再生を初期化できること");
++    XCTAssertEqual(0, self->_device->StartPlayout(), @"再生を開始できること");
++    XCTAssertEqual(0, self->_device->StartRecording(), @"録音の転送を開始できること");
++  }];
++  XCTestExpectation* completed = [self expectationWithDescription:@"初期ミュートで入力を初期化すること"];
++  [session initializeInput:^(NSError* error) {
++    XCTAssertNil(error, @"入力初期化が成功すること");
++    [completed fulfill];
++  }];
++  [self waitForExpectations:@[completed] timeout:10];
++  [self runOnWorker:^{
++    // 初期ミュートでは録音の論理状態と入力 I/O が異なるため、pause を挟まず解除する。
++    XCTAssertTrue(self->_device->Recording(), @"録音の論理状態は開始済みであること");
++    XCTAssertEqual(0u, webrtc::ios_adm::ManualAudioInputTestPeer::InputEnabled(*self->_device, stereo),
++                   @"初期ミュートでは入力 I/O が無効であること");
++    for (int attempt = 0; attempt < 2; ++attempt) {
++      XCTAssertEqual(0, self->_device->ResumeRecording(), @"最初の解除と同じ要求の繰り返しが成功すること");
++      XCTAssertEqual(1u, webrtc::ios_adm::ManualAudioInputTestPeer::InputEnabled(*self->_device, stereo),
++                     @"解除要求を省略せず入力 I/O を有効にすること");
++      XCTAssertTrue(self->_device->Recording(), @"解除後も録音の転送を継続すること");
++      XCTAssertTrue(self->_device->Playing(), @"解除後も再生を継続すること");
++      XCTAssertTrue(webrtc::ios_adm::ManualAudioInputTestPeer::Started(*self->_device),
++                    @"解除後に AudioUnit が開始していること");
++    }
++  }];
++}
++
++- (void)testStereoInitiallyMutedInputCanResume {
++  [self checkInitiallyMutedResumeWithStereo:YES];
++  RTC_OBJC_TYPE(RTCAudioSession)* session = [RTC_OBJC_TYPE(RTCAudioSession) sharedInstance];
++  [self runOnWorker:^{
++    // 同じ worker 内で変更し、非同期の停止通知が届く前に切り替える順序も検証する。
++    session.isAudioEnabled = NO;
++    // 手動停止中の切り替えでは、入力状態だけ変え、AudioUnit を起動しない。
++    XCTAssertEqual(0, self->_device->PauseRecording(), @"手動停止中もミュートを設定できること");
++    XCTAssertEqual(0, self->_device->ResumeRecording(), @"手動停止中も解除を設定できること");
++    XCTAssertEqual(1u, webrtc::ios_adm::ManualAudioInputTestPeer::InputEnabled(*self->_device, true),
++                   @"次回の再開に向けて入力 I/O が有効になっていること");
++    XCTAssertTrue(webrtc::ios_adm::ManualAudioInputTestPeer::Uninitialized(*self->_device),
++                  @"ミュート切り替えで手動音声停止を解除しないこと");
++    XCTAssertEqual(self->_activationCount, session.activationCount,
++                   @"停止通知を先取りしてもセッションの有効化を残さないこと");
++  }];
++  session.isAudioEnabled = YES;
++  [self runOnWorker:^{
++    XCTAssertTrue(webrtc::ios_adm::ManualAudioInputTestPeer::Started(*self->_device),
++                  @"手動音声再開の通知で AudioUnit が開始すること");
++  }];
++}
++
++- (void)testMonoInitiallyMutedInputCanResume {
++  [self checkInitiallyMutedResumeWithStereo:NO];
++}
++
 +- (void)checkSendOnlyStartBeforeRequest:(BOOL)started {
 +  [self createDeviceWithStereo:YES input:YES];
 +  [self runOnWorker:^{
@@ -2283,7 +2725,13 @@ new file mode 100644
 +      XCTAssertFalse(webrtc::ios_adm::ManualAudioInputTestPeer::Started(*self->_device),
 +                     @"入力初期化だけでは AudioUnit を開始しないこと");
 +      XCTAssertFalse(self->_device->Recording(), @"入力初期化だけでは録音を開始しないこと");
++      XCTAssertEqual(0, self->_device->PauseRecording(), @"録音開始前もミュートを設定できること");
++      XCTAssertFalse(webrtc::ios_adm::ManualAudioInputTestPeer::Started(*self->_device),
++                     @"停止要求では未開始の AudioUnit を開始しないこと");
++      XCTAssertEqual(0u, webrtc::ios_adm::ManualAudioInputTestPeer::InputEnabled(*self->_device, true),
++                     @"録音開始前のミュートで入力 I/O を無効にすること");
 +      XCTAssertEqual(0, self->_device->StartRecording(), @"入力初期化後に録音を開始できること");
++      XCTAssertEqual(0, self->_device->ResumeRecording(), @"録音開始前に指定したミュートを解除できること");
 +    }
 +    XCTAssertFalse(self->_device->Playing(), @"送信専用で再生の論理状態を変更しないこと");
 +    XCTAssertTrue(self->_device->Recording(), @"録音を継続すること");
@@ -2357,7 +2805,7 @@ diff --git a/sdk/objc/unittests/RTCStereoAudioOutput_xctest.mm b/sdk/objc/unitte
 new file mode 100644
 --- /dev/null
 +++ b/sdk/objc/unittests/RTCStereoAudioOutput_xctest.mm
-@@ -0,0 +1,161 @@
+@@ -0,0 +1,215 @@
 +#import <XCTest/XCTest.h>
 +
 +#include <thread>
@@ -2404,6 +2852,8 @@ new file mode 100644
 +
 +      // factory と同じ経路で ADM を受け取り、設定だけでは初期化されないことを調べる。
 +      auto native = [module nativeAudioDeviceModule];
++      XCTAssertTrue([module nativeAudioDeviceModule] == nullptr,
++                    @"同じ ADM を複数の worker に渡さないこと");
 +      XCTAssertFalse(native->Initialized(), @"アプリ側では ADM を初期化しないこと");
 +      XCTAssertEqual(-1, [module setStereoPlayoutEnabled:!enabled],
 +                     @"受け渡し後の設定変更を拒否すること");
@@ -2437,16 +2887,24 @@ new file mode 100644
 +                     @"初期化後も設定変更を拒否すること");
 +      worker->BlockingCall([&] {
 +        XCTAssertEqual(0, native->Terminate(), @"終了できること");
++        webrtc::AudioParameters parameters;
++        webrtc::AudioDeviceModule::AudioLayer layer;
++        XCTAssertEqual(-1, native->ActiveAudioLayer(&layer), @"終了後のデバイス参照を拒否すること");
++        XCTAssertEqual(-1, native->RegisterAudioCallback(nullptr), @"終了後のバッファ参照を拒否すること");
++        XCTAssertEqual(-1, native->GetPlayoutAudioParameters(&parameters), @"終了後の再生設定取得を拒否すること");
++        XCTAssertEqual(-1, native->GetRecordAudioParameters(&parameters), @"終了後の録音設定取得を拒否すること");
 +        XCTAssertEqual(0, native->Init(), @"再初期化できること");
 +        bool stereo = false;
 +        XCTAssertEqual(0, native->StereoPlayout(&stereo), @"再初期化後の設定を取得できること");
 +        XCTAssertEqual(static_cast<bool>(enabled), stereo, @"再初期化でも設定を保持すること");
 +        XCTAssertEqual(0, native->Terminate(), @"再初期化後も終了できること");
-+        // AudioDeviceIOS の破棄も生成元の worker スレッドで行う。
-+        module = nil;
-+        native = nullptr;
 +      });
 +      worker->Stop();
++      // ネイティブ ADM の終了時に worker 専用リソースを破棄済みなので、
++      // ObjC ラッパーの最後の参照はアプリ側で安全に解放できる。
++      XCTAssertEqual(-1, [module resumeRecording], @"実行先がない解除要求を拒否すること");
++      module = nil;
++      native = nullptr;
 +    }
 +  });
 +  caller.join();
@@ -2494,6 +2952,8 @@ new file mode 100644
 +      XCTAssertEqual(1u, output, @"ミュート状態にかかわらず出力 I/O が有効なこと");
 +    };
 +    check_io(0);
++    bool muted = false;
++    XCTAssertFalse(unit.GetMicrophoneMute(muted), @"入力未初期化の状態取得を拒否すること");
 +    XCTAssertFalse(unit.SetMicrophoneMute(false), @"入力未初期化のミュート解除を拒否すること");
 +    check_io(0);
 +    XCTAssertTrue(unit.InitializeInput(false), @"入力要求に従って入力を初期化できること");
@@ -2502,10 +2962,52 @@ new file mode 100644
 +    for (bool mute : {true, true, false, false, true, false}) {
 +      XCTAssertTrue(unit.SetMicrophoneMute(mute), @"ミュートの設定に成功すること");
 +      check_io(mute ? 0 : 1);
++      XCTAssertTrue(unit.GetMicrophoneMute(muted), @"実際のミュート状態を取得できること");
++      XCTAssertEqual(mute, muted, @"入力 I/O と取得したミュート状態が一致すること");
 +    }
 +    // マイク捕捉、再初期化後の再生、インジケーターは別途実機で検証する。
 +  });
 +  worker->Stop();
++}
++
++- (void)checkInitiallyMutedUnitWithStereo:(BOOL)stereo detectMutedSpeech:(BOOL)detect {
++  auto worker = webrtc::Thread::Create();
++  XCTAssertTrue(worker->Start(), @"worker を開始できること");
++  worker->BlockingCall([&] {
++    // 実際の AudioUnit を使用し、音声サーバーの起動とは独立して初期ミュート解除を検証する。
++    webrtc::ios_adm::AudioDeviceIOS observer(webrtc::CreateEnvironment(), false, nullptr, nullptr);
++    std::unique_ptr<webrtc::ios_adm::AudioUnitInterface> unit;
++    if (stereo) {
++      unit = std::make_unique<webrtc::ios_adm::RemoteIOAudioUnit>(&observer, 2, 1);
++    } else {
++      unit = std::make_unique<webrtc::ios_adm::VoiceProcessingAudioUnit>(false, detect, &observer);
++    }
++    XCTAssertTrue(unit->Init(), @"AudioUnit を生成できること");
++    XCTAssertTrue(unit->InitializeInput(true), @"初期ミュートで入力を準備できること");
++    bool muted = false;
++    XCTAssertTrue(unit->GetMicrophoneMute(muted), @"初期ミュート状態を取得できること");
++    XCTAssertTrue(muted, @"入力 I/O が無効な初期状態をミュートとして扱うこと");
++    // AudioUnitInitialize は呼ばず、初期状態の EnableIO によるミュートと解除を検証する。
++    // 音声検出を伴う稼働中のミュートは実際の入出力を開始する検証で扱う。
++    for (bool requested : {false, false}) {
++      XCTAssertTrue(unit->SetMicrophoneMute(requested), @"初期ミュート解除と同じ要求の繰り返しが成功すること");
++      XCTAssertTrue(unit->GetMicrophoneMute(muted), @"切り替え後の実際のミュート状態を取得できること");
++      XCTAssertEqual(requested, muted, @"録音フラグに依存せず実際のミュート状態を返すこと");
++    }
++  });
++  worker->Stop();
++}
++
++- (void)testInitiallyMutedRemoteIOCanUnmute {
++  [self checkInitiallyMutedUnitWithStereo:YES detectMutedSpeech:NO];
++}
++
++- (void)testInitiallyMutedVoiceProcessingCanUnmute {
++  [self checkInitiallyMutedUnitWithStereo:NO detectMutedSpeech:NO];
++}
++
++- (void)testInitiallyMutedVoiceProcessingWithSpeechDetectionCanUnmute {
++  [self checkInitiallyMutedUnitWithStereo:NO detectMutedSpeech:YES];
 +}
 +
 +- (void)testConfigurationCanBeChangedBeforeHandoff {
