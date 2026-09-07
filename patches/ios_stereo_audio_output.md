@@ -57,14 +57,27 @@ RTCPeerConnectionFactory *factory =
                                            audioDeviceModule:adm];
 ```
 
+### マイク入力の初期化
+
+ステレオの有無と送受信の判断は独立しています。
+SDK がすでに持つ送信側の判断を使い、マイクを送信する場合だけ、既存の `setInitialMicrophoneMute` と `initializeInput` を呼びます。
+AudioUnit の生成前の要求は生成後まで待機し、再生開始後の要求は worker で停止、入力接続、再初期化を経て、AudioUnit が開始済みだった場合だけ再開します。
+完了通知はメインキューで一度だけ行い、終了で待機要求が取り消された場合はエラーを返します。
+入力初期化前のミュート解除は拒否します。
+
+`RTCAudioSession` は既存どおり共有インスタンスで、公開 `initializeInput` は ADM の識別子を受け取りません。
+入力要求は利用する ADM を初期化してから行い、複数の ADM が同時に独立した入力要求を持つ使い方はできません。
+入力を使わない再生では、アプリが再生用の category と options を設定します。
+本パッチは stereo 設定から category や送受信の要否を決めません。
+
 ### 利用上の注意
 
 - **AEC / AGC が使えなくなる**: ステレオ出力を有効化すると内部的に AudioUnit を `VoiceProcessingIO` から `RemoteIO` に切り替えるため、iOS 標準のハードウェア AEC / AGC / マイクミュートは動作しなくなります。VoIP 用途で AEC / AGC が必須の場合はステレオ出力を有効化しないでください。
 - **`pauseRecording` / `resumeRecording` が形骸化する**: 上記と関連。ステレオ有効時 (`RemoteIO` 経路) は `RemoteIOAudioUnit::SetMicrophoneMute` が no-op のため、`RTCAudioDeviceModule.pauseRecording` を呼んでも `Stop → Uninitialize → Initialize → Start` のフローだけ走ってミュート状態は切り替わりません (iOS のマイクインジケータも消えません)。ステレオ配信中に録音停止が必要なユースケースでは、ステレオ有効化と `pauseRecording` を組み合わせないでください。
 - **`initWithBypassVoiceProcessing:YES` は無視される**: `RTCAudioDeviceModule` の bypass フラグは `VoiceProcessingIO` の内部音声処理をバイパスするための設定です。ステレオ有効時は `RemoteIO` を使うため VP 由来の音声処理はもともと無く、bypass 指定は事実上意味を持ちません (エラーにはならず単に無視されます)。
 - **mode 切替**: ステレオ有効時のみ `AVAudioSession` の mode が `AVAudioSessionModeVoiceChat` から `AVAudioSessionModeDefault` に一時差し替えされます (WebRTC セッション構成時のみ)。モノラルに戻せば mode も戻ります。
-- **Bluetooth 制約 + A2DP category option**: HFP はモノラルまでしか出せません。A2DP ではステレオが出せます。既定の `AVAudioSessionCategoryPlayAndRecord` は録音併用のため HFP が選ばれる場合があります。ステレオ出力を確実に狙うなら、アプリ側で category / options を A2DP を許容する構成に調整することを検討してください (本パッチは category の書き換えまでは踏み込みません)。
-- **マイク権限**: `RTCAudioSessionCategoryPlayAndRecord` を用いる WebRTC の性質上、マイク権限は依然として必要です。
+- **Bluetooth 制約 + A2DP category option**: HFP はモノラルまでしか出せません。A2DP ではステレオが出せます。`AVAudioSessionCategoryPlayAndRecord` を指定すると録音併用のため HFP が選ばれる場合があります。ステレオ出力を確実に狙うなら、アプリ側で category / options を A2DP を許容する構成に調整することを検討してください (本パッチは category の書き換えまでは踏み込みません)。
+- **マイク入力と権限**: ステレオ再生自体はマイク入力を必要としません。RemoteIO も既存の `RTCAudioSession.initializeInput` が呼ばれるまで入力 I/O を無効にします。受信専用では呼び出さず、マイクを送信する場合だけ録音可能な category とマイク権限を用意して呼び出してください。stereo を理由に入力初期化を省略していた SDK は、依存更新と同時に既存の呼び出しを戻す必要があります。
 - **呼び出しタイミングと初期化**: `setStereoPlayoutEnabled:` は `RTCPeerConnectionFactory` に `RTCAudioDeviceModule` を渡す前に呼んでください。設定値だけを保持し、ADM の初期化と設定の適用は factory の worker スレッドで行います。戻り値 `0` は設定の受け付け成功を示し、音声デバイスの初期化成功を保証するものではありません。factory への受け渡し後は設定変更を拒否します
 - **設定値の取得と再初期化**: `stereoPlayoutEnabled` は受け付けた設定値を返し、初期化前と factory への受け渡し後も取得できます。実際の出力経路のチャンネル数を示すものではありません。ADM を `Terminate` して再初期化した場合も、最初に受け付けた設定を再適用します
 - **実機検証**: シミュレータの Core Audio は挙動が実機と異なるため、ステレオ出力の確認は必ず実機で行ってください。
@@ -79,12 +92,12 @@ RTCPeerConnectionFactory *factory =
 
 ### 変更点の概要
 
-- `sdk/objc/native/src/audio/audio_unit_interface.h` を新規追加し、`AudioUnitInterface` abstract class を定義。`State { kInitRequired, kUninitialized, kInitialized, kStarted }` enum と `kBytesPerSample` 定数を interface 側に集約し、`Init` / `Initialize` / `Start` / `Stop` / `Uninitialize` / `SetMicrophoneMute` / `Render` / `GetState` を pure virtual として並べる
-- `sdk/objc/native/src/audio/voice_processing_audio_unit.h` を最小改造。`class VoiceProcessingAudioUnit : public AudioUnitInterface` に継承を追加し、既存メソッドに `override` を付与、自前 State enum を削除。private セクションの protected 昇格や既存メソッドの virtual 後付けは行わない
-- `sdk/objc/native/src/audio/voice_processing_audio_unit.mm` は `kBytesPerSample` の定義を `AudioUnitInterface::kBytesPerSample` に、`GetState()` の戻り値型注記を `AudioUnitInterface::State` に更新するだけの最小追随
-- `sdk/objc/native/src/audio/remote_io_audio_unit.h` / `.mm` を新規追加。`AudioUnitInterface` を直接実装した独立クラスとして `RemoteIOAudioUnit` を定義。`componentSubType = kAudioUnitSubType_RemoteIO`、入力バスと出力バスに `EnableIO` + コールバック配線を行い、`GetFormat(sample_rate, channels)` で playout / record 個別のチャンネル数を扱える。`AudioUnitInitialize` のリトライループも独立に持つ
+- `sdk/objc/native/src/audio/audio_unit_interface.h` を新規追加し、`AudioUnitInterface` abstract class を定義。`State { kInitRequired, kUninitialized, kInitialized, kStarted }` enum と `kBytesPerSample` 定数を interface 側に集約し、`Init` / `Initialize` / `InitializeInput` / `IsInputInitialized` / `Start` / `Stop` / `Uninitialize` / `SetMicrophoneMute` / `Render` / `GetState` を pure virtual として並べる
+- `sdk/objc/native/src/audio/voice_processing_audio_unit.h` を更新。`class VoiceProcessingAudioUnit : public AudioUnitInterface` に継承を追加し、既存メソッドに `override` を付与、自前 State enum を削除。private セクションの protected 昇格や既存メソッドの virtual 後付けは行わない
+- `VoiceProcessingAudioUnit` に直接接続されていた入力初期化を `AudioUnitInterface::InitializeInput` に移す。`RTCAudioSession` は従来の公開 API で要求を受け付け、`AudioDeviceIOS` の worker が入力の接続と AudioUnit の再初期化を行う。一時停止では入力状態を保持し、最終終了で待機要求を解除する
+- `sdk/objc/native/src/audio/remote_io_audio_unit.h` / `.mm` を新規追加。`AudioUnitInterface` を直接実装した独立クラスとして `RemoteIOAudioUnit` を定義。`componentSubType = kAudioUnitSubType_RemoteIO`、生成時は出力バスを有効にし、入力バスと入力コールバックは `initializeInput` の要求後に接続する。`GetFormat(sample_rate, channels)` で playout / record 個別のチャンネル数を扱える。`AudioUnitInitialize` のリトライループも独立に持つ
 - `sdk/objc/native/src/audio/audio_device_ios.h` の `audio_unit_` メンバ型を `std::unique_ptr<VoiceProcessingAudioUnit>` から `std::unique_ptr<AudioUnitInterface>` に変更
-- `sdk/objc/native/src/audio/audio_device_ios.mm` 内の `VoiceProcessingAudioUnit::kInitialized` / `kUninitialized` / `kStarted` / `kInitRequired` / `kBytesPerSample` の参照をすべて `AudioUnitInterface::` に置換 (17 箇所)。`ios_audio_pause_resume.patch` が追加した `ReinitAudioUnitForMicrophoneMute` 内の 2 箇所も同時に置換
+- `sdk/objc/native/src/audio/audio_device_ios.mm` 内の `VoiceProcessingAudioUnit::kInitialized` / `kUninitialized` / `kStarted` / `kInitRequired` / `kBytesPerSample` の参照をすべて `AudioUnitInterface::` に置換。`ios_audio_pause_resume.patch` が追加した `ReinitAudioUnitForMicrophoneMute` 内の参照も同時に置換
 - `AudioDeviceIOS::StereoPlayoutIsAvailable` / `SetStereoPlayout` / `StereoPlayout` を実装。`playout_parameters_.channels()` を単一の source of truth として参照し、`play_channels_` のような別メンバによる二重管理は作らない。3 関数に `RTC_DCHECK_RUN_ON(thread_)` を付与
 - `AudioDeviceIOS::UpdateAudioDeviceBuffer` の `RTC_DCHECK_EQ(playout_parameters_.channels(), 1);` を削除。recording 側の DCHECK は残す
 - `AudioDeviceIOS::OnGetPlayoutData` の `RTC_DCHECK_EQ(1, audio_buffer->mNumberChannels);` を `RTC_DCHECK_EQ(playout_parameters_.channels(), audio_buffer->mNumberChannels);` に置換。silence 出力時のバイト数計算と `fine_audio_buffer_->GetPlayoutData(...)` の要求サンプル数も `playout_parameters_.channels()` を掛けた値に修正
@@ -100,6 +113,18 @@ RTCPeerConnectionFactory *factory =
 - 本パッチは `ios_sdk` にのみ登録される。raw `ios` ビルドには本機能は含まれない
 - 依存する `ios_audio_pause_resume.patch` が同じく `ios_sdk` にのみ登録されている先例に合わせている
 - `run.py` の `PATCHES["ios_sdk"]` では `ios_audio_pause_resume.patch` の直後に `ios_stereo_audio_output.patch` を配置する (pause_resume が追加する `ReinitAudioUnitForMicrophoneMute` の State 参照を本パッチが書き換えるため、順序は不可逆)
+
+### 入力初期化の回帰テスト
+
+`RTCManualAudioInputTests` は実際の `AudioDeviceIOS` と AudioUnit を使い、入力 I/O、初期ミュート、手動音声の停止と再開、入力要求の取り消し、再接続を確認します。
+入力を使うテストは、検証用アプリのマイク権限を許可した状態で実行します。
+受信専用の `testStereoPlaybackWithoutInput` は、権限が未決定の状態と拒否された状態でも個別に実行します。
+
+worker 操作の待機はメインの run loop を動かし、完了前に終了処理へ進まないようにしています。
+実行時は XCTest のテストタイムアウトを有効にしてください。
+`xcodebuild` では `-test-timeouts-enabled YES -default-test-execution-time-allowance 60 -maximum-test-execution-time-allowance 60` を指定します。
+Core Audio が応答しない場合は、同じプロセスで後続処理を続けず、XCTest に失敗と診断情報を記録させます。
+このテストは実際のマイク音声の送信、左右の再生音、Bluetooth の経路変更を検証するものではなく、それらは実機で別途確認します。
 
 ### preferredOutputNumberOfChannels は 1 のままとする設計判断
 
