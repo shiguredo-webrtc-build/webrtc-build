@@ -97,6 +97,18 @@ jobs:
         run: |
           python3 run.py build ${{ matrix.platform.name }} --no-history
           python3 run.py package ${{ matrix.platform.name }}
+      - name: Set up uv for custom audio input test
+        if: matrix.platform.name == 'macos_arm64'
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: false
+      - name: Test custom audio input
+        if: matrix.platform.name == 'macos_arm64'
+        run: |
+          uv run scripts/test_objc_audio_device_input.py \
+            --webrtc-package-dir _package/macos_arm64/webrtc \
+            --dependency-source-dir _source/macos_arm64/webrtc/src \
+            --clang-path _source/macos_arm64/webrtc/src/third_party/llvm-build/Release+Asserts/bin/clang++
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
         with:

@@ -29,6 +29,12 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 - 2022-01-01 [FIX] [m127] h265.patch のバグを修正
   - @melpon
 
+## develop
+
+- [FIX] macOS / iOS のカスタム音声入力で 2 ch の PCM の後半が欠落する不具合を修正する
+  - `inputData` の形式とバッファ長を検査し、不正な入力に `kAudio_ParamError` を返す
+  - @voluntas
+
 ## タイムライン
 
 - 2026-09-07 [RELEASE] m150.7871.3.4
