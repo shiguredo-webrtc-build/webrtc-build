@@ -1162,7 +1162,7 @@ new file mode 100644
 +  // AudioUnit の初期化を解除する。
 +  virtual bool Uninitialize() = 0;
 +
-+  // マイクミュートを設定する。実装によっては no-op となる。
++  // マイクミュートを設定する。
 +  virtual bool SetMicrophoneMute(bool enable) = 0;
 +
 +  // I/O コールバック内から AudioUnitRender を呼ぶための橋渡し。
@@ -1181,7 +1181,7 @@ diff --git a/sdk/objc/native/src/audio/remote_io_audio_unit.h b/sdk/objc/native/
 new file mode 100644
 --- /dev/null
 +++ b/sdk/objc/native/src/audio/remote_io_audio_unit.h
-@@ -0,0 +1,119 @@
+@@ -0,0 +1,120 @@
 +/*
 + *  Copyright 2016 The WebRTC Project Authors. All rights reserved.
 + *
@@ -1240,8 +1240,8 @@ new file mode 100644
 +  // AudioUnit の初期化を解除する。
 +  bool Uninitialize() override;
 +
-+  // RemoteIO には VoiceProcessing 固有のマイクミュート機構は無い。
-+  // interface 実装上の存在意義のためだけに残す。
++  // 入力バスの I/O を切り替え、マイクの捕捉を停止 / 再開する。
++  // pause / resume では AudioUnit の初期化を解除してから呼ぶ。出力 I/O は維持する。
 +  bool SetMicrophoneMute(bool enable) override;
 +
 +  // 入力バス側の AudioUnitRender を呼ぶ。
@@ -1253,6 +1253,7 @@ new file mode 100644
 +
 + private:
 +  friend class ManualAudioInputTestPeer;
++  friend class RemoteIOAudioUnitTestPeer;
 +  // Core Audio の C API は static コールバックを要求するため、
 +  // in_ref_con をこのクラスのポインタに戻して instance method へ橋渡しする。
 +  static OSStatus OnGetPlayoutData(void* in_ref_con,
@@ -1305,7 +1306,7 @@ diff --git a/sdk/objc/native/src/audio/remote_io_audio_unit.mm b/sdk/objc/native
 new file mode 100644
 --- /dev/null
 +++ b/sdk/objc/native/src/audio/remote_io_audio_unit.mm
-@@ -0,0 +1,401 @@
+@@ -0,0 +1,409 @@
 +/*
 + *  Copyright 2016 The WebRTC Project Authors. All rights reserved.
 + *
@@ -1585,17 +1586,25 @@ new file mode 100644
 +}
 +
 +bool RemoteIOAudioUnit::SetMicrophoneMute(bool enable) {
-+  // ミュート解除で initializeInput を迂回してマイクを取得しない。
-+  if (!input_initialized_) {
++  // initializeInput なしのミュート解除でマイクを接続しない。
++  if (!input_initialized_) return false;
++  RTC_DCHECK_GE(state_, AudioUnitInterface::kUninitialized);
++
++  // VoiceProcessing 固有の MuteOutput ではなく、入力 I/O を無効化して捕捉を止める。
++  // pause / resume 経路では Stop / Uninitialize 後に設定し、出力 I/O は変更しない。
++  UInt32 enable_input = enable ? 0 : 1;
++  OSStatus result = AudioUnitSetProperty(rio_unit_,
++                                        kAudioOutputUnitProperty_EnableIO,
++                                        kAudioUnitScope_Input,
++                                        kInputBus,
++                                        &enable_input,
++                                        sizeof(enable_input));
++  if (result != noErr) {
++    RTCLogError(@"Failed to %s RemoteIO microphone. OSStatus=%ld.",
++                enable ? "mute" : "unmute",
++                (long)result);
 +    return false;
 +  }
-+  // RemoteIO には VoiceProcessing 由来のマイクミュート機構
-+  // (kAUVoiceIOProperty_MuteOutput 等) が存在しないため実質的な動作は行わない。
-+  // ここで false を返すと AudioDeviceIOS::ReinitAudioUnitForMicrophoneMute 側で
-+  // エラー扱いになるため no-op で true を返す。
-+  RTCLog(@"RemoteIO does not support microphone mute, ignoring request "
-+          "enable=%s.",
-+         enable ? "true" : "false");
 +  return true;
 +}
 +
@@ -2014,7 +2023,7 @@ diff --git a/sdk/objc/unittests/RTCManualAudioInput_xctest.mm b/sdk/objc/unittes
 new file mode 100644
 --- /dev/null
 +++ b/sdk/objc/unittests/RTCManualAudioInput_xctest.mm
-@@ -0,0 +1,300 @@
+@@ -0,0 +1,329 @@
 +#import <XCTest/XCTest.h>
 +
 +#include "api/environment/environment_factory.h"
@@ -2228,6 +2237,35 @@ new file mode 100644
 +  XCTAssertEqual(permission, CurrentRecordPermission(), @"受信専用の再生はマイク権限を変更しないこと");
 +}
 +
++- (void)testStereoHardMuteKeepsPlayback {
++  [self createDeviceWithStereo:YES input:YES];
++  [self runOnWorker:^{
++    XCTAssertEqual(0, self->_device->InitPlayout(), @"ステレオ再生を初期化できること");
++    XCTAssertEqual(0, self->_device->StartPlayout(), @"ステレオ再生を開始できること");
++    XCTAssertEqual(0, self->_device->StartRecording(), @"録音の転送を開始できること");
++  }];
++  XCTestExpectation* completed = [self expectationWithDescription:@"ミュート前に入力を初期化すること"];
++  [[RTC_OBJC_TYPE(RTCAudioSession) sharedInstance] initializeInput:^(NSError* error) {
++    XCTAssertNil(error, @"入力初期化が成功すること");
++    [completed fulfill];
++  }];
++  [self waitForExpectations:@[completed] timeout:10];
++  [self runOnWorker:^{
++    // 実際の pause / resume に伴う再初期化後の入力 I/O と開始状態を確認する。
++    for (bool mute : {true, false, true, false}) {
++      XCTAssertEqual(0, mute ? self->_device->PauseRecording() : self->_device->ResumeRecording(),
++                     @"ハードミュートを切り替えられること");
++      XCTAssertEqual(mute ? 0u : 1u,
++                     webrtc::ios_adm::ManualAudioInputTestPeer::InputEnabled(*self->_device, true),
++                     @"再初期化後も入力 I/O がミュートに従うこと");
++      XCTAssertEqual(!mute, self->_device->Recording(), @"録音の転送状態がミュートに従うこと");
++      XCTAssertTrue(self->_device->Playing(), @"ミュート中も再生の論理状態を維持すること");
++      XCTAssertTrue(webrtc::ios_adm::ManualAudioInputTestPeer::Started(*self->_device),
++                    @"ミュートの切り替え後に AudioUnit が再開すること");
++    }
++  }];
++}
++
 +- (void)checkSendOnlyStartBeforeRequest:(BOOL)started {
 +  [self createDeviceWithStereo:YES input:YES];
 +  [self runOnWorker:^{
@@ -2319,13 +2357,29 @@ diff --git a/sdk/objc/unittests/RTCStereoAudioOutput_xctest.mm b/sdk/objc/unitte
 new file mode 100644
 --- /dev/null
 +++ b/sdk/objc/unittests/RTCStereoAudioOutput_xctest.mm
-@@ -0,0 +1,97 @@
+@@ -0,0 +1,161 @@
 +#import <XCTest/XCTest.h>
 +
 +#include <thread>
 +
++#include "api/environment/environment_factory.h"
 +#include "rtc_base/thread.h"
 +#import "sdk/objc/components/audio/RTCAudioDeviceModule+Private.h"
++#include "sdk/objc/native/src/audio/audio_device_ios.h"
++#include "sdk/objc/native/src/audio/remote_io_audio_unit.h"
++
++namespace webrtc {
++namespace ios_adm {
++
++class RemoteIOAudioUnitTestPeer {
++ public:
++  static AudioUnit GetAudioUnit(const RemoteIOAudioUnit& unit) {
++    return unit.rio_unit_;
++  }
++};
++
++}  // namespace ios_adm
++}  // namespace webrtc
 +
 +@interface RTCStereoAudioOutputTests : XCTestCase
 +@end
@@ -2404,6 +2458,54 @@ new file mode 100644
 +
 +- (void)testDefaultMonoInitializationIsDeferred {
 +  [self checkDeferredInitializationWithStereo:NO];
++}
++
++- (void)testRemoteIOMicrophoneMutePreservesOutputIO {
++  auto worker = webrtc::Thread::Create();
++  const bool started = worker->Start();
++  XCTAssertTrue(started, @"worker スレッドを開始できること");
++  if (!started) {
++    return;
++  }
++  worker->BlockingCall([&] {
++    // 実際の AudioDeviceIOS を observer として使う。I/O は開始せず、
++    // 未初期化状態での EnableIO の読み戻しを検証する。モックは使用しない。
++    webrtc::ios_adm::AudioDeviceIOS observer(
++        webrtc::CreateEnvironment(), false, nullptr, nullptr);
++    webrtc::ios_adm::RemoteIOAudioUnit unit(&observer, 2, 1);
++    const bool initialized = unit.Init();
++    XCTAssertTrue(initialized, @"実際の RemoteIO を生成できること");
++    if (!initialized) {
++      return;
++    }
++    AudioUnit native = webrtc::ios_adm::RemoteIOAudioUnitTestPeer::GetAudioUnit(unit);
++    const auto check_io = [&](UInt32 expected_input) {
++      UInt32 input = 0;
++      UInt32 size = sizeof(input);
++      XCTAssertEqual(noErr, AudioUnitGetProperty(native, kAudioOutputUnitProperty_EnableIO,
++                                               kAudioUnitScope_Input, 1, &input, &size),
++                     @"入力 bus の EnableIO を取得できること");
++      XCTAssertEqual(expected_input, input, @"入力 I/O が要求どおりに設定されること");
++      UInt32 output = 0;
++      size = sizeof(output);
++      XCTAssertEqual(noErr, AudioUnitGetProperty(native, kAudioOutputUnitProperty_EnableIO,
++                                               kAudioUnitScope_Output, 0, &output, &size),
++                     @"出力 bus の EnableIO を取得できること");
++      XCTAssertEqual(1u, output, @"ミュート状態にかかわらず出力 I/O が有効なこと");
++    };
++    check_io(0);
++    XCTAssertFalse(unit.SetMicrophoneMute(false), @"入力未初期化のミュート解除を拒否すること");
++    check_io(0);
++    XCTAssertTrue(unit.InitializeInput(false), @"入力要求に従って入力を初期化できること");
++    check_io(1);
++    // 同じ要求の繰り返しと再切り替えの両方を確認し、no-op への退行を検出する。
++    for (bool mute : {true, true, false, false, true, false}) {
++      XCTAssertTrue(unit.SetMicrophoneMute(mute), @"ミュートの設定に成功すること");
++      check_io(mute ? 0 : 1);
++    }
++    // マイク捕捉、再初期化後の再生、インジケーターは別途実機で検証する。
++  });
++  worker->Stop();
 +}
 +
 +- (void)testConfigurationCanBeChangedBeforeHandoff {

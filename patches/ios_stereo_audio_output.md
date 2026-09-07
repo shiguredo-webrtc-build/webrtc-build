@@ -72,8 +72,9 @@ AudioUnit の生成前の要求は生成後まで待機し、再生開始後の�
 
 ### 利用上の注意
 
-- **AEC / AGC が使えなくなる**: ステレオ出力を有効化すると内部的に AudioUnit を `VoiceProcessingIO` から `RemoteIO` に切り替えるため、iOS 標準のハードウェア AEC / AGC / マイクミュートは動作しなくなります。VoIP 用途で AEC / AGC が必須の場合はステレオ出力を有効化しないでください。
-- **`pauseRecording` / `resumeRecording` が形骸化する**: 上記と関連。ステレオ有効時 (`RemoteIO` 経路) は `RemoteIOAudioUnit::SetMicrophoneMute` が no-op のため、`RTCAudioDeviceModule.pauseRecording` を呼んでも `Stop → Uninitialize → Initialize → Start` のフローだけ走ってミュート状態は切り替わりません (iOS のマイクインジケータも消えません)。ステレオ配信中に録音停止が必要なユースケースでは、ステレオ有効化と `pauseRecording` を組み合わせないでください。
+- **AEC / AGC が使えなくなる**: ステレオ出力を有効化すると内部的に AudioUnit を `VoiceProcessingIO` から `RemoteIO` に切り替えるため、iOS 標準のハードウェア AEC / AGC は動作しなくなります。VoIP 用途で AEC / AGC が必須の場合はステレオ出力を有効化しないでください。
+- **`pauseRecording` / `resumeRecording`**: ネイティブの `RTCAudioDeviceModule` は、ステレオ有効時も入力 bus の EnableIO を切り替えてマイクの入力 I/O を停止 / 再開します。切り替えは AudioUnit 全体の停止と再初期化を伴うため、再生が一時中断します。出力 bus の EnableIO は変更せず、再初期化に成功すると再生を再開します。失敗時はエラーを返します。マイクインジケーターの消灯と再点灯、ミュート中の stereo 再生は実機で確認してください
+- **SDK のハードミュート制約**: Sora iOS SDK の公開 API `setAudioHardMute` がステレオ時のハードミュートを拒否する制約と、`setInitialMicrophoneMute` の RemoteIO への対応は、この変更の対象外です
 - **`initWithBypassVoiceProcessing:YES` は無視される**: `RTCAudioDeviceModule` の bypass フラグは `VoiceProcessingIO` の内部音声処理をバイパスするための設定です。ステレオ有効時は `RemoteIO` を使うため VP 由来の音声処理はもともと無く、bypass 指定は事実上意味を持ちません (エラーにはならず単に無視されます)。
 - **mode 切替**: ステレオ有効時のみ `AVAudioSession` の mode が `AVAudioSessionModeVoiceChat` から `AVAudioSessionModeDefault` に一時差し替えされます (WebRTC セッション構成時のみ)。モノラルに戻せば mode も戻ります。
 - **Bluetooth 制約 + A2DP category option**: HFP はモノラルまでしか出せません。A2DP ではステレオが出せます。`AVAudioSessionCategoryPlayAndRecord` を指定すると録音併用のため HFP が選ばれる場合があります。ステレオ出力を確実に狙うなら、アプリ側で category / options を A2DP を許容する構成に調整することを検討してください (本パッチは category の書き換えまでは踏み込みません)。
