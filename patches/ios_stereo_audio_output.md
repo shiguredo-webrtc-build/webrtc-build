@@ -23,10 +23,10 @@ let adm = RTCAudioDeviceModule()
 // この呼び出しは RTCPeerConnectionFactory に adm を渡す前に行う。
 let result = adm.setStereoPlayoutEnabled(true)
 if result != 0 {
-    // 失敗。ADM 初期化に失敗している可能性がある。
+    // factory への受け渡し後は設定を変更できない。
 }
 
-// 現在の状態を取得する。
+// 受け付けた設定値を取得する。ADM はまだ初期化されていない。
 let enabled = adm.stereoPlayoutEnabled()
 
 let factory = RTCPeerConnectionFactory(
@@ -45,10 +45,10 @@ RTCAudioDeviceModule *adm = [[RTCAudioDeviceModule alloc] init];
 // ステレオ出力を有効化する。
 NSInteger result = [adm setStereoPlayoutEnabled:YES];
 if (result != 0) {
-  // 失敗。ADM 初期化に失敗している可能性がある。
+  // factory への受け渡し後は設定を変更できない。
 }
 
-// 現在の状態を取得する。
+// 受け付けた設定値を取得する。ADM はまだ初期化されていない。
 BOOL enabled = [adm stereoPlayoutEnabled];
 
 RTCPeerConnectionFactory *factory =
@@ -65,7 +65,8 @@ RTCPeerConnectionFactory *factory =
 - **mode 切替**: ステレオ有効時のみ `AVAudioSession` の mode が `AVAudioSessionModeVoiceChat` から `AVAudioSessionModeDefault` に一時差し替えされます (WebRTC セッション構成時のみ)。モノラルに戻せば mode も戻ります。
 - **Bluetooth 制約 + A2DP category option**: HFP はモノラルまでしか出せません。A2DP ではステレオが出せます。既定の `AVAudioSessionCategoryPlayAndRecord` は録音併用のため HFP が選ばれる場合があります。ステレオ出力を確実に狙うなら、アプリ側で category / options を A2DP を許容する構成に調整することを検討してください (本パッチは category の書き換えまでは踏み込みません)。
 - **マイク権限**: `RTCAudioSessionCategoryPlayAndRecord` を用いる WebRTC の性質上、マイク権限は依然として必要です。
-- **呼び出しタイミング + スレッド + Terminate 跨ぎ**: `setStereoPlayoutEnabled:` は `RTCPeerConnectionFactory` に `RTCAudioDeviceModule` を渡す前、かつ ADM 側の `InitPlayout` の前に呼んでください。呼び出しスレッドは ADM を生成したスレッドを守ってください。ADM を `Terminate` した後で再度使う場合は、再度 `setStereoPlayoutEnabled:` から設定し直してください。
+- **呼び出しタイミングと初期化**: `setStereoPlayoutEnabled:` は `RTCPeerConnectionFactory` に `RTCAudioDeviceModule` を渡す前に呼んでください。設定値だけを保持し、ADM の初期化と設定の適用は factory の worker スレッドで行います。戻り値 `0` は設定の受け付け成功を示し、音声デバイスの初期化成功を保証するものではありません。factory への受け渡し後は設定変更を拒否します
+- **設定値の取得と再初期化**: `stereoPlayoutEnabled` は受け付けた設定値を返し、初期化前と factory への受け渡し後も取得できます。実際の出力経路のチャンネル数を示すものではありません。ADM を `Terminate` して再初期化した場合も、最初に受け付けた設定を再適用します
 - **実機検証**: シミュレータの Core Audio は挙動が実機と異なるため、ステレオ出力の確認は必ず実機で行ってください。
 
 ## 開発者向け
@@ -89,7 +90,9 @@ RTCPeerConnectionFactory *factory =
 - `AudioDeviceIOS::OnGetPlayoutData` の `RTC_DCHECK_EQ(1, audio_buffer->mNumberChannels);` を `RTC_DCHECK_EQ(playout_parameters_.channels(), audio_buffer->mNumberChannels);` に置換。silence 出力時のバイト数計算と `fine_audio_buffer_->GetPlayoutData(...)` の要求サンプル数も `playout_parameters_.channels()` を掛けた値に修正
 - `AudioDeviceIOS::CreateAudioUnit` で `playout_parameters_.channels() == 2` のとき `RemoteIOAudioUnit`、それ以外は既定の `VoiceProcessingAudioUnit` を生成する分岐を追加
 - `AudioDeviceIOS::ConfigureAudioSession` / `ConfigureAudioSessionLocked` にステレオ有効時のみ `AVAudioSessionModeDefault` に一時差し替えするロジックを追加。復元は `@try/@finally` で保証する
-- `sdk/objc/components/audio/RTCAudioDeviceModule.h` / `.mm` に `setStereoPlayoutEnabled:` / `stereoPlayoutEnabled` を追加。`setStereoPlayoutEnabled:` は ADM が未初期化なら先に `Init()` を呼ぶ冪等実装。`stereoPlayoutEnabled` は未初期化時は `NO` を返す
+- `sdk/objc/components/audio/RTCAudioDeviceModule.h` / `.mm` に `setStereoPlayoutEnabled:` / `stereoPlayoutEnabled` を追加。setter は未初期化の ADM に設定値だけを渡し、getter は保存した設定値を返す。factory への受け渡しと設定変更を `@synchronized` で保護し、受け渡し後の設定変更を拒否する
+- `AudioDeviceModuleIOS::SetStereoPlayout` は未初期化時に初期設定を保持する。通常の `Init()` が worker スレッドで `AudioDeviceIOS` を生成した後に設定を適用し、`AudioDeviceBuffer` のチャンネル数も揃える。これにより、アプリ側スレッドで `Thread::Current()` の `nullptr` を保存して音量変更通知時に参照する問題を防ぐ
+- `sdk_unittests` に回帰テストを追加。WebRTC に登録されていないスレッドで設定し、実際の ADM の初期化が worker スレッドまで遅延されること、モノラル / ステレオの反映、受け渡し後の設定変更拒否、再初期化時の設定保持を検証する
 - `sdk/BUILD.gn` の `audio_device` ターゲットに新規ファイル 3 本 (`audio_unit_interface.h`、`remote_io_audio_unit.h`、`remote_io_audio_unit.mm`) を追加
 
 ### 適用順序と登録先

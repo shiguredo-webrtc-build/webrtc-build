@@ -1,8 +1,7 @@
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index c0fb5c7..1520b22 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
-@@ -312,8 +312,11 @@ if (is_ios || is_mac) {
+@@ -312,8 +312,11 @@
            "objc/native/src/audio/audio_device_ios.mm",
            "objc/native/src/audio/audio_device_module_ios.h",
            "objc/native/src/audio/audio_device_module_ios.mm",
@@ -14,62 +13,86 @@ index c0fb5c7..1520b22 100644
            "objc/native/src/audio/voice_processing_audio_unit.h",
            "objc/native/src/audio/voice_processing_audio_unit.mm",
          ]
+@@ -1195,6 +1198,7 @@
+             "objc/unittests/RTCAudioDeviceModule_xctest.mm",
+             "objc/unittests/RTCAudioDevice_xctest.mm",
+             "objc/unittests/RTCAudioSessionTest.mm",
++            "objc/unittests/RTCStereoAudioOutput_xctest.mm",
+             "objc/unittests/RTCCVPixelBuffer_xctest.mm",
+             "objc/unittests/RTCCallbackLogger_xctest.m",
+             "objc/unittests/RTCCameraVideoCapturerTests.mm",
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.h b/sdk/objc/components/audio/RTCAudioDeviceModule.h
-index 858ceb9..8c59e3f 100644
 --- a/sdk/objc/components/audio/RTCAudioDeviceModule.h
 +++ b/sdk/objc/components/audio/RTCAudioDeviceModule.h
-@@ -16,4 +16,21 @@ RTC_OBJC_EXPORT
+@@ -16,4 +16,19 @@
  // 録音を再開する。内部で AudioDeviceModuleIOS::ResumeRecording() を呼ぶ
  - (NSInteger)resumeRecording;
  
 +// iOS 向けステレオ音声出力 (playout) を有効化する。
 +// 呼び出し順序: 本メソッドは RTCPeerConnectionFactory に本 ADM を渡す前、
-+// かつ ADM 側の InitPlayout の前に呼ぶ必要がある。内部で ADM を Init() 済み
-+// でない場合は先に Init() する。
-+// スレッド: 本 ADM を生成したスレッドから呼ぶこと。ADM のスレッド制約に従う。
++// かつ ADM 側の InitPlayout の前に呼ぶ必要がある。設定値だけを保持し、
++// ADM の初期化と設定の適用は factory の worker スレッドで行う。
++// factory に渡した後の設定変更は失敗する。
 +// 副作用: 有効化により playout は VoiceProcessingIO ではなく RemoteIO 経路に
 +// 切り替わり、iOS の AEC / AGC は使えなくなる。AVAudioSession の mode は
 +// ステレオ有効時のみ AVAudioSessionModeDefault に一時差し替えされる。
-+// 戻り値: 0 が成功、負値が失敗。先行して呼ばれる Init が失敗した場合は Init の
-+// 戻り値、それ以外は ADM の SetStereoPlayout 戻り値をそのまま返す。
++// 戻り値: 0 が設定の受け付け成功、負値が失敗。音声デバイスの初期化は行わない。
 +- (NSInteger)setStereoPlayoutEnabled:(BOOL)enabled;
 +
-+// 現在のステレオ playout 有効フラグを取得する。
-+// スレッド: 本 ADM を生成したスレッドから呼ぶこと。
-+// ADM が未初期化 (Init 未実行) の場合は NO を返す。
++// 受け付けたステレオ playout 設定値を取得する。既定値は NO。
++// 初期化前と factory に渡した後も取得できる。実際の出力経路のチャンネル数ではない。
 +- (BOOL)stereoPlayoutEnabled;
 +
  @end
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.mm b/sdk/objc/components/audio/RTCAudioDeviceModule.mm
-index 30fbcfd..87d3c24 100644
 --- a/sdk/objc/components/audio/RTCAudioDeviceModule.mm
 +++ b/sdk/objc/components/audio/RTCAudioDeviceModule.mm
-@@ -41,4 +41,28 @@ - (NSInteger)resumeRecording {
+@@ -7,6 +7,8 @@
+
+ @interface RTC_OBJC_TYPE(RTCAudioDeviceModule) () {
+   webrtc::scoped_refptr<webrtc::AudioDeviceModule> _adm;
++  BOOL _stereoPlayoutEnabled;
++  BOOL _nativeAudioDeviceModuleRetrieved;
+ }
+ @end
+
+@@ -26,7 +28,11 @@
+ }
+
+ - (webrtc::scoped_refptr<webrtc::AudioDeviceModule>)nativeAudioDeviceModule {
+-  return _adm;
++  @synchronized(self) {
++    // factory への受け渡し時に設定を固定し、worker スレッドでの初期化と競合させない。
++    _nativeAudioDeviceModuleRetrieved = YES;
++    return _adm;
++  }
+ }
+
+ - (NSInteger)pauseRecording {
+@@ -41,4 +47,26 @@
    return ptr->ResumeRecording();
  }
  
 +- (NSInteger)setStereoPlayoutEnabled:(BOOL)enabled {
-+  // SetStereoPlayout は ADM 初期化済みが前提のため、未初期化なら
-+  // 冪等な Init() で先に初期化する。
-+  if (!_adm->Initialized()) {
-+    int32_t init_result = _adm->Init();
-+    if (init_result != 0) {
-+      return init_result;
++  @synchronized(self) {
++    if (_nativeAudioDeviceModuleRetrieved) {
++      return -1;
 +    }
++    // Init() は AudioDeviceIOS に現在の WebRTC スレッドを保存するため、
++    // アプリのスレッドでは呼ばず、未初期化の ADM に設定値だけを渡す。
++    int32_t result = _adm->SetStereoPlayout(enabled);
++    if (result == 0) {
++      _stereoPlayoutEnabled = enabled;
++    }
++    return result;
 +  }
-+  return _adm->SetStereoPlayout(enabled);
 +}
 +
 +- (BOOL)stereoPlayoutEnabled {
-+  // ADM 未初期化のときは状態を取得できないため NO を返す。
-+  if (!_adm->Initialized()) {
-+    return NO;
++  @synchronized(self) {
++    // worker スレッドで更新されるネイティブ ADM の状態には触れない。
++    return _stereoPlayoutEnabled;
 +  }
-+  bool enabled = false;
-+  if (_adm->StereoPlayout(&enabled) != 0) {
-+    return NO;
-+  }
-+  return enabled ? YES : NO;
 +}
 +
  @end
@@ -1118,3 +1141,146 @@ index 066f3b1..4ff7034 100644
    return state_;
  }
  
+diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.h b/sdk/objc/native/src/audio/audio_device_module_ios.h
+--- a/sdk/objc/native/src/audio/audio_device_module_ios.h
++++ b/sdk/objc/native/src/audio/audio_device_module_ios.h
+@@ -145,6 +145,8 @@
+   MutedSpeechEventHandler muted_speech_event_handler_;
+   ADMErrorHandler error_handler_;
+   bool initialized_ = false;
++  // factory に渡す前に指定された初期設定。Init() のたびに worker スレッドで適用する。
++  bool stereo_playout_enabled_on_init_ = false;
+   std::unique_ptr<AudioDeviceIOS> audio_device_;
+   std::unique_ptr<AudioDeviceBuffer> audio_device_buffer_;
+ };
+diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.mm b/sdk/objc/native/src/audio/audio_device_module_ios.mm
+--- a/sdk/objc/native/src/audio/audio_device_module_ios.mm
++++ b/sdk/objc/native/src/audio/audio_device_module_ios.mm
+@@ -110,6 +110,12 @@
+     return -1;
+   }
+   initialized_ = true;
++  // AudioDeviceIOS の生成と Init() が worker スレッドで完了してから設定する。
++  // SetStereoPlayout() を通し、AudioDeviceBuffer のチャンネル数も揃える。
++  if (SetStereoPlayout(stereo_playout_enabled_on_init_) != 0) {
++    Terminate();
++    return -1;
++  }
+   return 0;
+ }
+
+@@ -379,7 +385,11 @@
+
+ int32_t AudioDeviceModuleIOS::SetStereoPlayout(bool enable) {
+   RTC_DLOG(LS_INFO) << __FUNCTION__ << "(" << enable << ")";
+-  CHECKinitialized_();
++  if (!initialized_) {
++    // 未初期化なら設定値だけを保持し、AudioDeviceIOS を生成しない。
++    stereo_playout_enabled_on_init_ = enable;
++    return 0;
++  }
+   if (audio_device_->PlayoutIsInitialized()) {
+     RTC_LOG(LS_ERROR)
+         << "unable to set stereo mode while playing side is initialized";
+diff --git a/sdk/objc/unittests/RTCStereoAudioOutput_xctest.mm b/sdk/objc/unittests/RTCStereoAudioOutput_xctest.mm
+new file mode 100644
+--- /dev/null
++++ b/sdk/objc/unittests/RTCStereoAudioOutput_xctest.mm
+@@ -0,0 +1,97 @@
++#import <XCTest/XCTest.h>
++
++#include <thread>
++
++#include "rtc_base/thread.h"
++#import "sdk/objc/components/audio/RTCAudioDeviceModule+Private.h"
++
++@interface RTCStereoAudioOutputTests : XCTestCase
++@end
++
++@implementation RTCStereoAudioOutputTests
++
++- (void)checkDeferredInitializationWithStereo:(BOOL)enabled {
++  // WebRTC に登録されていないアプリ側スレッドを再現する。
++  // このスレッドで AudioDeviceIOS を生成すると thread_ が nullptr になる。
++  std::thread caller([&] {
++    @autoreleasepool {
++      XCTAssertTrue(webrtc::Thread::Current() == nullptr,
++                    @"呼び出し元は WebRTC のスレッドではないこと");
++      RTC_OBJC_TYPE(RTCAudioDeviceModule) *module =
++          [[RTC_OBJC_TYPE(RTCAudioDeviceModule) alloc] init];
++      XCTAssertFalse([module stereoPlayoutEnabled], @"既定値はモノラルであること");
++      if (enabled) {
++        XCTAssertEqual(0, [module setStereoPlayoutEnabled:YES], @"設定を受け付けること");
++      }
++      XCTAssertEqual(enabled, [module stereoPlayoutEnabled],
++                     @"初期化前でも設定値を取得できること");
++
++      // factory と同じ経路で ADM を受け取り、設定だけでは初期化されないことを調べる。
++      auto native = [module nativeAudioDeviceModule];
++      XCTAssertFalse(native->Initialized(), @"アプリ側では ADM を初期化しないこと");
++      XCTAssertEqual(-1, [module setStereoPlayoutEnabled:!enabled],
++                     @"受け渡し後の設定変更を拒否すること");
++
++      auto worker = webrtc::Thread::Create();
++      const bool started = worker->Start();
++      XCTAssertTrue(started, @"worker スレッドを開始できること");
++      if (!started) {
++        return;
++      }
++      worker->BlockingCall([&] {
++        // 実際の ADM を worker スレッドで初期化する。スレッド制約の DCHECK も検証する。
++        const int result = native->Init();
++        XCTAssertEqual(0, result, @"worker スレッドで初期化できること");
++        if (result != 0) {
++          return;
++        }
++        bool stereo = false;
++        XCTAssertEqual(0, native->StereoPlayout(&stereo), @"設定が反映されていること");
++        XCTAssertEqual(static_cast<bool>(enabled), stereo, @"設定したチャンネル数を使うこと");
++        webrtc::AudioParameters parameters;
++        XCTAssertEqual(0, native->GetPlayoutAudioParameters(&parameters),
++                       @"実際の再生パラメーターを取得できること");
++        XCTAssertEqual(enabled ? 2u : 1u, parameters.channels(),
++                       @"再生パラメーターにも設定が反映されること");
++      });
++
++      // 初期化後の getter / setter もアプリ側から呼び、ネイティブ ADM への越境を防ぐ。
++      XCTAssertEqual(enabled, [module stereoPlayoutEnabled], @"初期化後も設定値を返すこと");
++      XCTAssertEqual(-1, [module setStereoPlayoutEnabled:!enabled],
++                     @"初期化後も設定変更を拒否すること");
++      worker->BlockingCall([&] {
++        XCTAssertEqual(0, native->Terminate(), @"終了できること");
++        XCTAssertEqual(0, native->Init(), @"再初期化できること");
++        bool stereo = false;
++        XCTAssertEqual(0, native->StereoPlayout(&stereo), @"再初期化後の設定を取得できること");
++        XCTAssertEqual(static_cast<bool>(enabled), stereo, @"再初期化でも設定を保持すること");
++        XCTAssertEqual(0, native->Terminate(), @"再初期化後も終了できること");
++        // AudioDeviceIOS の破棄も生成元の worker スレッドで行う。
++        module = nil;
++        native = nullptr;
++      });
++      worker->Stop();
++    }
++  });
++  caller.join();
++}
++
++- (void)testStereoInitializationIsDeferred {
++  [self checkDeferredInitializationWithStereo:YES];
++}
++
++- (void)testDefaultMonoInitializationIsDeferred {
++  [self checkDeferredInitializationWithStereo:NO];
++}
++
++- (void)testConfigurationCanBeChangedBeforeHandoff {
++  RTC_OBJC_TYPE(RTCAudioDeviceModule) *module =
++      [[RTC_OBJC_TYPE(RTCAudioDeviceModule) alloc] init];
++  XCTAssertEqual(0, [module setStereoPlayoutEnabled:YES], @"ステレオを指定できること");
++  XCTAssertEqual(0, [module setStereoPlayoutEnabled:NO], @"受け渡し前は設定を変更できること");
++  XCTAssertFalse([module stereoPlayoutEnabled], @"最後に受け付けた設定を返すこと");
++  auto native = [module nativeAudioDeviceModule];
++  XCTAssertFalse(native->Initialized(), @"設定を変更しても初期化しないこと");
++}
++
++@end
