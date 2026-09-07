@@ -2,7 +2,7 @@
 
 - Created: 2026-09-07
 - Completed: {YYYY-MM-DD}
-- Branch: feature/m150.7871
+- Branch: feature/fix-ios-hard-mute-remote-io
 - Polished: 2026-09-07
 
 ## 目的
@@ -60,7 +60,8 @@ Sora iOS SDK の公開 API は、この制約に対してステレオ時のハ�
 
 ## 対応ブランチと依存関係
 
-ユーザー指定の例外として、個別ブランチを作成せず `feature/m150.7871` で対応する。
+ユーザー指定により、0015 の対応ブランチをベースにした `feature/fix-ios-hard-mute-remote-io` で対応する。
+`gh stack` で依存関係を管理し、本作業ではマージしない。
 
 - 0014（playout-only RemoteIO）: 本 issue を先に適用できる。0014 の実装時に入力不要設定を優先し、mute / unmute で
   入力を有効化しない条件を組み込む。0014 が先に取り込まれた場合は、その入力不要設定を確認して本 issue の EnableIO 制御に反映する。
@@ -103,3 +104,34 @@ playout と recording の `GetBytesPerBuffer()` が等しいことを要求す�
 - mono（VPIO）のハードミュートと既存の初期マイクミュートの挙動が変わらない。
   0014 が適用済みの場合は、入力不要設定が mute / unmute より優先される。
 - 実機での検証条件と結果が記録されている。
+
+## 対応状況
+
+2026-09-07 時点で、`RemoteIOAudioUnit::SetMicrophoneMute` の no-op を入力 bus の EnableIO 制御に置き換えた。
+mute で `0`、unmute で `1` を設定し、出力 bus の設定は変更しない。
+`AudioUnitSetProperty` が失敗した場合は、mute / unmute の要求と OSStatus を英語のログに記録し、`false` を返す。
+pause / resume の既存の再初期化フローと、VPIO の実装は変更していない。
+
+`RTCStereoAudioOutputTests` に、実際の `AudioDeviceIOS` を observer とする RemoteIO の回帰テストを追加した。
+Core Audio から入力と出力の EnableIO を読み戻し、同一要求の繰り返しと反転で入力 I/O が切り替わり、出力 I/O が有効なままであることを検査する。
+I/O は開始しないテストであり、モックやスタブは使用していない。
+
+確認済みの項目:
+
+- upstream `1f975dfd761af6e5d76d28333191973b258d82a8` に、`ios_sdk` の全 24 パッチを既存の適用順と方法で適用できること
+- Xcode 26.6 / iOS SDK 26.5 で、RemoteIO 実装と XCTest を実機向け・シミュレーター向けの debug / release 設定でコンパイルし、計 8 個のオブジェクトを生成できること
+- 既存の Python テスト 15 件と差分の空白検査の成功
+- 2 系統で 3 周の差分レビューを行い、致命的・重要な指摘が 0 件であること。軽微なコメントと説明の改善 3 件を反映した
+
+ローカルで未検証の項目:
+
+- `ios_sdk` のフルビルドと、新規 XCTest のリンク・実行
+- 実機の sendrecv / sendonly での pause / resume の戻り値、マイク捕捉とインジケーターの停止・復帰、切替後とミュート中の stereo 再生
+- mono（VPIO）、Bluetooth、割り込み、マイク権限の条件別の実機動作
+- 未実装の 0014 が導入された後の入力不要設定との共存
+
+既存のビルド設定は `rtc_include_tests=false` のため、CI のビルド成功だけでは追加した XCTest の実行成功を確認できない。
+`rtc_include_tests=true` にした `sdk_unittests` での実行と、上記の実機検証が必要である。
+接続可能な iOS 実機が確認できておらず、完了条件を満たしていないため、open のままとし `Completed:` は未設定とする。
+ユーザー承認により、新規 XCTest の実行と実機検証を後続作業として残し、draft PR を作成してフルビルドを CI で確認する。
+フルビルドの結果は draft PR に記録する。
