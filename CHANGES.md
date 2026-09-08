@@ -16,19 +16,46 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 - タイムライン型の変更履歴
 - 必ず一番上に書く
+- feature ブランチでは ADD / UPDATE / CHANGE / FIX の後に、対象ブランチを `[m127]` の形式で記載する
+- master に入れた場合は対象ブランチの記載は不要
 - リリース時には [RELEASE] を追加する
 
 ## 例
 
 - 2024-03-01 [RELEASE] m127.0.0.1
   - @voluntas
-- 2023-02-01 [ADD] h266.patch を追加
+- 2023-02-01 [ADD] [m127] h266.patch を追加
   - @melpon
-- 2022-01-01 [FIX] h265.patch のバグを修正
+- 2022-01-01 [FIX] [m127] h265.patch のバグを修正
   - @melpon
 
 ## タイムライン
 
+- 2026-09-08 [RELEASE] m150.7871.3.5
+  - @voluntas
+- 2026-09-08 [FIX] [m150] iOS のステレオ出力時にハードミュートでマイクの入力 I/O が停止しない不具合を修正する
+  - 初期ミュートから最初に解除するときも、入力 I/O を有効にする
+  - Objective-C の録音停止・再開を factory の worker で同期実行し、終了後の操作を拒否する
+  - @voluntas
+- 2026-09-07 [RELEASE] m150.7871.3.4
+  - @voluntas
+- 2026-09-07 [FIX] [m150] iOS のステレオ再生に既存の手動入力初期化を適用する
+  - RemoteIO は `RTCAudioSession.initializeInput` の要求がある場合だけ入力を接続する
+  - 入力初期化と再初期化を worker で実行し、初期ミュートと終了時の要求解除に対応する
+  - stereo 送信で入力初期化を省略していた SDK は、依存更新と同時に既存の呼び出しを戻す必要がある
+  - @voluntas
+- 2026-09-07 [RELEASE] m150.7871.3.3
+  - @voluntas
+- 2026-09-07 [FIX] [m150] iOS のステレオ出力設定で ADM をアプリ側スレッドで初期化し、音量変更通知時にクラッシュする問題を修正する
+  - 設定値を保持し、worker スレッドでの ADM 初期化時に適用する
+  - @voluntas
+- 2026-09-04 [RELEASE] m150.7871.3.2
+  - @voluntas
+- 2026-09-03 [ADD] [m150] iOS のステレオ音声出力に対応する
+  - `AudioUnitInterface` 抽象クラスを導入し、`VoiceProcessingAudioUnit` と `RemoteIOAudioUnit` を独立実装として切り替える設計
+  - `RTCAudioDeviceModule` に `setStereoPlayoutEnabled:` / `stereoPlayoutEnabled` を追加
+  - ステレオ有効時のみ `RemoteIO` へ切り替え、ハードウェア AEC / AGC が失われる制約は md に明記
+  - @voluntas
 - 2026-07-17 [RELEASE] m150.7871.3.1
   - @t-miya
 - 2026-07-16 [UPDATE] ARM 向け sysroot 生成を独自実装へ移行する
