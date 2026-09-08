@@ -44,7 +44,6 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - 入力初期化と再初期化を worker で実行し、初期ミュートと終了時の要求解除に対応する
   - stereo 送信で入力初期化を省略していた SDK は、依存更新と同時に既存の呼び出しを戻す必要がある
   - @voluntas
-
 - 2026-09-07 [RELEASE] m150.7871.3.3
   - @voluntas
 - 2026-09-07 [FIX] [m150] iOS のステレオ出力設定で ADM をアプリ側スレッドで初期化し、音量変更通知時にクラッシュする問題を修正する
@@ -52,7 +51,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - @voluntas
 - 2026-09-04 [RELEASE] m150.7871.3.2
   - @voluntas
-- 2026-09-03 [ADD] iOS のステレオ音声出力に対応する
+- 2026-09-03 [ADD] [m150] iOS のステレオ音声出力に対応する
   - `AudioUnitInterface` 抽象クラスを導入し、`VoiceProcessingAudioUnit` と `RemoteIOAudioUnit` を独立実装として切り替える設計
   - `RTCAudioDeviceModule` に `setStereoPlayoutEnabled:` / `stereoPlayoutEnabled` を追加
   - ステレオ有効時のみ `RemoteIO` へ切り替え、ハードウェア AEC / AGC が失われる制約は md に明記
