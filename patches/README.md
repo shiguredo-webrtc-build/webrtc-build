@@ -118,6 +118,41 @@ dav1d/libdav1d/src/arm/asm.S に入った変更を取り消すパッチ。
 m124 のタイミングで aarch64 の拡張機能のサポートチェックをするようになり、そのチェックが失敗するとビルドが失敗するようになった。
 webrtc は aarch64 の拡張機能を使っていないため、このチェックは不要であり、このパッチで取り消す。
 
+## objc_audio_device_input.patch
+
+macOS / iOS のカスタム `RTCAudioDevice` に、`inputData` で渡した 2 ch の PCM の後半が欠落する不具合を修正するパッチ。
+`macos_arm64`、`ios`、`ios_sdk` に適用する。
+
+upstream の `ObjCAudioDeviceModule::OnDeliverRecordedData` は、フレーム数を `int16_t` のサンプル数として扱っていた。
+インターリーブ形式の 2 ch では 1 フレームに 2 サンプルあるため、チャンネル数を掛けた要素数を `FineAudioBuffer` に渡す。
+録音中はバッファ数、チャンネル数、バッファ長、データポインターを検査し、不正な入力には `kAudio_ParamError` を返す。
+不正な入力があっても、それまでに蓄積した正常な PCM は保持する。
+録音停止中、正常な 1 ch、`renderBlock` の挙動は維持する。
+
+### 回帰テスト
+
+macOS のビルドとパッケージ作成後に、実際のカスタム ADM を使って合成 PCM の全サンプルを検査する。
+音声デバイスと転送にはメモリー上で録音・再生する実装を使い、マイク権限や音声ハードウェアは必要としない。
+CI でも `macos_arm64` のパッケージ作成後に実行する。
+
+```bash
+uv run scripts/test_objc_audio_device_input.py \
+  --webrtc-package-dir _package/macos_arm64/webrtc \
+  --dependency-source-dir _source/macos_arm64/webrtc/src \
+  --clang-path _source/macos_arm64/webrtc/src/third_party/llvm-build/Release+Asserts/bin/clang++
+```
+
+1 ch / 2 ch と `inputData` / `renderBlock` の組み合わせ、10 ms 境界をまたぐ分割入力、不正な入力の拒否と蓄積の保持を確認する。
+48 kHz / 2 ch / 20 ms では、10 ms の通知 2 回で全 1,920 サンプルが一致することを検証する。
+
+`--webrtc-source-dir` にソースの `src` ディレクトリを指定すると、その `objc_audio_device.mm` をパッケージより先にリンクする。
+このオプションで、同じ配布ライブラリを使って修正前の失敗と修正後の成功を比較できる。
+ソース、パッケージのヘッダー、Chromium の Clang / libc++ / libc++abi は、同じ WebRTC リビジョンに対応するものを使う。
+`--sanitize` はテストと直接コンパイルするソースに AddressSanitizer / UndefinedBehaviorSanitizer を有効にする。
+配布済みのライブラリ本体は、このオプションでは再コンパイルしない。
+
+同等の修正が upstream に取り込まれ、この回帰テストがパッチなしで通ることを確認できたら削除する。
+
 ## ios_manual_audio_input.patch
 
 iOS でのマイク不使用時のパーミッション要求を抑制するパッチ。

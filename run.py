@@ -224,6 +224,7 @@ PATCHES = {
         "remove_crel.patch",
         "unsafe_buffers_optout_list.patch",
         "turn_tls_client_certificate.patch",
+        "objc_audio_device_input.patch",
     ],
     "ios": [
         "add_deps.patch",
@@ -246,6 +247,7 @@ PATCHES = {
         "unsafe_buffers_optout_list.patch",
         "ios_ssl_certificate_verifier_chain.patch",
         "turn_tls_client_certificate.patch",
+        "objc_audio_device_input.patch",
     ],
     "ios_sdk": [
         "add_deps.patch",
@@ -271,6 +273,7 @@ PATCHES = {
         "unsafe_buffers_optout_list.patch",
         "ios_ssl_certificate_verifier_chain.patch",
         "turn_tls_client_certificate.patch",
+        "objc_audio_device_input.patch",
     ],
     "android": [
         "add_deps.patch",

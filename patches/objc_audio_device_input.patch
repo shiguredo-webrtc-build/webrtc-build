@@ -1,0 +1,40 @@
+diff --git a/sdk/objc/native/src/objc_audio_device.mm b/sdk/objc/native/src/objc_audio_device.mm
+index 2daa50a554..4716eb423a 100644
+--- a/sdk/objc/native/src/objc_audio_device.mm
++++ b/sdk/objc/native/src/objc_audio_device.mm
+@@ -441,15 +441,30 @@ OSStatus ObjCAudioDeviceModule::OnDeliverRecordedData(
+   if (!recording_.load()) return result;
+
+   if (io_data != nullptr) {
+-    // AudioBuffer already fullfilled with audio data
+-    RTC_DCHECK_EQ(1, io_data->mNumberBuffers);
++    // インターリーブ PCM は 1 個のバッファに全チャンネル分を含む。
++    // バッファに触れる前に、リリースビルドでも形式を検査する。
++    const size_t channels = record_parameters_.channels();
++    if (io_data->mNumberBuffers != 1 || (channels != 1 && channels != 2)) {
++      return kAudio_ParamError;
++    }
+     const AudioBuffer* audio_buffer = &io_data->mBuffers[0];
+-    RTC_DCHECK(audio_buffer->mNumberChannels == 1 ||
+-               audio_buffer->mNumberChannels == 2);
++    const size_t bytes_per_frame = channels * sizeof(int16_t);
++    // 除算で上限を確認し、フレーム数からバイト数を求める乗算の桁あふれも防ぐ。
++    // 不正な入力は追加せず、それまで FineAudioBuffer に蓄積した PCM を保持する。
++    if (audio_buffer->mNumberChannels != channels ||
++        num_frames > audio_buffer->mDataByteSize / bytes_per_frame ||
++        (num_frames != 0 && audio_buffer->mData == nullptr)) {
++      return kAudio_ParamError;
++    }
++    if (num_frames == 0) {
++      return noErr;
++    }
++    // フレーム数と int16_t の要素数は、モノラルの場合だけ一致する。
++    const size_t num_samples = static_cast<size_t>(num_frames) * channels;
+
+     record_fine_audio_buffer_->DeliverRecordedData(
+         std::span<const int16_t>(static_cast<int16_t*>(audio_buffer->mData),
+-                                 num_frames),
++                                 num_samples),
+         cached_recording_delay_ms_.load(),
+         AudioTimeStampGetNanoseconds(time_stamp));
+     return noErr;
