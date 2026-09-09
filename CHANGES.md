@@ -31,6 +31,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-09-09 [UPDATE] disable_pacer_keyframe_flush.patch を削除する
+  - キーフレーム到着時の pacer の flush は libwebrtc の仕様どおりの挙動であるため、強制無効化をやめる
+  - @voluntas
 - 2026-09-09 [RELEASE] m154.8037.1.0
   - @voluntas
 - 2026-09-08 [RELEASE] m150.7871.3.5
