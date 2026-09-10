@@ -1,8 +1,8 @@
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index 7b8a02462c..f61cf30a95 100644
+index 01d468923f..6e9c70ab39 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
-@@ -991,12 +991,15 @@ if (is_ios || is_mac) {
+@@ -1000,12 +1000,15 @@ if (is_ios || is_mac) {
        ]
        configs += [ "..:no_global_constructors" ]
        sources = [
@@ -18,7 +18,7 @@ index 7b8a02462c..f61cf30a95 100644
          "objc/api/peerconnection/RTCCertificate.h",
          "objc/api/peerconnection/RTCCertificate.mm",
          "objc/api/peerconnection/RTCConfiguration+Native.h",
-@@ -1389,6 +1392,7 @@ if (is_ios || is_mac) {
+@@ -1403,6 +1406,7 @@ if (is_ios || is_mac) {
            "objc/helpers/UIDevice+RTCDevice.h",
            "objc/api/peerconnection/RTCAudioSource.h",
            "objc/api/peerconnection/RTCAudioTrack.h",
@@ -183,7 +183,7 @@ index 5ba53c84e9..a0830cc789 100644
  
  @synthesize source = _source;
  
-@@ -66,6 +69,55 @@
+@@ -66,6 +69,55 @@ - (instancetype)initWithFactory:
    return _source;
  }
  

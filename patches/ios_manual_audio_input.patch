@@ -2,7 +2,7 @@ diff --git a/sdk/objc/components/audio/RTCAudioSession+Configuration.mm b/sdk/ob
 index fd9054ff89..7267a79334 100644
 --- a/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
 +++ b/sdk/objc/components/audio/RTCAudioSession+Configuration.mm
-@@ -151,7 +151,8 @@
+@@ -151,7 +151,8 @@ - (BOOL)setConfiguration:
      *outError = error;
    }
  
@@ -12,34 +12,8 @@ index fd9054ff89..7267a79334 100644
  }
  
  @end
-diff --git a/sdk/objc/components/audio/RTCAudioSession+Private.h b/sdk/objc/components/audio/RTCAudioSession+Private.h
-index 7eb3bf4e38..810ef59a44 100644
---- a/sdk/objc/components/audio/RTCAudioSession+Private.h
-+++ b/sdk/objc/components/audio/RTCAudioSession+Private.h
-@@ -9,6 +9,8 @@
-  */
- 
- #import "RTCAudioSession.h"
-+#import <AudioUnit/AudioUnit.h>
-+#include "sdk/objc/native/src/audio/voice_processing_audio_unit.h"
- 
- NS_ASSUME_NONNULL_BEGIN
- 
-@@ -76,6 +78,12 @@ NS_ASSUME_NONNULL_BEGIN
- /** Notifies the receiver that a playout glitch was detected. */
- - (void)notifyDidDetectPlayoutGlitch:(int64_t)totalNumberOfGlitches;
- 
-+@property(nonatomic, readonly) webrtc::ios_adm::VoiceProcessingAudioUnit *vpAudioUnit;
-+
-+- (void)startVoiceProcessingAudioUnit:(webrtc::ios_adm::VoiceProcessingAudioUnit *)vpAudioUnit;
-+- (void)stopVoiceProcessingAudioUnit;
-+- (void)finishInitializeInput;
-+
- /** Notifies the receiver that there was an error when starting an audio unit.
-  */
- - (void)notifyAudioUnitStartFailedWithError:(OSStatus)error;
 diff --git a/sdk/objc/components/audio/RTCAudioSession.h b/sdk/objc/components/audio/RTCAudioSession.h
-index 00a825f0a1..7f0eedb694 100644
+index 93b4dc2dc5..aa86beacdf 100644
 --- a/sdk/objc/components/audio/RTCAudioSession.h
 +++ b/sdk/objc/components/audio/RTCAudioSession.h
 @@ -20,6 +20,7 @@ extern NSString *const kRTCAudioSessionErrorDomain;
@@ -59,16 +33,16 @@ index 00a825f0a1..7f0eedb694 100644
  - (BOOL)setCategory:(AVAudioSessionCategory)category
                 mode:(AVAudioSessionMode)mode
              options:(AVAudioSessionCategoryOptions)options
-@@ -262,6 +265,15 @@ RTC_OBJC_EXPORT
-                      error:(NSError **)outError;
+@@ -263,6 +266,15 @@ RTC_OBJC_EXPORT
  - (BOOL)setOutputDataSource:(AVAudioSessionDataSourceDescription *)dataSource
                        error:(NSError **)outError;
-+
+ 
++// 入力を使用する場合だけ呼ぶ。完了通知はメインキューで一度だけ行う。
 +- (void)initializeInput:(nullable void (^)(NSError *_Nullable error))completionHandler;
 +
 +/** initialMicrophoneMute フラグの値をセットします。
-+ *  audio input 初期化前のみ実行することができます。
-+ *  初期化後に実行した場合は NO を返します。
++ *  initializeInput より前に指定します。
++ *  入力初期化の実行中または初期化後は NO を返します。
 + */
 +- (BOOL)setInitialMicrophoneMute:(BOOL)initialMicrophoneMute;
 +
@@ -76,7 +50,7 @@ index 00a825f0a1..7f0eedb694 100644
  
  @interface RTC_OBJC_TYPE (RTCAudioSession)
 diff --git a/sdk/objc/components/audio/RTCAudioSession.mm b/sdk/objc/components/audio/RTCAudioSession.mm
-index 69e90277fc..7ba8305f62 100644
+index b78ef4ce53..7420cb5233 100644
 --- a/sdk/objc/components/audio/RTCAudioSession.mm
 +++ b/sdk/objc/components/audio/RTCAudioSession.mm
 @@ -30,6 +30,7 @@
@@ -87,22 +61,7 @@ index 69e90277fc..7ba8305f62 100644
  NSString *const kRTCAudioSessionOutputVolumeSelector = @"outputVolume";
  
  namespace {
-@@ -57,6 +58,14 @@ @implementation RTC_OBJC_TYPE (RTCAudioSession) {
-   BOOL _isAudioEnabled;
-   BOOL _canPlayOrRecord;
-   BOOL _isInterrupted;
-+
-+  webrtc::ios_adm::VoiceProcessingAudioUnit *_vpAudioUnit;
-+  BOOL _waitsInputInit;
-+  BOOL _isInputInited;
-+  void (^_inputInitCompletionHandler)(NSError *_Nullable error);
-+  // 初期状態でマイクミュートするかを指定するフラグです。
-+  // YES なら audio input 初期化時に EnableIO を無効にします。
-+  BOOL _initialMicrophoneMute;
- }
- 
- @synthesize session = _session;
-@@ -433,6 +442,11 @@ - (BOOL)setCategory:(AVAudioSessionCategory)category
+@@ -444,6 +445,11 @@ - (BOOL)setCategory:(AVAudioSessionCategory)category
                               error:outError];
  }
  
@@ -114,143 +73,6 @@ index 69e90277fc..7ba8305f62 100644
  - (BOOL)setCategory:(AVAudioSessionCategory)category
          withOptions:(AVAudioSessionCategoryOptions)options
                error:(NSError **)outError {
-@@ -1032,4 +1046,136 @@ - (void)notifyFailedToSetActive:(BOOL)active error:(NSError *)error {
-   }
- }
- 
-+// A VP I/O unit's bus 1 connects to input hardware (microphone).
-+static const AudioUnitElement kInputBus = 1;
-+
-+- (void)startVoiceProcessingAudioUnit:(webrtc::ios_adm::VoiceProcessingAudioUnit *)vpAudioUnit {
-+  _vpAudioUnit = vpAudioUnit;
-+
-+  [self lockForConfiguration];
-+  BOOL result = [self configureWebRTCSession:nil];
-+  [self unlockForConfiguration];
-+  if (!result) {
-+      RTCLogError(@"Failed to configure WebRTC audio session.");
-+  }
-+
-+  if (_waitsInputInit) {
-+    [self finishInitializeInput];
-+  }
-+}
-+
-+- (void)stopVoiceProcessingAudioUnit {
-+  _vpAudioUnit = nil;
-+  _isInputInited = NO;
-+  _waitsInputInit = NO;
-+  _inputInitCompletionHandler = nil;
-+}
-+
-+- (void)initializeInput:(nullable void (^)(NSError *_Nullable error))completionHandler {
-+  NSError *error = nil;
-+
-+  if (_isInputInited) {
-+    RTCLogError(@"Input is already initialized.");
-+    error = [[NSError alloc] initWithDomain:kRTCAudioSessionErrorDomain
-+                                       code:kRTCAudioSessionErrorInputInitialization
-+                                   userInfo:nil];
-+    if (completionHandler != nil) {
-+      completionHandler(error);
-+    }
-+  } else if (_vpAudioUnit != nil) {
-+    _inputInitCompletionHandler = completionHandler;
-+    [self finishInitializeInput];
-+  } else if (_waitsInputInit) {
-+    RTCLogError(@"Audio session is already waiting for input initialization.");
-+    error = [[NSError alloc] initWithDomain:kRTCAudioSessionErrorDomain
-+                                       code:kRTCAudioSessionErrorInputInitialization
-+                                   userInfo:nil];
-+    if (completionHandler != nil) {
-+      completionHandler(error);
-+    }
-+  } else {
-+    _inputInitCompletionHandler = completionHandler;
-+    _waitsInputInit = YES;
-+  }
-+}
-+
-+- (BOOL)setInitialMicrophoneMute:(BOOL)initialMicrophoneMute {
-+  if (_isInputInited) {
-+    RTCLogWarning(@"Failed to set initialMicrophoneMute. This method must be invoked before input initialization.");
-+    return NO;
-+  }
-+  _initialMicrophoneMute = initialMicrophoneMute;
-+  return YES;
-+}
-+
-+- (void)finishInitializeInput {
-+  NSError *error = nil;
-+
-+  RTCLog(@"Initializing input...");
-+
-+  if (_vpAudioUnit == nil) {
-+      RTCLogError(@"Voice processing audio unit is not initialized. This method must be invoked after voice processing audio unit is initialized.");
-+      error = [[NSError alloc] initWithDomain:kRTCAudioSessionErrorDomain
-+                                         code:kRTCAudioSessionErrorInputInitialization
-+                                     userInfo:nil];
-+      if (_inputInitCompletionHandler != nil) {
-+        _inputInitCompletionHandler(error);
-+      }
-+      return;
-+  }
-+
-+  // Enable input on the input scope of the input element.
-+  OSStatus result = noErr;
-+  // 初期状態でミュートにするかのフラグに従って EnableIO を設定します。
-+  UInt32 enable_input = _initialMicrophoneMute ? 0 : 1;
-+  result = AudioUnitSetProperty(_vpAudioUnit->vpio_unit_,
-+                                kAudioOutputUnitProperty_EnableIO,
-+                                kAudioUnitScope_Input, kInputBus, &enable_input,
-+                                sizeof(enable_input));
-+  if (result != noErr) {
-+    //_vpAudioUnit->DisposeAudioUnit();
-+    RTCLogError(@"Failed to enable input on input scope of input element. "
-+                 "Error=%ld.",
-+                (long)result);
-+    error = [[NSError alloc] initWithDomain:kRTCAudioSessionErrorDomain
-+                                       code:kRTCAudioSessionErrorInputInitialization
-+                                   userInfo:nil];
-+    if (_inputInitCompletionHandler != nil) {
-+      _inputInitCompletionHandler(error);
-+    }
-+    return;
-+  }
-+
-+  // Specify the callback to be called by the I/O thread to us when input audio
-+  // is available. The recorded samples can then be obtained by calling the
-+  // AudioUnitRender() method.
-+  AURenderCallbackStruct input_callback;
-+  input_callback.inputProc = _vpAudioUnit->OnDeliverRecordedData;
-+  input_callback.inputProcRefCon = _vpAudioUnit;
-+  result = AudioUnitSetProperty(_vpAudioUnit->vpio_unit_,
-+                                kAudioOutputUnitProperty_SetInputCallback,
-+                                kAudioUnitScope_Global, kInputBus,
-+                                &input_callback, sizeof(input_callback));
-+  if (result != noErr) {
-+    //_vpAudioUnit->DisposeAudioUnit();
-+    RTCLogError(@"Failed to specify the input callback on the input bus. "
-+                 "Error=%ld.",
-+                (long)result);
-+    error = [[NSError alloc] initWithDomain:kRTCAudioSessionErrorDomain
-+                                       code:kRTCAudioSessionErrorInputInitialization
-+                                   userInfo:nil];
-+    if (_inputInitCompletionHandler != nil) {
-+      _inputInitCompletionHandler(error);
-+    }
-+    return;
-+  }
-+
-+  RTCLog(@"Finish input initialization.");
-+  _isInputInited = YES;
-+  _waitsInputInit = NO;
-+  if (_inputInitCompletionHandler != nil) {
-+    _inputInitCompletionHandler(nil);
-+  }
-+}
-+
- @end
 diff --git a/sdk/objc/components/audio/RTCAudioSessionConfiguration.m b/sdk/objc/components/audio/RTCAudioSessionConfiguration.m
 index c583868291..92f3697d08 100644
 --- a/sdk/objc/components/audio/RTCAudioSessionConfiguration.m
@@ -264,100 +86,3 @@ index c583868291..92f3697d08 100644
  #if defined(__IPHONE_26_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_26_0
      _categoryOptions = AVAudioSessionCategoryOptionAllowBluetoothHFP;
  #else
-diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index 7a95973031..594bd0820b 100644
---- a/sdk/objc/native/src/audio/audio_device_ios.mm
-+++ b/sdk/objc/native/src/audio/audio_device_ios.mm
-@@ -1013,8 +1013,15 @@ static void LogDeviceInfo() {
-       audio_unit_.reset();
-       return false;
-     }
-+    // NOTE(enm10k): lockForConfiguration の実装が recursive lock から non-recursive lock に変更されたタイミングで、
-+    // この関数内の lock と、 audio_unit_->Initialize 内で実行される startVoiceProcessingAudioUnit が取得しようとするロックが競合するようになった
-+    // パッチ前の処理はロックの粒度を大きめに取っているが、以降の SetupAudioBuffersForActiveAudioSession や audio_unit_->Initialize は lock を必要としていないため、
-+    // ここで unlockForConfiguration するように修正する
-+    [session unlockForConfiguration];
-     SetupAudioBuffersForActiveAudioSession();
-     audio_unit_->Initialize(playout_parameters_.sample_rate());
-+    audio_is_initialized_ = true;
-+    return true;
-   }
- 
-   // Release the lock.
-diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.h b/sdk/objc/native/src/audio/voice_processing_audio_unit.h
-index 99586a94ed..cad6fe5105 100644
---- a/sdk/objc/native/src/audio/voice_processing_audio_unit.h
-+++ b/sdk/objc/native/src/audio/voice_processing_audio_unit.h
-@@ -102,7 +102,7 @@ class VoiceProcessingAudioUnit {
-                   UInt32 num_frames,
-                   AudioBufferList* io_data);
- 
-- private:
-+ //private:
-   // The C API used to set callbacks requires static functions. When these are
-   // called, they will invoke the relevant instance method by casting
-   // in_ref_con to VoiceProcessingAudioUnit*.
-diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.mm b/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
-index 066f3b161c..1bd895687d 100644
---- a/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
-+++ b/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
-@@ -14,6 +14,7 @@
- #include "system_wrappers/include/metrics.h"
- 
- #import "base/RTCLogging.h"
-+#import "sdk/objc/components/audio/RTCAudioSession+Private.h"
- #import "sdk/objc/components/audio/RTCAudioSessionConfiguration.h"
- 
- #if !defined(NDEBUG)
-@@ -116,6 +117,7 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
-     return false;
-   }
- 
-+  /*
-   // Enable input on the input scope of the input element.
-   UInt32 enable_input = 1;
-   result = AudioUnitSetProperty(vpio_unit_,
-@@ -131,6 +133,7 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
-                 (long)result);
-     return false;
-   }
-+  */
- 
-   // Enable output on the output scope of the output element.
-   UInt32 enable_output = 1;
-@@ -184,6 +187,7 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
-     return false;
-   }
- 
-+  /*
-   // Specify the callback to be called by the I/O thread to us when input audio
-   // is available. The recorded samples can then be obtained by calling the
-   // AudioUnitRender() method.
-@@ -203,6 +207,7 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
-                 (long)result);
-     return false;
-   }
-+  */
- 
-   state_ = kUninitialized;
-   return true;
-@@ -216,6 +221,9 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
-   RTC_DCHECK_GE(state_, kUninitialized);
-   RTCLog(@"Initializing audio unit with sample rate: %f", sample_rate);
- 
-+  RTCAudioSession *session = [RTCAudioSession sharedInstance];
-+  [session startVoiceProcessingAudioUnit: this];
-+
-   OSStatus result = noErr;
-   AudioStreamBasicDescription format = GetFormat(sample_rate);
-   UInt32 size = sizeof(format);
-@@ -399,6 +407,9 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
-   RTC_DCHECK_GE(state_, kUninitialized);
-   RTCLog(@"Stopping audio unit.");
- 
-+  RTCAudioSession *session = [RTCAudioSession sharedInstance];
-+  [session stopVoiceProcessingAudioUnit];
-+
-   OSStatus result = AudioOutputUnitStop(vpio_unit_);
-   if (result != noErr) {
-     RTCLogError(@"Failed to stop audio unit. Error=%ld", (long)result);
