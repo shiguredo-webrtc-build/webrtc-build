@@ -31,15 +31,15 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-09-10 [ADD] ios にも ios_stereo_audio_output.patch を適用する
+  - stereo を ios / ios_sdk の共通パッチとし、ios_manual_audio_input.patch より先に適用する
+  - ios_manual_audio_input.patch は公開 API 宣言と既定 category のみを追加する形へ縮小し、入力初期化の実装は ios_stereo_audio_output.patch に集約する
+  - @melpon
 - 2026-09-09 [UPDATE] disable_pacer_keyframe_flush.patch を削除する
   - キーフレーム到着時の pacer の flush は libwebrtc の仕様どおりの挙動であるため、強制無効化をやめる
   - @voluntas
 - 2026-09-09 [RELEASE] m154.8037.1.0
   - @voluntas
-- 2026-09-08 [ADD] ios にも ios_stereo_audio_output.patch を適用する
-  - stereo を ios / ios_sdk の共通パッチとし、ios_manual_audio_input.patch より先に適用する
-  - ios_manual_audio_input.patch は公開 API 宣言と既定 category のみを追加する形へ縮小し、入力初期化の実装は ios_stereo_audio_output.patch に集約する
-  - @melpon
 - 2026-09-08 [RELEASE] m150.7871.3.5
   - @voluntas
 - 2026-09-08 [FIX] [m150] iOS のステレオ出力時にハードミュートでマイクの入力 I/O が停止しない不具合を修正する
