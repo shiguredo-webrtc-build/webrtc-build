@@ -126,18 +126,23 @@ iOS でのマイク不使用時のパーミッション要求を抑制するパ�
 
 同等の機能が本家に実装されるか PR を出して取り込まれたら削除するが、デフォルトの仕様の破壊的変更を含むので難しいと思われる。
 
-以下に詳細を記載する。
-
-**注意:`923d1d4033cb14d893a01d313268f906e5d7568b` 以降 `RTCAudioSession+Configuration.mm` に追加していたログ出力を、 webrtc の変更に伴い削除**
-
 ### 内容
 
 - 接続時のマイクのパーミッション要求を抑制する。
 
 - マイクの初期化を明示的に行う API を追加する。
   パッチ適用後はマイクは自動的に初期化されない。
+  - `-[RTCAudioSession initializeInput:]`
+  - `-[RTCAudioSession setInitialMicrophoneMute:]`
+  - `-[RTCAudioSession setCategory:error:]` (NSString 版)
+  - `RTCAudioSessionErrorInputInitialization` エラー定数
 
 - `AVAudioSession` の初期化時に設定されるカテゴリを `AVAudioSessionCategoryPlayAndRecord` から `AVAudioSessionCategoryAmbient` に変更する。
+
+- `RTCAudioSession+Configuration.mm` で category 設定エラーを無視する。
+
+`initializeInput:` の入力初期化処理 (`AudioUnitInterface::InitializeInput` と `AudioDeviceIOS` の worker での実行) は `ios_stereo_audio_output.patch` が実装する。
+本パッチはその公開 API とカテゴリ設定を追加する。
 
 ### パッチ適用後の使い方
 
@@ -151,10 +156,8 @@ iOS でのマイク不使用時のパーミッション要求を抑制するパ�
 
 ### `RTCAudioSession` のロックについて
 
-パッチに変更を加える際は `RTCAudioSession` をロックするタイミングに注意すること。
-実行中に `RTCAudioSession` の設定を `configureWebRTCSession` などのメソッドで変更する場合はロックを行う必要がある。
-ロックは `lockForConfiguration` で行い、 `unlockForConfiguration` で解除する。
-たとえば `configureWebRTCSession` を適切にロックして実行するには、次のように前後を `lockForConfiguration` と `unlockForConfiguration` で囲む:
+`RTCAudioSession` の設定を変更するメソッド (`configureWebRTCSession` など) は、`lockForConfiguration` でロックしてから呼び出す必要がある。
+ロックせずに呼ぶと `kRTCAudioSessionErrorLockRequired` で失敗する。
 
 ```
 [session lockForConfiguration];
@@ -162,44 +165,12 @@ bool success = [session configureWebRTCSession:nil];
 [session unlockForConfiguration];
 ```
 
-`lockForConfiguration` はパッチ実装時は再帰的ロックで実装されていたが、現在は相互排他ロック (mutex) で実装されている。
-複数の箇所 (他のスレッド含む) でロックした場合、最初のロックが `unlockForConfiguration` で解除されるまで他の箇所の実行が止まるので注意すべき。
+`lockForConfiguration` は再入不可 (non-recursive) で、ロック中に同じスレッドから再度呼ぶと `RTC_CHECK` で落ちる。
+そのため、呼び出し元が既にロックを保持している場合は、内部でロックする `ConfigureAudioSession()` ではなく、ロック済み前提の `ConfigureAudioSessionLocked()` を使う。
+`AudioDeviceIOS::InitPlayOrRecord()` はロックを保持したまま `beginWebRTCSession` と `ConfigureAudioSessionLocked()` を呼び、`unlockForConfiguration` の後に `audio_unit_->Initialize()` を実行する。
 
-パッチで追加する `-[RTCAudioSession startVoiceProcessingAudioUnit:]` は `RTCAudioSession` の設定を変更するためにロックを行う。
-`startVoiceProcessingAudioUnit:` は `VoiceProcessingAudioUnit::Initialize()` (`sdk/objc/native/src/audio/voice_processing_audio_unit.mm`) から呼ばれる。
-`VoiceProcessingAudioUnit::Initialize()` は次の複数の箇所から呼ばれている:
-
-- `AudioDeviceIOS::InitPlayOrRecord()` (`sdk/objc/native/src/audio/audio_device_ios.mm`)
-- `AudioDeviceIOS::HandleSampleRateChange()` (`sdk/objc/native/src/audio/audio_device_ios.mm`)
-- `AudioDeviceIOS::UpdateAudioUnit()` (`sdk/objc/native/src/audio/audio_device_ios.mm`)
-
-`AudioDeviceIOS::InitPlayOrRecord()` はロックした状態で `VoiceProcessingAudioUnit::Initialize()` を呼んでいるが、 `AudioDeviceIOS::HandleSampleRateChange()` は呼び出し元をたどってもロックされていない (と思われる) 。
-
-また、 `AudioDeviceIOS::UpdateAudioUnit()` でもロックされていない。
-メソッド内で `ConfigureAudioSession()` を呼んでいるが、 `ConfigureAudioSession()` 内でロックしている (`-[RTCAudioSession configureWebRTCSession:]` を呼んでいる) ので、もしこの時点でロックされていればデッドロックするはず。
-したがって、この直後で呼ばれる `VoiceProcessingAudioUnit::Initialize()` はロックせずに呼ばれていることになる。
-
-もしその実装が正しいのであれば、 `VoiceProcessingAudioUnit::Initialize()` の呼び出しはロック不要であり、 `AudioDeviceIOS::InitPlayOrRecord()` で行うロックは意味がない。
-そこで、パッチでは `AudioDeviceIOS::InitPlayOrRecord()` 内で `VoiceProcessingAudioUnit::Initialize()` を呼ぶ前にロックを解除している。
-次に該当のパッチを示す:
-
-```
---- a/sdk/objc/native/src/audio/audio_device_ios.mm
-+++ b/sdk/objc/native/src/audio/audio_device_ios.mm
-@@ -913,8 +913,14 @@ bool AudioDeviceIOS::InitPlayOrRecord() {
-       audio_unit_.reset();
-       return false;
-     }
-+    // NOTE(enm10k): lockForConfiguration の実装が recursive lock から non-recursive lock に変更されたタイミングで、
-+    // この関数内の lock と、 audio_unit_->Initialize 内で実行される startVoiceProcessingAudioUnit が取得しようとするロックが競合するようになった
-+    // パッチ前の処理はロックの粒度を大きめに取っているが、以降の SetupAudioBuffersForActiveAudioSession や audio_unit_->Initialize は lock を必要としていないため、
-+    // ここで unlockForConfiguration するように修正する
-+    [session unlockForConfiguration];
-     SetupAudioBuffersForActiveAudioSession();
-     audio_unit_->Initialize(playout_parameters_.sample_rate());
-+    return true;
-   }
-```
+入力初期化は `AudioDeviceIOS` の worker で実行され、`RTCAudioSession` 側は `@synchronized(self)` で保護する。
+これは `lockForConfiguration` とは別のロックなので、両者を取り違えないこと。
 
 ## ios_proxy.patch
 
