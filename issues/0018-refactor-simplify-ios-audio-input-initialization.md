@@ -1,7 +1,7 @@
 # iOS の入力初期化を「AudioUnit 生成前に 1 回」の契約に単純化する
 
 - Created: 2026-09-10
-- Completed: {YYYY-MM-DD}
+- Completed: 2026-09-10
 - Branch: feature/refactor-simplify-ios-audio-input-initialization
 - Polished: {YYYY-MM-DD}
 
@@ -47,4 +47,16 @@
 
 ## 解決方法
 
-未着手
+入力初期化の契約を「AudioUnit 生成前に 1 回だけ」に限定し、生成後対応の機構を削除した。
+
+- `RTCAudioSession` から `_inputOwner` / `_inputGeneration` / `_inputInitializer` / `_isInitializingInput` と owner / generation ベースのメソッド群を削除し、`takePendingInputRequestWithInitialMute:` / `finishInputInitializationWithError:` / `discardInputInitialization` に縮小した。
+- `AudioDeviceIOS` から `input_safety_` / `RegisterInputInitializer` / `InitializeAudioInput` を削除し、`InitPlayOrRecord` と `UpdateAudioUnit` が最初の `Initialize` の前に保留中の要求を取り出して `AudioUnitInterface::InitializeInput` を呼ぶようにした。
+- `ShutdownPlayOrRecord` と `Terminate` で保留中の要求をエラーで完了するようにした。
+- `ios_audio_pause_resume.patch` は削除した `deferInputInitializationForOwner` の呼び出しを除去して追従させ、`ios_manual_audio_input.patch` は公開 API のコメントを新しい契約に更新した。
+- `RTCManualAudioInputTests` を生成前ケース中心に書き換えた。
+
+検証結果:
+
+- `python3 run.py revert ios` / `revert ios_sdk` が成功した。
+- `sdk_unittests` をビルドし、iPhone 16 Pro / iOS 18.1 Simulator で実行した。`RTCManualAudioInputTests` 11 件、`RTCStereoAudioOutputTests` 7 件、`RTCAudioDeviceModuleThreadingTests` がすべて成功した。以前は入力を使うテストで Simulator のクラッシュによる再起動が起きていたが、今回は発生しなかった。
+- 生成後の `initializeInput` は契約から外れ、入力は AudioUnit の初期化時にのみ適用される。
