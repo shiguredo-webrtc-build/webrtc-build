@@ -208,7 +208,7 @@ index 4bb609b50d..ea4d54805a 100644
    @synchronized(self) {
      if (_nativeAudioDeviceModuleRetrieved) {
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.h b/sdk/objc/native/src/audio/audio_device_ios.h
-index d34ae3df3e..9f16f63b30 100644
+index c993d182ea..229d0ae1a6 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.h
 +++ b/sdk/objc/native/src/audio/audio_device_ios.h
 @@ -81,6 +81,8 @@ class AudioDeviceIOS : public AudioDeviceGeneric,
@@ -232,14 +232,14 @@ index d34ae3df3e..9f16f63b30 100644
 +  // この関数は PauseRecording()/ResumeRecording() から呼ばれることを想定しています。
 +  int32_t ReinitAudioUnitForMicrophoneMute(bool mute);
 +
-   // 公開 initializeInput の要求を、AudioUnit を所有する worker で実行する。
-   void RegisterInputInitializer();
-   void InitializeAudioInput(bool initial_mute, uint64_t generation);
+   const Environment env_;
+ 
+   // Determines whether voice processing should be enabled or disabled.
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index 35a9f597f4..2301ac8fb1 100644
+index 80c6b07e28..5dc75f25b7 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
-@@ -338,7 +338,9 @@ static void LogDeviceInfo() {
+@@ -337,7 +337,9 @@ static void LogDeviceInfo() {
  int32_t AudioDeviceIOS::StopRecording() {
    LOGI() << "StopRecording";
    RTC_DCHECK_RUN_ON(thread_);
@@ -250,7 +250,7 @@ index 35a9f597f4..2301ac8fb1 100644
      return 0;
    }
    if (!playing_.load()) {
-@@ -348,6 +350,138 @@ static void LogDeviceInfo() {
+@@ -347,6 +349,137 @@ static void LogDeviceInfo() {
    return 0;
  }
  
@@ -343,7 +343,6 @@ index 35a9f597f4..2301ac8fb1 100644
 +  const bool can_play_or_record = session.canPlayOrRecord;
 +  if (!can_play_or_record) {
 +    // 停止通知より先に未初期化へ移った場合も、通常の手動停止と同じ後処理を行う。
-+    [session deferInputInitializationForOwner:this];
 +    UnconfigureAudioSession();
 +  }
 +
