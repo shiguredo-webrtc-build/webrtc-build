@@ -31,6 +31,10 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-09-10 [UPDATE] iOS の入力初期化を AudioUnit 生成前の 1 回に限定する
+  - 生成後の要求に対応する世代管理 (generation / owner / safety flag / PostTask) を削除する
+  - 入力要求は AudioUnit の初期化時点で適用し、停止・破棄時は保留要求を失敗させる
+  - @melpon
 - 2026-09-10 [ADD] ios にも ios_stereo_audio_output.patch を適用する
   - stereo を ios / ios_sdk の共通パッチとし、ios_manual_audio_input.patch より先に適用する
   - ios_manual_audio_input.patch は公開 API 宣言と既定 category のみを追加する形へ縮小し、入力初期化の実装は ios_stereo_audio_output.patch に集約する

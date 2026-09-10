@@ -13,7 +13,7 @@ index fd9054ff89..7267a79334 100644
  
  @end
 diff --git a/sdk/objc/components/audio/RTCAudioSession.h b/sdk/objc/components/audio/RTCAudioSession.h
-index 93b4dc2dc5..aa86beacdf 100644
+index 93b4dc2dc5..e86867a620 100644
 --- a/sdk/objc/components/audio/RTCAudioSession.h
 +++ b/sdk/objc/components/audio/RTCAudioSession.h
 @@ -20,6 +20,7 @@ extern NSString *const kRTCAudioSessionErrorDomain;
@@ -37,12 +37,12 @@ index 93b4dc2dc5..aa86beacdf 100644
  - (BOOL)setOutputDataSource:(AVAudioSessionDataSourceDescription *)dataSource
                        error:(NSError **)outError;
  
-+// 入力を使用する場合だけ呼ぶ。完了通知はメインキューで一度だけ行う。
++// 入力を使用する場合だけ、AudioUnit の生成前に 1 回呼ぶ。完了通知はメインキューで一度だけ行う。
 +- (void)initializeInput:(nullable void (^)(NSError *_Nullable error))completionHandler;
 +
 +/** initialMicrophoneMute フラグの値をセットします。
 + *  initializeInput より前に指定します。
-+ *  入力初期化の実行中または初期化後は NO を返します。
++ *  入力初期化後は NO を返します。
 + */
 +- (BOOL)setInitialMicrophoneMute:(BOOL)initialMicrophoneMute;
 +
@@ -50,7 +50,7 @@ index 93b4dc2dc5..aa86beacdf 100644
  
  @interface RTC_OBJC_TYPE (RTCAudioSession)
 diff --git a/sdk/objc/components/audio/RTCAudioSession.mm b/sdk/objc/components/audio/RTCAudioSession.mm
-index b78ef4ce53..7420cb5233 100644
+index 4c74211db0..992c2ce2d4 100644
 --- a/sdk/objc/components/audio/RTCAudioSession.mm
 +++ b/sdk/objc/components/audio/RTCAudioSession.mm
 @@ -30,6 +30,7 @@
@@ -61,7 +61,7 @@ index b78ef4ce53..7420cb5233 100644
  NSString *const kRTCAudioSessionOutputVolumeSelector = @"outputVolume";
  
  namespace {
-@@ -444,6 +445,11 @@ - (BOOL)setCategory:(AVAudioSessionCategory)category
+@@ -442,6 +443,11 @@ - (BOOL)setCategory:(AVAudioSessionCategory)category
                               error:outError];
  }
  
