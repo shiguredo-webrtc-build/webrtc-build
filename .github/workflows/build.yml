@@ -12,6 +12,9 @@ on:
       - "NOTICE"
       - ".gitignore"
       - "scripts/version_update.sh"
+      # issue の起票・更新では `issues/SEQUENCE` のような Markdown 以外の
+      # ファイルも変更されるため、issues 配下全体をビルド対象から除外する
+      - "issues/**"
     branches-ignore:
       - daily
     tags:
