@@ -45,7 +45,7 @@ index 8287bcf3d0..8723b75862 100644
   * Valid kind values are kRTCMediaStreamTrackKindAudio and
   * kRTCMediaStreamTrackKindVideo.
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
-index 0924fc2b30..1d12e5b72d 100644
+index 0924fc2b30..5ef23d1438 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
 @@ -15,6 +15,7 @@
@@ -105,17 +105,13 @@ index 0924fc2b30..1d12e5b72d 100644
  - (instancetype)initWithNativeDependencies:
      (webrtc::PeerConnectionFactoryDependencies &)dependencies {
    self = [super init];
-@@ -511,6 +554,17 @@ - (void)stopAecDump {
+@@ -511,6 +554,13 @@ - (void)stopAecDump {
    return _workerThread.get();
  }
  
 +- (NSInteger)runOnWorker:(NSInteger (^)(void))block {
 +  if (!_workerThread) {
 +    return -1;
-+  }
-+  // worker 上から呼ばれた場合はそのまま実行し、デッドロックを避ける。
-+  if (_workerThread->IsCurrent()) {
-+    return block();
 +  }
 +  return _workerThread->BlockingCall([block] { return block(); });
 +}
