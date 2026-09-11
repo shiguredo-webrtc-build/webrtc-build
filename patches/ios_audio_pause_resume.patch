@@ -1,5 +1,5 @@
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h
-index 8287bcf3d0..be02b757d9 100644
+index 8287bcf3d0..8723b75862 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.h
 @@ -11,6 +11,7 @@
@@ -18,7 +18,7 @@ index 8287bcf3d0..be02b757d9 100644
  @protocol RTC_OBJC_TYPE
  (RTCPeerConnectionDelegate);
  @protocol RTC_OBJC_TYPE
-@@ -61,6 +63,18 @@ RTC_OBJC_EXPORT
+@@ -61,6 +63,25 @@ RTC_OBJC_EXPORT
                 audioDevice:
                     (nullable id<RTC_OBJC_TYPE(RTCAudioDevice)>)audioDevice;
  
@@ -34,11 +34,18 @@ index 8287bcf3d0..be02b757d9 100644
 +               audioDeviceModule:
 +                   (nullable RTC_OBJC_TYPE(RTCAudioDeviceModule)*)audioDeviceModule;
 +
++/**
++ * 指定した処理を WebRTC の worker スレッドで同期実行し、その戻り値を返す。
++ * worker 上から呼ばれた場合はそのまま実行する。
++ * worker を長時間ブロックしないこと。
++ */
++- (NSInteger)runOnWorker:(NSInteger (^)(void))block;
++
  /**
   * Valid kind values are kRTCMediaStreamTrackKindAudio and
   * kRTCMediaStreamTrackKindVideo.
 diff --git a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
-index 0924fc2b30..ed9d94f094 100644
+index 0924fc2b30..5ef23d1438 100644
 --- a/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
 +++ b/sdk/objc/api/peerconnection/RTCPeerConnectionFactory.mm
 @@ -15,6 +15,7 @@
@@ -49,7 +56,7 @@ index 0924fc2b30..ed9d94f094 100644
  
  #import "RTCAudioSource+Private.h"
  #import "RTCAudioTrack+Private.h"
-@@ -194,6 +195,51 @@ - (instancetype)init {
+@@ -194,6 +195,48 @@ - (instancetype)init {
  #endif
  }
  
@@ -91,9 +98,6 @@ index 0924fc2b30..ed9d94f094 100644
 +    dependencies.adm = webrtc::CreateAudioDeviceModule(*dependencies.env);
 +  }
 +  self = [self initWithMediaAndDependencies:dependencies];
-+  if (self && audioDeviceModule) {
-+    [audioDeviceModule bindToFactory:self workerThread:self.workerThread];
-+  }
 +  return self;
 +#endif
 +}
@@ -101,29 +105,22 @@ index 0924fc2b30..ed9d94f094 100644
  - (instancetype)initWithNativeDependencies:
      (webrtc::PeerConnectionFactoryDependencies &)dependencies {
    self = [super init];
-diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule+Private.h b/sdk/objc/components/audio/RTCAudioDeviceModule+Private.h
-index f89e8e5829..739b59654f 100644
---- a/sdk/objc/components/audio/RTCAudioDeviceModule+Private.h
-+++ b/sdk/objc/components/audio/RTCAudioDeviceModule+Private.h
-@@ -5,9 +5,16 @@
- #include "api/audio/audio_device.h"
- #include "api/scoped_refptr.h"
+@@ -511,6 +554,13 @@ - (void)stopAecDump {
+   return _workerThread.get();
+ }
  
-+namespace webrtc {
-+class Thread;
++- (NSInteger)runOnWorker:(NSInteger (^)(void))block {
++  if (!_workerThread) {
++    return -1;
++  }
++  return _workerThread->BlockingCall([block] { return block(); });
 +}
 +
- @interface RTC_OBJC_TYPE(RTCAudioDeviceModule) ()
- 
- // ADM の worker は 1 つの factory が所有するため、受け渡しは 1 回だけ許可する。
- - (webrtc::scoped_refptr<webrtc::AudioDeviceModule>)nativeAudioDeviceModule;
- 
-+// 初期化に成功した factory を録音操作の実行先として登録する。
-+- (void)bindToFactory:(id)factory workerThread:(webrtc::Thread*)worker;
-+
- @end
+ - (webrtc::Thread *)networkThread {
+   return _networkThread.get();
+ }
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.h b/sdk/objc/components/audio/RTCAudioDeviceModule.h
-index e33aa5a3f3..ffcc0e430e 100644
+index e33aa5a3f3..d5b74802b0 100644
 --- a/sdk/objc/components/audio/RTCAudioDeviceModule.h
 +++ b/sdk/objc/components/audio/RTCAudioDeviceModule.h
 @@ -1,4 +1,4 @@
@@ -136,8 +133,8 @@ index e33aa5a3f3..ffcc0e430e 100644
  // 内部で AudioDeviceModuleIOS を生成する。`enabled` が true の場合は
  // VoiceProcessing のバイパス有効を初期値として生成する。
  - (instancetype)initWithBypassVoiceProcessing:(BOOL)enabled;
-+// 録音を一時停止する。factory の worker で同期実行し、成功時は 0 を返す。
-+// factory へ渡す前、破棄後、または録音操作に失敗した場合は負値を返す。
++// 録音を一時停止する。WebRTC の worker スレッド上で呼ぶ必要がある。
++// 成功時は 0 を返し、録音操作に失敗した場合は負値を返す。
 +- (NSInteger)pauseRecording;
 +// 録音を再開する。初期ミュートからの解除にも使用できる。
 +// 実行先と戻り値は pauseRecording と同じ。入力初期化の要求は別途必要。
@@ -146,27 +143,18 @@ index e33aa5a3f3..ffcc0e430e 100644
  // iOS 向けステレオ音声出力 (playout) を有効化する。
  // 呼び出し順序: 本メソッドは RTCPeerConnectionFactory に本 ADM を渡す前、
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.mm b/sdk/objc/components/audio/RTCAudioDeviceModule.mm
-index 4bb609b50d..ea4d54805a 100644
+index 4bb609b50d..3825076983 100644
 --- a/sdk/objc/components/audio/RTCAudioDeviceModule.mm
 +++ b/sdk/objc/components/audio/RTCAudioDeviceModule.mm
-@@ -2,12 +2,16 @@
- 
+@@ -3,6 +3,7 @@
  #include "api/environment/environment_factory.h"
  #include "api/scoped_refptr.h"
-+#include "rtc_base/thread.h"
  #include "sdk/objc/native/api/audio_device_module.h"
 +#include "sdk/objc/native/src/audio/audio_device_module_ios.h"
  
  @interface RTC_OBJC_TYPE(RTCAudioDeviceModule) () {
    webrtc::scoped_refptr<webrtc::AudioDeviceModule> _adm;
-   BOOL _stereoPlayoutEnabled;
-   BOOL _nativeAudioDeviceModuleRetrieved;
-+  __weak id _factory;
-+  webrtc::Thread* _workerThread;
- }
- @end
- 
-@@ -37,6 +41,40 @@ - (instancetype)initWithBypassVoiceProcessing:(BOOL)enabled {
+@@ -37,6 +38,20 @@ - (instancetype)initWithBypassVoiceProcessing:(BOOL)enabled {
    }
  }
  
@@ -178,30 +166,10 @@ index 4bb609b50d..ea4d54805a 100644
 +  return [self setRecordingPaused:NO];
 +}
 +
-+- (void)bindToFactory:(id)factory workerThread:(webrtc::Thread*)worker {
-+  @synchronized(self) {
-+    _factory = factory;
-+    _workerThread = worker;
-+  }
-+}
-+
++// WebRTC の worker スレッド上で呼ぶ必要がある。worker 以外から呼ぶと AudioDeviceIOS のスレッド制約に反する。
 +- (NSInteger)setRecordingPaused:(BOOL)paused {
-+  // worker を所有する factory を同期処理の終了まで保持する。
-+  // ADM を factory より長く保持しても、破棄済みの worker にはアクセスしない。
-+  id __attribute__((objc_precise_lifetime)) factory;
-+  webrtc::Thread* worker;
-+  @synchronized(self) {
-+    factory = _factory;
-+    worker = _workerThread;
-+  }
-+  if (!factory || !worker) {
-+    return -1;
-+  }
-+  auto operation = [ptr = static_cast<webrtc::ios_adm::AudioDeviceModuleIOS*>(_adm.get()), paused] {
-+    return paused ? ptr->PauseRecording() : ptr->ResumeRecording();
-+  };
-+  // 録音の転送と AudioUnit の操作を、初期化・終了と同じ worker で直列化する。
-+  return worker->IsCurrent() ? operation() : worker->BlockingCall(operation);
++  auto ptr = static_cast<webrtc::ios_adm::AudioDeviceModuleIOS*>(_adm.get());
++  return paused ? ptr->PauseRecording() : ptr->ResumeRecording();
 +}
 +
  - (NSInteger)setStereoPlayoutEnabled:(BOOL)enabled {
@@ -438,3 +406,29 @@ index 4b4c5f1316..697bc6a206 100644
  int32_t AudioDeviceModuleIOS::StopRecording() {
    RTC_DLOG(LS_INFO) << __FUNCTION__;
    CHECKinitialized_();
+diff --git a/sdk/objc/unittests/RTCAudioDeviceModuleThreading_xctest.mm b/sdk/objc/unittests/RTCAudioDeviceModuleThreading_xctest.mm
+index e3c6c77708..87596fc555 100644
+--- a/sdk/objc/unittests/RTCAudioDeviceModuleThreading_xctest.mm
++++ b/sdk/objc/unittests/RTCAudioDeviceModuleThreading_xctest.mm
+@@ -38,12 +38,16 @@ - (void)testRecordingOperationsFollowFactoryLifetime {
+                                                                   optionalConstraints:nil]
+                                             delegate:nil];
+         XCTAssertNotNil(peer, @"PC の生成で media engine と ADM を初期化できること");
+-        // worker 以外から呼んでも AudioDeviceIOS と AudioDeviceBuffer のスレッド制約を守る。
+-        XCTAssertEqual(0, [module pauseRecording], @"アプリ側から worker で停止を実行できること");
+-        XCTAssertEqual(0, [module resumeRecording], @"アプリ側から worker で再開を実行できること");
++        // runOnWorker を介して worker で実行し、AudioDeviceIOS と AudioDeviceBuffer のスレッド制約を守る。
++        XCTAssertEqual(0, [factory runOnWorker:^NSInteger { return [module pauseRecording]; }],
++                       @"アプリ側から worker で停止を実行できること");
++        XCTAssertEqual(0, [factory runOnWorker:^NSInteger { return [module resumeRecording]; }],
++                       @"アプリ側から worker で再開を実行できること");
+         factory.workerThread->BlockingCall([&] {
+-          XCTAssertEqual(0, [module pauseRecording], @"同じ worker では同期呼び出しで待ち合わないこと");
+-          XCTAssertEqual(0, [module resumeRecording], @"同じ worker から再開できること");
++          XCTAssertEqual(0, [factory runOnWorker:^NSInteger { return [module pauseRecording]; }],
++                         @"同じ worker では同期呼び出しで待ち合わないこと");
++          XCTAssertEqual(0, [factory runOnWorker:^NSInteger { return [module resumeRecording]; }],
++                         @"同じ worker から再開できること");
+         });
+         [peer close];
+       }

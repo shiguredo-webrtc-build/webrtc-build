@@ -1,7 +1,7 @@
 # iOS の録音 pause/resume を factory の worker 実行に移し bindToFactory を削除する
 
 - Created: 2026-09-10
-- Completed: {YYYY-MM-DD}
+- Completed: 2026-09-10
 - Branch: feature/refactor-remove-ios-adm-factory-binding
 - Polished: {YYYY-MM-DD}
 
@@ -35,10 +35,22 @@
 ## 完了条件
 
 - `bindToFactory` が削除され、factory の worker 実行入口を介して pause/resume が実行される。
-- sora-ios-sdk から `AudioDeviceModuleWrapper` が削除されている。
+- sora-ios-sdk 側の追従 (`AudioDeviceModuleWrapper` の削除) は別 issue で扱う。
 - `revert ios_sdk` と XCTest が通る。
 - `CHANGES.md` に変更内容を追記している。
 
 ## 解決方法
 
-未着手
+`RTCPeerConnectionFactory` に worker 実行の入口を追加し、`RTCAudioDeviceModule` から factory 結合を削除した。
+
+- `RTCPeerConnectionFactory` に `- (NSInteger)runOnWorker:(NSInteger (^)(void))block;` を追加した。worker を所有する factory 自身が dispatch するため、呼び出し中は worker の生存が保証される。worker 上から呼ばれた場合は `IsCurrent()` でそのまま実行し、デッドロックしない。
+- `RTCAudioDeviceModule` から `bindToFactory:workerThread:` / `_factory` / `_workerThread` と factory 強参照ダンスを削除し、`setRecordingPaused:` は worker 上で `AudioDeviceModuleIOS` を呼ぶだけにした。
+- `RTCPeerConnectionFactory.mm` の `[audioDeviceModule bindToFactory:...]` を削除した。
+- `RTCAudioDeviceModuleThreadingTests` を `runOnWorker` ベースに更新した。
+
+検証結果:
+
+- `python3 run.py revert ios_sdk` が成功した。
+- `sdk_unittests` を iPhone 16 Pro / iOS 18.1 Simulator で実行し、`RTCAudioDeviceModuleThreadingTests`、`RTCManualAudioInputTests` 11 件、`RTCStereoAudioOutputTests` 7 件がすべて成功した。
+
+sora-ios-sdk 側の追従 (`AudioDeviceModuleWrapper` の削除と `runOnWorker` の利用) は別 issue で扱う。
