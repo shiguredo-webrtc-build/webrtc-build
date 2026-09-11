@@ -31,6 +31,10 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-09-10 [UPDATE] iOS の録音 pause/resume を factory の worker 実行に移す
+  - RTCPeerConnectionFactory に runOnWorker を追加し、RTCAudioDeviceModule の bindToFactory を削除する
+  - pauseRecording / resumeRecording は worker 上で呼ぶ契約にする
+  - @melpon
 - 2026-09-10 [UPDATE] iOS の入力初期化を AudioUnit 生成前の 1 回に限定する
   - 生成後の要求に対応する世代管理 (generation / owner / safety flag / PostTask) を削除する
   - 入力要求は AudioUnit の初期化時点で適用し、停止・破棄時は保留要求を失敗させる
