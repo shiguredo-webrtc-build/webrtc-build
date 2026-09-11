@@ -31,6 +31,10 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-09-11 [UPDATE] iOS の stereo 設定を ADM の init に渡す
+  - RTCAudioDeviceModule の setStereoPlayoutEnabled / stereoPlayoutEnabled を削除し、init の引数にする
+  - AudioDeviceModuleIOS の stereo_playout_enabled_on_init_ を構築時設定にする
+  - @melpon
 - 2026-09-10 [UPDATE] iOS の録音 pause/resume を factory の worker 実行に移す
   - RTCPeerConnectionFactory に runOnWorker を追加し、RTCAudioDeviceModule の bindToFactory を削除する
   - pauseRecording / resumeRecording は worker 上で呼ぶ契約にする
