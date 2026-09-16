@@ -31,6 +31,25 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-09-17 [ADD] add_deps.patch と windows_add_deps.patch で api:field_trials を追加する
+  - Sora C++ SDK が webrtc::FieldTrials::Create でフィールドトライアル文字列を扱えるようにする
+  - @melpon
+- 2026-09-11 [UPDATE] iOS の stereo 設定を ADM の init に渡す
+  - RTCAudioDeviceModule の setStereoPlayoutEnabled / stereoPlayoutEnabled を削除し、init の引数にする
+  - AudioDeviceModuleIOS の stereo_playout_enabled_on_init_ を構築時設定にする
+  - @melpon
+- 2026-09-10 [UPDATE] iOS の録音 pause/resume を factory の worker 実行に移す
+  - RTCPeerConnectionFactory に runOnWorker を追加し、RTCAudioDeviceModule の bindToFactory を削除する
+  - pauseRecording / resumeRecording は worker 上で呼ぶ契約にする
+  - @melpon
+- 2026-09-10 [UPDATE] iOS の入力初期化を AudioUnit 生成前の 1 回に限定する
+  - 生成後の要求に対応する世代管理 (generation / owner / safety flag / PostTask) を削除する
+  - 入力要求は AudioUnit の初期化時点で適用し、停止・破棄時は保留要求を失敗させる
+  - @melpon
+- 2026-09-10 [ADD] ios にも ios_stereo_audio_output.patch を適用する
+  - stereo を ios / ios_sdk の共通パッチとし、ios_manual_audio_input.patch より先に適用する
+  - ios_manual_audio_input.patch は公開 API 宣言と既定 category のみを追加する形へ縮小し、入力初期化の実装は ios_stereo_audio_output.patch に集約する
+  - @melpon
 - 2026-09-09 [RELEASE] m154.8037.1.1
   - @voluntas
 - 2026-09-09 [UPDATE] disable_pacer_keyframe_flush.patch を削除する

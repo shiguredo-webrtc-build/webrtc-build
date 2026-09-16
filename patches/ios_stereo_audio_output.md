@@ -98,7 +98,7 @@ AudioUnit の生成前の要求は生成後まで待機し、再生開始後の�
 - `VoiceProcessingAudioUnit` に直接接続されていた入力初期化を `AudioUnitInterface::InitializeInput` に移す。`RTCAudioSession` は従来の公開 API で要求を受け付け、`AudioDeviceIOS` の worker が入力の接続と AudioUnit の再初期化を行う。一時停止では入力状態を保持し、最終終了で待機要求を解除する
 - `sdk/objc/native/src/audio/remote_io_audio_unit.h` / `.mm` を新規追加。`AudioUnitInterface` を直接実装した独立クラスとして `RemoteIOAudioUnit` を定義。`componentSubType = kAudioUnitSubType_RemoteIO`、生成時は出力バスを有効にし、入力バスと入力コールバックは `initializeInput` の要求後に接続する。`GetFormat(sample_rate, channels)` で playout / record 個別のチャンネル数を扱える。`AudioUnitInitialize` のリトライループも独立に持つ
 - `sdk/objc/native/src/audio/audio_device_ios.h` の `audio_unit_` メンバ型を `std::unique_ptr<VoiceProcessingAudioUnit>` から `std::unique_ptr<AudioUnitInterface>` に変更
-- `sdk/objc/native/src/audio/audio_device_ios.mm` 内の `VoiceProcessingAudioUnit::kInitialized` / `kUninitialized` / `kStarted` / `kInitRequired` / `kBytesPerSample` の参照をすべて `AudioUnitInterface::` に置換。`ios_audio_pause_resume.patch` が追加した `ReinitAudioUnitForMicrophoneMute` 内の参照も同時に置換
+- `sdk/objc/native/src/audio/audio_device_ios.mm` 内の `VoiceProcessingAudioUnit::kInitialized` / `kUninitialized` / `kStarted` / `kInitRequired` / `kBytesPerSample` の参照をすべて `AudioUnitInterface::` に置換 (ios_sdk 専用の `ios_audio_pause_resume.patch` は本パッチ適用後に `AudioUnitInterface::` の参照で追加される)
 - `AudioDeviceIOS::StereoPlayoutIsAvailable` / `SetStereoPlayout` / `StereoPlayout` を実装。`playout_parameters_.channels()` を単一の source of truth として参照し、`play_channels_` のような別メンバによる二重管理は作らない。3 関数に `RTC_DCHECK_RUN_ON(thread_)` を付与
 - `AudioDeviceIOS::UpdateAudioDeviceBuffer` の `RTC_DCHECK_EQ(playout_parameters_.channels(), 1);` を削除。recording 側の DCHECK は残す
 - `AudioDeviceIOS::OnGetPlayoutData` の `RTC_DCHECK_EQ(1, audio_buffer->mNumberChannels);` を `RTC_DCHECK_EQ(playout_parameters_.channels(), audio_buffer->mNumberChannels);` に置換。silence 出力時のバイト数計算と `fine_audio_buffer_->GetPlayoutData(...)` の要求サンプル数も `playout_parameters_.channels()` を掛けた値に修正
@@ -111,9 +111,11 @@ AudioUnit の生成前の要求は生成後まで待機し、再生開始後の�
 
 ### 適用順序と登録先
 
-- 本パッチは `ios_sdk` にのみ登録される。raw `ios` ビルドには本機能は含まれない
-- 依存する `ios_audio_pause_resume.patch` が同じく `ios_sdk` にのみ登録されている先例に合わせている
-- `run.py` の `PATCHES["ios_sdk"]` では `ios_audio_pause_resume.patch` の直後に `ios_stereo_audio_output.patch` を配置する (pause_resume が追加する `ReinitAudioUnitForMicrophoneMute` の State 参照を本パッチが書き換えるため、順序は不可逆)
+- 本パッチは `ios` と `ios_sdk` の両方に登録される (raw `ios` ビルドにも本機能が含まれる)
+- `run.py` の `PATCHES["ios"]` / `PATCHES["ios_sdk"]` では `ios_manual_audio_input.patch` より前に適用する
+- 入力初期化の worker 化 (`AudioUnitInterface::InitializeInput` 化) と、`RTCAudioDeviceModule` の土台 (ファイル生成と `init` / `nativeAudioDeviceModule` / stereo API) を本パッチが持つ
+- `ios_manual_audio_input.patch` は本パッチ適用後 (両ターゲット共通) に、公開 API 宣言 (`initializeInput:` / `setInitialMicrophoneMute:` / `setCategory:error:` / エラー定数) と既定 category (`Ambient`) および category 設定エラー抑止のみを追加する
+- `ios_sdk` 専用の `ios_audio_track_sink.patch` / `ios_audio_pause_resume.patch` は末尾に配置する。`ios_audio_pause_resume.patch` は本パッチ適用後を前提に、`AudioUnitInterface::` の参照や `IsInputInitialized()` を使って `PauseRecording` / `ResumeRecording` / `ReinitAudioUnitForMicrophoneMute`、`RTCAudioDeviceModule` の録音操作 (factory への `bindToFactory:` と worker 実行) を追加する
 
 ### 入力初期化の回帰テスト
 

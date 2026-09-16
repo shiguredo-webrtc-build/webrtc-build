@@ -222,13 +222,14 @@ PATCHES = {
         "unsafe_buffers_optout_list.patch",
         "turn_tls_client_certificate.patch",
     ],
+    # ios と ios_sdk の共通パッチを先に、ターゲット固有のパッチを後に並べる。
+    # ios_sdk 専用パッチは末尾 (ios の一覧に無いもの) にまとめる。
     "ios": [
         "add_deps.patch",
         "4k.patch",
         "revive_proxy.patch",
         "add_license_sframe.patch",
         "macos_screen_capture.patch",
-        "ios_manual_audio_input.patch",
         "ios_simulcast.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "ios_proxy.patch",
@@ -239,6 +240,10 @@ PATCHES = {
         "ios_add_scale_resolution_down_to.patch",
         "remove_crel.patch",
         "revert_siso.patch",
+        # stereo は ios_manual_audio_input より先に適用する。
+        # 編集領域が重なるため、ios_manual_audio_input は stereo 適用後の内容に依存させる。
+        "ios_stereo_audio_output.patch",
+        "ios_manual_audio_input.patch",
         "unsafe_buffers_optout_list.patch",
         "ios_ssl_certificate_verifier_chain.patch",
         "turn_tls_client_certificate.patch",
@@ -249,7 +254,6 @@ PATCHES = {
         "revive_proxy.patch",
         "add_license_sframe.patch",
         "macos_screen_capture.patch",
-        "ios_manual_audio_input.patch",
         "ios_simulcast.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "ios_proxy.patch",
@@ -260,12 +264,14 @@ PATCHES = {
         "ios_add_scale_resolution_down_to.patch",
         "remove_crel.patch",
         "revert_siso.patch",
-        "ios_audio_track_sink.patch",
-        "ios_audio_pause_resume.patch",
         "ios_stereo_audio_output.patch",
+        "ios_manual_audio_input.patch",
         "unsafe_buffers_optout_list.patch",
         "ios_ssl_certificate_verifier_chain.patch",
         "turn_tls_client_certificate.patch",
+        # ios_sdk 専用パッチ
+        "ios_audio_track_sink.patch",
+        "ios_audio_pause_resume.patch",
     ],
     "android": [
         "add_deps.patch",
