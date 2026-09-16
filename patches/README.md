@@ -28,7 +28,9 @@ v4l2 で 4K に対応するパッチ。
 
 ## add_deps.patch
 
-zlib, log_sinks, サイマルキャストのエンコーダーアダプターを追加するパッチ。
+zlib, log_sinks, サイマルキャストのエンコーダーアダプター, フィールドトライアルを追加するパッチ。
+
+`api:field_trials` は Sora C++ SDK が `webrtc::FieldTrials::Create` でフィールドトライアル文字列を扱うために必要となる。
 
 ## add_license_sframe.patch
 
@@ -210,7 +212,9 @@ WebRTC は Let's Encrypt を含めていないので、Let's Encrypt の検証�
 
 ## windows_add_deps.patch
 
-オーディオデバイス, zlib, log_sinks, サイマルキャストのエンコーダーアダプターを追加するパッチ。
+オーディオデバイス, zlib, log_sinks, サイマルキャストのエンコーダーアダプター, フィールドトライアルを追加するパッチ。
+
+`api:field_trials` は Sora C++ SDK が `webrtc::FieldTrials::Create` でフィールドトライアル文字列を扱うために必要となる。
 
 ## windows_fix_audio_device.patch
 

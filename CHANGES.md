@@ -31,6 +31,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-09-17 [ADD] add_deps.patch と windows_add_deps.patch で api:field_trials を追加する
+  - Sora C++ SDK が webrtc::FieldTrials::Create でフィールドトライアル文字列を扱えるようにする
+  - @melpon
 - 2026-09-11 [UPDATE] iOS の stereo 設定を ADM の init に渡す
   - RTCAudioDeviceModule の setStereoPlayoutEnabled / stereoPlayoutEnabled を削除し、init の引数にする
   - AudioDeviceModuleIOS の stereo_playout_enabled_on_init_ を構築時設定にする
