@@ -31,6 +31,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-09-17 [FIX] [m155] h265.patch のパッチ適用エラーを修正する
+  - pic_width_in_mbs_minus1 と pic_height_in_map_units_minus1 の保存箇所を m155 の構造に合わせる
+  - @voluntas
 - 2026-09-17 [ADD] add_deps.patch と windows_add_deps.patch で api:field_trials を追加する
   - Sora C++ SDK が webrtc::FieldTrials::Create でフィールドトライアル文字列を扱えるようにする
   - @melpon

@@ -1,20 +1,33 @@
 diff --git a/common_video/h264/sps_parser.cc b/common_video/h264/sps_parser.cc
-index 77945fe..309f163 100644
+index e0681f3861..b790d7da22 100644
 --- a/common_video/h264/sps_parser.cc
 +++ b/common_video/h264/sps_parser.cc
-@@ -167,9 +167,11 @@ std::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(
+@@ -176,9 +176,9 @@ std::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(
    // to signify resolutions that aren't multiples of 16.
    //
    // pic_width_in_mbs_minus1: ue(v)
--  sps.width = 16 * (reader.ReadExponentialGolomb() + 1);
+-  uint32_t pic_width_in_mbs_minus1 = reader.ReadExponentialGolomb();
 +  sps.pic_width_in_mbs_minus1 = reader.ReadExponentialGolomb();
-+  sps.width = 16 * (sps.pic_width_in_mbs_minus1 + 1);
    // pic_height_in_map_units_minus1: ue(v)
-   uint32_t pic_height_in_map_units_minus1 = reader.ReadExponentialGolomb();
-+  sps.pic_height_in_map_units_minus1 = pic_height_in_map_units_minus1;
+-  uint32_t pic_height_in_map_units_minus1 = reader.ReadExponentialGolomb();
++  sps.pic_height_in_map_units_minus1 = reader.ReadExponentialGolomb();
    // frame_mbs_only_flag: u(1)
    sps.frame_mbs_only_flag = reader.ReadBit();
    if (!sps.frame_mbs_only_flag) {
+@@ -212,10 +212,10 @@ std::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(
+ 
+   // Calculate uncropped width and height avoiding 32-bit overflow.
+   int64_t uncropped_width =
+-      16 * (static_cast<int64_t>(pic_width_in_mbs_minus1) + 1);
++      16 * (static_cast<int64_t>(sps.pic_width_in_mbs_minus1) + 1);
+   int64_t uncropped_height =
+       16 * (2 - sps.frame_mbs_only_flag) *
+-      (static_cast<int64_t>(pic_height_in_map_units_minus1) + 1);
++      (static_cast<int64_t>(sps.pic_height_in_map_units_minus1) + 1);
+ 
+   if (!H264::IsValidResolution(uncropped_width, uncropped_height)) {
+     return std::nullopt;
+   }
 diff --git a/common_video/h264/sps_parser.h b/common_video/h264/sps_parser.h
 index 3091703..aaee570 100644
 --- a/common_video/h264/sps_parser.h
@@ -114,10 +127,10 @@ index ad423d2..895222f 100644
  
    // Unpack RBSP and parse VPS state from the supplied buffer.
 diff --git a/webrtc.gni b/webrtc.gni
-index 6eb16cf..8498579 100644
+index 82cb3af9df..fd671520f1 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
-@@ -176,7 +176,7 @@ declare_args() {
+@@ -181,7 +181,7 @@ declare_args() {
    if (build_with_chromium) {
      rtc_use_h265 = enable_hevc_parser_and_hw_decoder
    } else {
