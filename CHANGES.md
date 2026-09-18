@@ -31,6 +31,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-09-18 [RELEASE] m155.8059.0.0
+  - @voluntas
 - 2026-09-17 [FIX] [m155] h265.patch のパッチ適用エラーを修正する
   - pic_width_in_mbs_minus1 と pic_height_in_map_units_minus1 の保存箇所を m155 の構造に合わせる
   - @voluntas
