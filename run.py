@@ -653,10 +653,6 @@ COMMON_GN_ARGS = [
     "rtc_use_perfetto=false",
     "libyuv_include_tests=false",
     "libyuv_use_sme=false",
-    "enable_rust=false",
-    "enable_rust_cxx=false",
-    "enable_chromium_prelude=false",
-    "rtc_rust=false",
     "use_debug_fission=false",
 ]
 # - https://webrtc-review.googlesource.com/c/src/+/232600 が影響している可能性があるため use_lld=false を追加

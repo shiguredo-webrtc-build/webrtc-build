@@ -31,6 +31,10 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-09-23 [UPDATE] libwebrtc の Rust ビルドを有効化する
+  - run.py の COMMON_GN_ARGS から Rust を無効化する 4 つの指定を削除する
+  - enable_rust / enable_rust_cxx / enable_chromium_prelude と rtc_rust は upstream の既定値が true のため、指定を削除するだけで有効になる
+  - @melpon
 - 2026-09-19 [RELEASE] m155.8059.1.0
   - @voluntas
 - 2026-09-18 [RELEASE] m155.8059.0.0
