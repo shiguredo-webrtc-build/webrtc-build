@@ -1,7 +1,7 @@
 # libwebrtc の Rust ビルドを有効化する
 
 - Created: 2026-09-23
-- Completed: {YYYY-MM-DD}
+- Completed: 2026-09-23
 - Branch: feature/change-enable-rust-build
 - Polished: {YYYY-MM-DD}
 
@@ -59,8 +59,10 @@ m155 の時点で無効化の理由が解消しているかを確認したうえ
 
 ## 解決方法
 
-- `run.py` の `COMMON_GN_ARGS` から Rust 無効化の 4 つを削除する
-- 各ターゲットで `python3 run.py build <target> --webrtc-gen` を実行し、ビルドが通ることを確認する
-  - `args.gn` が既に存在するビルドディレクトリでは `gn gen` が再実行されないため、`--webrtc-gen` を付ける必要がある
-- ビルドが通らないターゲットがある場合は、原因を調査して GN 引数の追加やパッチの追加で対応する
+- `run.py` の `COMMON_GN_ARGS` から Rust を無効化する `enable_rust=false` / `enable_rust_cxx=false` / `enable_chromium_prelude=false` / `rtc_rust=false` を削除する
+  - `enable_rust` / `enable_rust_cxx` / `enable_chromium_prelude` は `.gn` の `default_args`、`rtc_rust` は `webrtc.gni` の既定値で true になるため、有効化の明示は不要
+- ローカルの ubuntu-24.04_x86_64 / android / android_sdk / ubuntu-24.04_armv8 で `python3 run.py build <target>` が成功することを確認する
+  - `args.gn` が既に存在するビルドディレクトリでは `--webrtc-gen` を付けて `gn gen` をやり直す
+- `rtc_rust=true` で生成される Rust ターゲットがビルドできることを確認する (`rtc_base:rate_tracker_ffi`)
+- GitHub Actions の全 15 ターゲットが成功することを確認する
 - CHANGES.md に変更内容を記録する
