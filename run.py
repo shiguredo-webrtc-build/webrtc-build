@@ -653,15 +653,6 @@ COMMON_GN_ARGS = [
     "rtc_use_perfetto=false",
     "libyuv_include_tests=false",
     "libyuv_use_sme=false",
-    # libwebrtc は Rust 実装を段階的に取り込んでおり、upstream は Rust を有効にする前提になっている。
-    # build_overrides/build.gni で build_with_chromium=false になるため、build/config/rust.gni の
-    # enable_rust の既定値は false であり、有効化するには明示が必要になる。
-    # enable_rust_cxx は Rust ターゲットの cxx による C++ 連携に、enable_chromium_prelude は
-    # Rust コードの webrtc::import! マクロによる crate 解決に必要なため、どちらも有効にする。
-    # rtc_rust は upstream の既定値が true なので指定しない。
-    "enable_rust=true",
-    "enable_rust_cxx=true",
-    "enable_chromium_prelude=true",
     "use_debug_fission=false",
 ]
 # - https://webrtc-review.googlesource.com/c/src/+/232600 が影響している可能性があるため use_lld=false を追加
