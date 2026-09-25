@@ -2,7 +2,7 @@
 
 - Created: 2026-09-24
 - Completed: 2026-09-25
-- Branch: feature/debug-android-aar-distribution
+- Branch: feature/add-jitpack-aar-distribution
 - Polished: 2026-09-24
 
 ## 目的
