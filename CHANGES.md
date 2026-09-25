@@ -32,8 +32,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 ## タイムライン
 
 - 2026-09-25 [ADD] [m155] JitPack で Android 向け AAR を配布する
-  - jitpack.yml と scripts/prepare_aar.sh を追加し、 Release の webrtc.android_sdk.tar.gz から libwebrtc.aar を取り出して JitPack に公開する
-  - Release の成果物に NOTICE を追加し、 draft として作成して全成果物のアップロード後に publish する
+  - jitpack.yml と scripts/prepare_aar.sh を追加し、 Release の libwebrtc.aar を JitPack に公開する
+  - Release の成果物に libwebrtc.aar と NOTICE を追加し、 draft として作成して全成果物のアップロード後に publish する
   - publish 後に JitPack のビルドを起動し、 artifact の公開を確認する
   - @voluntas
 - 2026-09-23 [UPDATE] libwebrtc の Rust ビルドを有効化する

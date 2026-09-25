@@ -27,11 +27,10 @@ Android 向け libwebrtc の配布を `shiguredo-webrtc-build/webrtc-build` に�
 ## 設計方針
 
 - `jitpack.yml` を追加し、 `install` で AAR をローカルの Maven リポジトリに登録するスクリプトを実行する
-  - スクリプトは JitPack が設定する環境変数 `VERSION` (タグ名) を使い、 `https://github.com/shiguredo-webrtc-build/webrtc-build/releases/download/${VERSION}/webrtc.android_sdk.tar.gz` を取得して `webrtc/aar/libwebrtc.aar` を取り出し、 `mvn install:install-file` する
+  - スクリプトは JitPack が設定する環境変数 `VERSION` (タグ名) を使い、 `https://github.com/shiguredo-webrtc-build/webrtc-build/releases/download/${VERSION}/libwebrtc.aar` を取得して `mvn install:install-file` する
   - バージョンはタグ名そのものになり、下流は `m155.8059.1.0` のような `m` 付きのバージョンを指定する
-- `create-release` ジョブで `webrtc.android_sdk.tar.gz` から `webrtc/NOTICE` を取り出し、 Release の成果物として追加する
-  - AAR 単体は追加しない。 JitPack のビルドが `webrtc.android_sdk.tar.gz` から `webrtc/aar/libwebrtc.aar` を取り出すため、同じ内容を Release に二重に置かない
-  - JitPack のビルドは約 105 MB のアーカイブをダウンロードするが、ビルドはリリースごとに 1 回なので許容する
+- `create-release` ジョブで `webrtc.android_sdk.tar.gz` から `webrtc/aar/libwebrtc.aar` と `webrtc/NOTICE` を取り出し、 Release の成果物として追加する
+  - AAR 単体を追加することで取得が単純になり、ダウンロードも約 105 MB から約 14 MB に減る
 - Release は draft として作成し、全成果物をアップロードしてから publish する
   - webrtc-build の Release はタグ push から約 1 時間後に作られるため、 JitPack の自動検知に任せると成果物のアップロード完了前にビルドが始まるおそれがある
 - publish 後にワークフローから JitPack のビルドを明示的にリクエストし、 artifact の公開を確認する
@@ -44,7 +43,7 @@ Android 向け libwebrtc の配布を `shiguredo-webrtc-build/webrtc-build` に�
 ## 完了条件
 
 - `m` 付きタグに対して `com.github.shiguredo-webrtc-build:webrtc-build:m<version>` の AAR が JitPack から取得できる
-- webrtc-build の Release に `NOTICE` が単体で含まれ、 `webrtc.android_sdk.tar.gz` に `libwebrtc.aar` が含まれる
+- webrtc-build の Release に `libwebrtc.aar` と `NOTICE` が単体で含まれる
 - Release の publish 後にワークフローがビルドを起動し、人手を介さずに artifact が公開される
 - Sora Android SDK を新しい座標でビルドできる
 - README に AAR の利用方法が記載されている
@@ -69,11 +68,16 @@ Android 向け libwebrtc の配布を `shiguredo-webrtc-build/webrtc-build` に�
 
 `jitpack.yml` と `scripts/prepare_aar.sh` を追加し、 `m` 付きタグで JitPack から AAR を公開できるようにした。あわせて `create-release` ジョブで Release の publish 後に JitPack のビルドを起動するようにした。
 
-- `jitpack.yml` の `install` で `scripts/prepare_aar.sh` を実行し、 Release の `webrtc.android_sdk.tar.gz` から `webrtc/aar/libwebrtc.aar` を取り出して `mvn install:install-file` でローカルの Maven リポジトリに登録する
-  - AAR 単体は Release に追加しない (アーカイブと二重になるため)
-- `create-release` ジョブで `webrtc.android_sdk.tar.gz` から `NOTICE` を取り出し、 Release の成果物に追加する
+- `jitpack.yml` の `install` で `scripts/prepare_aar.sh` を実行し、 Release の `libwebrtc.aar` を取得して `mvn install:install-file` でローカルの Maven リポジトリに登録する
+- `create-release` ジョブで `webrtc.android_sdk.tar.gz` から `libwebrtc.aar` と `NOTICE` を取り出し、 Release の成果物に追加する
 - Release は draft として作成し、全成果物のアップロード後に publish する
 - publish 後に JitPack のビルドを起動し、 POM の取得で artifact の公開を確認する
 - README に JitPack の利用方法、 CHANGES.md に変更履歴を追記する
 
 次の Release で `com.github.shiguredo-webrtc-build:webrtc-build:m<version>` の AAR が取得できることを確認する。確認できない場合は reopened にする。
+
+## 補足
+
+- AAR の取得元として、 JitPack のビルドが Release の `webrtc.android_sdk.tar.gz` から `webrtc/aar/libwebrtc.aar` を取り出す案も検討した
+  - Release に AAR 単体を追加せずに済む (アーカイブとの二重化を避けられる) 一方、 JitPack のビルドで約 105 MB のダウンロードとアーカイブの内部構造への依存が増える
+  - 今回は既存の `shiguredo-webrtc-android` と同じく AAR 単体を Release に追加する方式を採用し、この案は将来の候補として残す
