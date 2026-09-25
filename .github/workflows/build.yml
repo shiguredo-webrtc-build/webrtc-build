@@ -272,20 +272,19 @@ jobs:
       - uses: ./.github/actions/download
         with:
           platform: android_sdk
-      # Release の成果物に AAR 単体と NOTICE を追加する
+      # Release の成果物に AAR 単体を追加する
       #
-      # android_sdk のアーカイブから取り出し、 libwebrtc.aar と NOTICE として
-      # Release にアップロードする。JitPack は libwebrtc.aar を取得する。
-      - name: Extract libwebrtc.aar and NOTICE
+      # android_sdk のアーカイブから取り出し、 libwebrtc.aar として Release に
+      # アップロードする。JitPack は libwebrtc.aar を取得する。ライセンス通知
+      # (NOTICE) は AAR に同梱済みで、アーカイブ側にも含まれている。
+      - name: Extract libwebrtc.aar
         shell: bash
         run: |
           mkdir -p android_sdk
           tar -xzf webrtc.android_sdk.tar.gz/webrtc.android_sdk.tar.gz -C android_sdk
-          mkdir -p release_assets/aar release_assets/notice
+          mkdir -p release_assets/aar
           cp android_sdk/webrtc/aar/libwebrtc.aar release_assets/aar/libwebrtc.aar
-          cp android_sdk/webrtc/NOTICE release_assets/notice/NOTICE
           echo "release_assets/aar/libwebrtc.aar" >> package_paths.env
-          echo "release_assets/notice/NOTICE" >> package_paths.env
       # Sora iOS SDK 向けバイナリの WebRTC.xcframework.zip をダウンロードする
       - name: Env to output for WebRTC.xcframework.zip
         shell: bash
