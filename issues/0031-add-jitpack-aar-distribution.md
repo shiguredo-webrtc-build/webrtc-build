@@ -19,8 +19,10 @@ Android 向け libwebrtc の配布を `shiguredo-webrtc-build/webrtc-build` に�
 - `.github/workflows/build.yml` の `create-release` ジョブは `tags/m` のときだけ Release を作成し、各プラットフォームのアーカイブだけをアップロードする
   - `webrtc.android_sdk.tar.gz` の中に `webrtc/aar/libwebrtc.aar` と `webrtc/NOTICE` が含まれているが、 AAR 単体は Release の成果物に含まれない
 - `shiguredo/shiguredo-webrtc-android` の `jitpack.yml` と `prepareAar.sh` が AAR を JitPack に公開している
-- JitPack は登録済みリポジトリの新しいバージョンを検知して自動ビルドする (タグ push から約 1〜15 分)
 - webrtc-build の Release 成果物は全プラットフォームのビルド完了後に作られるため、タグ push から約 1 時間かかる
+- JitPack には `com.github.shiguredo-webrtc-build:webrtc-build` のプロジェクトが既に存在し、過去に `m97.4692.0.4` 〜 `m155.8059.1.0` のビルド記録がある
+  - いずれも失敗しており、直近の `m155.8059.1.0` は 2026-09-24 にリクエストされて `No build file found` (jitpack.yml が無い) で失敗している
+  - 数秒差で複数バージョンがリクエストされた記録があり、オンデマンドのリクエストによるものとみられる
 
 ## 設計方針
 
@@ -30,25 +32,37 @@ Android 向け libwebrtc の配布を `shiguredo-webrtc-build/webrtc-build` に�
 - `create-release` ジョブで `webrtc.android_sdk.tar.gz` から `webrtc/aar/libwebrtc.aar` と `webrtc/NOTICE` を取り出し、 Release の成果物として追加する
   - AAR 単体を追加することで取得が単純になり、ダウンロードも約 105 MB から約 14 MB に減る
 - Release は draft として作成し、全成果物をアップロードしてから publish する
-  - webrtc-build の Release はタグ push から約 1 時間後に作られるため、 JitPack が成果物のアップロード完了前に検知しないようにする
-- publish 後に JitPack のビルドを起動して artifact の公開を確認する。 JitPack の自動検知の有無やタイミングに依存しないようにする
-  - ビルドの起動方法 (artifact URL へのリクエストや API) は実ビルドで確認する
+  - webrtc-build の Release はタグ push から約 1 時間後に作られるため、 JitPack の自動検知に任せると成果物のアップロード完了前にビルドが始まるおそれがある
+- publish 後にワークフローから JitPack のビルドを明示的にリクエストし、 artifact の公開を確認する
+  - webrtc-build では新リリースの自動ビルドが観測されていないため、自動検知には依存しない
+  - 起動は `https://jitpack.io/com/github/shiguredo-webrtc-build/webrtc-build/${VERSION}/build.log` への GET で行い、 `https://jitpack.io/api/builds/com.github.shiguredo-webrtc-build/webrtc-build/${VERSION}` で結果を確認する。認証は不要
 - README に Android 向け AAR の利用方法 (座標とバージョンの形式) を追記する
 - jitpack.yml はタグのコミットに含まれる必要があるため、新しい座標で公開できるのは jitpack.yml をマージした後に作られるタグからである
+- `m` 付きのバージョンは semver として解釈されないため、 JitPack の latest や動的バージョンの対象にならない。下流はバージョンを明示するため影響しない
 
 ## 完了条件
 
 - `m` 付きタグに対して `com.github.shiguredo-webrtc-build:webrtc-build:m<version>` の AAR が JitPack から取得できる
 - webrtc-build の Release に `libwebrtc.aar` と `NOTICE` が単体で含まれる
-- Release 完了から人手を介さずに JitPack のビルドが完了する
+- Release の publish 後にワークフローがビルドを起動し、人手を介さずに artifact が公開される
 - Sora Android SDK を新しい座標でビルドできる
 - README に AAR の利用方法が記載されている
 
+## 確認済みの点
+
+- ハイフン付き org 名の groupId (`com.github.shiguredo-webrtc-build`) は問題ない
+  - JitPack に `com.github.shiguredo-webrtc-build:webrtc-build` の既存プロジェクトがある
+  - 他にも `com.github.json-path:JsonPath` / `com.github.mock-server:mockserver` / `com.github.gradle-nexus:publish-plugin` / `com.github.ben-manes:caffeine` の成功例がある
+- `m` 付きタグはバージョンとして通る
+  - `m155.8059.1.0` は JitPack がタグのコミット `cebf2e2` を解決してビルドを試行した記録があり、失敗理由は jitpack.yml が無いことである
+- JitPack のビルドは認証不要の HTTP リクエストで起動できる
+  - `https://jitpack.io/com/github/<owner>/<repo>/<version>/build.log` への GET で起動する方法が公開されている
+
 ## 未検証の点
 
-- `m` 付きタグが JitPack のバージョンとして通るかは実ビルドで確認する
-- org 名にハイフンを含む groupId (`com.github.shiguredo-webrtc-build`) が通るかは実ビルドで確認する
-- JitPack がタグと Release のどちらを契機にビルドを検知するかは実ビルドで確認する
+- `jitpack.yml` のカスタム install で実際に AAR が公開できるかは、タグ push 後の実ビルドで確認する
+  - カスタム install の方式自体は `shiguredo/shiguredo-webrtc-android` で実績がある
+- `m155.8059.1.0` は JitPack に失敗ビルドの記録が残っている。失敗ビルドは 7 日以内なら削除して再リクエストできる (削除には JitPack の認証とリポジトリへの push 権限が必要)。新しいタグを使う移行では通常影響しない
 
 ## 解決方法
 
