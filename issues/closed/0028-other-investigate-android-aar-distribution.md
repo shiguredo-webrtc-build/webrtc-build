@@ -114,7 +114,7 @@ Android 向け libwebrtc の配布を担う `shiguredo/shiguredo-webrtc-android`
 
 #### JitPack の制約
 
-- JitPack は登録済みリポジトリの新しい Release を検知して自動ビルドする。 `shiguredo-webrtc-android` ではタグ push から約 1〜15 分でビルドが始まることを確認した
+- JitPack は登録済みリポジトリの新しいバージョンを検知して自動ビルドする。 `shiguredo-webrtc-android` ではタグ push から約 1〜15 分でビルドが始まることを確認した
   - 例: `155.8059.1.0` は 1 分 41 秒後、 `153.8010.0.1` は 14 分 1 秒後。 webhook は設定されておらず、 JitPack の定期チェックによるものとみられる
 - webrtc-build の Release 成果物は全プラットフォームのビルド完了後に作られるため、タグ push から約 1 時間かかる
   - 実測: `m155.8059.1.0` は 1 時間 7 分、 `m154.8037.1.2` は 1 時間 18 分
