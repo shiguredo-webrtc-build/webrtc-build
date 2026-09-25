@@ -272,6 +272,20 @@ jobs:
       - uses: ./.github/actions/download
         with:
           platform: android_sdk
+      # Release の成果物に AAR 単体と NOTICE を追加する
+      #
+      # android_sdk のアーカイブから取り出し、 libwebrtc.aar と NOTICE として
+      # Release にアップロードする。JitPack は libwebrtc.aar を取得する。
+      - name: Extract libwebrtc.aar and NOTICE
+        shell: bash
+        run: |
+          mkdir -p android_sdk
+          tar -xzf webrtc.android_sdk.tar.gz/webrtc.android_sdk.tar.gz -C android_sdk
+          mkdir -p release_assets/aar release_assets/notice
+          cp android_sdk/webrtc/aar/libwebrtc.aar release_assets/aar/libwebrtc.aar
+          cp android_sdk/webrtc/NOTICE release_assets/notice/NOTICE
+          echo "release_assets/aar/libwebrtc.aar" >> package_paths.env
+          echo "release_assets/notice/NOTICE" >> package_paths.env
       # Sora iOS SDK 向けバイナリの WebRTC.xcframework.zip をダウンロードする
       - name: Env to output for WebRTC.xcframework.zip
         shell: bash
@@ -288,7 +302,28 @@ jobs:
           cat package_paths.env >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
         id: env
+      # draft として作成し、全成果物のアップロード後に publish する
+      #
+      # JitPack が成果物のアップロード途中の Release を検知してビルドを始めるのを防ぐ
       - name: Release
         uses: softprops/action-gh-release@v3
         with:
+          draft: true
           files: ${{ steps.env.outputs.package_paths }}
+      - name: Publish Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          gh release edit "${GITHUB_REF_NAME}" --draft=false
+      # JitPack のビルドを起動し、 artifact の公開を確認する
+      #
+      # JitPack は未ビルドのバージョンの artifact をリクエストするとビルドする
+      # build.log へのリクエストでビルドを起動し、 POM の取得で公開を確認する
+      - name: Publish libwebrtc.aar to JitPack
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          BASE_URL="https://jitpack.io/com/github/shiguredo-webrtc-build/webrtc-build/${VERSION}"
+          curl -fsSL -m 1800 -o /dev/null "${BASE_URL}/build.log"
+          curl -fsSL -o /dev/null "${BASE_URL}/webrtc-build-${VERSION}.pom"
