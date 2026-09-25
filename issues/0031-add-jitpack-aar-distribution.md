@@ -1,7 +1,7 @@
 # JitPack を webrtc-build に追加して Android の AAR を公開する
 
 - Created: 2026-09-25
-- Completed: {YYYY-MM-DD}
+- Completed: 2026-09-25
 - Branch: feature/add-jitpack-aar-distribution
 - Polished: {YYYY-MM-DD}
 
@@ -67,4 +67,13 @@ Android 向け libwebrtc の配布を `shiguredo-webrtc-build/webrtc-build` に�
 
 ## 解決方法
 
-未着手
+`jitpack.yml` と `scripts/prepare_aar.sh` を追加し、 `m` 付きタグで JitPack から AAR を公開できるようにした。あわせて `create-release` ジョブで Release の publish 後に JitPack のビルドを起動するようにした。
+
+- `jitpack.yml` の `install` で `scripts/prepare_aar.sh` を実行し、 Release の `webrtc.android_sdk.tar.gz` から `webrtc/aar/libwebrtc.aar` を取り出して `mvn install:install-file` でローカルの Maven リポジトリに登録する
+  - AAR 単体は Release に追加しない (アーカイブと二重になるため)
+- `create-release` ジョブで `webrtc.android_sdk.tar.gz` から `NOTICE` を取り出し、 Release の成果物に追加する
+- Release は draft として作成し、全成果物のアップロード後に publish する
+- publish 後に JitPack のビルドを起動し、 POM の取得で artifact の公開を確認する
+- README に JitPack の利用方法、 CHANGES.md に変更履歴を追記する
+
+次の Release で `com.github.shiguredo-webrtc-build:webrtc-build:m<version>` の AAR が取得できることを確認する。確認できない場合は reopened にする。
