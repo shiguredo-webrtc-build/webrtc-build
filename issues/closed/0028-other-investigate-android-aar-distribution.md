@@ -82,8 +82,9 @@ Android 向け libwebrtc の配布を担う `shiguredo/shiguredo-webrtc-android`
 - webrtc-build 直下に `jitpack.yml` と AAR をローカルの Maven リポジトリに登録するスクリプトを追加し、 `m` 付きタグで JitPack がビルドする
   - 座標は `com.github.shiguredo-webrtc-build:webrtc-build:m<version>` になる
   - `jitpack.yml` はタグのコミットに含まれる必要があるため、新しい座標で公開できるのはマージ後に作られるタグからである
-- webrtc-build の Release に `libwebrtc.aar` と `NOTICE` を単体の成果物として追加し、 JitPack はこれを取得する
+- webrtc-build の Release に `libwebrtc.aar` を単体の成果物として追加し、 JitPack はこれを取得する
   - `webrtc.android_sdk.tar.gz` から取り出す。 AAR 単体の追加により取得が単純になり、ダウンロードも約 105 MB から約 14 MB に減る
+  - ライセンス通知 (NOTICE) は AAR に `META-INF/NOTICE` として同梱し、 Release には単体で追加しない
 - JitPack のビルドが成果物のアップロード完了前に始まらないよう、 Release は draft として作成し、全成果物をアップロードしてから publish する
 - publish 後にワークフローから JitPack のビルドを明示的にリクエストして artifact の公開を確認する。 webrtc-build では新リリースの自動ビルドが観測されていないため、自動検知に依存しない
   - 起動は `https://jitpack.io/com/github/shiguredo-webrtc-build/webrtc-build/${VERSION}/build.log` への GET で行う (認証不要)
