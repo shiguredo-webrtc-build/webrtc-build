@@ -30,7 +30,7 @@
   - webrtc-build の Release から `webrtc.android_sdk.tar.gz` を持ち、 `m` で始まるタグで、対応する android タグがまだ無いものを探す
   - `CHANGES.md` に追記して master にコミットし、そのコミットに `m` を除いたタグを作成する。複数バージョンをまとめて処理する場合は 1 コミットにまとめる
   - `GITHUB_TOKEN` でのタグ push では `release.yml` が起動しないため、 Release の作成も同じ workflow で行う
-  - `release.yml` は不要になるため削除する
+  - `release.yml` は削除する。 NOTICE のアップロードも workflow が引き継ぐ
   - `workflow_dispatch` でもバージョンを指定できるようにし、任意のバージョンを後から追加できるようにする
 - 導入後の新規 Release のみを対象とし、既存の不足分は遡らない
 - リポジトリをまたぐトークンは使わない (webrtc-build の公開 Release を読むだけ)
