@@ -85,7 +85,8 @@ Android 向け libwebrtc の配布を担う `shiguredo/shiguredo-webrtc-android`
 - webrtc-build の Release に `libwebrtc.aar` と `NOTICE` を単体の成果物として追加し、 JitPack はこれを取得する
   - `webrtc.android_sdk.tar.gz` から取り出す。 AAR 単体の追加により取得が単純になり、ダウンロードも約 105 MB から約 14 MB に減る
 - JitPack のビルドが成果物のアップロード完了前に始まらないよう、 Release は draft として作成し、全成果物をアップロードしてから publish する
-- publish 後に JitPack のビルドを起動して artifact の公開を確認する。 JitPack の自動検知の有無やタイミングに依存しないようにする
+- publish 後にワークフローから JitPack のビルドを明示的にリクエストして artifact の公開を確認する。 webrtc-build では新リリースの自動ビルドが観測されていないため、自動検知に依存しない
+  - 起動は `https://jitpack.io/com/github/shiguredo-webrtc-build/webrtc-build/${VERSION}/build.log` への GET で行う (認証不要)
 - `shiguredo/shiguredo-webrtc-android` は下流の移行完了後にアーカイブする。 JitPack は公開済みの成果物を配布し続けるため、既存バージョンのビルドは壊れない
 
 ### 判断根拠
@@ -114,8 +115,11 @@ Android 向け libwebrtc の配布を担う `shiguredo/shiguredo-webrtc-android`
 
 #### JitPack の制約
 
-- JitPack は登録済みリポジトリの新しいバージョンを検知して自動ビルドする。 `shiguredo-webrtc-android` ではタグ push から約 1〜15 分でビルドが始まることを確認した
-  - 例: `155.8059.1.0` は 1 分 41 秒後、 `153.8010.0.1` は 14 分 1 秒後。 webhook は設定されておらず、 JitPack の定期チェックによるものとみられる
+- `shiguredo-webrtc-android` ではタグ push から約 1〜15 分でビルドが始まることを確認した
+  - 例: `155.8059.1.0` は 1 分 41 秒後、 `153.8010.0.1` は 14 分 1 秒後。 webhook は設定されていない
+- 一方 webrtc-build では新リリースの自動ビルドが観測されていない。ビルドはオンデマンドのリクエストで行われており、自動検知には依存せずワークフローから明示的にリクエストする
+  - JitPack には `com.github.shiguredo-webrtc-build:webrtc-build` の既存プロジェクトがあり、 `m155.8059.1.0` を含むビルドの記録があるが、いずれも失敗している (jitpack.yml が無いため)
+  - `m155.8059.1.0` のリクエストはリリースの 5 日後であり、自動ビルドではない
 - webrtc-build の Release 成果物は全プラットフォームのビルド完了後に作られるため、タグ push から約 1 時間かかる
   - 実測: `m155.8059.1.0` は 1 時間 7 分、 `m154.8037.1.2` は 1 時間 18 分
 - このため、 Release を draft として作成して全成果物のアップロード後に publish し、 JitPack に完全な Release だけを検知させる
@@ -123,11 +127,8 @@ Android 向け libwebrtc の配布を担う `shiguredo/shiguredo-webrtc-android`
 
 ### 未検証の点
 
-- 実ビルドでの確認が必要な項目は 0031 で対応する
-  - `m` 付きタグが JitPack のバージョンとして通ること
-  - org 名にハイフンを含む groupId (`com.github.shiguredo-webrtc-build`) が通ること
-  - JitPack が新しいタグと Release のどちらを契機にビルドを検知するか
-  - JitPack のビルドをリクエストで起動できるか。起動できない場合は publish 後の手動リクエストを手順化する
+- `jitpack.yml` のカスタム install で実際に AAR が公開できるかは、タグ push 後の実ビルドで 0031 にて確認する (方式自体は `shiguredo/shiguredo-webrtc-android` で実績がある)
+- `m` 付きタグがバージョンとして通ること、ハイフン付き org 名の groupId が通ること、ビルドを HTTP リクエストで起動できることは調査で確認済みである (詳細は 0031 の「確認済みの点」を参照)
 
 ### 実装 issue
 
