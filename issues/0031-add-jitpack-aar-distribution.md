@@ -19,7 +19,7 @@ Android 向け libwebrtc の配布を `shiguredo-webrtc-build/webrtc-build` に�
 - `.github/workflows/build.yml` の `create-release` ジョブは `tags/m` のときだけ Release を作成し、各プラットフォームのアーカイブだけをアップロードする
   - `webrtc.android_sdk.tar.gz` の中に `webrtc/aar/libwebrtc.aar` と `webrtc/NOTICE` が含まれているが、 AAR 単体は Release の成果物に含まれない
 - `shiguredo/shiguredo-webrtc-android` の `jitpack.yml` と `prepareAar.sh` が AAR を JitPack に公開している
-- JitPack は登録済みリポジトリの新しい Release を検知して自動ビルドする (タグ push から約 1〜15 分)
+- JitPack は登録済みリポジトリの新しいバージョンを検知して自動ビルドする (タグ push から約 1〜15 分)
 - webrtc-build の Release 成果物は全プラットフォームのビルド完了後に作られるため、タグ push から約 1 時間かかる
 
 ## 設計方針
