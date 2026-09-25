@@ -1,7 +1,7 @@
 # Android 向け libwebrtc.aar の配布を webrtc-build にまとめられるか検討する
 
 - Created: 2026-09-24
-- Completed: {YYYY-MM-DD}
+- Completed: 2026-09-25
 - Branch: feature/debug-android-aar-distribution
 - Polished: 2026-09-24
 
@@ -75,4 +75,64 @@ Android 向け libwebrtc の配布を担う `shiguredo/shiguredo-webrtc-android`
 
 ## 解決方法
 
-未着手
+案 2 と案 3 を組み合わせて採用する。案 1 は採用しない。
+
+### 採用する方式
+
+- 案 2: AAR の取得元を webrtc-build の Release に一本化する
+  - `shiguredo/shiguredo-webrtc-android` の `prepareAar.sh` は `https://github.com/shiguredo-webrtc-build/webrtc-build/releases/download/m${VERSION}/webrtc.android_sdk.tar.gz` を取得し、 展開して `webrtc/aar/libwebrtc.aar` を取り出す
+  - `.github/workflows/release.yml` は AAR のアップロードをやめる。 NOTICE はライセンス通知を配布点に残すためアップロードを続ける
+  - webrtc-build 側の変更は不要である。 `webrtc.android_sdk.tar.gz` の中に `webrtc/aar/libwebrtc.aar` が含まれており、 AAR 単体を Release に追加しなくても取得元を一本化できる
+  - 同じ AAR を 2 リポジトリの Release に保存する状態が解消され、下流の依存座標とバージョンは変わらない
+- 案 3: タグ作成と JitPack への反映を自動化する
+  - `prepareAar.sh` は JitPack がビルド時に設定する環境変数 `VERSION` (タグ名) を使い、リリースごとの `VERSION` の書き換えをなくす
+  - `shiguredo/shiguredo-webrtc-android` に定期実行の workflow を追加し、 webrtc-build の新しい Release (対応する android タグが無く `webrtc.android_sdk.tar.gz` を持つもの) を検知して `m` を除いたタグを作成する。 `CHANGES.md` への追記と Release の作成も同じ workflow で行う
+  - タグ作成後に JitPack が自動ビルドするため、反映確認を人手で行う必要がなくなる
+  - リポジトリをまたぐトークンは不要である (webrtc-build の公開 Release を読むだけ)
+
+### 判断根拠
+
+#### 下流への影響
+
+- 案 1 は依存座標を `com.github.shiguredo:shiguredo-webrtc-android` から `com.github.shiguredo-webrtc-build:webrtc-build` へ、 バージョン表記を `155.8059.1.0` から `m155.8059.1.0` へ変更する
+  - Sora Android SDK の `gradle/libs.versions.toml` と `skills/sora-android-sdk/SKILL.md`、 外部利用者 (`zztkm/ayame-android-sdk` など) の追随が必要になる
+  - JitPack はリポジトリを削除しても公開済みの成果物を配布し続けるため既存バージョンは壊れないが、新バージョンに追従する利用者全員に変更を強いる
+- 案 2 と案 3 は座標もバージョンも変えないため、下流の変更は不要である
+
+#### 手作業の削減量
+
+- 現行の手作業は 4 つある
+  - `prepareAar.sh` の `VERSION` の更新
+  - `CHANGES.md` への追記
+  - タグの作成と push
+  - JitPack への反映確認
+- 案 2 と案 3 の組み合わせで 4 つとも不要にできる
+- 案 1 は下流の座標変更に加えて、下記の JitPack ビルドの競合によりリリースごとの手動リビルドが必要になり、手作業が残る
+
+#### JitPack の制約
+
+- JitPack は登録済みリポジトリの新しいタグを人手を介さず検知してビルドする。 `shiguredo-webrtc-android` ではタグ push から約 1〜15 分でビルドが始まることを確認した
+  - 例: `155.8059.1.0` は 1 分 41 秒後、 `153.8010.0.1` は 14 分 1 秒後。 webhook は設定されておらず、 JitPack の定期チェックによるものとみられる
+- webrtc-build の Release 成果物は全プラットフォームのビルド完了後に作られるため、タグ push から約 1 時間かかる
+  - 実測: `m155.8059.1.0` は 1 時間 7 分、 `m154.8037.1.2` は 1 時間 18 分
+- このため案 1 では、 JitPack がビルドを始める時点で `webrtc.android_sdk.tar.gz` がまだ存在せず、初回ビルドが失敗するおそれがある
+  - JitPack のビルドを起動する公開 API はドキュメント化されておらず、 7 日以内の手動リビルド (jitpack.io での再リクエスト) が必要になる
+  - リリース完了後に別のタグを作って JitPack にビルドさせる回避策もあるが、タグが 2 本になりバージョン表記も複雑になる
+- JitPack は 1 リポジトリ 1 パッケージのため、将来 AAR 以外の配布物を増やしたい場合の拡張性が無い
+
+### 未検証の点
+
+- 案 1 で必要になる `m` 付きタグが JitPack のバージョンとして通ることと、 org 名にハイフンを含む groupId (`com.github.shiguredo-webrtc-build`) が通ることは、実ビルドでの確認を行っていない
+- JitPack が新しいタグと Release のどちらを契機にビルドを検知するかは未検証である。どちらの場合も、 webrtc-build では成果物のアップロード完了前にビルドが始まる可能性がある
+- どちらも案 1 固有の論点である。採用する案 2 と案 3 は、現行の JitPack の使い方 (タグ名をバージョンとしてカスタムコマンドで AAR を登録する) の範囲内で成立する
+
+### 実装 issue
+
+- 0029 AAR の取得元を webrtc-build の Release に変更する (対象: shiguredo/shiguredo-webrtc-android)
+- 0030 webrtc-build の Release を検知して Android のタグ作成を自動化する (対象: shiguredo/shiguredo-webrtc-android)
+- `shiguredo/shiguredo-webrtc-android` は GitHub Issues を無効にしているため、実装 issue は本リポジトリの issues/ に起票する
+
+### 補足
+
+- 下流 SDK の依存座標の変更と `shiguredo/shiguredo-webrtc-android` の廃止は、案 2 と案 3 では不要になるため別 issue は起票しない
+- Sora Android SDK 側の libwebrtc 更新作業の自動化は sora-android-sdk の 0047 で扱う
