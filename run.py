@@ -1333,6 +1333,16 @@ def package_webrtc(
         else:
             shutil.copy2(srcpath, dstpath)
 
+    # Android 向け AAR にライセンス通知 (NOTICE) を同梱する
+    #
+    # JitPack などの Maven リポジトリでは AAR 単体が配布されるため、 AAR の中に
+    # NOTICE を入れておく。 META-INF/NOTICE は Android Gradle Plugin が既定で
+    # APK から除外するため、 利用者のパッケージングには影響しない。
+    if target == "android_sdk":
+        aar_path = os.path.join(webrtc_package_dir, "aar", "libwebrtc.aar")
+        with zipfile.ZipFile(aar_path, "a") as f:
+            f.write(os.path.join(webrtc_package_dir, "NOTICE"), "META-INF/NOTICE")
+
     # 圧縮
     with cd(package_dir):
         if target in ["windows_x86_64", "windows_arm64"]:
