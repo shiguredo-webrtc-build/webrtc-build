@@ -31,6 +31,12 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-09-25 [ADD] [m155] JitPack で Android 向け AAR を配布する
+  - jitpack.yml と scripts/prepare_aar.sh を追加し、 Release の libwebrtc.aar を JitPack に公開する
+  - Release の成果物に libwebrtc.aar を追加し、 draft として作成して全成果物のアップロード後に publish する
+  - libwebrtc.aar に META-INF/NOTICE としてライセンス通知を同梱する
+  - publish 後に JitPack のビルドを起動し、 artifact の公開を確認する
+  - @voluntas
 - 2026-09-23 [UPDATE] libwebrtc の Rust ビルドを有効化する
   - run.py の COMMON_GN_ARGS から Rust を無効化する 4 つの指定を削除する
   - enable_rust / enable_rust_cxx / enable_chromium_prelude と rtc_rust は upstream の既定値が true のため、指定を削除するだけで有効になる

@@ -1,0 +1,6 @@
+# JitPack のビルド設定
+#
+# JitPack は m 付きタグ (例: m155.8059.1.0) をバージョンとしてビルドする
+# install で Release の libwebrtc.aar をローカルの Maven リポジトリに登録する
+install:
+  - ./scripts/prepare_aar.sh
