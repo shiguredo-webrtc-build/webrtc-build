@@ -31,6 +31,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-09-28 [RELEASE] m155.8059.1.1
+  - @voluntas
 - 2026-09-25 [ADD] [m155] JitPack で Android 向け AAR を配布する
   - jitpack.yml と scripts/prepare_aar.sh を追加し、 Release の libwebrtc.aar を JitPack に公開する
   - Release の成果物に libwebrtc.aar を追加し、 draft として作成して全成果物のアップロード後に publish する
