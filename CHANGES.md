@@ -31,6 +31,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-09-30 [RELEASE] m156.8078.0.0
+  - @voluntas
 - 2026-09-30 [UPDATE] [m156] add_license_sframe.patch を削除する
   - m156 で generate_licenses.py に sframe のライセンスエントリが追加されたため不要になる
   - @voluntas
