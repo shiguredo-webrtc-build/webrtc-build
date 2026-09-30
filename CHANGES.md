@@ -32,8 +32,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 ## タイムライン
 
 - 2026-09-28 [FIX] [m151] android_proxy.patch の ConnectionContext の破棄順が原因で PeerConnectionFactory 破棄時にクラッシュする不具合を修正する
-  - `OwnedFactoryAndThreads` の `context_` が worker / network / signaling thread より後に破棄され、 `~ConnectionContext` が破棄済みの worker thread へタスクを投稿して use-after-free になっていた
-  - `context_` の宣言位置を `factory_` の直前へ移動し、 thread より先に破棄されるようにする
+  - `ConnectionContext` のデストラクタは media engine を worker thread で破棄するため、 `worker_thread_->BlockingCall` または `worker_thread_->PostTask` を呼ぶ
+  - `context_` が worker / network / signaling thread より後に破棄されると、 破棄済みの worker thread を呼び出して use-after-free になっていた
+  - `context_` の宣言位置を変更し、 worker / network / signaling thread より先に破棄されるようにする
   - @zztkm
 - 2026-09-08 [RELEASE] m150.7871.3.5
   - @voluntas
