@@ -31,6 +31,11 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-09-30 [FIX] [m156] android_proxy.patch と android_audio_track_sink.patch のパッチ適用エラーを修正する
+  - android_proxy.patch を PeerConnectionFactory.java の lifecycleLock 導入に合わせる
+  - android_proxy.patch の JNI ブリッジを worker thread を分離しない変更に合わせる
+  - android_audio_track_sink.patch を AudioTrack.java のコメント整形に合わせる
+  - @voluntas
 - 2026-09-28 [RELEASE] m155.8059.1.1
   - @voluntas
 - 2026-09-25 [ADD] [m155] JitPack で Android 向け AAR を配布する
