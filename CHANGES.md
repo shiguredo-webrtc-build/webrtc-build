@@ -31,6 +31,15 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-09-30 [UPDATE] [m156] add_license_sframe.patch を削除する
+  - m156 で generate_licenses.py に sframe のライセンスエントリが追加されたため不要になる
+  - @voluntas
+- 2026-09-30 [FIX] [m156] ios_simulcast.patch と android_simulcast.patch の hunk を修正する
+  - sdk/BUILD.gn と sdk/android/BUILD.gn の m156 の変更に合わせる
+  - @voluntas
+- 2026-09-30 [FIX] [m156] ios_audio_pause_resume.patch の runOnWorker を修正する
+  - m156 で専用 worker thread が廃止されたため workerThread プロパティ経由の実行に変更する
+  - @voluntas
 - 2026-09-30 [FIX] [m156] android_proxy.patch と android_audio_track_sink.patch のパッチ適用エラーを修正する
   - android_proxy.patch を PeerConnectionFactory.java の lifecycleLock 導入に合わせる
   - android_proxy.patch の JNI ブリッジを worker thread を分離しない変更に合わせる

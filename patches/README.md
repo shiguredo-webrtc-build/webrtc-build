@@ -32,12 +32,6 @@ zlib, log_sinks, サイマルキャストのエンコーダーアダプター, �
 
 `api:field_trials` は Sora C++ SDK が `webrtc::FieldTrials::Create` でフィールドトライアル文字列を扱うために必要となる。
 
-## add_license_sframe.patch
-
-SFrame のライセンスを追加するパッチ。
-
-m153 で sframe がビルド対象に加わり、パッケージング時に `generate_licenses.py` が「Missing licenses for third_party targets: sframe」というエラーを出すようになったため、ライセンスエントリを追加する。
-
 ## android_fixsegv.patch
 
 Android にて映像フレームの処理時にクラッシュするいくつかの現象を修正するパッチ。
