@@ -22,6 +22,24 @@ Please read <https://github.com/shiguredo/oss/blob/master/README.en.md> before u
 
 [リリース](https://github.com/shiguredo-webrtc-build/webrtc-build/releases) からダウンロードしてください。
 
+## Android 向け AAR (JitPack)
+
+Android 向けの `libwebrtc.aar` は JitPack でも配布しています。
+
+`build.gradle` にリポジトリと依存を追加してください。
+
+```groovy
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    implementation 'com.github.shiguredo-webrtc-build:webrtc-build:m155.8059.1.0'
+}
+```
+
+バージョンには webrtc-build のタグ名 (`m` 付き) を指定します。
+
 ## パッケージに入っている内容
 
 - WebRTC ライブラリ(webrtc.lib あるいは libwebrtc.a)
