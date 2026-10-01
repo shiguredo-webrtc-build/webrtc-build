@@ -31,6 +31,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-10-01 [RELEASE] m156.8078.1.0
+  - @zztkm
 - 2026-09-30 [RELEASE] m156.8078.0.0
   - @voluntas
 - 2026-09-30 [UPDATE] [m156] add_license_sframe.patch を削除する
