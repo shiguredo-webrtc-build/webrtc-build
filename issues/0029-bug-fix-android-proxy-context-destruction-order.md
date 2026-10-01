@@ -65,7 +65,12 @@
 
 ## 解決方法
 
-- `patches/android_proxy.patch` の `OwnedFactoryAndThreads` の `context_` を `network_thread_` の後ろに宣言し、 デストラクタのコメントとコンストラクタの初期化子リストを実際の破棄順に合わせる。
-- 修正したパッチを m151 / m152 / m153 / m154 / m155 の各ブランチに適用する。
-- 各ブランチで CHANGES.md を更新し、 修正を含むバージョンをリリースする。
-- Sora Android SDK の E2E を繰り返し実行し、 プロセスクラッシュが発生しないことを確認する。
+- `patches/android_proxy.patch` の `OwnedFactoryAndThreads` の `context_` を `network_thread_` と `factory_` の間に宣言し、 worker / network / signaling thread より先に破棄されるようにする。
+  - デストラクタのコメントとコンストラクタの初期化子リストも実際の破棄順に合わせる。
+  - メンバの破棄順は次の制約を満たす必要がある。
+    - `env_` を最後に破棄する(upstream の要件で、 core utilities を他オブジェクトより長生きさせるため)
+    - `factory_` を `context_` より先に破棄する(`~PeerConnectionFactory` が `context_->worker_thread()` を使うため)
+    - `context_` を worker / network / signaling thread より先に破棄する(`~ConnectionContext` が worker thread へ `BlockingCall` / `PostTask` を呼ぶため)
+- パッチの生成は DEVELOPMENT.md の「パッチを編集する」の手順で行い、 依存関係まで同期した状態で `run.py revert android_sdk --patch android_proxy.patch` を実行し、 `run.py diff android_sdk` の出力がパッチと一致することと、 `run.py revert android_sdk` で全パッチが適用できることを確認する。
+- 修正したパッチを含む AAR を作成し、 Sora Android SDK の E2E を繰り返し実行してプロセスクラッシュが発生しないことを確認する。 繰り返し実行では Gradle の UP-TO-DATE 判定で 2 回目以降にテストが実行されないため `--rerun-tasks` を付ける。
+- 修正したパッチを m151 / m152 / m153 / m154 / m155 の各ブランチに適用し、 各ブランチで CHANGES.md を更新して修正を含むバージョンをリリースする。
