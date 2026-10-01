@@ -31,6 +31,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-10-01 [RELEASE] m154.8037.3.0
+  - @zztkm
 - 2026-09-30 [RELEASE] m151.7922.0.1
   - @zztkm
 - 2026-09-28 [FIX] [m151] android_proxy.patch の ConnectionContext の破棄順が原因で PeerConnectionFactory 破棄時にクラッシュする不具合を修正する
