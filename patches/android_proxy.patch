@@ -190,10 +190,10 @@ index 0000000..b8a08d7
 +  UNKNOWN,
 +}
 diff --git a/sdk/android/src/jni/pc/owned_factory_and_threads.cc b/sdk/android/src/jni/pc/owned_factory_and_threads.cc
-index 80f5c84..1ba349f 100644
+index 80f5c84..335cfb5 100644
 --- a/sdk/android/src/jni/pc/owned_factory_and_threads.cc
 +++ b/sdk/android/src/jni/pc/owned_factory_and_threads.cc
-@@ -28,9 +28,11 @@ OwnedFactoryAndThreads::OwnedFactoryAndThreads(
+@@ -28,6 +28,7 @@ OwnedFactoryAndThreads::OwnedFactoryAndThreads(
      std::unique_ptr<Thread> network_thread,
      std::unique_ptr<Thread> worker_thread,
      std::unique_ptr<Thread> signaling_thread,
@@ -201,12 +201,16 @@ index 80f5c84..1ba349f 100644
      const Environment& env,
      const scoped_refptr<PeerConnectionFactoryInterface>& factory)
      : env_(env),
-+      context_(context),
-       socket_factory_(std::move(socket_factory)),
+@@ -35,6 +36,7 @@ OwnedFactoryAndThreads::OwnedFactoryAndThreads(
        signaling_thread_(std::move(signaling_thread)),
        worker_thread_(std::move(worker_thread)),
+       network_thread_(std::move(network_thread)),
++      context_(context),
+       factory_(factory) {}
+ 
+ OwnedFactoryAndThreads::OwnedFactoryAndThreads(
 diff --git a/sdk/android/src/jni/pc/owned_factory_and_threads.h b/sdk/android/src/jni/pc/owned_factory_and_threads.h
-index 1fc53d8..9e11f04 100644
+index 1fc53d8..26feec8 100644
 --- a/sdk/android/src/jni/pc/owned_factory_and_threads.h
 +++ b/sdk/android/src/jni/pc/owned_factory_and_threads.h
 @@ -17,6 +17,7 @@
@@ -225,7 +229,7 @@ index 1fc53d8..9e11f04 100644
        const Environment& env,
        const scoped_refptr<PeerConnectionFactoryInterface>& factory);
  
-@@ -60,6 +62,7 @@ class OwnedFactoryAndThreads {
+@@ -60,23 +62,28 @@ class OwnedFactoryAndThreads {
      return worker_thread_ != nullptr ? worker_thread_.get()
                                       : network_thread_.get();
    }
@@ -233,19 +237,31 @@ index 1fc53d8..9e11f04 100644
    std::optional<Environment> env() const { return env_; }
  
   private:
-@@ -70,9 +73,11 @@ class OwnedFactoryAndThreads {
+   // The declaration order here determines the destruction order (reverse).
+   // 1. `factory_` is destroyed first.
+-  // 2. `network_thread_` and `worker_thread_` are stopped/destroyed.
+-  // 3. `signaling_thread_` is destroyed after them to ensure worker and network
++  // 2. `context_` is destroyed before the threads because the destructor of
++  //    `ConnectionContext` posts tasks to the worker thread. Destroying it
++  //    after the threads causes a use-after-free.
++  // 3. `network_thread_` and `worker_thread_` are stopped/destroyed.
++  // 4. `signaling_thread_` is destroyed after them to ensure worker and network
    //    threads can safely marshal tasks (e.g. proxy releases) to the signaling
    //    thread during their destruction.
-   // 4. `socket_factory_` is destroyed.
+-  // 4. `socket_factory_` is destroyed.
 -  // 5. `env_` is destroyed last to ensure core utilities (Clock, FieldTrials)
-+  // 5. `context_` is destroyed after socket_factory_ but before env_.
++  // 5. `socket_factory_` is destroyed.
 +  // 6. `env_` is destroyed last to ensure core utilities (Clock, FieldTrials)
    //    outlive all other objects.
    const std::optional<Environment> env_;
-+  const webrtc::scoped_refptr<webrtc::ConnectionContext> context_;
    const std::unique_ptr<SocketFactory> socket_factory_;
    const std::unique_ptr<Thread> signaling_thread_;
    const std::unique_ptr<Thread> worker_thread_;
+   const std::unique_ptr<Thread> network_thread_;
++  const webrtc::scoped_refptr<webrtc::ConnectionContext> context_;
+   const scoped_refptr<PeerConnectionFactoryInterface> factory_;
+ };
+ 
 diff --git a/sdk/android/src/jni/pc/peer_connection_factory.cc b/sdk/android/src/jni/pc/peer_connection_factory.cc
 index 905c61e..dd9b37b 100644
 --- a/sdk/android/src/jni/pc/peer_connection_factory.cc
