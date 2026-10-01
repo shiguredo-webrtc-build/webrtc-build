@@ -31,6 +31,13 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-09-30 [RELEASE] m151.7922.0.1
+  - @zztkm
+- 2026-09-28 [FIX] [m151] android_proxy.patch の ConnectionContext の破棄順が原因で PeerConnectionFactory 破棄時にクラッシュする不具合を修正する
+  - `ConnectionContext` のデストラクタは media engine を worker thread で破棄するため、 `worker_thread_->BlockingCall` または `worker_thread_->PostTask` を呼ぶ
+  - `context_` が worker / network / signaling thread より後に破棄されると、 破棄済みの worker thread を呼び出して use-after-free になっていた
+  - `context_` の宣言位置を変更し、 worker / network / signaling thread より先に破棄されるようにする
+  - @zztkm
 - 2026-09-28 [RELEASE] m155.8059.1.1
   - @voluntas
 - 2026-09-25 [ADD] [m155] JitPack で Android 向け AAR を配布する

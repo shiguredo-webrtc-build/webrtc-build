@@ -1,8 +1,8 @@
 diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
-index 11254d6c7e..1f225dada7 100644
+index 5708c605fd..a7d7e29209 100644
 --- a/sdk/android/BUILD.gn
 +++ b/sdk/android/BUILD.gn
-@@ -320,6 +320,7 @@ if (is_android) {
+@@ -329,6 +329,7 @@ if (is_android) {
        "api/org/webrtc/PeerConnection.java",
        "api/org/webrtc/PeerConnectionDependencies.java",
        "api/org/webrtc/PeerConnectionFactory.java",
@@ -110,7 +110,7 @@ index 18f280b2cc..bf740e92ac 100644
    }
  }
 diff --git a/sdk/android/api/org/webrtc/PeerConnectionFactory.java b/sdk/android/api/org/webrtc/PeerConnectionFactory.java
-index 5319a29..0da9d03 100644
+index 5319a29972..0da9d03a3a 100644
 --- a/sdk/android/api/org/webrtc/PeerConnectionFactory.java
 +++ b/sdk/android/api/org/webrtc/PeerConnectionFactory.java
 @@ -394,7 +394,9 @@ public class PeerConnectionFactory {
@@ -177,7 +177,7 @@ index 5319a29..0da9d03 100644
  
 diff --git a/sdk/android/api/org/webrtc/ProxyType.java b/sdk/android/api/org/webrtc/ProxyType.java
 new file mode 100644
-index 0000000000..4afd909bda
+index 0000000000..b8a08d7907
 --- /dev/null
 +++ b/sdk/android/api/org/webrtc/ProxyType.java
 @@ -0,0 +1,8 @@
@@ -190,10 +190,10 @@ index 0000000000..4afd909bda
 +  UNKNOWN,
 +}
 diff --git a/sdk/android/src/jni/pc/owned_factory_and_threads.cc b/sdk/android/src/jni/pc/owned_factory_and_threads.cc
-index 80f5c84..1ba349f 100644
+index 80f5c8430e..335cfb520b 100644
 --- a/sdk/android/src/jni/pc/owned_factory_and_threads.cc
 +++ b/sdk/android/src/jni/pc/owned_factory_and_threads.cc
-@@ -28,9 +28,11 @@ OwnedFactoryAndThreads::OwnedFactoryAndThreads(
+@@ -28,6 +28,7 @@ OwnedFactoryAndThreads::OwnedFactoryAndThreads(
      std::unique_ptr<Thread> network_thread,
      std::unique_ptr<Thread> worker_thread,
      std::unique_ptr<Thread> signaling_thread,
@@ -201,12 +201,16 @@ index 80f5c84..1ba349f 100644
      const Environment& env,
      const scoped_refptr<PeerConnectionFactoryInterface>& factory)
      : env_(env),
-+      context_(context),
-       socket_factory_(std::move(socket_factory)),
+@@ -35,6 +36,7 @@ OwnedFactoryAndThreads::OwnedFactoryAndThreads(
        signaling_thread_(std::move(signaling_thread)),
        worker_thread_(std::move(worker_thread)),
+       network_thread_(std::move(network_thread)),
++      context_(context),
+       factory_(factory) {}
+ 
+ OwnedFactoryAndThreads::OwnedFactoryAndThreads(
 diff --git a/sdk/android/src/jni/pc/owned_factory_and_threads.h b/sdk/android/src/jni/pc/owned_factory_and_threads.h
-index 768f2e0..f63fed9 100644
+index 768f2e0d8a..5dfd6a226e 100644
 --- a/sdk/android/src/jni/pc/owned_factory_and_threads.h
 +++ b/sdk/android/src/jni/pc/owned_factory_and_threads.h
 @@ -17,6 +17,7 @@
@@ -225,7 +229,7 @@ index 768f2e0..f63fed9 100644
        const Environment& env,
        const scoped_refptr<PeerConnectionFactoryInterface>& factory);
  
-@@ -54,6 +56,7 @@ class OwnedFactoryAndThreads {
+@@ -54,23 +56,28 @@ class OwnedFactoryAndThreads {
    Thread* network_thread() { return network_thread_.get(); }
    Thread* signaling_thread() { return signaling_thread_.get(); }
    Thread* worker_thread() { return worker_thread_.get(); }
@@ -233,21 +237,33 @@ index 768f2e0..f63fed9 100644
    std::optional<Environment> env() const { return env_; }
  
   private:
-@@ -64,9 +67,11 @@ class OwnedFactoryAndThreads {
+   // The declaration order here determines the destruction order (reverse).
+   // 1. `factory_` is destroyed first.
+-  // 2. `network_thread_` and `worker_thread_` are stopped/destroyed.
+-  // 3. `signaling_thread_` is destroyed after them to ensure worker and network
++  // 2. `context_` is destroyed before the threads because the destructor of
++  //    `ConnectionContext` posts tasks to the worker thread. Destroying it
++  //    after the threads causes a use-after-free.
++  // 3. `network_thread_` and `worker_thread_` are stopped/destroyed.
++  // 4. `signaling_thread_` is destroyed after them to ensure worker and network
    //    threads can safely marshal tasks (e.g. proxy releases) to the signaling
    //    thread during their destruction.
-   // 4. `socket_factory_` is destroyed.
+-  // 4. `socket_factory_` is destroyed.
 -  // 5. `env_` is destroyed last to ensure core utilities (Clock, FieldTrials)
-+  // 5. `context_` is destroyed after socket_factory_ but before env_.
++  // 5. `socket_factory_` is destroyed.
 +  // 6. `env_` is destroyed last to ensure core utilities (Clock, FieldTrials)
    //    outlive all other objects.
    const std::optional<Environment> env_;
-+  const webrtc::scoped_refptr<webrtc::ConnectionContext> context_;
    const std::unique_ptr<SocketFactory> socket_factory_;
    const std::unique_ptr<Thread> signaling_thread_;
    const std::unique_ptr<Thread> worker_thread_;
+   const std::unique_ptr<Thread> network_thread_;
++  const webrtc::scoped_refptr<webrtc::ConnectionContext> context_;
+   const scoped_refptr<PeerConnectionFactoryInterface> factory_;
+ };
+ 
 diff --git a/sdk/android/src/jni/pc/peer_connection_factory.cc b/sdk/android/src/jni/pc/peer_connection_factory.cc
-index 4fae2fb6d0..5a44ac0dd9 100644
+index fc244f81b1..f633055dcb 100644
 --- a/sdk/android/src/jni/pc/peer_connection_factory.cc
 +++ b/sdk/android/src/jni/pc/peer_connection_factory.cc
 @@ -43,6 +43,10 @@
@@ -287,7 +303,7 @@ index 4fae2fb6d0..5a44ac0dd9 100644
        .Release();
  }
  
-@@ -246,6 +252,36 @@ static void JNI_PeerConnectionFactory_ShutdownInternalTracer(JNIEnv* jni) {
+@@ -250,6 +256,36 @@ static void JNI_PeerConnectionFactory_ShutdownInternalTracer(JNIEnv* jni) {
    tracing::ShutdownInternalTracer();
  }
  
@@ -324,7 +340,7 @@ index 4fae2fb6d0..5a44ac0dd9 100644
  // Following parameters are optional:
  // `audio_device_module`, `jencoder_factory`, `jdecoder_factory`,
  // `audio_processor`, `fec_controller_factory`,
-@@ -328,9 +364,23 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
+@@ -332,9 +368,23 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
        absl::WrapUnique(CreateVideoDecoderFactory(jni, jdecoder_factory));
    EnableMedia(dependencies);
  
@@ -351,7 +367,7 @@ index 4fae2fb6d0..5a44ac0dd9 100644
    RTC_CHECK(factory) << "Failed to create the peer connection factory; "
                          "WebRTC/libjingle init likely failed on this device";
    // TODO(honghaiz): Maybe put the options as the argument of
-@@ -340,7 +390,7 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
+@@ -344,7 +394,7 @@ ScopedJavaLocalRef<jobject> CreatePeerConnectionFactoryForJava(
  
    return NativeToScopedJavaPeerConnectionFactory(
        jni, factory, std::move(socket_server), std::move(network_thread),
@@ -360,7 +376,7 @@ index 4fae2fb6d0..5a44ac0dd9 100644
  }
  
  static jni_zero::ScopedJavaLocalRef<jobject>
-@@ -466,13 +516,43 @@ static void JNI_PeerConnectionFactory_StopAecDump(JNIEnv* jni,
+@@ -470,13 +520,43 @@ static void JNI_PeerConnectionFactory_StopAecDump(JNIEnv* jni,
    PeerConnectionFactoryFromJava(native_factory)->StopAecDump();
  }
  
@@ -405,7 +421,7 @@ index 4fae2fb6d0..5a44ac0dd9 100644
    std::unique_ptr<PeerConnectionObserver> observer(
        reinterpret_cast<PeerConnectionObserver*>(observer_p));
  
-@@ -509,8 +589,50 @@ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
+@@ -513,9 +593,51 @@ static jlong JNI_PeerConnectionFactory_CreatePeerConnection(
              jni, j_sslCertificateVerifier);
    }
  
@@ -459,3 +475,4 @@ index 4fae2fb6d0..5a44ac0dd9 100644
 +      rtc_config, std::move(peer_connection_dependencies));
    if (!result.ok())
      return 0;
+ 
