@@ -1,7 +1,7 @@
 # android_proxy.patch の ConnectionContext 破棄順による Android のプロセスクラッシュを修正する
 
 - Created: 2026-09-28
-- Completed: {YYYY-MM-DD}
+- Completed: 2026-10-01
 - Branch: feature/fix-android-proxy-context-destruction-order
 - Polished: {YYYY-MM-DD}
 
@@ -74,3 +74,14 @@
 - パッチの生成は DEVELOPMENT.md の「パッチを編集する」の手順で行い、 依存関係まで同期した状態で `run.py revert android_sdk --patch android_proxy.patch` を実行し、 `run.py diff android_sdk` の出力がパッチと一致することと、 `run.py revert android_sdk` で全パッチが適用できることを確認する。
 - 修正したパッチを含む AAR を作成し、 Sora Android SDK の E2E を繰り返し実行してプロセスクラッシュが発生しないことを確認する。 繰り返し実行では Gradle の UP-TO-DATE 判定で 2 回目以降にテストが実行されないため `--rerun-tasks` を付ける。
 - 修正したパッチを m151 / m152 / m153 / m154 / m155 の各ブランチに適用し、 各ブランチで CHANGES.md を更新して修正を含むバージョンをリリースする。
+
+### 実施結果
+
+- m151 で `patches/android_proxy.patch` を修正し、 m152 / m153 / m154 / m155 の各ブランチと master にマージした。
+- 修正を含むバージョンをリリースした。
+  - `m151.7922.0.1`
+  - `m152.7977.0.4`
+  - `m153.8010.0.2`
+  - `m154.8037.3.0`
+  - `m155.8059.2.0`
+- 検証は上記の「検証結果」のとおりで、 プロセスクラッシュは再発していない。
