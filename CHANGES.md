@@ -31,6 +31,9 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-10-05 [ADD] [m154] android ターゲットにも android_audio_pause_resume.patch と android_audio_track_sink.patch を適用する
+  - Sora Android SDK 向けにだけ適用していたパッチを android にも揃え、Rust 側が同梱する jar と static library でも pauseRecording / resumeRecording と AudioTrackSink を利用できるようにする
+  - @voluntas
 - 2026-10-01 [RELEASE] m154.8037.3.0
   - @zztkm
 - 2026-09-30 [RELEASE] m151.7922.0.1
