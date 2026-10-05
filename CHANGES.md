@@ -31,11 +31,16 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-10-05 [ADD] [m154] android ターゲットにも android_audio_pause_resume.patch と android_audio_track_sink.patch を適用する
+  - Sora Android SDK 向けにだけ適用していたパッチを android にも揃え、Rust 側が同梱する jar と static library でも pauseRecording / resumeRecording と AudioTrackSink を利用できるようにする
+  - @voluntas
 - 2026-10-01 [RELEASE] m156.8078.1.1
   - @zztkm
 - 2026-10-01 [RELEASE] m156.8078.1.0
   - @zztkm
 - 2026-10-01 [RELEASE] m155.8059.2.0
+  - @zztkm
+- 2026-10-01 [RELEASE] m154.8037.3.0
   - @zztkm
 - 2026-09-30 [RELEASE] m156.8078.0.0
   - @voluntas
@@ -98,6 +103,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - stereo を ios / ios_sdk の共通パッチとし、ios_manual_audio_input.patch より先に適用する
   - ios_manual_audio_input.patch は公開 API 宣言と既定 category のみを追加する形へ縮小し、入力初期化の実装は ios_stereo_audio_output.patch に集約する
   - @melpon
+- 2026-09-09 [RELEASE] m154.8037.1.1
+  - @voluntas
 - 2026-09-09 [UPDATE] disable_pacer_keyframe_flush.patch を削除する
   - キーフレーム到着時の pacer の flush は libwebrtc の仕様どおりの挙動であるため、強制無効化をやめる
   - @voluntas
