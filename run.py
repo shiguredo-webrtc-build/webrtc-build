@@ -288,6 +288,8 @@ PATCHES = {
         "h265_android.patch",
         "remove_crel.patch",
         "revert_siso.patch",
+        "android_audio_pause_resume.patch",
+        "android_audio_track_sink.patch",
         "unsafe_buffers_optout_list.patch",
         "android_ssl_certificate_verifier_chain.patch",
         "turn_tls_client_certificate.patch",
