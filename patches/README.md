@@ -32,12 +32,6 @@ zlib, log_sinks, サイマルキャストのエンコーダーアダプター, �
 
 `api:field_trials` は Sora C++ SDK が `webrtc::FieldTrials::Create` でフィールドトライアル文字列を扱うために必要となる。
 
-## add_license_sframe.patch
-
-SFrame のライセンスを追加するパッチ。
-
-m153 で sframe がビルド対象に加わり、パッケージング時に `generate_licenses.py` が「Missing licenses for third_party targets: sframe」というエラーを出すようになったため、ライセンスエントリを追加する。
-
 ## android_fixsegv.patch
 
 Android にて映像フレームの処理時にクラッシュするいくつかの現象を修正するパッチ。
@@ -145,6 +139,22 @@ iOS でのマイク不使用時のパーミッション要求を抑制するパ�
 
 `initializeInput:` の入力初期化処理 (`AudioUnitInterface::InitializeInput` と `AudioDeviceIOS` の worker での実行) は `ios_stereo_audio_output.patch` が実装する。
 本パッチはその公開 API とカテゴリ設定を追加する。
+
+### `RTCAudioSession+Configuration.mm` のエラー判定について
+
+このパッチは `RTCAudioSessionConfiguration` の既定カテゴリを `AVAudioSessionCategoryAmbient` に変更しているが、 mode は `AVAudioSessionModeVoiceChat`、 categoryOptions は `AVAudioSessionCategoryOptionAllowBluetoothHFP` のまま残している。
+
+Apple のドキュメントでは `AllowBluetooth` は `record` / `playAndRecord` でのみ指定でき、カテゴリが対応していない option を指定すると `setCategory` はエラーになる。
+
+- <https://developer.apple.com/documentation/avfaudio/avaudiosession/categoryoptions-swift.struct/allowbluetooth>
+- <https://developer.apple.com/documentation/avfaudio/avaudiosession/setcategory(_:options:)>
+
+recvonly のようにカテゴリを `playAndRecord` に変更しない場合、 `configureWebRTCSession` は無効な組み合わせで `setCategory` を呼び、エラーになる。
+パッチ末尾の `return YES` はこのエラーを無視して音声セッションの構成を継続するためのものである。
+`return error == nil` に戻すと `configureWebRTCSession` が NO を返し、 `AudioDeviceIOS::InitPlayOrRecord` が失敗して recvonly で再生できなくなる。
+
+この `return YES` を削除する場合は、 Ambient のときに有効な mode / categoryOptions へ変更するか、設定エラーを許容できるものと致命的なものに分類する対応が必要になる。
+なお、この変更はマイクの捕捉には影響しない。マイクの捕捉は `initializeInput` から呼ばれる入力 I/O の有効化で制御する。
 
 ### パッチ適用後の使い方
 

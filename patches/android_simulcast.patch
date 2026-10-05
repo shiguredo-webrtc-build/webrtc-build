@@ -1,5 +1,5 @@
 diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
-index 1feaf8cddf..9de8c43249 100644
+index ad0f490..a103007 100644
 --- a/sdk/android/BUILD.gn
 +++ b/sdk/android/BUILD.gn
 @@ -52,6 +52,7 @@ if (is_android) {
@@ -10,7 +10,7 @@ index 1feaf8cddf..9de8c43249 100644
        ":surfaceviewrenderer_java",
        ":swcodecs_java",
        ":video_api_java",
-@@ -121,6 +122,7 @@ if (is_android) {
+@@ -122,6 +123,7 @@ if (is_android) {
        ":environment_jni",
        ":java_audio_device_module_jni",
        ":peerconnection_jni",
@@ -18,8 +18,8 @@ index 1feaf8cddf..9de8c43249 100644
        ":video_jni",
        "../../api:create_peerconnection_factory",
      ]
-@@ -586,6 +588,22 @@ if (is_android) {
-       "//third_party/androidx:androidx_annotation_annotation_java",
+@@ -608,6 +610,22 @@ if (is_android) {
+       "//third_party/jni_zero:jni_zero_java",
      ]
    }
 +
@@ -41,7 +41,7 @@ index 1feaf8cddf..9de8c43249 100644
  }
  
  if (current_os == "linux" || is_android) {
-@@ -1037,6 +1055,24 @@ if (current_os == "linux" || is_android) {
+@@ -1064,6 +1082,24 @@ if (current_os == "linux" || is_android) {
      ]
    }
  
@@ -67,7 +67,7 @@ index 1feaf8cddf..9de8c43249 100644
    # Native API targets #
    ######################
 diff --git a/sdk/android/api/org/webrtc/HardwareVideoEncoderFactory.java b/sdk/android/api/org/webrtc/HardwareVideoEncoderFactory.java
-index bdb10e9698..f0e78a226a 100644
+index bdb10e9..f0e78a2 100644
 --- a/sdk/android/api/org/webrtc/HardwareVideoEncoderFactory.java
 +++ b/sdk/android/api/org/webrtc/HardwareVideoEncoderFactory.java
 @@ -143,11 +143,15 @@ public class HardwareVideoEncoderFactory implements VideoEncoderFactory {
@@ -89,7 +89,7 @@ index bdb10e9698..f0e78a226a 100644
      }
  
 diff --git a/sdk/android/api/org/webrtc/RtpParameters.java b/sdk/android/api/org/webrtc/RtpParameters.java
-index 1166563bcd..e009705b19 100644
+index 1166563..e009705 100644
 --- a/sdk/android/api/org/webrtc/RtpParameters.java
 +++ b/sdk/android/api/org/webrtc/RtpParameters.java
 @@ -51,6 +51,27 @@ public class RtpParameters {
@@ -169,7 +169,7 @@ index 1166563bcd..e009705b19 100644
    public static class Codec {
 diff --git a/sdk/android/api/org/webrtc/SimulcastVideoEncoder.java b/sdk/android/api/org/webrtc/SimulcastVideoEncoder.java
 new file mode 100644
-index 0000000000..1368a9a9f7
+index 0000000..1368a9a
 --- /dev/null
 +++ b/sdk/android/api/org/webrtc/SimulcastVideoEncoder.java
 @@ -0,0 +1,30 @@
@@ -205,7 +205,7 @@ index 0000000000..1368a9a9f7
 +}
 diff --git a/sdk/android/api/org/webrtc/SimulcastVideoEncoderFactory.java b/sdk/android/api/org/webrtc/SimulcastVideoEncoderFactory.java
 new file mode 100644
-index 0000000000..1824cb595d
+index 0000000..1824cb5
 --- /dev/null
 +++ b/sdk/android/api/org/webrtc/SimulcastVideoEncoderFactory.java
 @@ -0,0 +1,35 @@
@@ -245,7 +245,7 @@ index 0000000000..1824cb595d
 +}
 +
 diff --git a/sdk/android/api/org/webrtc/VideoCodecInfo.java b/sdk/android/api/org/webrtc/VideoCodecInfo.java
-index 363be347b5..be8fb7b7a4 100644
+index 363be34..be8fb7b 100644
 --- a/sdk/android/api/org/webrtc/VideoCodecInfo.java
 +++ b/sdk/android/api/org/webrtc/VideoCodecInfo.java
 @@ -34,13 +34,22 @@ public class VideoCodecInfo {
@@ -313,18 +313,18 @@ index 363be347b5..be8fb7b7a4 100644
 +  }
  }
 diff --git a/sdk/android/src/jni/pc/rtp_parameters.cc b/sdk/android/src/jni/pc/rtp_parameters.cc
-index e2b97dfd25..7dbd2003d6 100644
+index a167b9d..775b930 100644
 --- a/sdk/android/src/jni/pc/rtp_parameters.cc
 +++ b/sdk/android/src/jni/pc/rtp_parameters.cc
-@@ -17,6 +17,7 @@
- #include "api/priority.h"
+@@ -18,6 +18,7 @@
+ #include "api/rtp_header_extension_id.h"
  #include "api/rtp_parameters.h"
  #include "rtc_base/checks.h"
 +#include "api/video/resolution.h"
  #include "sdk/android/generated_peerconnection_jni/RtpParameters_jni.h"
  #include "sdk/android/native_api/jni/java_types.h"
  #include "sdk/android/native_api/jni/scoped_java_ref.h"
-@@ -52,6 +53,24 @@ DegradationPreference JavaToNativeDegradationPreference(
+@@ -53,6 +54,24 @@ DegradationPreference JavaToNativeDegradationPreference(
    return DegradationPreference::MAINTAIN_FRAMERATE_AND_RESOLUTION;
  }
  
@@ -349,7 +349,7 @@ index e2b97dfd25..7dbd2003d6 100644
  ScopedJavaLocalRef<jobject> NativeToJavaRtpEncodingParameter(
      JNIEnv* env,
      const RtpEncodingParameters& encoding) {
-@@ -64,7 +83,14 @@ ScopedJavaLocalRef<jobject> NativeToJavaRtpEncodingParameter(
+@@ -65,7 +84,14 @@ ScopedJavaLocalRef<jobject> NativeToJavaRtpEncodingParameter(
        NativeToJavaInteger(env, encoding.num_temporal_layers),
        NativeToJavaDouble(env, encoding.scale_resolution_down_by),
        encoding.ssrc ? NativeToJavaLong(env, *encoding.ssrc) : nullptr,
@@ -365,7 +365,7 @@ index e2b97dfd25..7dbd2003d6 100644
  }
  
  ScopedJavaLocalRef<jobject> NativeToJavaRtpCodecParameter(
-@@ -132,6 +158,17 @@ RtpEncodingParameters JavaToNativeRtpEncodingParameters(
+@@ -133,6 +159,17 @@ RtpEncodingParameters JavaToNativeRtpEncodingParameters(
        Java_Encoding_getSsrc(jni, j_encoding_parameters);
    if (!IsNull(jni, j_ssrc))
      encoding.ssrc = JavaToNativeLong(jni, j_ssrc);
@@ -385,7 +385,7 @@ index e2b97dfd25..7dbd2003d6 100644
  
 diff --git a/sdk/android/src/jni/simulcast_video_encoder.cc b/sdk/android/src/jni/simulcast_video_encoder.cc
 new file mode 100644
-index 0000000000..30182eecf1
+index 0000000..30182ee
 --- /dev/null
 +++ b/sdk/android/src/jni/simulcast_video_encoder.cc
 @@ -0,0 +1,34 @@
@@ -425,7 +425,7 @@ index 0000000000..30182eecf1
 +#endif
 diff --git a/sdk/android/src/jni/simulcast_video_encoder.h b/sdk/android/src/jni/simulcast_video_encoder.h
 new file mode 100644
-index 0000000000..3674240535
+index 0000000..3674240
 --- /dev/null
 +++ b/sdk/android/src/jni/simulcast_video_encoder.h
 @@ -0,0 +1,21 @@
@@ -452,7 +452,7 @@ index 0000000000..3674240535
 +#endif
 \ No newline at end of file
 diff --git a/sdk/android/src/jni/video_codec_info.cc b/sdk/android/src/jni/video_codec_info.cc
-index 8ba7274721..1812543ece 100644
+index eb25b47..7b473bb 100644
 --- a/sdk/android/src/jni/video_codec_info.cc
 +++ b/sdk/android/src/jni/video_codec_info.cc
 @@ -22,9 +22,18 @@ namespace jni {
@@ -492,10 +492,10 @@ index 8ba7274721..1812543ece 100644
  
  }  // namespace jni
 diff --git a/sdk/android/src/jni/video_encoder_wrapper.cc b/sdk/android/src/jni/video_encoder_wrapper.cc
-index 023921bb2b..ee1a82ecb9 100644
+index fccc6e3..56d2f4b 100644
 --- a/sdk/android/src/jni/video_encoder_wrapper.cc
 +++ b/sdk/android/src/jni/video_encoder_wrapper.cc
-@@ -448,6 +448,11 @@ CodecSpecificInfo VideoEncoderWrapper::ParseCodecSpecificInfo(
+@@ -453,6 +453,11 @@ CodecSpecificInfo VideoEncoderWrapper::ParseCodecSpecificInfo(
        break;
    }
  

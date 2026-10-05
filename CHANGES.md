@@ -31,8 +31,35 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-10-05 [RELEASE] m156.8078.2.1
+  - @voluntas
+- 2026-10-05 [ADD] [m154] android ターゲットにも android_audio_pause_resume.patch と android_audio_track_sink.patch を適用する
+  - Sora Android SDK 向けにだけ適用していたパッチを android にも揃え、Rust 側が同梱する jar と static library でも pauseRecording / resumeRecording と AudioTrackSink を利用できるようにする
+  - @voluntas
+- 2026-10-01 [RELEASE] m156.8078.1.1
+  - @zztkm
+- 2026-10-01 [RELEASE] m156.8078.1.0
+  - @zztkm
 - 2026-10-01 [RELEASE] m155.8059.2.0
   - @zztkm
+- 2026-10-01 [RELEASE] m154.8037.3.0
+  - @zztkm
+- 2026-09-30 [RELEASE] m156.8078.0.0
+  - @voluntas
+- 2026-09-30 [UPDATE] [m156] add_license_sframe.patch を削除する
+  - m156 で generate_licenses.py に sframe のライセンスエントリが追加されたため不要になる
+  - @voluntas
+- 2026-09-30 [FIX] [m156] ios_simulcast.patch と android_simulcast.patch の hunk を修正する
+  - sdk/BUILD.gn と sdk/android/BUILD.gn の m156 の変更に合わせる
+  - @voluntas
+- 2026-09-30 [FIX] [m156] ios_audio_pause_resume.patch の runOnWorker を修正する
+  - m156 で専用 worker thread が廃止されたため workerThread プロパティ経由の実行に変更する
+  - @voluntas
+- 2026-09-30 [FIX] [m156] android_proxy.patch と android_audio_track_sink.patch のパッチ適用エラーを修正する
+  - android_proxy.patch を PeerConnectionFactory.java の lifecycleLock 導入に合わせる
+  - android_proxy.patch の JNI ブリッジを worker thread を分離しない変更に合わせる
+  - android_audio_track_sink.patch を AudioTrack.java のコメント整形に合わせる
+  - @voluntas
 - 2026-09-30 [RELEASE] m151.7922.0.1
   - @zztkm
 - 2026-09-28 [FIX] [m151] android_proxy.patch の ConnectionContext の破棄順が原因で PeerConnectionFactory 破棄時にクラッシュする不具合を修正する
@@ -78,6 +105,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - stereo を ios / ios_sdk の共通パッチとし、ios_manual_audio_input.patch より先に適用する
   - ios_manual_audio_input.patch は公開 API 宣言と既定 category のみを追加する形へ縮小し、入力初期化の実装は ios_stereo_audio_output.patch に集約する
   - @melpon
+- 2026-09-09 [RELEASE] m154.8037.1.1
+  - @voluntas
 - 2026-09-09 [UPDATE] disable_pacer_keyframe_flush.patch を削除する
   - キーフレーム到着時の pacer の flush は libwebrtc の仕様どおりの挙動であるため、強制無効化をやめる
   - @voluntas

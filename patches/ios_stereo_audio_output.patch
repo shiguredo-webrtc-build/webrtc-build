@@ -1,5 +1,5 @@
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index d2f4ae14b9..01d468923f 100644
+index 5257a77..7e924d1 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
 @@ -166,6 +166,7 @@ if (is_ios || is_mac) {
@@ -22,7 +22,7 @@ index d2f4ae14b9..01d468923f 100644
            "objc/native/src/audio/voice_processing_audio_unit.h",
            "objc/native/src/audio/voice_processing_audio_unit.mm",
          ]
-@@ -1211,6 +1215,9 @@ if (is_ios || is_mac) {
+@@ -1210,6 +1214,9 @@ if (is_ios || is_mac) {
              "objc/unittests/RTCAudioDeviceModule_xctest.mm",
              "objc/unittests/RTCAudioDevice_xctest.mm",
              "objc/unittests/RTCAudioSessionTest.mm",
@@ -33,8 +33,8 @@ index d2f4ae14b9..01d468923f 100644
              "objc/unittests/RTCCallbackLogger_xctest.m",
              "objc/unittests/RTCCameraVideoCapturerTests.mm",
 @@ -1279,6 +1286,7 @@ if (is_ios || is_mac) {
-             "../common_video",
              "../media:codec",
+             "../media:fake_video_renderer",
              "../media:rtc_media_tests_utils",
 +            "../modules/audio_device:audio_device_buffer",
              "../modules/video_coding:video_codec_interface",
@@ -50,7 +50,7 @@ index d2f4ae14b9..01d468923f 100644
            "objc/components/capturer/RTCCameraVideoCapturer.h",
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule+Private.h b/sdk/objc/components/audio/RTCAudioDeviceModule+Private.h
 new file mode 100644
-index 0000000000..f89e8e5829
+index 0000000..f89e8e5
 --- /dev/null
 +++ b/sdk/objc/components/audio/RTCAudioDeviceModule+Private.h
 @@ -0,0 +1,13 @@
@@ -69,7 +69,7 @@ index 0000000000..f89e8e5829
 +@end
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.h b/sdk/objc/components/audio/RTCAudioDeviceModule.h
 new file mode 100644
-index 0000000000..ec865fc809
+index 0000000..ec865fc
 --- /dev/null
 +++ b/sdk/objc/components/audio/RTCAudioDeviceModule.h
 @@ -0,0 +1,20 @@
@@ -95,7 +95,7 @@ index 0000000000..ec865fc809
 +@end
 diff --git a/sdk/objc/components/audio/RTCAudioDeviceModule.mm b/sdk/objc/components/audio/RTCAudioDeviceModule.mm
 new file mode 100644
-index 0000000000..af6adae88e
+index 0000000..af6adae
 --- /dev/null
 +++ b/sdk/objc/components/audio/RTCAudioDeviceModule.mm
 @@ -0,0 +1,40 @@
@@ -140,7 +140,7 @@ index 0000000000..af6adae88e
 +
 +@end
 diff --git a/sdk/objc/components/audio/RTCAudioSession+Private.h b/sdk/objc/components/audio/RTCAudioSession+Private.h
-index 7eb3bf4e38..4713c37e3b 100644
+index 7eb3bf4..4713c37 100644
 --- a/sdk/objc/components/audio/RTCAudioSession+Private.h
 +++ b/sdk/objc/components/audio/RTCAudioSession+Private.h
 @@ -9,6 +9,7 @@
@@ -167,7 +167,7 @@ index 7eb3bf4e38..4713c37e3b 100644
   */
  - (void)notifyAudioUnitStartFailedWithError:(OSStatus)error;
 diff --git a/sdk/objc/components/audio/RTCAudioSession.h b/sdk/objc/components/audio/RTCAudioSession.h
-index 00a825f0a1..93b4dc2dc5 100644
+index 00a825f..93b4dc2 100644
 --- a/sdk/objc/components/audio/RTCAudioSession.h
 +++ b/sdk/objc/components/audio/RTCAudioSession.h
 @@ -262,6 +262,7 @@ RTC_OBJC_EXPORT
@@ -179,10 +179,10 @@ index 00a825f0a1..93b4dc2dc5 100644
  
  @interface RTC_OBJC_TYPE (RTCAudioSession)
 diff --git a/sdk/objc/components/audio/RTCAudioSession.mm b/sdk/objc/components/audio/RTCAudioSession.mm
-index 69e90277fc..4c74211db0 100644
+index 7435d28..a381f40 100644
 --- a/sdk/objc/components/audio/RTCAudioSession.mm
 +++ b/sdk/objc/components/audio/RTCAudioSession.mm
-@@ -57,6 +57,15 @@ @implementation RTC_OBJC_TYPE (RTCAudioSession) {
+@@ -52,6 +52,15 @@ @implementation RTC_OBJC_TYPE (RTCAudioSession) {
    BOOL _isAudioEnabled;
    BOOL _canPlayOrRecord;
    BOOL _isInterrupted;
@@ -198,7 +198,7 @@ index 69e90277fc..4c74211db0 100644
  }
  
  @synthesize session = _session;
-@@ -760,7 +769,12 @@ - (BOOL)configureWebRTCSession:(NSError **)outError {
+@@ -755,7 +764,12 @@ - (BOOL)configureWebRTCSession:(NSError **)outError {
  
    // Ensure that the device currently supports audio input.
    // TODO(tkchin): Figure out if this is really necessary.
@@ -212,7 +212,7 @@ index 69e90277fc..4c74211db0 100644
      RTCLogError(@"No audio input path is available!");
      [self unconfigureWebRTCSession:nil];
      if (outError) {
-@@ -1032,4 +1046,71 @@ - (void)notifyFailedToSetActive:(BOOL)active error:(NSError *)error {
+@@ -1027,4 +1041,71 @@ - (void)notifyFailedToSetActive:(BOOL)active error:(NSError *)error {
    }
  }
  
@@ -285,7 +285,7 @@ index 69e90277fc..4c74211db0 100644
 +
  @end
 diff --git a/sdk/objc/native/api/audio_device_module.h b/sdk/objc/native/api/audio_device_module.h
-index 34480918be..96b36e001c 100644
+index 3448091..96b36e0 100644
 --- a/sdk/objc/native/api/audio_device_module.h
 +++ b/sdk/objc/native/api/audio_device_module.h
 @@ -25,9 +25,12 @@ namespace webrtc {
@@ -313,7 +313,7 @@ index 34480918be..96b36e001c 100644
  }  // namespace webrtc
  
 diff --git a/sdk/objc/native/api/audio_device_module.mm b/sdk/objc/native/api/audio_device_module.mm
-index 47fb20db17..18611a6ede 100644
+index 47fb20d..18611a6 100644
 --- a/sdk/objc/native/api/audio_device_module.mm
 +++ b/sdk/objc/native/api/audio_device_module.mm
 @@ -22,23 +22,29 @@
@@ -351,7 +351,7 @@ index 47fb20db17..18611a6ede 100644
  
  }  // namespace webrtc
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.h b/sdk/objc/native/src/audio/audio_device_ios.h
-index d1788a33d7..c993d182ea 100644
+index d1788a3..c993d18 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.h
 +++ b/sdk/objc/native/src/audio/audio_device_ios.h
 @@ -24,6 +24,7 @@
@@ -383,7 +383,7 @@ index d1788a33d7..c993d182ea 100644
    // FineAudioBuffer takes an AudioDeviceBuffer which delivers audio data
    // in chunks of 10ms. It then allows for this data to be pulled in
 diff --git a/sdk/objc/native/src/audio/audio_device_ios.mm b/sdk/objc/native/src/audio/audio_device_ios.mm
-index c97a333642..80c6b07e28 100644
+index c97a333..80c6b07 100644
 --- a/sdk/objc/native/src/audio/audio_device_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_ios.mm
 @@ -17,6 +17,9 @@
@@ -890,7 +890,7 @@ index c97a333642..80c6b07e28 100644
  }  // namespace ios_adm
  }  // namespace webrtc
 diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.h b/sdk/objc/native/src/audio/audio_device_module_ios.h
-index 5ff50621b3..2c4c6ca78b 100644
+index 5ff5062..2c4c6ca 100644
 --- a/sdk/objc/native/src/audio/audio_device_module_ios.h
 +++ b/sdk/objc/native/src/audio/audio_device_module_ios.h
 @@ -33,7 +33,8 @@ class AudioDeviceModuleIOS : public AudioDeviceModule {
@@ -913,7 +913,7 @@ index 5ff50621b3..2c4c6ca78b 100644
    std::unique_ptr<AudioDeviceBuffer> audio_device_buffer_;
  };
 diff --git a/sdk/objc/native/src/audio/audio_device_module_ios.mm b/sdk/objc/native/src/audio/audio_device_module_ios.mm
-index e2ea360e2f..71457e2842 100644
+index e2ea360..71457e2 100644
 --- a/sdk/objc/native/src/audio/audio_device_module_ios.mm
 +++ b/sdk/objc/native/src/audio/audio_device_module_ios.mm
 @@ -46,11 +46,13 @@
@@ -989,7 +989,7 @@ index e2ea360e2f..71457e2842 100644
    return r;
 diff --git a/sdk/objc/native/src/audio/audio_unit_interface.h b/sdk/objc/native/src/audio/audio_unit_interface.h
 new file mode 100644
-index 0000000000..81dbbb28c8
+index 0000000..81dbbb2
 --- /dev/null
 +++ b/sdk/objc/native/src/audio/audio_unit_interface.h
 @@ -0,0 +1,85 @@
@@ -1080,7 +1080,7 @@ index 0000000000..81dbbb28c8
 +#endif  // SDK_OBJC_NATIVE_SRC_AUDIO_AUDIO_UNIT_INTERFACE_H_
 diff --git a/sdk/objc/native/src/audio/remote_io_audio_unit.h b/sdk/objc/native/src/audio/remote_io_audio_unit.h
 new file mode 100644
-index 0000000000..cac603c573
+index 0000000..cac603c
 --- /dev/null
 +++ b/sdk/objc/native/src/audio/remote_io_audio_unit.h
 @@ -0,0 +1,121 @@
@@ -1207,7 +1207,7 @@ index 0000000000..cac603c573
 +#endif  // SDK_OBJC_NATIVE_SRC_AUDIO_REMOTE_IO_AUDIO_UNIT_H_
 diff --git a/sdk/objc/native/src/audio/remote_io_audio_unit.mm b/sdk/objc/native/src/audio/remote_io_audio_unit.mm
 new file mode 100644
-index 0000000000..3b0cccc60f
+index 0000000..3b0cccc
 --- /dev/null
 +++ b/sdk/objc/native/src/audio/remote_io_audio_unit.mm
 @@ -0,0 +1,424 @@
@@ -1636,7 +1636,7 @@ index 0000000000..3b0cccc60f
 +}  // namespace ios_adm
 +}  // namespace webrtc
 diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.h b/sdk/objc/native/src/audio/voice_processing_audio_unit.h
-index 99586a94ed..bcbf1bed1f 100644
+index 99586a9..bcbf1be 100644
 --- a/sdk/objc/native/src/audio/voice_processing_audio_unit.h
 +++ b/sdk/objc/native/src/audio/voice_processing_audio_unit.h
 @@ -13,6 +13,8 @@
@@ -1737,7 +1737,7 @@ index 99586a94ed..bcbf1bed1f 100644
  }  // namespace ios_adm
  }  // namespace webrtc
 diff --git a/sdk/objc/native/src/audio/voice_processing_audio_unit.mm b/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
-index 066f3b161c..3bb0a41184 100644
+index 066f3b1..3bb0a41 100644
 --- a/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
 +++ b/sdk/objc/native/src/audio/voice_processing_audio_unit.mm
 @@ -89,7 +89,7 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
@@ -1953,7 +1953,7 @@ index 066f3b161c..3bb0a41184 100644
                                            UInt32 output_bus_number,
 diff --git a/sdk/objc/unittests/RTCAudioDeviceModuleThreading_xctest.mm b/sdk/objc/unittests/RTCAudioDeviceModuleThreading_xctest.mm
 new file mode 100644
-index 0000000000..e3c6c77708
+index 0000000..e3c6c77
 --- /dev/null
 +++ b/sdk/objc/unittests/RTCAudioDeviceModuleThreading_xctest.mm
 @@ -0,0 +1,60 @@
@@ -2019,7 +2019,7 @@ index 0000000000..e3c6c77708
 +@end
 diff --git a/sdk/objc/unittests/RTCManualAudioInput_xctest.mm b/sdk/objc/unittests/RTCManualAudioInput_xctest.mm
 new file mode 100644
-index 0000000000..11bd7e2e7b
+index 0000000..11bd7e2
 --- /dev/null
 +++ b/sdk/objc/unittests/RTCManualAudioInput_xctest.mm
 @@ -0,0 +1,350 @@
@@ -2375,7 +2375,7 @@ index 0000000000..11bd7e2e7b
 +@end
 diff --git a/sdk/objc/unittests/RTCStereoAudioOutput_xctest.mm b/sdk/objc/unittests/RTCStereoAudioOutput_xctest.mm
 new file mode 100644
-index 0000000000..6010d58ee8
+index 0000000..6010d58
 --- /dev/null
 +++ b/sdk/objc/unittests/RTCStereoAudioOutput_xctest.mm
 @@ -0,0 +1,195 @@
