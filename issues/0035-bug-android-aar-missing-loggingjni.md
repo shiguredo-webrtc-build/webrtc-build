@@ -9,6 +9,36 @@
 
 Android 向け AAR に `LoggingJni.class` を含め、 `libjingleEnabled` を有効にした Sora Android SDK のビデオチャット接続がタイムアウトする問題を解消する。
 
+## 背景
+
+### `libjingleEnabled` とは何か
+
+`libjingleEnabled` は Sora Android SDK の `SoraLogger` にある `Boolean` のフラグで、 libwebrtc のネイティブログ (`RTC_LOG()` の出力) を Android の Logcat に出力させるかどうかを切り替える。 有効にすると深刻度 `LS_INFO` 以上のログが対象になる。
+
+名前の `libjingle` は libjingle ライブラリを指すものではない。 libwebrtc が生成するネイティブライブラリのファイル名 (`libjingle_peerconnection_so.so`) に由来する歴史的な名残であり、 現在の実体は libwebrtc のログ機能である。 実際にこのフラグが有効にするのは `org.webrtc.Logging` が提供する libwebrtc のログであり、 libjingle の機能は呼ばれない。
+
+- 定義: `sora-android-sdk/src/main/kotlin/jp/shiguredo/sora/sdk/util/SoraLogger.kt` の `SoraLogger.Companion.libjingleEnabled` (既定値 `false`)
+- 役割: `true` のときだけ `PeerConnectionFactory.initialize` の直後に `Logging.enableLogToDebugOutput(Logging.Severity.LS_INFO)` を呼ぶ。 既定値が `false` のため、 通常の接続ではこの呼び出しは発生しない
+- 用途: 接続がうまくいかないときの原因調査用。 有効にすると libwebrtc 側の `RTC_LOG()` の出力が Logcat に流れる
+
+### 呼ばれる libwebrtc の API とクラス
+
+`libjingleEnabled` を有効にしてからログ出力が有効になるまでの経路は次のとおり。 途中に `LoggingJni` が入るため、 このクラスが AAR に無いと経路が途切れる。
+
+| 段階 | 対象 | 内容 |
+| --- | --- | --- |
+| 1 | `SoraLogger.libjingleEnabled` (Sora Android SDK) | `true` のときだけ次の段階を呼ぶ |
+| 2 | `org.webrtc.Logging.enableLogToDebugOutput(Severity)` (Java, libwebrtc) | `loggable` が未設定であることを確認し、 `LoggingJni.get().enableLogToDebugOutput(severity.ordinal())` に委譲する。 M152 以降はこの委譲が入る |
+| 3 | `org.webrtc.LoggingJni` (Java, jni_zero 生成) | `@NativeMethods interface Natives` から jni_zero が生成するクラス。 `rtc_base/BUILD.gn` の `generate_jni("base_java_jni")` が `Logging.java` から生成する |
+| 4 | `webrtc::jni::Logging_nativeEnableLogToDebugOutput` (C++, `sdk/android/src/jni/pc/logging.cc`) | 引数の深刻度を検証したうえで `LogMessage::LogToDebug(severity)` を呼ぶ |
+| 5 | `webrtc::LogMessage::LogToDebug(LoggingSeverity)` (C++, `rtc_base/logging.h`) | 指定した深刻度以上のログを stderr などの標準の出力先へ流すように設定する |
+
+`LoggingJni` は jni_zero が `Logging.java` の `@NativeMethods` を基に生成するクラスで、 生成先は `rtc_base` の `generate_jni("base_java_jni")` ターゲットが持つ `base_java_jni_java` である。 AAR の `classes.jar` は `direct_deps_only = true` の `dist_jar("libwebrtc")` が直接依存から集めるため、 `base_java_jni_java` を直接依存に含めない限り `LoggingJni.class` は同梱されない。
+
+### タイムアウトに至る流れ
+
+`LoggingJni.class` が欠落した AAR で `libjingleEnabled` を有効にすると、 上記の段階 3 で `LoggingJni` を解決できず `NoClassDefFoundError` になる。 この例外は `PeerConnectionFactory.initialize` の直後に送出されるため接続処理が完了せず、 接続タイマー (既定 10 秒) が満了して TIMEOUT として現れる。
+
 ## 現状
 
 - Sora Android SDK 2026.4.0-canary.0 (libwebrtc 151.7922.0.1 を参照) ではビデオチャットに接続できるが、 2026.4.0-canary.1 (libwebrtc 152.7977.0.4 を参照) では接続がタイムアウトする。 `libjingleEnabled` を `false` にすると接続できる。
