@@ -1,11 +1,11 @@
 diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
+index 92f6d51e16..6b7b76803e 100644
 --- a/sdk/android/BUILD.gn
 +++ b/sdk/android/BUILD.gn
-@@ -26,7 +26,68 @@ if (is_android) {
-   #####################
+@@ -27,6 +27,67 @@ if (is_android) {
    # Aggregate targets #
    #####################
-+
+ 
 +  _libwebrtc_java_deps = [
 +    ":audio_api_java",
 +    ":base_java",
@@ -54,7 +54,7 @@ diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
 +    ":generated_video_egl_jni_java",
 +    ":generated_video_jni_java",
 +  ]
- 
++
 +  generate_final_jni("libwebrtc_jni_registration") {
 +    add_stubs_for_missing_jni = true
 +    java_targets = _libwebrtc_java_deps
@@ -70,7 +70,7 @@ diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
    dist_jar("libwebrtc") {
      _target_dir_name = get_label_info(":$target_name", "dir")
      output = "${root_out_dir}/lib.java${_target_dir_name}/${target_name}.jar"
-@@ -34,31 +96,11 @@ if (is_android) {
+@@ -34,31 +95,12 @@ if (is_android) {
      use_unprocessed_jars = true
      requires_android = true
  
@@ -103,14 +103,16 @@ diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
 +    deps += _libwebrtc_generated_jni_java_deps
 +    deps += [
 +      ":libwebrtc_jni_registration_java",
++      "../../rtc_base:base_java_jni_java",
 +      "../../third_party/jni_zero:generate_jni_java",
      ]
    }
  
 diff --git a/third_party/jni_zero/BUILD.gn b/third_party/jni_zero/BUILD.gn
+index da1a4181a125..f5e964389fed 100644
 --- a/third_party/jni_zero/BUILD.gn
 +++ b/third_party/jni_zero/BUILD.gn
-@@ -16,6 +16,7 @@ generate_jni("generate_jni") {
+@@ -29,6 +29,7 @@ generate_jni("generate_jni") {
    visibility = [
      ":*",
      "//components/cronet/android/*",
