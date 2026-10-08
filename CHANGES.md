@@ -31,6 +31,13 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-10-08 [FIX] [m156] libwebrtc.a と webrtc.lib に Rust の実装を含める
+  - m156 で libwebrtc 本体が Rust 実装 (corruption detection) を呼ぶようになったが、配布するアーカイブには Rust のオブジェクトが入らず、リンクが未定義シンボルで失敗していた
+  - GN が作る完全な静的ライブラリを土台にし、GN がリンク時に渡す静的ライブラリ (libc++ など) と alink の入力として宣言している rlib の中身を足す方式に変更する。ホストツール (nasm や protobuf) が入らなくなるため libwebrtc.a は 20 MB ほど小さくなり、--whole-archive でのリンクも可能になる
+  - Rust の std が定義する rust_eh_personality は利用者の Rust の std とも重複するため、アーカイブの中では webrtc_rust_eh_personality に改名してリンカオプションを足さずにリンクできるようにする
+  - Windows は lld-link /lib で合体し、MSVC でリンクする下流のために compiler-rt の builtins も同梱する
+  - 配布するアーカイブの関数を呼び出す tests/link_test.cc を追加し、run.py test-link が GN と同じフラグでコンパイルとリンクを行って実行する。CI の各プラットフォームでも確認する
+  - @melpon
 - 2026-10-05 [RELEASE] m156.8078.2.1
   - @voluntas
 - 2026-10-05 [ADD] [m154] android ターゲットにも android_audio_pause_resume.patch と android_audio_track_sink.patch を適用する

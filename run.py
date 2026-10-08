@@ -1,13 +1,17 @@
 import argparse
 import collections
+import filecmp
+import fnmatch
 import json
 import logging
 import os
 import platform
 import re
+import shlex
 import shutil
 import subprocess
 import tarfile
+import tempfile
 import urllib.parse
 import zipfile
 from pathlib import Path
@@ -604,11 +608,470 @@ DepsInfo = collections.namedtuple(
 )
 
 
-def archive_objects(ar, dir, output):
-    with cd(dir):
-        files = cmdcap(["find", ".", "-name", "*.o"]).splitlines()
-        rm_rf(output)
-        cmd([ar, "-rc", output, *files])
+def find_files(dir: str, pattern: str) -> List[str]:
+    # dir 配下の pattern に一致するファイルを列挙する。
+    # プラットフォームに依存しないよう Python で辿り、アーカイブのメンバーの並び順が
+    # 実行ごとに変わらないようソートして返す。
+    files: List[str] = []
+    for root, _, names in os.walk(dir):
+        for name in names:
+            if fnmatch.fnmatch(name, pattern):
+                files.append(os.path.join(root, name))
+    return sorted(files)
+
+
+def find_ninja_inputs(webrtc_build_dir: str, target: str) -> List[str]:
+    # ninja -t query の出力からターゲットの入力ファイルを集める。
+    #   明示入力は "    <path>"、暗黙入力は "    | <path>"、順序のみの依存は
+    #   "    || <path>" として出力される。順序のみの依存はリンクに渡らないため含めない。
+    inputs: List[str] = []
+    root = os.path.abspath(webrtc_build_dir)
+    for line in cmdcap(["ninja", "-C", webrtc_build_dir, "-t", "query", target]).splitlines():
+        text = line.strip()
+        # 先頭は "<ターゲット名>:"、以降は "  input: <ルール名>" と入力ファイルが並ぶ
+        if text == "" or text.endswith(":") or text.startswith("input:"):
+            continue
+        if text == "outputs:":
+            break
+        if text.startswith("||"):
+            continue
+        if text.startswith("|"):
+            text = text[1:].strip()
+        if text != "":
+            inputs.append(os.path.normpath(os.path.join(root, text)))
+    return inputs
+
+
+def find_build_rlibs(webrtc_build_dir: str, archive: str) -> List[str]:
+    # GN が alink の入力として宣言している rlib を ninja から取る
+    return [path for path in find_ninja_inputs(webrtc_build_dir, archive) if path.endswith(".rlib")]
+
+
+def find_cxx_runtime_archives(webrtc_build_dir: str) -> List[str]:
+    # GN が実行ファイルと共有ライブラリのリンクに渡す C++ のランタイム (libc++.a と
+    # libc++abi.a) を obj の下から探す。obj の下にあるのがターゲットのツールチェーンの
+    # 出力で、clang_x64 の下にあるのがホストのツールチェーンの出力である
+    archives: List[str] = []
+    for name in ("libc++.a", "libc++abi.a"):
+        for path in find_files(os.path.join(webrtc_build_dir, "obj"), name):
+            archives.append(path)
+    return sorted(archives)
+
+
+def is_thin_archive(archive: str) -> bool:
+    # thin アーカイブはメンバーを展開できず、実体のファイルを指しているだけなので見分ける
+    with open(archive, "rb") as f:
+        return f.read(8) == b"!<thin>\n"
+
+
+def collect_archive_objects(ar: str, archives: List[str], dest_dir: str) -> List[str]:
+    # アーカイブが持つオブジェクトファイルを集める。
+    # リンカは入れ子になったアーカイブの中身を見ないため、アーカイブではなく
+    # メンバーのオブジェクトファイルを加える。
+    objects: List[str] = []
+    for archive in archives:
+        archive = os.path.abspath(archive)
+        if is_thin_archive(archive):
+            # GN が作る libc++.a などは thin アーカイブで、llvm-ar は展開に対応していない。
+            # メンバーは実体のファイルを指しているので、そのファイルをそのまま加える
+            for name in cmdcap([ar, "t", archive]).splitlines():
+                path = name if os.path.isabs(name) else os.path.join(os.path.dirname(archive), name)
+                path = os.path.normpath(path)
+                if path.endswith(".o"):
+                    if not os.path.isfile(path):
+                        raise Exception(f"object file not found: {path} in {archive}")
+                    objects.append(path)
+            continue
+        # 展開先はアーカイブごとに分ける。lib.rmeta のように複数のアーカイブで名前が
+        # 重複するメンバーがあるため、同じディレクトリに展開しない
+        # lib.rmeta と lib.rmeta-link はコードを含まないメタデータなので加えない
+        names = [name for name in cmdcap([ar, "t", archive]).splitlines() if name.endswith(".o")]
+        # アーカイブのメンバーに重複が無い場合は一括で同じディレクトリに展開する
+        if len(set(names)) == len(names):
+            dest = tempfile.mkdtemp(dir=dest_dir)
+            with cd(dest):
+                cmd([ar, "x", archive])
+            objects += find_files(dest, "*.o")
+            continue
+        # アーカイブのメンバーに重複がある場合は個別に別ディレクトリに展開する。
+        # ar xN で同じ名前のメンバーの何番目かを指定して 1 つずつ展開する
+        counts: Dict[str, int] = {}
+        for name in names:
+            counts[name] = counts.get(name, 0) + 1
+            dest = tempfile.mkdtemp(dir=dest_dir)
+            with cd(dest):
+                cmd([ar, "xN", str(counts[name]), archive, name])
+            objects += find_files(dest, "*.o")
+    return objects
+
+
+def same_archive_member(ar: str, archive: str, name: str, path: str, dest_dir: str) -> bool:
+    # アーカイブの中のメンバーとファイルの中身が同じかを調べる
+    # cd してからでは相対パスが解決できなくなるため、先に絶対パスに直す
+    archive = os.path.abspath(archive)
+    path = os.path.abspath(path)
+    dest = os.path.join(dest_dir, name)
+    mkdir_p(dest_dir)
+    with cd(dest_dir):
+        cmd([ar, "x", archive, name])
+    return filecmp.cmp(dest, path, shallow=False)
+
+
+def append_objects(ar: str, output: str, objects: List[str]) -> None:
+    # アーカイブにオブジェクトを追加する。ar は同名のメンバーを置き換えてしまうため、
+    # 名前が衝突した場合は別名にして追加する。中身が同じメンバーは追加しない
+    # (二重に入れると --whole-archive で重複定義になる)。
+    if len(objects) == 0:
+        return
+    # 既にあるメンバーと、この後追加するメンバーの名前を分けて持つ。
+    # 追加予定のものはアーカイブに入っていないので中身を比べられない。
+    existing = set(cmdcap([ar, "t", output]).splitlines())
+    planned = set(existing)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        paths: List[str] = []
+        for i, obj in enumerate(objects):
+            name = os.path.basename(obj)
+            if name in planned:
+                if name in existing and same_archive_member(
+                    ar, output, name, obj, os.path.join(tmp_dir, "compare")
+                ):
+                    continue
+                name = f"{i}_{name}"
+                while name in planned:
+                    name = f"_{name}"
+                dst = os.path.join(tmp_dir, name)
+                shutil.copyfile(obj, dst)
+                obj = dst
+            planned.add(name)
+            paths.append(obj)
+        if len(paths) > 0:
+            cmd([ar, "-rc", output, *paths])
+
+
+def find_llvm_tool(webrtc_src_dir: str, name: str) -> str:
+    # llvm-build に含まれるツール (llvm-objcopy など) のパスを返す
+    root = os.path.join(webrtc_src_dir, "third_party/llvm-build/Release+Asserts/bin")
+    for path in [os.path.join(root, name), os.path.join(root, name + ".exe")]:
+        if os.path.isfile(path):
+            return path
+    raise Exception(f"{name} is not found in {root}")
+
+
+# Rust の std が固定名で定義するシンボルと、アーカイブに入れるときに付ける名前。
+# 固定名のままだと、アーカイブをリンクする側の Rust の std と同じ名前になり
+# 重複定義のエラーになる。
+RUST_RENAMED_SYMBOLS: List[Tuple[str, str]] = [
+    ("rust_eh_personality", "webrtc_rust_eh_personality"),
+    ("DW.ref.rust_eh_personality", "DW.ref.webrtc_rust_eh_personality"),
+]
+
+
+def rename_rust_symbols(objcopy: str, objects: List[str]) -> None:
+    # Rust の std が定義する固定名のシンボルを、アーカイブの中だけで使う名前に変える。
+    # 固定名のままだと、アーカイブをリンクする側の Rust の std と同じ名前になり
+    # 重複定義のエラーになる。--redefine-sym は参照とリロケーションも一緒に張り替えるので、
+    # personality を参照する構成 (ARM の EHABI や extern "C-unwind") でも壊れない。
+    args = [f"--redefine-sym={old}={new}" for old, new in RUST_RENAMED_SYMBOLS]
+    for obj in objects:
+        cmd([objcopy, *args, obj])
+
+
+def merge_rust_objects(ar: str, webrtc_src_dir: str, webrtc_build_dir: str, output: str):
+    # GN が作った libwebrtc.a に、C++ のランタイムライブラリ (libc++.a と
+    # libc++abi.a) と Rust の静的ライブラリ (*.rlib) の中身を足して配布用のアーカイブを作る。
+    # unwind のライブラリは足さない。Android の NDK の clang や Rust のように利用者が
+    # 自分でリンクするもので、足すと _Unwind_* が重複する
+    rlibs = find_build_rlibs(webrtc_build_dir, os.path.join("obj", "libwebrtc.a"))
+    archives = find_cxx_runtime_archives(webrtc_build_dir)
+    logging.info(f"create {output} with {len(rlibs)} rlibs and {len(archives)} archives")
+    shutil.copyfile(os.path.join(webrtc_build_dir, "obj", "libwebrtc.a"), output)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        extracted = collect_archive_objects(ar, archives, tmp_dir)
+        rust_objects = collect_archive_objects(ar, rlibs, tmp_dir)
+        rename_rust_symbols(find_llvm_tool(webrtc_src_dir, "llvm-objcopy"), rust_objects)
+        append_objects(ar, output, [*extracted, *rust_objects])
+
+
+def find_compiler_rt_builtins(webrtc_src_dir: str, arch: str) -> Optional[str]:
+    # compiler-rt の builtins を探す。Rust の std が f16 の変換関数 (__truncsfhf2 と
+    # __extendhfsf2) を参照するため、MSVC でリンクする利用者向けにアーカイブへ同梱する。
+    # builtins は llvm-build の中のバージョンごとのディレクトリ (clang/24 など) にある。
+    root = os.path.join(webrtc_src_dir, "third_party/llvm-build/Release+Asserts/lib/clang")
+    if not os.path.isdir(root):
+        return None
+    for version in sorted(os.listdir(root)):
+        path = os.path.join(root, version, "lib", "windows", f"clang_rt.builtins-{arch}.lib")
+        if os.path.isfile(path):
+            return path
+    return None
+
+
+def merge_rust_objects_windows(
+    webrtc_src_dir: str, webrtc_build_dir: str, target: str, output: str
+):
+    # Windows は lld-link の /lib でアーカイブを作る。lld-link はアーカイブの入力を展開して
+    # 取り込むため、rlib をそのまま渡せば Rust のオブジェクトがメンバーになる。lib.rmeta と
+    # lib.rmeta-link も一緒に入るがリンクには影響しない。/machine を明示して、ターゲットと
+    # 違うアーキテクチャのオブジェクトが混ざったら失敗させる。
+    lld_link = os.path.join(
+        webrtc_src_dir, "third_party/llvm-build/Release+Asserts/bin/lld-link.exe"
+    )
+    if target == "windows_x86_64":
+        machine = "x64"
+        arch = "x86_64"
+    else:
+        machine = "arm64"
+        arch = "aarch64"
+    rlibs = find_build_rlibs(webrtc_build_dir, os.path.join("obj", "webrtc.lib"))
+    libs = [os.path.join(webrtc_build_dir, "obj", "webrtc.lib"), *rlibs]
+    compiler_rt = find_compiler_rt_builtins(webrtc_src_dir, arch)
+    if compiler_rt is not None:
+        libs.append(compiler_rt)
+    logging.info(f"create {output} with {len(rlibs)} rlibs")
+    rm_rf(output)
+    cmd([lld_link, "/lib", f"/machine:{machine}", f"/out:{output}", *libs])
+
+
+def find_cxx_compile_command(webrtc_build_dir: str) -> List[str]:
+    # アーカイブに入っている C++ のオブジェクトのコンパイルコマンドを GN から取り出す。
+    # テストプログラムは WebRTC と同じコンパイラと同じフラグ (libc++ や sysroot、--target)
+    # と、同じ定義マクロでコンパイルする必要があるため、GN が生成したコマンドをそのまま
+    # 利用する。ninja -t commands は依存も含めたコマンドを一度に出力するので、その中から
+    # WebRTC の実装をコンパイルするものを選ぶ。
+    # 出力に UTF-8 として不正なバイトが混ざることがあるため surrogateescape でデコードする
+    stdout = subprocess.run(
+        ["ninja", "-C", webrtc_build_dir, "-t", "commands", os.path.join("obj", "libwebrtc.a")],
+        capture_output=True,
+    ).stdout
+    for line in stdout.decode("utf-8", errors="surrogateescape").splitlines():
+        command = shlex.split(line, posix=platform.system() != "Windows")
+        if not any(token.startswith("-std=c++") for token in command):
+            continue
+        # WebRTC の実装をコンパイルするコマンドを選ぶ。アーカイブの C++ のオブジェクトは
+        # どれも WEBRTC_LIBRARY_IMPL を付けてコンパイルされている
+        if "-DWEBRTC_LIBRARY_IMPL" in command:
+            return command
+    raise Exception(f"C++ compile command of webrtc is not found in {webrtc_build_dir}")
+
+
+def get_test_link_libraries(target: str, work_dir: str) -> List[str]:
+    # 配布する libwebrtc.a を使う側がリンクする必要があるプラットフォームのライブラリ。
+    # GN のリンクでは GN がこれらを直接リンカに渡すため、アーカイブには入っていない。
+    # この指定だけでアーカイブの中の未定義シンボルを解決できることを確認する
+    if target in ("android", "android_sdk"):
+        # Android は unwind のライブラリを利用者が用意する。NDK の clang は
+        # -l:libunwind.a を自動でリンクし、Rust も -lunwind を付ける。GN の ldflags は
+        # 共有ライブラリ向けに --unwindlib=none を付けるので、テストでは GN がビルドした
+        # libunwind のオブジェクトを渡して C++ のランタイムが参照する _Unwind_* を解決する
+        unwinds = find_files(
+            os.path.join(work_dir, "obj", "buildtools", "third_party", "libunwind"), "*.o"
+        )
+        if not unwinds:
+            raise Exception(f"libunwind objects are not found in {work_dir}")
+        return ["-llog", "-lOpenSLES", *unwinds]
+    if target == "macos_arm64":
+        return [
+            "-framework",
+            "AVFoundation",
+            "-framework",
+            "AudioToolbox",
+            "-framework",
+            "CoreAudio",
+            "-framework",
+            "QuartzCore",
+            "-framework",
+            "CoreMedia",
+            "-framework",
+            "VideoToolbox",
+            "-framework",
+            "AppKit",
+            "-framework",
+            "Metal",
+            "-framework",
+            "MetalKit",
+            "-framework",
+            "OpenGL",
+            "-framework",
+            "IOSurface",
+            "-framework",
+            "ScreenCaptureKit",
+        ]
+    if target in ("ios", "ios_sdk"):
+        return [
+            "-framework",
+            "CoreFoundation",
+            "-framework",
+            "AVFoundation",
+            "-framework",
+            "AudioToolbox",
+            "-framework",
+            "CoreAudio",
+            "-framework",
+            "CoreMedia",
+            "-framework",
+            "CoreVideo",
+            "-framework",
+            "VideoToolbox",
+            "-framework",
+            "Metal",
+            "-framework",
+            "IOSurface",
+            "-framework",
+            "QuartzCore",
+            "-framework",
+            "UIKit",
+        ]
+    # Linux と Raspberry Pi OS
+    return ["-lX11", "-ldl", "-lrt", "-lpthread"]
+
+
+def gn_desc(webrtc_src_dir: str, webrtc_build_dir: str, name: str) -> List[str]:
+    # GN からリンクの指定を取り出す。テストのリンクは GN と同じ指定で行う必要がある
+    with cd(webrtc_src_dir):
+        return cmdcap(["gn", "desc", webrtc_build_dir, "//:webrtc", "--all", name]).split()
+
+
+def get_test_include_dirs(webrtc_src_dir: str) -> List[str]:
+    # テストプログラムから WebRTC の公開ヘッダーを include するために必要なディレクトリ。
+    # コンパイルコマンドの include はそのソースファイルが使うものだけなので、テスト自身が
+    # include するヘッダーが必要とするディレクトリはここで足す。公開ヘッダーが include
+    # している third_party のヘッダーも含める
+    return [
+        "-I" + webrtc_src_dir,
+        "-I" + os.path.join(webrtc_src_dir, "third_party/abseil-cpp"),
+        "-I" + os.path.join(webrtc_src_dir, "third_party/boringssl/src/include"),
+        "-I" + os.path.join(webrtc_src_dir, "third_party/libyuv/include"),
+        "-I" + os.path.join(webrtc_src_dir, "third_party/zlib"),
+        "-I" + os.path.join(webrtc_src_dir, "sdk/objc"),
+    ]
+
+
+def get_test_compile_flags(command: List[str]) -> List[str]:
+    # コンパイルコマンドから、テストプログラムのコンパイルとリンクに使うフラグを作る。
+    # コンパイルとリンクの指定 (-c と -o)、依存ファイルの出力先 (-MMD と -MF)、
+    # テストに不要な Chromium 内部のチェック (-Xclang) と警告のエラー化 (-Werror) を外す。
+    # テストプログラムは WebRTC の一部ではないので、テスト側の警告でビルドを止めない
+    flags: List[str] = [command[0]]
+    i = 1
+    while i < len(command):
+        token = command[i]
+        if token in ("-c", "-o", "-MF", "-fmodule-name", "/c", "/Fo"):
+            i += 2
+            continue
+        if token in ("-MMD", "-fmodule-name") or token.startswith("-Werror") or token == "-Xclang":
+            i += 2 if token == "-Xclang" else 1
+            continue
+        flags.append(token)
+        i += 1
+    return flags
+
+
+def can_run_on_host(target: str, arch: str) -> bool:
+    # ビルドした実行ファイルをこのホストで実行できるかどうか。
+    # iOS と Android の実行ファイルはホストの OS では動かせない。
+    if target in ("ios", "ios_sdk", "android", "android_sdk"):
+        return False
+    machine = platform.machine().lower()
+    if machine in ("x86_64", "amd64"):
+        return arch.endswith("x86_64")
+    if machine in ("aarch64", "arm64"):
+        return arch.endswith("arm64") or arch.endswith("armv8")
+    return False
+
+
+def test_link_in(webrtc_src_dir: str, work_dir: str, target: str, arch: str) -> None:
+    # 配布するアーカイブだけをリンクした実行ファイルを作る。
+    # GN のリンクでは rlib や libc++ がリンカに直接渡されるため、アーカイブが
+    # 自己完結していなくてもリンクできてしまう。ここではアーカイブだけを渡す。
+    archive = os.path.join(work_dir, "webrtc.lib")
+    if not os.path.isfile(archive):
+        archive = os.path.join(work_dir, "libwebrtc.a")
+    if not os.path.isfile(archive):
+        raise Exception(f"archive is not found in {work_dir}")
+    source = os.path.join(BASE_DIR, "tests", "link_test.cc")
+    object_file = os.path.join(work_dir, "link_test.o")
+    binary = os.path.join(work_dir, "link_test")
+    if platform.system() == "Windows":
+        binary += ".exe"
+
+    logging.info(f"test link {archive} in {work_dir}")
+    flags = [
+        *get_test_compile_flags(find_cxx_compile_command(work_dir)),
+        *get_test_include_dirs(webrtc_src_dir),
+    ]
+    # コンパイルコマンドの中のパスはビルドディレクトリからの相対パスなので、ビルド
+    # ディレクトリを作業ディレクトリにして実行する。コンパイラだけは絶対パスにする
+    flags[0] = os.path.abspath(os.path.join(work_dir, flags[0]))
+    compiler = flags[0]
+    cmd([*flags, "-c", source, "-o", object_file], cwd=work_dir)
+
+    # リンクは GN が使うフラグで行う (GC の設定や sysroot、スレッドのライブラリなどが
+    # 含まれる)。渡すのはテストプログラムのオブジェクトとアーカイブだけで、GN がリンク行に
+    # 並べる rlib や C++ のランタイムは渡さない。これらがアーカイブに入っていなければ
+    # 未定義シンボルになる
+    # GN はリンカに lld を使う。gn desc で取れる ldflags には含まれないので足す
+    link_flags = [
+        "-fuse-ld=lld",
+        # テストのリンクでは警告をエラーにしない。GN の ldflags にも -Werror が入っており、
+        # テストプログラムは WebRTC の一部ではないので、テスト側の警告でリンクを止めない
+        *[
+            token
+            for token in gn_desc(webrtc_src_dir, work_dir, "ldflags")
+            if not token.startswith("-Werror")
+        ],
+    ]
+    # ライブラリのうち、ビルドディレクトリの中のファイルのパス (compiler-rt の builtins
+    # など) はリンクする側が用意できないので渡さず、名前で指定できるプラットフォームの
+    # ライブラリだけを渡す
+    link_libraries = []
+    for token in gn_desc(webrtc_src_dir, work_dir, "libs"):
+        if token.startswith("-"):
+            link_libraries.append(token)
+        elif "/" not in token:
+            link_libraries.append(f"-l{token}")
+    cmd(
+        [
+            compiler,
+            *link_flags,
+            "-o",
+            binary,
+            object_file,
+            archive,
+            *link_libraries,
+            *get_test_link_libraries(target, work_dir),
+        ],
+        cwd=work_dir,
+    )
+    if not can_run_on_host(target, arch):
+        # 実行できないホストでは、リンクできたことだけをテストの結果として報告する
+        logging.info(f"skip running {binary} because it cannot run on this host")
+        print(f"link_test: リンクに成功しました ({arch} の実行はこのホストでは行いません)")
+        return
+    cmd([binary])
+
+
+def test_link(target: str, webrtc_src_dir: str, webrtc_build_dir: str) -> None:
+    # 配布する libwebrtc.a (Windows は webrtc.lib) がリンクできるか確認する。
+    # アーカイブに Rust の実装や C++ のランタイムが入っていなければ未定義シンボルでリンクエラーになる。
+    if target == "android":
+        work_dirs = [(arch, os.path.join(webrtc_build_dir, arch)) for arch in ANDROID_ARCHS]
+    elif target == "ios":
+        work_dirs = [
+            (
+                device_arch.split(":")[1],
+                os.path.join(webrtc_build_dir, *device_arch.split(":")),
+            )
+            for device_arch in IOS_ARCHS
+        ]
+    elif target in ("android_sdk", "ios_sdk"):
+        # SDK が配布するのは GN がリンクしたバイナリ (aar の中の .so と xcframework の
+        # 中の dylib) だけである。GN のリンクには rlib が渡されるため Rust の実装は
+        # 入っており、配布物に静的ライブラリは含まれないのでリンクテストは要らない
+        raise Exception(f"test-link is not needed for {target}")
+    else:
+        work_dirs = [(target, webrtc_build_dir)]
+    for arch, work_dir in work_dirs:
+        test_link_in(webrtc_src_dir, work_dir, target, arch)
 
 
 SYSROOT_CONFIGS = {
@@ -774,9 +1237,8 @@ def build_webrtc_ios(
             gn_gen(webrtc_src_dir, work_dir, gn_args, extra_gn_args)
         if not nobuild:
             cmd(["ninja", "-C", work_dir, *get_build_targets("ios")])
-            ar = "/usr/bin/ar"
-            archive_objects(
-                ar, os.path.join(work_dir, "obj"), os.path.join(work_dir, "libwebrtc.a")
+            merge_rust_objects(
+                "/usr/bin/ar", webrtc_src_dir, work_dir, os.path.join(work_dir, "libwebrtc.a")
             )
         libs.append(os.path.join(work_dir, "libwebrtc.a"))
 
@@ -896,9 +1358,7 @@ def build_webrtc_android(
         if not nobuild:
             cmd(["ninja", "-C", work_dir, *get_build_targets("android")])
             ar = os.path.join(webrtc_src_dir, "third_party/llvm-build/Release+Asserts/bin/llvm-ar")
-            archive_objects(
-                ar, os.path.join(work_dir, "obj"), os.path.join(work_dir, "libwebrtc.a")
-            )
+            merge_rust_objects(ar, webrtc_src_dir, work_dir, os.path.join(work_dir, "libwebrtc.a"))
 
 
 def build_webrtc_android_sdk(
@@ -1054,23 +1514,18 @@ def build_webrtc(
         return
 
     cmd(["ninja", "-C", webrtc_build_dir, *get_build_targets(target)])
-    if target in ["windows_x86_64", "windows_arm64"]:
-        pass
-    elif target in ("macos_arm64",):
-        ar = "/usr/bin/ar"
-    else:
-        ar = os.path.join(webrtc_src_dir, "third_party/llvm-build/Release+Asserts/bin/llvm-ar")
 
     if target in ["windows_x86_64", "windows_arm64"]:
-        # Windows は ar する代わりにファイルをコピーする
-        shutil.copyfile(
-            os.path.join(webrtc_build_dir, "obj", "webrtc.lib"),
-            os.path.join(webrtc_build_dir, "webrtc.lib"),
+        merge_rust_objects_windows(
+            webrtc_src_dir, webrtc_build_dir, target, os.path.join(webrtc_build_dir, "webrtc.lib")
         )
     else:
-        # ar で libwebrtc.a を生成する
-        archive_objects(
-            ar, os.path.join(webrtc_build_dir, "obj"), os.path.join(webrtc_build_dir, "libwebrtc.a")
+        if target in ("macos_arm64",):
+            ar = "/usr/bin/ar"
+        else:
+            ar = os.path.join(webrtc_src_dir, "third_party/llvm-build/Release+Asserts/bin/llvm-ar")
+        merge_rust_objects(
+            ar, webrtc_src_dir, webrtc_build_dir, os.path.join(webrtc_build_dir, "libwebrtc.a")
         )
 
     # macOS の場合は WebRTC.framework に追加情報を入れる
@@ -1594,6 +2049,14 @@ def main():
     pp.add_argument("--webrtc-build-dir")
     pp.add_argument("--webrtc-source-dir")
     pp.add_argument("--webrtc-package-dir")
+    tp = sp.add_parser("test-link")
+    tp.set_defaults(op="test-link")
+    tp.add_argument("target", choices=TARGETS)
+    tp.add_argument("--debug", action="store_true")
+    tp.add_argument("--source-dir")
+    tp.add_argument("--build-dir")
+    tp.add_argument("--webrtc-build-dir")
+    tp.add_argument("--webrtc-source-dir")
     # バージョン操作系
     vup = sp.add_parser("version_update")
     vup.set_defaults(op="version_update")
@@ -1812,6 +2275,22 @@ def main():
                 webrtc_source_dir=webrtc_source_dir,
                 webrtc_build_dir=webrtc_build_dir,
                 webrtc_package_dir=webrtc_package_dir,
+            )
+
+    if args.op == "test-link":
+        if webrtc_source_dir is None:
+            webrtc_source_dir = os.path.join(source_dir, "webrtc")
+        if webrtc_build_dir is None:
+            webrtc_build_dir = os.path.join(build_dir, "webrtc")
+        mkdir_p(source_dir)
+        with cd(BASE_DIR):
+            dir = get_depot_tools(source_dir, fetch=False)
+            add_path(dir, is_after=True)
+
+            test_link(
+                target=args.target,
+                webrtc_src_dir=os.path.join(webrtc_source_dir, "src"),
+                webrtc_build_dir=webrtc_build_dir,
             )
 
 
