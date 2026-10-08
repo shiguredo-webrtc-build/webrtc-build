@@ -1,7 +1,7 @@
 # m156 以降の libwebrtc.a が Rust の実装を含まずリンクに失敗する
 
 - Created: 2026-10-08
-- Completed: {YYYY-MM-DD}
+- Completed: 2026-10-09
 - Branch: feature/fix-libwebrtc-missing-rust-objects
 - Polished: {YYYY-MM-DD}
 
@@ -79,7 +79,7 @@ GN が作った完全な静的ライブラリを土台にし、GN が alink の�
 
 - `run.py` の `archive_objects` を `merge_rust_objects` に置き換え、GN の完全な静的ライブラリをコピーしてから、GN がリンクに渡す静的ライブラリ・オブジェクトと rlib の中身を `ar -rc` で追加する
   - rlib の一覧は `find_build_rlibs` が `ninja -t query` で `obj/libwebrtc.a` の alink の入力を調べて取る
-  - C++ ランタイムの一覧は `find_runtime_libraries` がビルドディレクトリの中の `libc++.a` と `libc++abi.a` と compiler-rt の `atomic.o` を探して返す
+  - C++ ランタイムの一覧は `find_cxx_runtime_archives` が `obj` の下の `libc++.a` と `libc++abi.a` を探して返す
   - `collect_archive_objects` がアーカイブごとに別のディレクトリへ `ar x` で展開し、`*.o` だけを集める。`lib.rmeta` と `lib.rmeta-link` はコードを含まないメタデータなので加えない。thin アーカイブは `ar t` のメンバーのパスをそのまま使う
   - `append_objects` が同名のメンバーを中身で比べ、同じなら足さず、違うなら `1_charconv.o` のように別名にして足す
   - `rename_rust_symbols` が Rust のオブジェクトの `rust_eh_personality` と `DW.ref.rust_eh_personality` を `llvm-objcopy --redefine-sym` で `webrtc_` を付けた名前に変える
@@ -113,6 +113,8 @@ m156 の新しい配布用アーカイブ (ubuntu-24.04_x86_64) は 3517 メン�
 m155 では GN 版 (2986 メンバー) が `--whole-archive` まで成功するのに対し、find 版 (3181 メンバー) はホストツールの `main` が重複して失敗する。Rust は不要なため、この変更は m155 ではアーカイブが小さくなる以外の影響が無い。
 
 Windows は x86_64 と arm64 の両方で `webrtc.lib` を作り直し、x86_64 は `lld-link` と MSVC の `link.exe` の両方でリンクと実行に成功する。arm64 はリンカでのリンクまでを確認し、実行の確認は CI で行う。
+
+android (arm64-v8a) は m156 のソースでビルドし直し、31 個の rlib から Rust の 276 オブジェクトを足した 3443 メンバーのアーカイブ (206 MB) でリンクに成功する。リンクした実行ファイルには Rust の cxxbridge のシンボルが 18 個入っており、テストが呼ぶ `CorruptionDetectionExtension::Parse` の実装がアーカイブから引かれている。m155 のソースでは rlib が 0 個で Rust のオブジェクトも 0 個だった。
 
 ### 確認したこと
 
