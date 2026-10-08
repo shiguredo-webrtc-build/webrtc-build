@@ -31,6 +31,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-10-08 [RELEASE] m156.8078.3.1
+  - @zztkm
 - 2026-10-07 [FIX] [m156] android_jni_zero_generated_java.patch に base_java_jni_java の依存を追加する
   - この依存が無いと LoggingJni.class が AAR の classes.jar に含まれず、Sora Android SDK の libjingleEnabled 有効時に NoClassDefFoundError になる
   - dist_jar は direct_deps_only = true のため、集約ターゲットである base_java 経由では LoggingJni.class が届かない
