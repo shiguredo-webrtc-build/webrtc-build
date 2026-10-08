@@ -1,5 +1,6 @@
 import argparse
 import collections
+import ctypes
 import filecmp
 import fnmatch
 import json
@@ -832,20 +833,54 @@ def merge_rust_objects_windows(
     cmd([lld_link, "/lib", f"/machine:{machine}", f"/out:{output}", *libs])
 
 
+def split_command_line(command_line: str) -> List[str]:
+    # コマンドラインを引数に分割する。Windows のコマンドラインはバックスラッシュで
+    # 引用符をエスケープするため shlex では再現できない。OS の CommandLineToArgvW を
+    # 使って、コンパイラが実際に受け取るのと同じ引数に分割する
+    if platform.system() != "Windows":
+        return shlex.split(command_line)
+    shell32 = ctypes.WinDLL("shell32", use_last_error=True)
+    shell32.CommandLineToArgvW.restype = ctypes.POINTER(ctypes.c_wchar_p)
+    shell32.CommandLineToArgvW.argtypes = [
+        ctypes.c_wchar_p,
+        ctypes.POINTER(ctypes.c_int),
+    ]
+    argc = ctypes.c_int(0)
+    argv = shell32.CommandLineToArgvW(command_line, ctypes.byref(argc))
+    if not argv:
+        raise Exception(f"CommandLineToArgvW failed to split {command_line}")
+    try:
+        return [argv[i] for i in range(argc.value)]
+    finally:
+        # CommandLineToArgvW が確保したメモリは LocalFree で解放する
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.LocalFree.argtypes = [ctypes.c_void_p]
+        kernel32.LocalFree(argv)
+
+
 def find_cxx_compile_command(webrtc_build_dir: str) -> List[str]:
     # アーカイブに入っている C++ のオブジェクトのコンパイルコマンドを GN から取り出す。
     # テストプログラムは WebRTC と同じコンパイラと同じフラグ (libc++ や sysroot、--target)
     # と、同じ定義マクロでコンパイルする必要があるため、GN が生成したコマンドをそのまま
     # 利用する。ninja -t commands は依存も含めたコマンドを一度に出力するので、その中から
     # WebRTC の実装をコンパイルするものを選ぶ。
+    # Windows のテストは MSVC でコンパイルするため、定義マクロとインクルードパスだけを
+    # ここから取り出して cl.exe に渡す
+    if platform.system() == "Windows":
+        # Windows のアーカイブは webrtc.lib で、C++ の標準の指定も MSVC と同じ /std: になる
+        archive = os.path.join("obj", "webrtc.lib")
+        std_flag = "/std:c++"
+    else:
+        archive = os.path.join("obj", "libwebrtc.a")
+        std_flag = "-std=c++"
     # 出力に UTF-8 として不正なバイトが混ざることがあるため surrogateescape でデコードする
     stdout = subprocess.run(
-        ["ninja", "-C", webrtc_build_dir, "-t", "commands", os.path.join("obj", "libwebrtc.a")],
+        ["ninja", "-C", webrtc_build_dir, "-t", "commands", archive],
         capture_output=True,
     ).stdout
     for line in stdout.decode("utf-8", errors="surrogateescape").splitlines():
-        command = shlex.split(line, posix=platform.system() != "Windows")
-        if not any(token.startswith("-std=c++") for token in command):
+        command = split_command_line(line)
+        if not any(token.startswith(std_flag) for token in command):
             continue
         # WebRTC の実装をコンパイルするコマンドを選ぶ。アーカイブの C++ のオブジェクトは
         # どれも WEBRTC_LIBRARY_IMPL を付けてコンパイルされている
@@ -966,6 +1001,74 @@ def get_test_compile_flags(command: List[str]) -> List[str]:
     return flags
 
 
+# MSVC の cl.exe にそのまま渡せる GN のコンパイルフラグ。GN は clang-cl 向けの
+# フラグを生成するため、MSVC が解釈できないもの (-imsvc や -f... や -W... など) は
+# 渡さない。定義マクロとインクルードパス、ABI に関わる /MT と /std: はそのまま渡す
+MSVC_COMPILE_FLAGS: Tuple[str, ...] = (
+    "-D",
+    "-I",
+    "/bigobj",
+    "/Brepro",
+    "/D",
+    "/FS",
+    "/guard:cf",
+    "/Gw",
+    "/Gy",
+    "/I",
+    "/MT",
+    "/O2",
+    "/Oy-",
+    "/std:",
+    "/TP",
+    "/utf-8",
+    "/Z7",
+    "/Zc:",
+)
+
+
+def get_msvc_env(arch: str) -> Dict[str, str]:
+    # テストプログラムのコンパイルとリンクに使う MSVC の環境変数を組み立てる。
+    # main() が取り込む VsDevCmd.bat はアーキテクチャを指定しないため x86 の環境に
+    # なる。ビルドしたアーキテクチャでテストするために、ここで指定し直す
+    vs_install_dir = os.environ.get("VSINSTALLDIR")
+    if vs_install_dir is None:
+        raise Exception("VSINSTALLDIR is not set")
+    vs_dev_cmd = os.path.join(vs_install_dir, "Common7", "Tools", "VsDevCmd.bat")
+    stdout = cmdcap(["cmd", "/c", f"{vs_dev_cmd}", f"-arch={arch}", "&&", "set"])
+    env = dict(os.environ)
+    for m in re.finditer(r"(\w+)=(.*)", stdout):
+        key = m.group(1)
+        # Windows の環境変数は大文字小文字を区別しない。VsDevCmd.bat は Path のように
+        # 一部を大文字小文字違いで設定するので、名前を大文字に揃えて上書きする
+        for name in [name for name in env if name.upper() == key.upper()]:
+            del env[name]
+        env[key.upper()] = m.group(2)
+    return env
+
+
+def get_msvc_tools(env: Dict[str, str], target: str) -> Tuple[str, str]:
+    # MSVC のコンパイラとリンカをパスで直接選ぶ。VsDevCmd.bat が設定する PATH には
+    # main() が先に取り込んだ別のアーキテクチャのツールが残っているため、PATH から
+    # 探すとビルドしたアーキテクチャと違うツールを選ぶことがある
+    vc_tools_dir = env.get("VCTOOLSINSTALLDIR")
+    if vc_tools_dir is None:
+        raise Exception("VCToolsInstallDir is not set")
+    host = platform.machine().lower()
+    if host in ("x86_64", "amd64"):
+        host = "x64"
+    elif host in ("aarch64", "arm64"):
+        host = "arm64"
+    else:
+        raise Exception(f"unknown host architecture {platform.machine()}")
+    bin_dir = os.path.join(vc_tools_dir, "bin", f"Host{host}", target)
+    compiler = os.path.join(bin_dir, "cl.exe")
+    linker = os.path.join(bin_dir, "link.exe")
+    for path in (compiler, linker):
+        if not os.path.isfile(path):
+            raise Exception(f"{path} is not found")
+    return (compiler, linker)
+
+
 def can_run_on_host(target: str, arch: str) -> bool:
     # ビルドした実行ファイルをこのホストで実行できるかどうか。
     # iOS と Android の実行ファイルはホストの OS では動かせない。
@@ -995,53 +1098,111 @@ def test_link_in(webrtc_src_dir: str, work_dir: str, target: str, arch: str) -> 
         binary += ".exe"
 
     logging.info(f"test link {archive} in {work_dir}")
-    flags = [
-        *get_test_compile_flags(find_cxx_compile_command(work_dir)),
-        *get_test_include_dirs(webrtc_src_dir),
-    ]
-    # コンパイルコマンドの中のパスはビルドディレクトリからの相対パスなので、ビルド
-    # ディレクトリを作業ディレクトリにして実行する。コンパイラだけは絶対パスにする
-    flags[0] = os.path.abspath(os.path.join(work_dir, flags[0]))
-    compiler = flags[0]
-    cmd([*flags, "-c", source, "-o", object_file], cwd=work_dir)
+    if platform.system() == "Windows":
+        # 配布したアーカイブをリンクするのは利用者 (sora-cpp-sdk や webrtc-rs) と同じ
+        # MSVC である。テストプログラムも MSVC でコンパイルして link.exe でリンクする
+        if target == "windows_x86_64":
+            machine = "x64"
+        elif target == "windows_arm64":
+            machine = "arm64"
+        else:
+            raise Exception(f"unknown Windows target {target}")
+        env = get_msvc_env(machine)
+        compiler, linker = get_msvc_tools(env, machine)
+        # コンパイルコマンドの中のパスはビルドディレクトリからの相対パスなので、ビルド
+        # ディレクトリを作業ディレクトリにして実行する。定義マクロとインクルードパスは
+        # GN が生成したものから MSVC でも通用するものだけを渡す
+        flags = [
+            *[
+                token
+                for token in find_cxx_compile_command(work_dir)[1:]
+                if token.startswith(MSVC_COMPILE_FLAGS)
+            ],
+            *get_test_include_dirs(webrtc_src_dir),
+        ]
+        cmd(
+            [compiler, "/nologo", "/c", *flags, f"/Fo{object_file}", source],
+            cwd=work_dir,
+            env=env,
+        )
 
-    # リンクは GN が使うフラグで行う (GC の設定や sysroot、スレッドのライブラリなどが
-    # 含まれる)。渡すのはテストプログラムのオブジェクトとアーカイブだけで、GN がリンク行に
-    # 並べる rlib や C++ のランタイムは渡さない。これらがアーカイブに入っていなければ
-    # 未定義シンボルになる
-    # GN はリンカに lld を使う。gn desc で取れる ldflags には含まれないので足す
-    link_flags = [
-        "-fuse-ld=lld",
-        # テストのリンクでは警告をエラーにしない。GN の ldflags にも -Werror が入っており、
-        # テストプログラムは WebRTC の一部ではないので、テスト側の警告でリンクを止めない
-        *[
+        # リンクするライブラリは GN のリンク行と同じものにする。gn desc の libs に加えて
+        # GN の ldflags に入っている toolchain 既定のライブラリ (ntdll や userenv など) も
+        # 渡す。Rust の std が Windows の API を参照するため、これらが無いと未定義シンボル
+        # になる。ビルドディレクトリの中のパス (compiler-rt の builtins など) はアーカイブに
+        # 同梱されているので渡さない
+        link_libraries = [
             token
-            for token in gn_desc(webrtc_src_dir, work_dir, "ldflags")
-            if not token.startswith("-Werror")
-        ],
-    ]
-    # ライブラリのうち、ビルドディレクトリの中のファイルのパス (compiler-rt の builtins
-    # など) はリンクする側が用意できないので渡さず、名前で指定できるプラットフォームの
-    # ライブラリだけを渡す
-    link_libraries = []
-    for token in gn_desc(webrtc_src_dir, work_dir, "libs"):
-        if token.startswith("-"):
-            link_libraries.append(token)
-        elif "/" not in token:
-            link_libraries.append(f"-l{token}")
-    cmd(
-        [
-            compiler,
-            *link_flags,
-            "-o",
-            binary,
-            object_file,
-            archive,
-            *link_libraries,
-            *get_test_link_libraries(target, work_dir),
-        ],
-        cwd=work_dir,
-    )
+            for token in [
+                *gn_desc(webrtc_src_dir, work_dir, "libs"),
+                *gn_desc(webrtc_src_dir, work_dir, "ldflags"),
+            ]
+            if token.lower().endswith(".lib") and "/" not in token
+        ]
+        # 渡すのはテストプログラムのオブジェクトとアーカイブだけである。GN がリンク行に
+        # 並べる rlib や C++ のランタイムは渡さない。これらがアーカイブに入っていなければ
+        # 未定義シンボルになる
+        cmd(
+            [
+                linker,
+                "/nologo",
+                f"/machine:{machine}",
+                f"/out:{binary}",
+                object_file,
+                archive,
+                *link_libraries,
+            ],
+            cwd=work_dir,
+            env=env,
+        )
+    else:
+        flags = [
+            *get_test_compile_flags(find_cxx_compile_command(work_dir)),
+            *get_test_include_dirs(webrtc_src_dir),
+        ]
+        # コンパイルコマンドの中のパスはビルドディレクトリからの相対パスなので、ビルド
+        # ディレクトリを作業ディレクトリにして実行する。コンパイラだけは絶対パスにする
+        flags[0] = os.path.abspath(os.path.join(work_dir, flags[0]))
+        compiler = flags[0]
+        cmd([*flags, "-c", source, "-o", object_file], cwd=work_dir)
+
+        # リンクは GN が使うフラグで行う (GC の設定や sysroot、スレッドのライブラリなどが
+        # 含まれる)。渡すのはテストプログラムのオブジェクトとアーカイブだけで、GN がリンク行に
+        # 並べる rlib や C++ のランタイムは渡さない。これらがアーカイブに入っていなければ
+        # 未定義シンボルになる
+        # GN はリンカに lld を使う。gn desc で取れる ldflags には含まれないので足す
+        link_flags = [
+            "-fuse-ld=lld",
+            # テストのリンクでは警告をエラーにしない。GN の ldflags にも -Werror が入っており、
+            # テストプログラムは WebRTC の一部ではないので、テスト側の警告でリンクを止めない
+            *[
+                token
+                for token in gn_desc(webrtc_src_dir, work_dir, "ldflags")
+                if not token.startswith("-Werror")
+            ],
+        ]
+        # ライブラリのうち、ビルドディレクトリの中のファイルのパス (compiler-rt の builtins
+        # など) はリンクする側が用意できないので渡さず、名前で指定できるプラットフォームの
+        # ライブラリだけを渡す
+        link_libraries = []
+        for token in gn_desc(webrtc_src_dir, work_dir, "libs"):
+            if token.startswith("-"):
+                link_libraries.append(token)
+            elif "/" not in token:
+                link_libraries.append(f"-l{token}")
+        cmd(
+            [
+                compiler,
+                *link_flags,
+                "-o",
+                binary,
+                object_file,
+                archive,
+                *link_libraries,
+                *get_test_link_libraries(target, work_dir),
+            ],
+            cwd=work_dir,
+        )
     if not can_run_on_host(target, arch):
         # 実行できないホストでは、リンクできたことだけをテストの結果として報告する
         logging.info(f"skip running {binary} because it cannot run on this host")
