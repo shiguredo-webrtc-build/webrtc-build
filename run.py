@@ -795,17 +795,21 @@ RUST_RENAMED_SYMBOLS: List[Tuple[str, str]] = [
 ]
 
 
-def rename_rust_symbols(objcopy: str, objects: List[str]) -> None:
+def rename_rust_symbols(objcopy: str, objects: List[str], macho: bool) -> None:
     # Rust の std が定義する固定名のシンボルを、アーカイブの中だけで使う名前に変える。
     # 固定名のままだと、アーカイブをリンクする側の Rust の std と同じ名前になり
     # 重複定義のエラーになる。--redefine-sym は参照とリロケーションも一緒に張り替えるので、
     # personality を参照する構成 (ARM の EHABI や extern "C-unwind") でも壊れない。
-    args = [f"--redefine-sym={old}={new}" for old, new in RUST_RENAMED_SYMBOLS]
+    # Mach-O のシンボルは先頭に _ が付くため、指定する名前もそれに合わせる
+    prefix = "_" if macho else ""
+    args = [f"--redefine-sym={prefix}{old}={prefix}{new}" for old, new in RUST_RENAMED_SYMBOLS]
     for obj in objects:
         cmd([objcopy, *args, obj])
 
 
-def merge_rust_objects(ar: str, webrtc_src_dir: str, webrtc_build_dir: str, output: str):
+def merge_rust_objects(
+    ar: str, webrtc_src_dir: str, webrtc_build_dir: str, output: str, macho: bool
+):
     # GN が作った libwebrtc.a に、C++ のランタイムライブラリ (libc++.a と
     # libc++abi.a) と Rust の静的ライブラリ (*.rlib) の中身を足して配布用のアーカイブを作る。
     # unwind のライブラリは足さない。Android の NDK の clang や Rust のように利用者が
@@ -817,7 +821,7 @@ def merge_rust_objects(ar: str, webrtc_src_dir: str, webrtc_build_dir: str, outp
     with tempfile.TemporaryDirectory() as tmp_dir:
         extracted = collect_archive_objects(ar, archives, tmp_dir)
         rust_objects = collect_archive_objects(ar, rlibs, tmp_dir)
-        rename_rust_symbols(find_llvm_tool(webrtc_src_dir, "llvm-objcopy"), rust_objects)
+        rename_rust_symbols(find_llvm_tool(webrtc_src_dir, "llvm-objcopy"), rust_objects, macho)
         append_objects(ar, output, [*extracted, *rust_objects])
 
 
@@ -859,7 +863,7 @@ def merge_rust_objects_windows(
         for rlib in rlibs:
             members = collect_archive_objects(ar, [rlib], tmp_dir)
             rust_objects = [member for member in members if member.endswith(".o")]
-            rename_rust_symbols(objcopy, rust_objects)
+            rename_rust_symbols(objcopy, rust_objects, macho=False)
             # 改名したメンバーを rlib と同じ名前のアーカイブに入れ直す
             rebuilt = os.path.join(tmp_dir, os.path.basename(rlib))
             # メンバーをコマンドラインに並べると長さの上限を超えるため、一覧で渡す
@@ -1644,7 +1648,11 @@ def build_webrtc_ios(
         if not nobuild:
             cmd(["ninja", "-C", work_dir, *get_build_targets("ios")])
             merge_rust_objects(
-                "/usr/bin/ar", webrtc_src_dir, work_dir, os.path.join(work_dir, "libwebrtc.a")
+                "/usr/bin/ar",
+                webrtc_src_dir,
+                work_dir,
+                os.path.join(work_dir, "libwebrtc.a"),
+                macho=True,
             )
         libs.append(os.path.join(work_dir, "libwebrtc.a"))
 
@@ -1764,7 +1772,13 @@ def build_webrtc_android(
         if not nobuild:
             cmd(["ninja", "-C", work_dir, *get_build_targets("android")])
             ar = os.path.join(webrtc_src_dir, "third_party/llvm-build/Release+Asserts/bin/llvm-ar")
-            merge_rust_objects(ar, webrtc_src_dir, work_dir, os.path.join(work_dir, "libwebrtc.a"))
+            merge_rust_objects(
+                ar,
+                webrtc_src_dir,
+                work_dir,
+                os.path.join(work_dir, "libwebrtc.a"),
+                macho=False,
+            )
 
 
 def build_webrtc_android_sdk(
@@ -1931,7 +1945,11 @@ def build_webrtc(
         else:
             ar = os.path.join(webrtc_src_dir, "third_party/llvm-build/Release+Asserts/bin/llvm-ar")
         merge_rust_objects(
-            ar, webrtc_src_dir, webrtc_build_dir, os.path.join(webrtc_build_dir, "libwebrtc.a")
+            ar,
+            webrtc_src_dir,
+            webrtc_build_dir,
+            os.path.join(webrtc_build_dir, "libwebrtc.a"),
+            macho=target in ("macos_arm64",),
         )
 
     # macOS の場合は WebRTC.framework に追加情報を入れる
