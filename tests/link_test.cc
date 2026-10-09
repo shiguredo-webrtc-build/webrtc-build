@@ -451,7 +451,9 @@ int TestMacScreenCapture() {
 
 }  // namespace
 
-int main() {
+// テストの本体。テストの実行ファイルの main と、C の関数を呼ぶ別のテストプログラムが
+// 呼び出すため extern "C" で公開している
+extern "C" int webrtc_link_test_main() {
   for (const auto& test : {TestCorruptionDetection, TestThreadAndTaskQueue,
                            TestPeerConnectionFactory, TestVideoFrame,
                            TestAdaptedVideoTrackSource, TestRevivedProxy, TestZlib,
