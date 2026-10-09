@@ -1,0 +1,3 @@
+# リンクの確認で使う Rust のバージョン。CI では rustup がこのバージョンを導入する
+[toolchain]
+channel = "1.93"
