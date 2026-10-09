@@ -26,7 +26,9 @@ jobs:
       matrix:
         platform:
           - name: windows_x86_64
+            rust-target: x86_64-pc-windows-msvc
           - name: windows_arm64
+            rust-target: aarch64-pc-windows-msvc
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v7
@@ -94,6 +96,16 @@ jobs:
           # また、WebRTC のビルドしたファイルは同じドライブに無いといけないっぽいのでこちらも設定する。
           python3 run.py build ${{ matrix.platform.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build' --no-history
           python3 run.py package ${{ matrix.platform.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build'
+      - name: Test link ${{ matrix.platform.name }}
+        run: |
+          python3 run.py test-link ${{ matrix.platform.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build'
+      - name: Setup Rust ${{ matrix.platform.name }}
+        run: |
+          # Rust のバージョンは rust-toolchain.toml で固定している
+          rustup target add ${{ matrix.platform.rust-target }}
+      - name: Test link (Rust) ${{ matrix.platform.name }}
+        run: |
+          python3 run.py test-link-rust ${{ matrix.platform.name }} --source-dir 'C:\webrtc' --build-dir 'C:\webrtc-build'
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
         with:
@@ -105,7 +117,9 @@ jobs:
       matrix:
         platform:
           - name: macos_arm64
+            rust-target: aarch64-apple-darwin
           - name: ios
+            rust-target: aarch64-apple-ios
           - name: ios_sdk
     runs-on: macos-26
     steps:
@@ -126,6 +140,19 @@ jobs:
         run: |
           python3 run.py build ${{ matrix.platform.name }} --no-history
           python3 run.py package ${{ matrix.platform.name }}
+      - name: Test link ${{ matrix.platform.name }}
+        if: matrix.platform.name != 'ios_sdk'
+        run: |
+          python3 run.py test-link ${{ matrix.platform.name }}
+      - name: Setup Rust ${{ matrix.platform.name }}
+        if: matrix.platform.name != 'ios_sdk'
+        run: |
+          # Rust のバージョンは rust-toolchain.toml で固定している
+          rustup target add ${{ matrix.platform.rust-target }}
+      - name: Test link (Rust) ${{ matrix.platform.name }}
+        if: matrix.platform.name != 'ios_sdk'
+        run: |
+          python3 run.py test-link-rust ${{ matrix.platform.name }}
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
         with:
@@ -145,22 +172,31 @@ jobs:
       matrix:
         platform:
           - name: raspberry-pi-os_armv8
+            rust-target: aarch64-unknown-linux-gnu
             runs-on: ubuntu-24.04
           - name: ubuntu-20.04_armv8
+            rust-target: aarch64-unknown-linux-gnu
             runs-on: ubuntu-24.04
           - name: ubuntu-22.04_armv8
+            rust-target: aarch64-unknown-linux-gnu
             runs-on: ubuntu-24.04
           - name: ubuntu-24.04_armv8
+            rust-target: aarch64-unknown-linux-gnu
             runs-on: ubuntu-24.04
           - name: ubuntu-26.04_armv8
+            rust-target: aarch64-unknown-linux-gnu
             runs-on: ubuntu-24.04
           - name: ubuntu-22.04_x86_64
+            rust-target: x86_64-unknown-linux-gnu
             runs-on: ubuntu-22.04
           - name: ubuntu-24.04_x86_64
+            rust-target: x86_64-unknown-linux-gnu
             runs-on: ubuntu-24.04
           - name: ubuntu-26.04_x86_64
+            rust-target: x86_64-unknown-linux-gnu
             runs-on: ubuntu-26.04
           - name: android
+            rust-target: aarch64-linux-android
             runs-on: ubuntu-24.04
           - name: android_sdk
             runs-on: ubuntu-24.04
@@ -212,6 +248,19 @@ jobs:
         run: |
           python3 run.py build ${{ matrix.platform.name }} --no-history
           python3 run.py package ${{ matrix.platform.name }}
+      - name: Test link ${{ matrix.platform.name }}
+        if: matrix.platform.name != 'android_sdk'
+        run: |
+          python3 run.py test-link ${{ matrix.platform.name }}
+      - name: Setup Rust ${{ matrix.platform.name }}
+        if: matrix.platform.name != 'android_sdk'
+        run: |
+          # Rust のバージョンは rust-toolchain.toml で固定している
+          rustup target add ${{ matrix.platform.rust-target }}
+      - name: Test link (Rust) ${{ matrix.platform.name }}
+        if: matrix.platform.name != 'android_sdk'
+        run: |
+          python3 run.py test-link-rust ${{ matrix.platform.name }}
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
         with:
