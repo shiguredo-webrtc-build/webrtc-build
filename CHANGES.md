@@ -31,6 +31,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-10-10 [RELEASE] m156.8078.3.2
+  - @melpon
 - 2026-10-08 [FIX] [m156] libwebrtc.a と webrtc.lib に Rust の実装を含める
   - m156 で libwebrtc 本体が Rust 実装 (corruption detection) を呼ぶようになったが、配布するアーカイブには Rust のオブジェクトが入らず、リンクが未定義シンボルで失敗していた
   - GN が作る完全な静的ライブラリを土台にし、GN がリンク時に渡す静的ライブラリ (libc++ など) と alink の入力として宣言している rlib の中身を足す方式に変更する。ホストツール (nasm や protobuf) が入らなくなるため libwebrtc.a は 20 MB ほど小さくなり、--whole-archive でのリンクも可能になる
