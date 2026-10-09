@@ -671,6 +671,9 @@ def collect_archive_objects(ar: str, archives: List[str], dest_dir: str) -> List
     # アーカイブが持つオブジェクトファイルを集める。
     # リンカは入れ子になったアーカイブの中身を見ないため、アーカイブではなく
     # メンバーのオブジェクトファイルを加える。
+    # .dll は Windows の rlib が同梱するネイティブライブラリのメンバー
+    # (bcryptprimitives.dll など) で、リンクに必要なので .o と同様に集める
+    extensions = (".o", ".dll")
     objects: List[str] = []
     for archive in archives:
         archive = os.path.abspath(archive)
@@ -680,7 +683,7 @@ def collect_archive_objects(ar: str, archives: List[str], dest_dir: str) -> List
             for name in cmdcap([ar, "t", archive]).splitlines():
                 path = name if os.path.isabs(name) else os.path.join(os.path.dirname(archive), name)
                 path = os.path.normpath(path)
-                if path.endswith(".o"):
+                if path.endswith(extensions):
                     if not os.path.isfile(path):
                         raise Exception(f"object file not found: {path} in {archive}")
                     objects.append(path)
@@ -688,13 +691,16 @@ def collect_archive_objects(ar: str, archives: List[str], dest_dir: str) -> List
         # 展開先はアーカイブごとに分ける。lib.rmeta のように複数のアーカイブで名前が
         # 重複するメンバーがあるため、同じディレクトリに展開しない
         # lib.rmeta と lib.rmeta-link はコードを含まないメタデータなので加えない
-        names = [name for name in cmdcap([ar, "t", archive]).splitlines() if name.endswith(".o")]
+        names = [
+            name for name in cmdcap([ar, "t", archive]).splitlines() if name.endswith(extensions)
+        ]
         # アーカイブのメンバーに重複が無い場合は一括で同じディレクトリに展開する
         if len(set(names)) == len(names):
             dest = tempfile.mkdtemp(dir=dest_dir)
             with cd(dest):
                 cmd([ar, "x", archive])
-            objects += find_files(dest, "*.o")
+            for extension in extensions:
+                objects += find_files(dest, f"*{extension}")
             continue
         # アーカイブのメンバーに重複がある場合は個別に別ディレクトリに展開する。
         # ar xN で同じ名前のメンバーの何番目かを指定して 1 つずつ展開する
@@ -704,7 +710,8 @@ def collect_archive_objects(ar: str, archives: List[str], dest_dir: str) -> List
             dest = tempfile.mkdtemp(dir=dest_dir)
             with cd(dest):
                 cmd([ar, "xN", str(counts[name]), archive, name])
-            objects += find_files(dest, "*.o")
+            for extension in extensions:
+                objects += find_files(dest, f"*{extension}")
     return objects
 
 
@@ -760,6 +767,25 @@ def find_llvm_tool(webrtc_src_dir: str, name: str) -> str:
     raise Exception(f"{name} is not found in {root}")
 
 
+def find_llvm_tool_windows(env: Dict[str, str], name: str) -> str:
+    # Windows の llvm-build には llvm-ar と llvm-objcopy が入っていないため、
+    # Visual Studio の LLVM (C++ Clang Compiler for Windows) から探す。
+    # VCToolsInstallDir は <VS>/VC/Tools/MSVC/<version>/ を指すので、その 2 つ上にある
+    # <VS>/VC/Tools/Llvm/bin を見る
+    vc_tools_dir = env.get("VCTOOLSINSTALLDIR")
+    if vc_tools_dir is None:
+        raise Exception("VCToolsInstallDir is not set")
+    bin_dir = os.path.normpath(os.path.join(vc_tools_dir, "..", "..", "Llvm", "bin"))
+    path = os.path.join(bin_dir, f"{name}.exe")
+    if os.path.isfile(path):
+        return path
+    # Visual Studio に入っていない場合は PATH から探す
+    path = shutil.which(name)
+    if path is not None:
+        return path
+    raise Exception(f"{name} is not found in {bin_dir}")
+
+
 # Rust の std が固定名で定義するシンボルと、アーカイブに入れるときに付ける名前。
 # 固定名のままだと、アーカイブをリンクする側の Rust の std と同じ名前になり
 # 重複定義のエラーになる。
@@ -812,27 +838,40 @@ def find_compiler_rt_builtins(webrtc_src_dir: str, arch: str) -> Optional[str]:
 def merge_rust_objects_windows(
     webrtc_src_dir: str, webrtc_build_dir: str, target: str, output: str
 ):
-    # Windows は lld-link の /lib でアーカイブを作る。lld-link はアーカイブの入力を展開して
-    # 取り込むため、rlib をそのまま渡せば Rust のオブジェクトがメンバーになる。lib.rmeta と
-    # lib.rmeta-link も一緒に入るがリンクには影響しない。/machine を明示して、ターゲットと
-    # 違うアーキテクチャのオブジェクトが混ざったら失敗させる。
+    # GN が作った webrtc.lib に Rust の静的ライブラリ (*.rlib) の中身を足して配布用の
+    # アーカイブを作る。Rust の std が固定名で定義するシンボルは、アーカイブをリンクする
+    # 側の Rust の std と重複するため改名する。改名するのはコードのオブジェクトだけで、
+    # rlib が同梱するネイティブライブラリのメンバーはそのまま入れる
     lld_link = os.path.join(
         webrtc_src_dir, "third_party/llvm-build/Release+Asserts/bin/lld-link.exe"
     )
-    if target == "windows_x86_64":
-        machine = "x64"
-        arch = "x86_64"
-    else:
-        machine = "arm64"
-        arch = "aarch64"
+    machine = get_msvc_machine(target)
+    arch = "x86_64" if target == "windows_x86_64" else "aarch64"
+    env = get_msvc_env(machine)
+    ar = find_llvm_tool_windows(env, "llvm-ar")
+    objcopy = find_llvm_tool_windows(env, "llvm-objcopy")
     rlibs = find_build_rlibs(webrtc_build_dir, os.path.join("obj", "webrtc.lib"))
-    libs = [os.path.join(webrtc_build_dir, "obj", "webrtc.lib"), *rlibs]
     compiler_rt = find_compiler_rt_builtins(webrtc_src_dir, arch)
-    if compiler_rt is not None:
-        libs.append(compiler_rt)
     logging.info(f"create {output} with {len(rlibs)} rlibs")
     rm_rf(output)
-    cmd([lld_link, "/lib", f"/machine:{machine}", f"/out:{output}", *libs])
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        rust_rlibs: List[str] = []
+        for rlib in rlibs:
+            members = collect_archive_objects(ar, [rlib], tmp_dir)
+            rust_objects = [member for member in members if member.endswith(".o")]
+            rename_rust_symbols(objcopy, rust_objects)
+            # 改名したメンバーを rlib と同じ名前のアーカイブに入れ直す
+            rebuilt = os.path.join(tmp_dir, os.path.basename(rlib))
+            # メンバーをコマンドラインに並べると長さの上限を超えるため、一覧で渡す
+            list_file = os.path.join(tmp_dir, f"{os.path.basename(rlib)}.txt")
+            with open(list_file, "w", encoding="utf-8") as f:
+                f.writelines(f'"{member}"\n' for member in members)
+            cmd([ar, "-rc", rebuilt, f"@{list_file}"])
+            rust_rlibs.append(rebuilt)
+        libs = [os.path.join(webrtc_build_dir, "obj", "webrtc.lib"), *rust_rlibs]
+        if compiler_rt is not None:
+            libs.append(compiler_rt)
+        cmd([lld_link, "/lib", f"/machine:{machine}", f"/out:{output}", *libs])
 
 
 def split_command_line(command_line: str) -> List[str]:
