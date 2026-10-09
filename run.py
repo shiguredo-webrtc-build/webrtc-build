@@ -14,7 +14,6 @@ import subprocess
 import sys
 import tarfile
 import tempfile
-import tomllib
 import urllib.parse
 import zipfile
 from pathlib import Path
@@ -1386,9 +1385,14 @@ def test_link(target: str, webrtc_src_dir: str, webrtc_build_dir: str) -> None:
 
 
 def get_rust_toolchain() -> str:
-    # リンクに使う Rust のバージョン。rust-toolchain.toml で固定する
-    with open(os.path.join(BASE_DIR, "rust-toolchain.toml"), "rb") as f:
-        return tomllib.load(f)["toolchain"]["channel"]
+    # リンクに使う Rust のバージョン。rust-toolchain.toml で固定する。
+    # Ubuntu 22.04 の python3 は 3.10 で tomllib が無いため、このファイルだけを読む
+    with open(os.path.join(BASE_DIR, "rust-toolchain.toml"), encoding="utf-8") as f:
+        for line in f:
+            key, _, value = line.partition("=")
+            if key.strip() == "channel":
+                return value.strip().strip('"')
+    raise Exception("channel is not found in rust-toolchain.toml")
 
 
 def test_link_rust_in(
