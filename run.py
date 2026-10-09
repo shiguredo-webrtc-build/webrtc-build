@@ -11,6 +11,7 @@ import re
 import shlex
 import shutil
 import subprocess
+import sys
 import tarfile
 import tempfile
 import urllib.parse
@@ -2150,6 +2151,13 @@ def main():
             - gen-force 系: 既存のビルドディレクトリは完全に削除してから gn gen をやり直す
             - nobuild 系: ビルドを行わない
     """
+    # テストのログは日本語で出力する。Windows のコンソールのコードページが UTF-8 で
+    # ない場合や、ロケールが UTF-8 でない環境では、日本語の出力が UnicodeEncodeError
+    # になるため、標準出力と標準エラー出力は UTF-8 にする
+    if sys.stdout is not None:
+        sys.stdout.reconfigure(encoding="utf-8")
+    if sys.stderr is not None:
+        sys.stderr.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser()
     sp = parser.add_subparsers()
     bp = sp.add_parser("build")
