@@ -10,7 +10,8 @@
 // メディアやサイマルキャスト、フィールドトライアル、proxy、zlib や log_sinks、
 // H.265 の VPS パーサなど、配布するアーカイブに入っている必要があるものを対象にする。
 // プラットフォーム固有のもの (Windows の Core Audio の ADM、macOS の画面キャプチャ、
-// Linux の v4l2 のデバイス情報) は、そのプラットフォームでだけ確認する。
+// Linux の v4l2 のデバイス情報) は、そのプラットフォームでだけ確認する。iOS の
+// アーカイブには desktop_capture が入っていないので、画面キャプチャは iOS では確認しない。
 // AdaptedVideoTrackSource は抽象クラスなので、テスト側で継承したクラスを作って確認する。
 
 #include <array>
@@ -434,7 +435,8 @@ int TestWindowsAudioDeviceModule() {
 #endif
 
 // macOS の画面キャプチャの実装が入っていることを確認する
-#if defined(WEBRTC_MAC)
+// iOS でも WEBRTC_MAC は定義されるが、iOS のアーカイブには desktop_capture が入っていない
+#if defined(WEBRTC_MAC) && !defined(WEBRTC_IOS)
 int TestMacScreenCapture() {
   const webrtc::DesktopCaptureOptions options =
       webrtc::DesktopCaptureOptions::CreateDefault();
@@ -462,7 +464,7 @@ int main() {
 #if defined(WEBRTC_WIN)
                            TestWindowsAudioDeviceModule,
 #endif
-#if defined(WEBRTC_MAC)
+#if defined(WEBRTC_MAC) && !defined(WEBRTC_IOS)
                            TestMacScreenCapture,
 #endif
                            }) {

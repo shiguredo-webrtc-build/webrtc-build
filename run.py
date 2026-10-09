@@ -932,7 +932,12 @@ def get_test_link_libraries(target: str, work_dir: str) -> List[str]:
             "ScreenCaptureKit",
         ]
     if target in ("ios", "ios_sdk"):
+        # Foundation は ObjC の実装 (sdk/objc の ADM や RTCAudioSession) が参照している。
+        # macOS の AppKit と違って iOS の UIKit は Foundation を reexport しないため、
+        # UIKit だけを渡すと NSNotificationCenter などのシンボルが未定義になる
         return [
+            "-framework",
+            "Foundation",
             "-framework",
             "CoreFoundation",
             "-framework",
