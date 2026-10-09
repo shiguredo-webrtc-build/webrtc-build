@@ -44,7 +44,7 @@ MANIFEST_NAME = ".webrtc-build-sysroot.json"
 
 # sysroot の生成形式（後処理の内容など）を変えたらインクリメントする。
 # 古い形式の sysroot は fingerprint が一致しても再利用しない。
-MANIFEST_VERSION = 1
+MANIFEST_VERSION = 2
 
 # 設定値のうち APT の設定ファイルやコマンドラインへ埋め込むものに許可する文字。
 # sources.list の [] オプションや空白による区切りを壊す文字を弾き、
@@ -311,11 +311,28 @@ def _write_apt_files(config: SysrootConfig, work_dir: Path) -> None:
     (work_dir / "sources.list").write_text("\n".join(source_lines) + "\n", encoding="utf-8")
 
 
+def _merge_into_usr(legacy_path: Path, merged_path: Path) -> None:
+    """legacy_path の中身を merged_path へ移し、legacy_path を削除する。
+
+    同じ場所に同名のものがある場合は、どちらを残すべきか決められないためエラーに
+    する。展開したパッケージの組み合わせが壊れている場合にだけ起きる。
+    """
+    for child in sorted(legacy_path.iterdir()):
+        destination = merged_path / child.name
+        if child.is_dir() and not child.is_symlink() and destination.is_dir():
+            _merge_into_usr(child, destination)
+            continue
+        if destination.exists() or destination.is_symlink():
+            raise SysrootBuildError(f"Conflicting path in sysroot: {destination}")
+        child.rename(destination)
+    legacy_path.rmdir()
+
+
 def _ensure_usrmerge_symlinks(root: Path) -> None:
     # dpkg-deb --extract は maintainer script を実行しないため、
     # 通常は usrmerge パッケージが作成する /lib -> usr/lib などのリンクが存在しない。
-    # このリンクがないと、パッケージが /lib/... を参照するパスで配置したファイルと
-    # /usr/lib/... を参照するリンカがすれ違って解決に失敗するため、ここで補う。
+    # リンクがないと、/lib/... へ配置したパッケージのファイルと /usr/lib/... を
+    # 参照するリンカがすれ違うため、/lib 側の中身を usr 側へ統合してからリンクを張る。
     for legacy, merged in (
         ("bin", "usr/bin"),
         ("sbin", "usr/sbin"),
@@ -323,11 +340,18 @@ def _ensure_usrmerge_symlinks(root: Path) -> None:
         ("lib64", "usr/lib64"),
     ):
         legacy_path = root / legacy
-        # パッケージが実体のディレクトリやリンクを配置済みの場合はそれを尊重する。
-        if legacy_path.is_symlink() or legacy_path.exists():
+        merged_path = root / merged
+        # パッケージが作成したリンクはそのまま使う。
+        if legacy_path.is_symlink():
             continue
-        if (root / merged).is_dir():
-            legacy_path.symlink_to(merged)
+        if not merged_path.is_dir():
+            continue
+        if legacy_path.is_dir():
+            _merge_into_usr(legacy_path, merged_path)
+        elif legacy_path.exists():
+            # 同名の通常ファイルがあるのは想定外なのでエラーにする。
+            raise SysrootBuildError(f"Conflicting path in sysroot: {legacy_path}")
+        legacy_path.symlink_to(merged)
 
 
 def _fix_absolute_symlinks(root: Path) -> None:
