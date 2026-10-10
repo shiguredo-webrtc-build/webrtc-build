@@ -31,6 +31,10 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-10-11 [FIX] [m156] LoggingConfig で登録した sink の配信閾値を min_severity に従わせる
+  - `AddSink` には閾値の引数が無く `LogSink` の閾値が `LS_INFO` のままになるため、 `set_min_severity(LS_WARNING)` でも `LS_INFO` の行が届き、 `set_min_severity(LS_VERBOSE)` では `LS_VERBOSE` の行が届かなかった
+  - config の sink への配信判定を `LoggingConfig::min_severity()` に変え、 `UpdateMinLogSeverity` の閾値の計算から config の sink を外す。閾値を計算に混ぜると `g_min_sev` が `LS_INFO` まで下がり、配信しない行まで構築してしまう
+  - @melpon
 - 2026-10-10 [FIX] [m156] libwebrtc.a に ObjC の実装を含める
   - Apple の ObjC の実装 (sdk/objc) は GN の完全な静的ライブラリに入らず WebRTC.framework のリンクにだけ渡るため、フレームワークのリンク入力もアーカイブに入れる。これが無いと ObjCToNativeVideoEncoderFactory や RTCDefaultVideoEncoderFactory を呼ぶ webrtc-rs が未定義シンボルで失敗する
   - ObjC の実装がアーカイブに入っていることを確認する tests/link_test_objc.mm を追加し、既定のコーデックファクトリと ObjCToNative* の変換関数を実際に呼び出す
