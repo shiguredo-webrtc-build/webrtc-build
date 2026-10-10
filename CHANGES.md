@@ -38,6 +38,7 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - Rust の std が定義する rust_eh_personality は利用者の Rust の std とも重複するため、アーカイブの中では webrtc_rust_eh_personality に改名してリンカオプションを足さずにリンクできるようにする
   - Windows は lld-link /lib で合体し、MSVC でリンクする下流のために compiler-rt の builtins も同梱する
   - 配布するアーカイブの関数を呼び出す tests/link_test.cc と tests/link_test_objc.mm を追加し、run.py test-link がコンパイルとリンクを行って実行する。ObjC のテストは既定のコーデックファクトリと ObjCToNative* の変換関数を実際に呼び出し、ObjC の実装がアーカイブに入っていることを確認する。Windows 以外は GN と同じ Clang のフラグを使い、Windows はアーカイブの利用者 (sora-cpp-sdk や webrtc-rs) と同じ MSVC を使う。CI の各プラットフォームでも確認する
+  - Windows で ninja に渡すターゲット名に GN の表示用の絶対パスを渡していたためビルドに失敗していた。ターゲットが作るファイルのパスは gn outputs から引くようにする
   - @melpon
 - 2026-10-05 [RELEASE] m156.8078.2.1
   - @voluntas
