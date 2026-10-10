@@ -31,6 +31,11 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-10-10 [FIX] [m156] libwebrtc.a に ObjC の実装を含める
+  - Apple の ObjC の実装 (sdk/objc) は GN の完全な静的ライブラリに入らず WebRTC.framework のリンクにだけ渡るため、フレームワークのリンク入力もアーカイブに入れる。これが無いと ObjCToNativeVideoEncoderFactory や RTCDefaultVideoEncoderFactory を呼ぶ webrtc-rs が未定義シンボルで失敗する
+  - ObjC の実装がアーカイブに入っていることを確認する tests/link_test_objc.mm を追加し、既定のコーデックファクトリと ObjCToNative* の変換関数を実際に呼び出す
+  - Windows で ninja に渡すターゲット名に GN の表示用の絶対パスを渡していたためビルドに失敗していた。ターゲットが作るファイルのパスは gn outputs から引くようにする
+  - @melpon
 - 2026-10-10 [RELEASE] m156.8078.3.2
   - @melpon
 - 2026-10-08 [FIX] [m156] libwebrtc.a と webrtc.lib に Rust の実装を含める

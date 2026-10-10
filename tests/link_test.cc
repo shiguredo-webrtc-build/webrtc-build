@@ -12,6 +12,8 @@
 // プラットフォーム固有のもの (Windows の Core Audio の ADM、macOS の画面キャプチャ、
 // Linux の v4l2 のデバイス情報) は、そのプラットフォームでだけ確認する。iOS の
 // アーカイブには desktop_capture が入っていないので、画面キャプチャは iOS では確認しない。
+// Apple の ObjC の実装は GN の完全な静的ライブラリに入らず、WebRTC.framework のリンクに
+// だけ渡るため、ObjC++ のソース (link_test_objc.mm) で別に確認する。
 // AdaptedVideoTrackSource は抽象クラスなので、テスト側で継承したクラスを作って確認する。
 
 #include <array>
@@ -451,6 +453,11 @@ int TestMacScreenCapture() {
 
 }  // namespace
 
+// Apple の ObjC の実装がアーカイブに入っているかは ObjC++ のソースで確認する
+#if defined(WEBRTC_MAC)
+extern "C" int webrtc_link_test_objc();
+#endif
+
 // テストの本体。テストの実行ファイルの main と、C の関数を呼ぶ別のテストプログラムが
 // 呼び出すため extern "C" で公開している
 extern "C" int webrtc_link_test_main() {
@@ -460,6 +467,9 @@ extern "C" int webrtc_link_test_main() {
                            TestSocketAdapters, TestFieldTrials, TestTurnTlsClientCertificate,
                            TestLogSinks, TestEnableMedia, TestEnableMediaWithDefaults,
                            TestSimulcastEncoderAdapter, TestH265VpsParser,
+#if defined(WEBRTC_MAC)
+                           webrtc_link_test_objc,
+#endif
 #if defined(WEBRTC_LINUX)
                            TestLinuxVideoCapture,
 #endif
