@@ -644,21 +644,17 @@ def find_ninja_inputs(webrtc_build_dir: str, target: str) -> List[str]:
     return inputs
 
 
-def find_build_rlibs(webrtc_build_dir: str, archive: str) -> List[str]:
+def find_build_rlibs(webrtc_build_dir: str, target: str) -> List[str]:
     # GN が alink の入力として宣言している rlib を ninja から取る
-    return [path for path in find_ninja_inputs(webrtc_build_dir, archive) if path.endswith(".rlib")]
+    return [path for path in find_ninja_inputs(webrtc_build_dir, target) if path.endswith(".rlib")]
 
 
-def find_link_inputs(webrtc_build_dir: str, output: str) -> Tuple[List[str], List[str]]:
+def find_link_inputs(webrtc_build_dir: str, target: str) -> Tuple[List[str], List[str]]:
     # リンクの出力に入る静的ライブラリとオブジェクトを ninja から取る。
     # ビルドディレクトリの外にあるもの (コンパイラのランタイムなど) は、リンクする側が
     # 自分で用意するものなので足さない
     root = os.path.abspath(webrtc_build_dir) + os.sep
-    inputs = [
-        path
-        for path in find_ninja_inputs(webrtc_build_dir, os.path.relpath(output, webrtc_build_dir))
-        if path.startswith(root)
-    ]
+    inputs = [path for path in find_ninja_inputs(webrtc_build_dir, target) if path.startswith(root)]
     archives = [path for path in inputs if path.endswith(".a")]
     objects = [path for path in inputs if path.endswith(".o")]
     return (archives, objects)
@@ -826,7 +822,7 @@ def merge_rust_objects(
     # unwind のライブラリは足さない。Android の NDK の clang や Rust のように利用者が
     # 自分でリンクするもので、足すと _Unwind_* が重複する。
     # ターゲットが作るファイルのパスは GN が作るものなので、パスではなくターゲットを持って
-    # gn desc で引く
+    # 引く
     archives: List[str] = []
     rlibs: List[str] = []
     objects: List[str] = []
@@ -837,10 +833,8 @@ def merge_rust_objects(
             continue
         if target_type == "static_library":
             # 静的ライブラリの中身を足す。alink の入力に Rust の実装 (*.rlib) がある
-            archives.append(outputs[0])
-            rlibs += find_build_rlibs(
-                webrtc_build_dir, os.path.relpath(outputs[0], webrtc_build_dir)
-            )
+            archives.append(os.path.join(webrtc_build_dir, outputs[0]))
+            rlibs += find_build_rlibs(webrtc_build_dir, outputs[0])
         elif target_type == "shared_library":
             # 共有ライブラリはリンクの結果なので、そのリンクに入るものを足す。Apple の
             # ObjC の実装 (sdk/objc) は GN の完全な静的ライブラリに入らず、WebRTC.framework
@@ -891,12 +885,13 @@ def merge_rust_objects_windows(
     ar = find_llvm_tool_windows(env, "llvm-ar")
     objcopy = find_llvm_tool_windows(env, "llvm-objcopy")
     # 土台にする GN の完全な静的ライブラリ (webrtc.lib) は、一覧 (WEBRTC_BUILD_TARGETS) の
-    # 先頭のターゲット。パスは GN が作るものなので gn desc で引く
+    # 先頭のターゲット。パスは GN が作るものなので、パスではなくターゲットで引く
     label = get_build_targets(target)[0]
     target_type, outputs = gn_desc_target(webrtc_src_dir, webrtc_build_dir, label)
     if target_type != "static_library":
         raise Exception(f"{label} is not a static library")
-    rlibs = find_build_rlibs(webrtc_build_dir, os.path.relpath(outputs[0], webrtc_build_dir))
+    webrtc_lib = os.path.join(webrtc_build_dir, outputs[0])
+    rlibs = find_build_rlibs(webrtc_build_dir, outputs[0])
     compiler_rt = find_compiler_rt_builtins(webrtc_src_dir, arch)
     logging.info(f"create {output} with {len(rlibs)} rlibs")
     rm_rf(output)
@@ -914,7 +909,7 @@ def merge_rust_objects_windows(
                 f.writelines(f'"{member}"\n' for member in members)
             cmd([ar, "-rc", rebuilt, f"@{list_file}"])
             rust_rlibs.append(rebuilt)
-        libs = [outputs[0], *rust_rlibs]
+        libs = [webrtc_lib, *rust_rlibs]
         if compiler_rt is not None:
             libs.append(compiler_rt)
         cmd([lld_link, "/lib", f"/machine:{machine}", f"/out:{output}", *libs])
@@ -1061,9 +1056,12 @@ def gn_desc_target(
     # 出力なので先頭のものを使う
     with cd(webrtc_src_dir):
         desc = json.loads(cmdcap(["gn", "desc", "--format=json", webrtc_build_dir, target]))
-    info = next(iter(desc.values()))
-    # group のように出力を持たないターゲットは outputs が無い
-    return (info["type"], info.get("outputs", []))
+        info = next(iter(desc.values()))
+        # group のように出力を持たないターゲットは outputs が無い
+        if len(info.get("outputs", [])) == 0:
+            return (info["type"], [])
+        outputs = cmdcap(["gn", "outputs", webrtc_build_dir, target]).splitlines()
+    return (info["type"], outputs)
 
 
 def gn_desc_target_frameworks(
@@ -1628,7 +1626,7 @@ WEBRTC_BUILD_TARGETS_COMMON = [
 # ものはその中身を、共有ライブラリ (shared_library) のリンクに入るものはその中身を
 # 配布するアーカイブに入れる。バンドル (create_bundle) や jar のように、どちらでもない
 # ものはビルドするだけ。パスは GN が作るものなので、パスではなくターゲットを書いて
-# gn desc で引く
+# 引く
 WEBRTC_BUILD_TARGETS: Dict[str, List[str]] = {
     "macos_arm64": [
         *WEBRTC_BUILD_TARGETS_COMMON,
