@@ -814,7 +814,7 @@ def rename_rust_symbols(objcopy: str, objects: List[str], macho: bool) -> None:
 
 
 def merge_rust_objects(
-    ar: str, webrtc_src_dir: str, webrtc_build_dir: str, output: str, target: str, macho: bool
+    ar: str, webrtc_src_dir: str, webrtc_build_dir: str, output: str, target: str
 ):
     # 一覧 (WEBRTC_BUILD_TARGETS) のターゲットが作るものから配布用のアーカイブを作る。
     # 静的ライブラリならその中身を、共有ライブラリならそのリンクに入るものを入れる。
@@ -823,6 +823,7 @@ def merge_rust_objects(
     # 自分でリンクするもので、足すと _Unwind_* が重複する。
     # ターゲットが作るファイルのパスは GN が作るものなので、パスではなくターゲットを持って
     # 引く
+    macho = target in ("macos_arm64", "ios", "ios_sdk")
     archives: List[str] = []
     rlibs: List[str] = []
     objects: List[str] = []
@@ -1768,7 +1769,6 @@ def build_webrtc_ios(
                 work_dir,
                 os.path.join(work_dir, "libwebrtc.a"),
                 target="ios",
-                macho=True,
             )
         libs.append(os.path.join(work_dir, "libwebrtc.a"))
 
@@ -1894,7 +1894,6 @@ def build_webrtc_android(
                 work_dir,
                 os.path.join(work_dir, "libwebrtc.a"),
                 target="android",
-                macho=False,
             )
 
 
@@ -2067,7 +2066,6 @@ def build_webrtc(
             webrtc_build_dir,
             os.path.join(webrtc_build_dir, "libwebrtc.a"),
             target=target,
-            macho=target in ("macos_arm64",),
         )
 
     # macOS の場合は WebRTC.framework に追加情報を入れる
