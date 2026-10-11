@@ -1,7 +1,7 @@
 # LoggingConfig で登録した sink の配信閾値が min_severity に従わない
 
 - Created: 2026-10-11
-- Completed: {YYYY-MM-DD}
+- Completed: 2026-10-11
 - Branch: feature/fix-logging-sink-min-severity
 - Polished: {YYYY-MM-DD}
 
@@ -56,3 +56,30 @@ webrtc-rs の `log::LoggingConfig::set_min_severity` は「この重大度より
 - `patches/README.md` に解説と削除条件が書かれている
 - `CHANGES.md` に FIX が追記されている
 - 生成した libwebrtc を使う webrtc-rs の canary で上記の配信閾値の挙動を確認する
+
+## 解決方法
+
+`patches/logging_sink_min_severity.patch` を追加し、 `run.py` の `PATCHES` の全ターゲットに登録した。
+
+- `LogMessage::~LogMessage` の config sink ループの比較を `sink->min_severity_` から `config.min_severity()` に変える
+- `LogMessage::UpdateMinLogSeverity` から `config.sinks()` のループを削除し、 `g_min_sev` を debug 出力の閾値、 config の閾値、 legacy な `streams_` の閾値の最小値にする
+- legacy な `streams_` を使う経路 (`entry->min_severity_` で比較するループ、 `AddLogToStream`、 `RemoveLogToStream`、 `GetLogToStream`) は変更しない
+
+`patches/README.md` に解説と削除条件 (上流の `webrtc:42234107` の移行完了) を追記し、 `CHANGES.md` に FIX を追記した。
+
+### 確認したこと
+
+ubuntu-24.04_x86_64 をビルドし、 生成した `libwebrtc.a` をリンクした canary で次を確認した。 `InitializeLogging` は 1 プロセスにつき 1 回しか成功しないため、 ケースごとに別プロセスで実行した。
+
+- sink を登録し `min_severity` を `LS_VERBOSE` にすると `LS_VERBOSE` の行が sink へ届く
+- sink を登録し `min_severity` を `LS_WARNING` にすると `LS_INFO` の行は届かず、 `LS_WARNING` と `LS_ERROR` の行が届く
+- sink を登録し `min_severity` を `LS_NONE` にするとどの重大度の行も sink へ届かない
+- sink を登録し `min_severity` を `LS_WARNING` にすると `IsNoop(LS_INFO)` が真になる。 debug 出力が `LS_INFO` を要求しているときは debug 出力のために構築されるので、 `debug_severity` を `LS_NONE` にして確認した
+- legacy な `AddLogToStream` で指定した閾値と `GetLogToStream` の結果が変わらない
+
+`WEBRTC_BUILD_ROOT` にローカルの webrtc-build を指定した webrtc-rs の canary でも `verbose` / `warning` / `none` の 3 ケースを確認した。 `python3 run.py test-link ubuntu-24.04_x86_64` と `python3 run.py test-link-rust ubuntu-24.04_x86_64` も成功した。
+
+### 残っている作業
+
+- `rtc_base/logging.cc` はローカルに取得済みの 8 ターゲットで適用前の内容が同一 (blob が `00f49c9a52`) であり、 残りのターゲットも同じリビジョンの libwebrtc を使うため同じパッチが適用できる。 ビルドの確認は ubuntu-24.04_x86_64 のみで、 全ターゲットのビルドは CI で確認する
+- リリースした libwebrtc を使う webrtc-rs の canary での確認は未実施
