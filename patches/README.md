@@ -405,3 +405,15 @@ libwebrtc 本体の `PeerConnectionInterface::IceServer::tls_client_identity` �
 `tls_client_identity` を生成する。
 
 `IceServer.toString()` には、秘密鍵や証明書 PEM は出力しない。
+
+## logging_sink_min_severity.patch
+
+`LoggingConfig::set_min_severity` で指定した閾値を `LoggingConfig::AddSink` で登録した sink への配信に反映させるパッチ。
+
+libwebrtc は config の sink への配信を `LogSink::min_severity_` で判定している。この値は `LogMessage::AddLogToStream` でしか設定できず、 `AddSink` に閾値の引数が無いため常に `LS_INFO` になる。このため `set_min_severity(LS_WARNING)` でも `LS_INFO` の行が届き、 `set_min_severity(LS_VERBOSE)` では `LS_VERBOSE` の行が届かない。下流では sink の handler 側で同じ条件を再実装して回避している。
+
+- `LogMessage::~LogMessage` の config の sink への配信判定を `config.min_severity()` に変える
+- `LogMessage::UpdateMinLogSeverity` から config の sink を外す。混ぜると `g_min_sev` が `LS_INFO` まで下がり、配信しない行まで構築してしまう
+- legacy な `AddLogToStream` と `GetLogToStream` の経路は変更しない。 `LogSink::min_severity_` は legacy 専用のメンバになる
+
+上流は `webrtc:42234107` (Remove LogSink from rtc::LogMessage) で `AddLogToStream` の削除を進めており、 config の sink の閾値は `min_severity` に従う方向である。上流でこの移行が完了したら、このパッチは削除する。
