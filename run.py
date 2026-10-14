@@ -3,6 +3,7 @@ import collections
 import ctypes
 import filecmp
 import fnmatch
+import hashlib
 import json
 import logging
 import os
@@ -788,23 +789,71 @@ def find_llvm_tool(webrtc_src_dir: str, name: str) -> str:
     raise Exception(f"{name} is not found in {root}")
 
 
-def find_llvm_tool_windows(env: Dict[str, str], name: str) -> str:
-    # Windows の llvm-build には llvm-ar と llvm-objcopy が入っていないため、
-    # Visual Studio の LLVM (C++ Clang Compiler for Windows) から探す。
-    # VCToolsInstallDir は <VS>/VC/Tools/MSVC/<version>/ を指すので、その 2 つ上にある
-    # <VS>/VC/Tools/Llvm/bin を見る
-    vc_tools_dir = env.get("VCTOOLSINSTALLDIR")
-    if vc_tools_dir is None:
-        raise Exception("VCToolsInstallDir is not set")
-    bin_dir = os.path.normpath(os.path.join(vc_tools_dir, "..", "..", "Llvm", "bin"))
-    path = os.path.join(bin_dir, f"{name}.exe")
-    if os.path.isfile(path):
-        return path
-    # Visual Studio に入っていない場合は PATH から探す
-    path = shutil.which(name)
-    if path is not None:
-        return path
-    raise Exception(f"{name} is not found in {bin_dir}")
+# Rust の rlib を配布するアーカイブに取り込むために使う LLVM のツール。LLVM の公式
+# リリースの Windows 向けアーカイブから取り出し、バージョンと sha256 を固定する。
+# ツールはホストで動くので、クロスコンパイルする windows_arm64 でも x64 版を使う
+LLVM_WINDOWS_VERSION = "23.1.3"
+LLVM_WINDOWS_ARCHIVE = f"clang+llvm-{LLVM_WINDOWS_VERSION}-x86_64-pc-windows-msvc.tar.xz"
+LLVM_WINDOWS_ARCHIVE_URL = (
+    "https://github.com/llvm/llvm-project/releases/download"
+    f"/llvmorg-{LLVM_WINDOWS_VERSION}/{LLVM_WINDOWS_ARCHIVE.replace('+', '%2B')}"
+)
+LLVM_WINDOWS_ARCHIVE_SHA256 = "9ee6a2192fbb30c776415af529927f76ca6b5d1d55699bb1315f9878e610b5b8"
+LLVM_WINDOWS_TOOLS = ["llvm-ar", "llvm-objcopy"]
+
+
+def sha256sum(path: str) -> str:
+    # ファイルの sha256 を返す。ファイル全体をメモリに載せないよう少しずつ読む
+    digest = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def download_llvm_tools_windows(build_dir: str) -> str:
+    # LLVM のツールを取り出したディレクトリを返す。アーカイブは 800 MiB 以上あり、その
+    # ほとんどが不要なものなので全体は展開しない。xz は先頭からしか読めないため、
+    # 読みながら必要なメンバーだけを書き出し、揃ったらそこで読むのをやめる。
+    # 2 回目以降は取り出し済みのものをそのまま使う
+    dest_dir = os.path.join(build_dir, "llvm")
+    if all(os.path.isfile(os.path.join(dest_dir, f"{name}.exe")) for name in LLVM_WINDOWS_TOOLS):
+        return dest_dir
+    mkdir_p(dest_dir)
+    archive = download(LLVM_WINDOWS_ARCHIVE_URL, build_dir, LLVM_WINDOWS_ARCHIVE)
+    actual = sha256sum(archive)
+    if actual != LLVM_WINDOWS_ARCHIVE_SHA256:
+        # 壊れたものや差し替えられたものを残さない
+        os.remove(archive)
+        raise Exception(f"sha256 of {archive} is {actual}, expected {LLVM_WINDOWS_ARCHIVE_SHA256}")
+    logging.info(f"extract {', '.join(LLVM_WINDOWS_TOOLS)} from {archive}")
+    wanted = {f"{name}.exe": os.path.join(dest_dir, f"{name}.exe") for name in LLVM_WINDOWS_TOOLS}
+    extracted: List[str] = []
+    with tarfile.open(archive, "r|xz") as tf:
+        for member in tf:
+            name = os.path.basename(member.name)
+            if not member.isfile() or name not in wanted:
+                continue
+            source = tf.extractfile(member)
+            if source is None:
+                continue
+            with open(wanted[name], "wb") as f:
+                shutil.copyfileobj(source, f)
+            extracted.append(name)
+            if len(extracted) == len(wanted):
+                break
+    missing = [name for name in wanted if name not in extracted]
+    if len(missing) > 0:
+        raise Exception(f"{archive} does not contain {', '.join(missing)}")
+    return dest_dir
+
+
+def find_llvm_tool_windows(build_dir: str, name: str) -> str:
+    # LLVM の公式リリースから取り出したツールのパスを返す
+    path = os.path.join(download_llvm_tools_windows(build_dir), f"{name}.exe")
+    if not os.path.isfile(path):
+        raise Exception(f"{path} is not found")
+    return path
 
 
 # Rust の std が固定名で定義するシンボルと、アーカイブに入れるときに付ける名前。
@@ -871,6 +920,17 @@ def merge_rust_objects(
         append_objects(ar, output, [*extracted, *objects, *rust_objects])
 
 
+def find_cxx_runtime_objects_windows(webrtc_build_dir: str) -> List[str]:
+    # 配布するアーカイブに入れる libc++ のオブジェクトを集める。GN は libc++ の
+    # オブジェクトを obj/buildtools/third_party/libc++/libc++ に作るので、その中の
+    # *.obj を返す
+    root = os.path.join(webrtc_build_dir, "obj", "buildtools", "third_party", "libc++", "libc++")
+    objects = find_files(root, "*.obj")
+    if len(objects) == 0:
+        raise Exception(f"libc++ objects are not found in {root}")
+    return objects
+
+
 def find_compiler_rt_builtins(webrtc_src_dir: str, arch: str) -> Optional[str]:
     # compiler-rt の builtins を探す。Rust の std が f16 の変換関数 (__truncsfhf2 と
     # __extendhfsf2) を参照するため、MSVC でリンクする利用者向けにアーカイブへ同梱する。
@@ -891,15 +951,16 @@ def merge_rust_objects_windows(
     # GN が作った webrtc.lib に Rust の静的ライブラリ (*.rlib) の中身を足して配布用の
     # アーカイブを作る。Rust の std が固定名で定義するシンボルは、アーカイブをリンクする
     # 側の Rust の std と重複するため改名する。改名するのはコードのオブジェクトだけで、
-    # rlib が同梱するネイティブライブラリのメンバーはそのまま入れる
+    # rlib が同梱するネイティブライブラリのメンバーはそのまま入れる。
+    # GN がビルドした libc++ のオブジェクトもアーカイブに入れる
     lld_link = os.path.join(
         webrtc_src_dir, "third_party/llvm-build/Release+Asserts/bin/lld-link.exe"
     )
     machine = get_msvc_machine(target)
     arch = "x86_64" if target == "windows_x86_64" else "aarch64"
-    env = get_msvc_env(machine)
-    ar = find_llvm_tool_windows(env, "llvm-ar")
-    objcopy = find_llvm_tool_windows(env, "llvm-objcopy")
+    ar = find_llvm_tool_windows(webrtc_build_dir, "llvm-ar")
+    objcopy = find_llvm_tool_windows(webrtc_build_dir, "llvm-objcopy")
+    libcxx_objects = find_cxx_runtime_objects_windows(webrtc_build_dir)
     # 土台にする GN の完全な静的ライブラリ (webrtc.lib) は、一覧 (WEBRTC_BUILD_TARGETS) の
     # 先頭のターゲット。パスは GN が作るものなので、パスではなくターゲットで引く
     label = get_build_targets(target)[0]
@@ -909,7 +970,7 @@ def merge_rust_objects_windows(
     webrtc_lib = os.path.join(webrtc_build_dir, outputs[0])
     rlibs = find_build_rlibs(webrtc_build_dir, outputs[0])
     compiler_rt = find_compiler_rt_builtins(webrtc_src_dir, arch)
-    logging.info(f"create {output} with {len(rlibs)} rlibs")
+    logging.info(f"create {output} with {len(rlibs)} rlibs and {len(libcxx_objects)} libc++ objects")
     rm_rf(output)
     with tempfile.TemporaryDirectory() as tmp_dir:
         rust_rlibs: List[str] = []
@@ -925,7 +986,7 @@ def merge_rust_objects_windows(
                 f.writelines(f'"{member}"\n' for member in members)
             cmd([ar, "-rc", rebuilt, f"@{list_file}"])
             rust_rlibs.append(rebuilt)
-        libs = [webrtc_lib, *rust_rlibs]
+        libs = [webrtc_lib, *libcxx_objects, *rust_rlibs]
         if compiler_rt is not None:
             libs.append(compiler_rt)
         cmd([lld_link, "/lib", f"/machine:{machine}", f"/out:{output}", *libs])
@@ -962,10 +1023,10 @@ def find_cxx_compile_command(webrtc_build_dir: str) -> List[str]:
     # と、同じ定義マクロでコンパイルする必要があるため、GN が生成したコマンドをそのまま
     # 利用する。ninja -t commands は依存も含めたコマンドを一度に出力するので、その中から
     # WebRTC の実装をコンパイルするものを選ぶ。
-    # Windows のテストは MSVC でコンパイルするため、定義マクロとインクルードパスだけを
-    # ここから取り出して cl.exe に渡す
+    # WebRTC の実装をコンパイルするものを選ぶ。アーカイブの名前と C++ の標準の指定は
+    # Windows とそれ以外で異なる
     if platform.system() == "Windows":
-        # Windows のアーカイブは webrtc.lib で、C++ の標準の指定も MSVC と同じ /std: になる
+        # Windows のアーカイブは webrtc.lib で、C++ の標準の指定は clang-cl の /std: になる
         archive = os.path.join("obj", "webrtc.lib")
         std_flag = "/std:c++"
     else:
@@ -1117,8 +1178,9 @@ def get_test_include_dirs(webrtc_src_dir: str) -> List[str]:
 
 def get_test_compile_flags(command: List[str]) -> List[str]:
     # コンパイルコマンドから、テストプログラムのコンパイルとリンクに使うフラグを作る。
-    # コンパイルとリンクの指定 (-c と -o)、依存ファイルの出力先 (-MMD と -MF)、
-    # テストに不要な Chromium 内部のチェック (-Xclang) と警告のエラー化 (-Werror) を外す。
+    # コンパイルとリンクの指定 (-c と -o、clang-cl の /c と /Fo)、依存ファイルの出力先
+    # (-MMD と -MF、clang-cl の /showIncludes)、テストに不要な Chromium 内部のチェック
+    # (-Xclang) と警告のエラー化 (-Werror と /WX) を外す。
     # テストプログラムは WebRTC の一部ではないので、テスト側の警告でビルドを止めない
     flags: List[str] = [command[0]]
     i = 1
@@ -1127,37 +1189,18 @@ def get_test_compile_flags(command: List[str]) -> List[str]:
         if token in ("-c", "-o", "-MF", "-fmodule-name", "/c", "/Fo"):
             i += 2
             continue
-        if token in ("-MMD", "-fmodule-name") or token.startswith("-Werror") or token == "-Xclang":
+        if (
+            token in ("-MMD", "-fmodule-name", "/WX")
+            or token.startswith("/Fo")
+            or token.startswith("/showIncludes")
+            or token.startswith("-Werror")
+            or token == "-Xclang"
+        ):
             i += 2 if token == "-Xclang" else 1
             continue
         flags.append(token)
         i += 1
     return flags
-
-
-# MSVC の cl.exe にそのまま渡せる GN のコンパイルフラグ。GN は clang-cl 向けの
-# フラグを生成するため、MSVC が解釈できないもの (-imsvc や -f... や -W... など) は
-# 渡さない。定義マクロとインクルードパス、ABI に関わる /MT と /std: はそのまま渡す
-MSVC_COMPILE_FLAGS: Tuple[str, ...] = (
-    "-D",
-    "-I",
-    "/bigobj",
-    "/Brepro",
-    "/D",
-    "/FS",
-    "/guard:cf",
-    "/Gw",
-    "/Gy",
-    "/I",
-    "/MT",
-    "/O2",
-    "/Oy-",
-    "/std:",
-    "/TP",
-    "/utf-8",
-    "/Z7",
-    "/Zc:",
-)
 
 
 def get_msvc_env(arch: str) -> Dict[str, str]:
@@ -1180,29 +1223,6 @@ def get_msvc_env(arch: str) -> Dict[str, str]:
     return env
 
 
-def get_msvc_tools(env: Dict[str, str], target: str) -> Tuple[str, str]:
-    # MSVC のコンパイラとリンカをパスで直接選ぶ。VsDevCmd.bat が設定する PATH には
-    # main() が先に取り込んだ別のアーキテクチャのツールが残っているため、PATH から
-    # 探すとビルドしたアーキテクチャと違うツールを選ぶことがある
-    vc_tools_dir = env.get("VCTOOLSINSTALLDIR")
-    if vc_tools_dir is None:
-        raise Exception("VCToolsInstallDir is not set")
-    host = platform.machine().lower()
-    if host in ("x86_64", "amd64"):
-        host = "x64"
-    elif host in ("aarch64", "arm64"):
-        host = "arm64"
-    else:
-        raise Exception(f"unknown host architecture {platform.machine()}")
-    bin_dir = os.path.join(vc_tools_dir, "bin", f"Host{host}", target)
-    compiler = os.path.join(bin_dir, "cl.exe")
-    linker = os.path.join(bin_dir, "link.exe")
-    for path in (compiler, linker):
-        if not os.path.isfile(path):
-            raise Exception(f"{path} is not found")
-    return (compiler, linker)
-
-
 def can_run_on_host(target: str, arch: str) -> bool:
     # ビルドした実行ファイルをこのホストで実行できるかどうか。
     # iOS と Android の実行ファイルはホストの OS では動かせない。
@@ -1217,7 +1237,7 @@ def can_run_on_host(target: str, arch: str) -> bool:
 
 
 def get_msvc_machine(target: str) -> str:
-    # MSVC のツールが使うアーキテクチャ名。
+    # lld-link の /machine: と VsDevCmd.bat の -arch= に渡すアーキテクチャ名。
     if target == "windows_x86_64":
         return "x64"
     if target == "windows_arm64":
@@ -1259,36 +1279,12 @@ def compile_test_link_object(
 ) -> Tuple[List[str], Optional[str], Optional[Dict[str, str]]]:
     # テストのソースを WebRTC と同じコンパイラと同じフラグでコンパイルする。
     # 戻り値はテストのオブジェクト、リンクに使うコンパイラ、Windows のときだけ
-    # MSVC の環境変数
+    # MSVC の環境変数 (リンカが Windows SDK の .lib を探すために要る)
     source_paths = [os.path.join(BASE_DIR, "tests", name) for name in sources]
     object_files = [
         os.path.join(work_dir, os.path.splitext(os.path.basename(path))[0] + ".o")
         for path in source_paths
     ]
-    if platform.system() == "Windows":
-        # 配布したアーカイブを利用者がリンクするときと同じ MSVC である。
-        # テストプログラムも MSVC でコンパイルする
-        machine = get_msvc_machine(target)
-        env = get_msvc_env(machine)
-        compiler, _ = get_msvc_tools(env, machine)
-        # コンパイルコマンドの中のパスはビルドディレクトリからの相対パスなので、ビルド
-        # ディレクトリを作業ディレクトリにして実行する。定義マクロとインクルードパスは
-        # GN が生成したものから MSVC でも通用するものだけを渡す
-        flags = [
-            *[
-                token
-                for token in find_cxx_compile_command(work_dir)[1:]
-                if token.startswith(MSVC_COMPILE_FLAGS)
-            ],
-            *get_test_include_dirs(webrtc_src_dir),
-        ]
-        for source, object_file in zip(source_paths, object_files):
-            cmd(
-                [compiler, "/nologo", "/c", *flags, f"/Fo{object_file}", source],
-                cwd=work_dir,
-                env=env,
-            )
-        return (object_files, compiler, env)
     flags = [
         *get_test_compile_flags(find_cxx_compile_command(work_dir)),
         *get_test_include_dirs(webrtc_src_dir),
@@ -1297,6 +1293,13 @@ def compile_test_link_object(
     # ディレクトリを作業ディレクトリにして実行する。コンパイラだけは絶対パスにする
     flags[0] = os.path.abspath(os.path.join(work_dir, flags[0]))
     compiler = flags[0]
+    if platform.system() == "Windows":
+        # clang-cl はリンカの lld-link に Windows SDK の .lib を探させるために
+        # MSVC の環境変数 (INCLUDE と LIB) を必要とする
+        env = get_msvc_env(get_msvc_machine(target))
+        for source, object_file in zip(source_paths, object_files):
+            cmd([*flags, "/c", f"/Fo{object_file}", source], cwd=work_dir, env=env)
+        return (object_files, compiler, env)
     for source, object_file in zip(source_paths, object_files):
         # ObjC++ のソースは GN の ObjC のビルドと同じ設定でコンパイルする。GN の
         # コンパイルコマンドには ObjC 用のフラグ (cflags_objcc) が入らないため足す
@@ -1328,6 +1331,12 @@ def get_test_link_flags(webrtc_src_dir: str, work_dir: str) -> List[str]:
         # メソッドが見つからないため、ObjC を使う場合と同じく -ObjC を付けて全部引く
         flags.append("-Wl,-ObjC")
     return flags
+
+
+def get_test_link_flags_windows(webrtc_src_dir: str, work_dir: str) -> List[str]:
+    # アーカイブをリンクするときに使う GN のリンク指定から /WX を外す。テストプログラムは
+    # WebRTC の一部ではないので、テスト側の警告でリンクを止めない
+    return [token for token in gn_desc(webrtc_src_dir, work_dir, "ldflags") if token != "/WX"]
 
 
 def get_test_archive_libraries(target: str, webrtc_src_dir: str, work_dir: str) -> List[str]:
@@ -1427,14 +1436,15 @@ def test_link_in(webrtc_src_dir: str, work_dir: str, target: str, arch: str) -> 
     if platform.system() == "Windows":
         if env is None:
             raise Exception("MSVC environment is not set")
-        machine = get_msvc_machine(target)
-        _, linker = get_msvc_tools(env, machine)
+        # リンクは配布物と同じ lld-link と GN が使うフラグで行う。Windows SDK の .lib は
+        # 環境変数 (LIB) から探すため、MSVC の環境変数を渡す
         cmd(
             [
-                linker,
+                find_llvm_tool(webrtc_src_dir, "lld-link"),
                 "/nologo",
-                f"/machine:{machine}",
+                f"/machine:{get_msvc_machine(target)}",
                 f"/out:{binary}",
+                *get_test_link_flags_windows(webrtc_src_dir, work_dir),
                 *object_files,
                 archive,
                 *get_test_archive_libraries_windows(webrtc_src_dir, work_dir),
@@ -1507,8 +1517,9 @@ def test_link_rust_in(
     if platform.system() == "Windows":
         if env is None:
             raise Exception("MSVC environment is not set")
-        machine = get_msvc_machine(target)
-        _, linker = get_msvc_tools(env, machine)
+        # リンクは配布物と同じ lld-link で行う。rustc は -Clinker の実行ファイルの名前で
+        # リンカの種類を選ぶため、lld-link を渡すと Microsoft ABI の引数のまま使う
+        linker = find_llvm_tool(webrtc_src_dir, "lld-link")
         cmd(
             [
                 rustc,
@@ -1678,9 +1689,10 @@ WEBRTC_BUILD_TARGETS: Dict[str, List[str]] = {
         "sdk/android:libjingle_peerconnection_so",
         "sdk/android:native_api",
     ],
-    # Windows は MSVC のランタイムを使うため、C++ のランタイムライブラリはアーカイブに入れない
-    "windows_x86_64": [":webrtc"],
-    "windows_arm64": [":webrtc"],
+    # Windows は GN がビルドした libc++ のオブジェクトを配布するアーカイブに入れるため、
+    # libc++ もビルドする
+    "windows_x86_64": [":webrtc", "buildtools/third_party/libc++"],
+    "windows_arm64": [":webrtc", "buildtools/third_party/libc++"],
 }
 
 
@@ -2013,8 +2025,6 @@ def build_webrtc(
             gn_args += [
                 'target_os="win"',
                 f'target_cpu="{"x64" if target == "windows_x86_64" else "arm64"}"',
-                "use_custom_libcxx=false",
-                "use_custom_libcxx_for_host=false",
             ]
         elif target in ("macos_arm64",):
             gn_args += [

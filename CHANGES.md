@@ -31,6 +31,13 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-10-12 [CHANGE] [m156] Windows のビルドを upstream と同じ clang + libc++ に揃える
+  - Windows だけ `use_custom_libcxx=false` を指定して MSVC の標準ライブラリに合わせていたのをやめ、upstream の既定どおり clang + libc++ でビルドする。この指定は upstream が非推奨としており、いずれ削除される
+  - Windows の libc++ は GN の source_set で `libc++.a` が作られないため、GN がビルドしたオブジェクトを配布する `webrtc.lib` に入れる。libc++abi は Windows では使わない (Microsoft ABI を使うため) ので入れない
+  - Rust の rlib を取り込む `llvm-ar` と `llvm-objcopy` は、Visual Studio 同梱の LLVM から拾うのをやめ、LLVM の公式リリースの Windows 向けアーカイブからダウンロードして使う。sha256 を検証し、取り出し済みならダウンロードも展開もしない
+  - `run.py test-link` と `test-link-rust` の Windows は、配布物と同じ clang-cl と lld-link でコンパイルとリンクを行う。MSVC の cl.exe と link.exe を使わなくなり、MSVC 向けにフラグを翻訳していた `MSVC_COMPILE_FLAGS` も不要になった
+  - 配布する `webrtc.lib` をリンクする下流 (sora-cpp-sdk や webrtc-rs) も clang + libc++ へ移行する必要がある
+  - @melpon
 - 2026-10-11 [FIX] [m156] LoggingConfig で登録した sink の配信閾値を min_severity に従わせる
   - `AddSink` には閾値の引数が無く `LogSink` の閾値が `LS_INFO` のままになるため、 `set_min_severity(LS_WARNING)` でも `LS_INFO` の行が届き、 `set_min_severity(LS_VERBOSE)` では `LS_VERBOSE` の行が届かなかった
   - config の sink への配信判定を `LoggingConfig::min_severity()` に変え、 `UpdateMinLogSeverity` の閾値の計算から config の sink を外す。閾値を計算に混ぜると `g_min_sev` が `LS_INFO` まで下がり、配信しない行まで構築してしまう
