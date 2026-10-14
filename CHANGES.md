@@ -31,6 +31,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-10-12 [RELEASE] m156.8078.3.5
+  - @melpon
 - 2026-10-12 [CHANGE] [m156] Windows のビルドを upstream と同じ clang + libc++ に揃える
   - Windows だけ `use_custom_libcxx=false` を指定して MSVC の標準ライブラリに合わせていたのをやめ、upstream の既定どおり clang + libc++ でビルドする。この指定は upstream が非推奨としており、いずれ削除される
   - Windows の libc++ は GN の source_set で `libc++.a` が作られないため、GN がビルドしたオブジェクトを配布する `webrtc.lib` に入れる。libc++abi は Windows では使わない (Microsoft ABI を使うため) ので入れない
