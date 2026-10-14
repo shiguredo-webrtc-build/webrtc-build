@@ -31,14 +31,29 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-10-12 [RELEASE] m156.8078.3.5
+  - @melpon
+- 2026-10-12 [CHANGE] [m156] Windows のビルドを upstream と同じ clang + libc++ に揃える
+  - Windows だけ `use_custom_libcxx=false` を指定して MSVC の標準ライブラリに合わせていたのをやめ、upstream の既定どおり clang + libc++ でビルドする。この指定は upstream が非推奨としており、いずれ削除される
+  - Windows の libc++ は GN の source_set で `libc++.a` が作られないため、GN がビルドしたオブジェクトを配布する `webrtc.lib` に入れる。libc++abi は Windows では使わない (Microsoft ABI を使うため) ので入れない
+  - Rust の rlib を取り込む `llvm-ar` と `llvm-objcopy` は、Visual Studio 同梱の LLVM から拾うのをやめ、LLVM の公式リリースの Windows 向けアーカイブからダウンロードして使う。sha256 を検証し、取り出し済みならダウンロードも展開もしない
+  - `run.py test-link` と `test-link-rust` の Windows は、配布物と同じ clang-cl と lld-link でコンパイルとリンクを行う。MSVC の cl.exe と link.exe を使わなくなり、MSVC 向けにフラグを翻訳していた `MSVC_COMPILE_FLAGS` も不要になった
+  - 配布する `webrtc.lib` をリンクする下流 (sora-cpp-sdk や webrtc-rs) も clang + libc++ へ移行する必要がある
+  - @melpon
+- 2026-10-11 [RELEASE] m156.8078.3.4
+  - @melpon
 - 2026-10-11 [FIX] [m156] LoggingConfig で登録した sink の配信閾値を min_severity に従わせる
   - `AddSink` には閾値の引数が無く `LogSink` の閾値が `LS_INFO` のままになるため、 `set_min_severity(LS_WARNING)` でも `LS_INFO` の行が届き、 `set_min_severity(LS_VERBOSE)` では `LS_VERBOSE` の行が届かなかった
   - config の sink への配信判定を `LoggingConfig::min_severity()` に変え、 `UpdateMinLogSeverity` の閾値の計算から config の sink を外す。閾値を計算に混ぜると `g_min_sev` が `LS_INFO` まで下がり、配信しない行まで構築してしまう
+  - @melpon
+- 2026-10-11 [RELEASE] m156.8078.3.3
   - @melpon
 - 2026-10-10 [FIX] [m156] libwebrtc.a に ObjC の実装を含める
   - Apple の ObjC の実装 (sdk/objc) は GN の完全な静的ライブラリに入らず WebRTC.framework のリンクにだけ渡るため、フレームワークのリンク入力もアーカイブに入れる。これが無いと ObjCToNativeVideoEncoderFactory や RTCDefaultVideoEncoderFactory を呼ぶ webrtc-rs が未定義シンボルで失敗する
   - ObjC の実装がアーカイブに入っていることを確認する tests/link_test_objc.mm を追加し、既定のコーデックファクトリと ObjCToNative* の変換関数を実際に呼び出す
   - Windows で ninja に渡すターゲット名に GN の表示用の絶対パスを渡していたためビルドに失敗していた。ターゲットが作るファイルのパスは gn outputs から引くようにする
+  - @melpon
+- 2026-10-10 [RELEASE] m156.8078.3.2
   - @melpon
 - 2026-10-08 [FIX] [m156] libwebrtc.a と webrtc.lib に Rust の実装を含める
   - m156 で libwebrtc 本体が Rust 実装 (corruption detection) を呼ぶようになったが、配布するアーカイブには Rust のオブジェクトが入らず、リンクが未定義シンボルで失敗していた
@@ -47,6 +62,12 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - Windows は lld-link /lib で合体し、MSVC でリンクする下流のために compiler-rt の builtins も同梱する
   - 配布するアーカイブの関数を呼び出す tests/link_test.cc を追加し、run.py test-link がコンパイルとリンクを行って実行する。Windows 以外は GN と同じ Clang のフラグを使い、Windows はアーカイブの利用者 (sora-cpp-sdk や webrtc-rs) と同じ MSVC を使う。CI の各プラットフォームでも確認する
   - @melpon
+- 2026-10-08 [RELEASE] m156.8078.3.1
+  - @zztkm
+- 2026-10-07 [FIX] [m156] android_jni_zero_generated_java.patch に base_java_jni_java の依存を追加する
+  - この依存が無いと LoggingJni.class が AAR の classes.jar に含まれず、Sora Android SDK の libjingleEnabled 有効時に NoClassDefFoundError になる
+  - dist_jar は direct_deps_only = true のため、集約ターゲットである base_java 経由では LoggingJni.class が届かない
+  - @zztkm
 - 2026-10-05 [RELEASE] m156.8078.2.1
   - @voluntas
 - 2026-10-05 [ADD] [m154] android ターゲットにも android_audio_pause_resume.patch と android_audio_track_sink.patch を適用する

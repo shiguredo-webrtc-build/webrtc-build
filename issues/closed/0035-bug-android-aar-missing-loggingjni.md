@@ -1,7 +1,7 @@
 # Android 向け AAR から LoggingJni.class が欠落する
 
 - Created: 2026-10-06
-- Completed: {YYYY-MM-DD}
+- Completed: 2026-10-14
 - Branch: feature/fix-android-logging-jni-packaging
 - Polished: 2026-10-06
 
@@ -67,3 +67,32 @@ Android 向け AAR に `LoggingJni.class` を含め、 `libjingleEnabled` を有
   - 2026.4.0-canary.1 は 152.7977.0.4 を固定で参照しているため、 修正版 AAR を含むバージョンをリリースし、 Sora Android SDK の依存を更新した状態で確認する。
 - `CHANGES.md` に修正内容が記録される。
 - `patches/README.md` の `android_jni_zero_generated_java.patch` の解説が更新される。
+
+## 解決方法
+
+`patches/android_jni_zero_generated_java.patch` の `dist_jar("libwebrtc")` に `../../rtc_base:base_java_jni_java` を直接依存として追加した。
+
+```
+     deps += [
+       ":libwebrtc_jni_registration_java",
++      "../../rtc_base:base_java_jni_java",
+       "../../third_party/jni_zero:generate_jni_java",
+     ]
+```
+
+`dist_jar` は `direct_deps_only = true` であり、直接依存に挙げたターゲットの生成物しか集めない。 `LoggingJni.class` を生成するのは `../../rtc_base:base_java_jni_java` だが、 集約ターゲットである `../../rtc_base:base_java` は既に直接依存にあったものの、 集約ターゲット経由では生成物が `dist_jar` に届かない。 そのため `base_java_jni_java` 自体を直接依存に加える必要があった。
+
+`patches/README.md` の `android_jni_zero_generated_java.patch` の解説に、 `direct_deps_only` の性質と `base_java_jni_java` を直接依存に加える理由、 この依存が無いと `libjingleEnabled` 有効時に `NoClassDefFoundError` になることを追記した。 `CHANGES.md` には `[FIX] [m156]` として FIX を追記した。
+
+### 確認したこと
+
+- `python3 run.py build android_sdk --no-history` でビルドし、 AAR が生成されることを確認した
+- 生成した `classes.jar` に `LoggingJni.class` が含まれることを確認した
+  - 修正前は `LoggingJni.class` が無く、 修正後は含まれる
+  - 生成された `LoggingJni.class` が `Logging$Natives` を実装し `get()` を提供することを `javap` で確認した
+- 実機で動作検証済みである。 修正版 AAR を組み込んだ Sora Android SDK のビデオチャットサンプルが `libjingleEnabled` 有効時に接続できることを確認した
+
+### 残っている作業
+
+- 完了条件に挙げた `feature/m152.7977` / `feature/m153.8010` / `feature/m154.8037` / `feature/m155.8059` と master への適用は未実施である。 修正は `feature/m156.8078` にのみ入っており、 PR #186 のマージと m156.8078.3.1 のリリースで m156 系統には行き渡っている
+- 上記の未適用ブランチは別の issue で扱う

@@ -315,6 +315,8 @@ m151 で JNI コード生成が jni_zero に移行したことに伴い、`dist_
 
 `dist_jar` のインライン deps を変数 `_libwebrtc_java_deps` に切り出すことで、`generate_final_jni` ターゲットと deps を共有している。
 
+`dist_jar` は `direct_deps_only = true` のため、直接依存に指定したターゲットの生成物しか集めない。`LoggingJni.class` は `../../rtc_base:base_java_jni_java` が `Logging.java` から生成するが、集約ターゲットである `../../rtc_base:base_java` 経由では `dist_jar` に届かない。このため `base_java_jni_java` を直接依存に加えている。この依存が無いと、`Logging.class` は `LoggingJni.get()` を呼ぶのに `LoggingJni.class` が AAR に含まれず、Sora Android SDK の `libjingleEnabled` 有効時に `NoClassDefFoundError` となる。
+
 併せて `third_party/jni_zero/BUILD.gn` の `generate_jni` ターゲットの visibility に `//sdk/android:*` を追加する。
 
 ## windows_fix_adm_device_count.patch
