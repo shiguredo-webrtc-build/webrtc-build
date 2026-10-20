@@ -1,0 +1,46 @@
+diff --git a/sdk/android/api/org/webrtc/YuvConverter.java b/sdk/android/api/org/webrtc/YuvConverter.java
+index c855d4be41..58820b131d 100644
+--- a/sdk/android/api/org/webrtc/YuvConverter.java
++++ b/sdk/android/api/org/webrtc/YuvConverter.java
+@@ -12,7 +12,6 @@
+ 
+ import android.graphics.Matrix;
+ import android.opengl.GLES20;
+-import android.opengl.GLException;
+ import androidx.annotation.Nullable;
+ import java.nio.ByteBuffer;
+ import org.webrtc.VideoFrame.I420Buffer;
+@@ -128,8 +127,11 @@
+   public I420Buffer convert(TextureBuffer inputTextureBuffer) {
+     try {
+       return convertInternal(inputTextureBuffer);
+-    } catch (GLException e) {
++    } catch (RuntimeException e) {
++      // JNI 境界へ例外を抜けさせず、フレーム破棄に倒す
+       Logging.w(TAG, "Failed to convert TextureBuffer", e);
++      // 失敗した状態のフレームバッファは次のフレームで作り直す
++      i420TextureFrameBuffer.release();
+     }
+     return null;
+   }
+diff --git a/sdk/android/src/jni/android_video_track_source.cc b/sdk/android/src/jni/android_video_track_source.cc
+index 69b566e342..9cb9b2ffb8 100644
+--- a/sdk/android/src/jni/android_video_track_source.cc
++++ b/sdk/android/src/jni/android_video_track_source.cc
+@@ -186,8 +186,15 @@ void AndroidVideoTrackSource::OnFrameCaptured(
+   const VideoRotation rotation = jintToVideoRotation(j_rotation);
+ 
+   // AdaptedVideoTrackSource handles applying rotation for I420 frames.
+-  if (apply_rotation() && rotation != kVideoRotation_0)
++  if (apply_rotation() && rotation != kVideoRotation_0) {
+     buffer = buffer->ToI420();
++    // ToI420() は変換に失敗すると nullptr を返すため、フレームを破棄する
++    if (!buffer) {
++      RTC_LOG(LS_ERROR) << "Failed to convert the frame to I420. Dropping it.";
++      OnFrameDropped();
++      return;
++    }
++  }
+ 
+   OnFrame(VideoFrame::Builder()
+               .set_video_frame_buffer(buffer)

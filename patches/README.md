@@ -417,3 +417,20 @@ libwebrtc は config の sink への配信を `LogSink::min_severity_` で判定
 - legacy な `AddLogToStream` と `GetLogToStream` の経路は変更しない。 `LogSink::min_severity_` は legacy 専用のメンバになる
 
 上流は `webrtc:42234107` (Remove LogSink from rtc::LogMessage) で `AddLogToStream` の削除を進めており、 config の sink の閾値は `min_severity` に従う方向である。上流でこの移行が完了したら、このパッチは削除する。
+
+## android_toi420_failure_handling.patch
+
+Android のテクスチャバッファから I420 への変換に失敗したときに、プロセスを落とさずにフレームを破棄するパッチ。
+
+`VideoFrameBuffer::ToI420()` は変換に失敗すると nullptr を返すことが `api/video/video_frame_buffer.h` に明記されている。`AndroidVideoTrackSource::OnFrameCaptured` はこの nullptr を検査せずに `VideoFrame::Builder::build()` へ渡しており、`RTC_CHECK(video_frame_buffer_ != nullptr)` でプロセスが落ちる。`YuvConverter.convert` は `GLException` しか捕まえないため、`GlShader` などが投げる `RuntimeException` は JNI 境界まで抜け、 jni_zero の例外ハンドラの `RTC_CHECK(false)` でプロセスが落ちる。
+
+- `AndroidVideoTrackSource::OnFrameCaptured` で nullptr を検査し、変換できなかったフレームを `OnFrameDropped()` で破棄する
+- `YuvConverter.convert` で `RuntimeException` を捕まえて null を返し、`GlTextureFrameBuffer` を `release()` して次のフレームで作り直す
+
+`RuntimeException` を広く捕まえるのは、変換中に投げられる例外の型を絞れないためである。`GlTextureFrameBuffer.setSize` は確保に失敗してもサイズを更新するため、解放しないと同じサイズのフレームで失敗し続ける。
+
+このパッチは `convertInternal()` を変更しないため、変換に失敗すると `prepareBufferForViewportSize()` が返したバッファの retain と I420 用の direct `ByteBuffer` が残る。前者が残ると `SurfaceTextureHelper` が以降のフレームを配信しなくなる。どちらも `convertInternal()` を `try` / `finally` で囲む必要があり、再インデントで差分が大きくなるため、このパッチでは扱わない。
+
+`HardwareVideoEncoder.fillInputBuffer` と `VideoFileRenderer` は `toI420()` の null で NPE になり、 C++ 側の `VideoFrameSampler::Create` も nullptr を検査していない。これらもこのパッチでは扱わない。
+
+上流に同等の修正が入ったら、このパッチを削除する。
