@@ -1,0 +1,88 @@
+diff --git a/sdk/android/api/org/webrtc/YuvConverter.java b/sdk/android/api/org/webrtc/YuvConverter.java
+index c855d4be41..594dc7cf73 100644
+--- a/sdk/android/api/org/webrtc/YuvConverter.java
++++ b/sdk/android/api/org/webrtc/YuvConverter.java
+@@ -12,7 +12,6 @@ package org.webrtc;
+ 
+ import android.graphics.Matrix;
+ import android.opengl.GLES20;
+-import android.opengl.GLException;
+ import androidx.annotation.Nullable;
+ import java.nio.ByteBuffer;
+ import org.webrtc.VideoFrame.I420Buffer;
+@@ -128,8 +127,11 @@ public final class YuvConverter {
+   public I420Buffer convert(TextureBuffer inputTextureBuffer) {
+     try {
+       return convertInternal(inputTextureBuffer);
+-    } catch (GLException e) {
++    } catch (RuntimeException e) {
++      // JNI 境界へ例外を抜けさせず、フレーム破棄に倒す
+       Logging.w(TAG, "Failed to convert TextureBuffer", e);
++      // 失敗した状態のフレームバッファは次のフレームで作り直す
++      i420TextureFrameBuffer.release();
+     }
+     return null;
+   }
+@@ -137,6 +139,9 @@ public final class YuvConverter {
+   private I420Buffer convertInternal(TextureBuffer inputTextureBuffer) {
+     TextureBuffer preparedBuffer = (TextureBuffer) videoFrameDrawer.prepareBufferForViewportSize(
+         inputTextureBuffer, inputTextureBuffer.getWidth(), inputTextureBuffer.getHeight());
++    boolean bufferOwnershipTransferred = false;
++    ByteBuffer i420ByteBuffer = null;
++    try {
+ 
+     // We draw into a buffer laid out like
+     //
+@@ -172,7 +177,8 @@ public final class YuvConverter {
+     final int uvHeight = (frameHeight + 1) / 2;
+     // Total height of the combined memory layout.
+     final int totalHeight = frameHeight + uvHeight;
+-    final ByteBuffer i420ByteBuffer = JniCommon.nativeAllocateByteBuffer(stride * totalHeight);
++    final ByteBuffer allocatedBuffer = JniCommon.nativeAllocateByteBuffer(stride * totalHeight);
++    i420ByteBuffer = allocatedBuffer;
+     // Viewport width is divided by four since we are squeezing in four color bytes in each RGBA
+     // pixel.
+     final int viewportWidth = stride / 4;
+@@ -235,10 +241,17 @@ public final class YuvConverter {
+     i420ByteBuffer.limit(vPos + uvSize);
+     final ByteBuffer dataV = i420ByteBuffer.slice();
+ 
+-    preparedBuffer.release();
+-
+-    return JavaI420Buffer.wrap(frameWidth, frameHeight, dataY, stride, dataU, stride, dataV, stride,
+-        () -> { JniCommon.nativeFreeByteBuffer(i420ByteBuffer); });
++    I420Buffer i420Buffer = JavaI420Buffer.wrap(frameWidth, frameHeight, dataY, stride, dataU,
++        stride, dataV, stride,
++        () -> { JniCommon.nativeFreeByteBuffer(allocatedBuffer); });
++    bufferOwnershipTransferred = true;
++    return i420Buffer;
++    } finally {
++      preparedBuffer.release();
++      if (!bufferOwnershipTransferred && i420ByteBuffer != null) {
++        JniCommon.nativeFreeByteBuffer(i420ByteBuffer);
++      }
++    }
+   }
+ 
+   public void release() {
+diff --git a/sdk/android/src/jni/android_video_track_source.cc b/sdk/android/src/jni/android_video_track_source.cc
+index 69b566e342..a9fd93a457 100644
+--- a/sdk/android/src/jni/android_video_track_source.cc
++++ b/sdk/android/src/jni/android_video_track_source.cc
+@@ -186,8 +186,15 @@ void AndroidVideoTrackSource::OnFrameCaptured(
+   const VideoRotation rotation = jintToVideoRotation(j_rotation);
+ 
+   // AdaptedVideoTrackSource handles applying rotation for I420 frames.
+-  if (apply_rotation() && rotation != kVideoRotation_0)
++  if (apply_rotation() && rotation != kVideoRotation_0) {
+     buffer = buffer->ToI420();
++    // ToI420() は変換に失敗すると nullptr を返すため、フレームを破棄する
++    if (!buffer) {
++      RTC_LOG(LS_ERROR) << "Failed to convert the frame to I420. Dropping it.";
++      OnFrameDropped();
++      return;
++    }
++  }
+ 
+   OnFrame(VideoFrame::Builder()
+               .set_video_frame_buffer(buffer)

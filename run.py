@@ -302,6 +302,7 @@ PATCHES = {
         "android_turn_tls_client_certificate.patch",
         "android_jni_zero_generated_java.patch",
         "logging_sink_min_severity.patch",
+        "android_toi420_failure_handling.patch",
     ],
     "android_sdk": [
         "add_deps.patch",
@@ -325,6 +326,7 @@ PATCHES = {
         "android_turn_tls_client_certificate.patch",
         "android_jni_zero_generated_java.patch",
         "logging_sink_min_severity.patch",
+        "android_toi420_failure_handling.patch",
     ],
     "raspberry-pi-os_armv8": [
         "add_deps.patch",
