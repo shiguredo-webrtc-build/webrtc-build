@@ -315,6 +315,8 @@ m151 で JNI コード生成が jni_zero に移行したことに伴い、`dist_
 
 `dist_jar` のインライン deps を変数 `_libwebrtc_java_deps` に切り出すことで、`generate_final_jni` ターゲットと deps を共有している。
 
+`dist_jar` は `direct_deps_only = true` のため、直接依存に指定したターゲットの生成物しか集めない。`LoggingJni.class` は `../../rtc_base:base_java_jni_java` が `Logging.java` から生成するが、集約ターゲットである `../../rtc_base:base_java` 経由では `dist_jar` に届かない。このため `base_java_jni_java` を直接依存に加えている。この依存が無いと、`Logging.class` は `LoggingJni.get()` を呼ぶのに `LoggingJni.class` が AAR に含まれず、Sora Android SDK の `libjingleEnabled` 有効時に `NoClassDefFoundError` となる。
+
 併せて `third_party/jni_zero/BUILD.gn` の `generate_jni` ターゲットの visibility に `//sdk/android:*` を追加する。
 
 ## windows_fix_adm_device_count.patch
@@ -415,3 +417,21 @@ libwebrtc は config の sink への配信を `LogSink::min_severity_` で判定
 - legacy な `AddLogToStream` と `GetLogToStream` の経路は変更しない。 `LogSink::min_severity_` は legacy 専用のメンバになる
 
 上流は `webrtc:42234107` (Remove LogSink from rtc::LogMessage) で `AddLogToStream` の削除を進めており、 config の sink の閾値は `min_severity` に従う方向である。上流でこの移行が完了したら、このパッチは削除する。
+
+## android_toi420_failure_handling.patch
+
+Android のテクスチャバッファから I420 への変換に失敗したときに、プロセスを落とさずにフレームを破棄し、変換用のリソースを解放するパッチ。
+
+`VideoFrameBuffer::ToI420()` は変換に失敗すると nullptr を返すことが `api/video/video_frame_buffer.h` に明記されている。`AndroidVideoTrackSource::OnFrameCaptured` はこの nullptr を検査せずに `VideoFrame::Builder::build()` へ渡しており、`RTC_CHECK(video_frame_buffer_ != nullptr)` でプロセスが落ちる。`YuvConverter.convert` は `GLException` しか捕まえないため、`GlShader` などが投げる `RuntimeException` は JNI 境界まで抜け、 jni_zero の例外ハンドラの `RTC_CHECK(false)` でプロセスが落ちる。
+
+- `AndroidVideoTrackSource::OnFrameCaptured` で nullptr を検査し、変換できなかったフレームを `OnFrameDropped()` で破棄する
+- `YuvConverter.convert` で `RuntimeException` を捕まえて null を返し、`GlTextureFrameBuffer` を `release()` して次のフレームで作り直す
+- `YuvConverter.convertInternal` で `prepareBufferForViewportSize()` が retain したバッファと I420 用の direct `ByteBuffer` を例外時にも解放する
+
+`RuntimeException` を広く捕まえるのは、変換中に投げられる例外の型を絞れないためである。`GlTextureFrameBuffer.setSize` は確保に失敗してもサイズを更新するため、解放しないと同じサイズのフレームで失敗し続ける。
+
+`convertInternal()` は `prepareBufferForViewportSize()` が retain したバッファを関数末尾で release し、I420 用の direct `ByteBuffer` は `JavaI420Buffer.wrap()` の release callback に所有権を渡して解放する。変換の途中で例外が出るとどちらも解放されない。前者が残ると `SurfaceTextureHelper.isTextureInUse()` が true のままになり、以降のフレームが配信されない。`try` / `finally` で `preparedBuffer.release()` を保証し、`ByteBuffer` は `JavaI420Buffer.wrap()` が所有権を受け取った後は解放しないよう、移譲フラグで判定する。`try` 内はパッチの差分を小さくするため再インデントしていない。
+
+`HardwareVideoEncoder.fillInputBuffer` と `VideoFileRenderer` は `toI420()` の null で NPE になり、 C++ 側の `VideoFrameSampler::Create` も nullptr を検査していない。これらもこのパッチでは扱わない。
+
+上流に同等の修正が入ったら、このパッチを削除する。
