@@ -1,7 +1,7 @@
 # Android で端末回転時に SIGABRT する（テクスチャから I420 への変換失敗時に null を検査していない）
 
 - Created: 2026-10-20
-- Completed: {YYYY-MM-DD}
+- Completed: 2026-10-21
 - Branch: feature/fix-android-toi420-null-abort
 - Polished: 2026-10-20
 
@@ -228,3 +228,14 @@ Sora Android SDK を利用したアプリで、 Pixel 8a / Android 17 の端末�
 - 内容 4: `GlTextureFrameBuffer.setSize` は `width` / `height` を確保より先に更新するため、一度失敗すると「サイズが同じ」と判定されて再確保されず、壊れたフレームバッファを使い続ける。 webrtc-build 側は `i420TextureFrameBuffer.release()` で回避するが、上流では `setSize` 側を直すのが望ましい。
 - 再現条件: Android のテクスチャバッファ、 `urn:3gpp:video-orientation` 未交渉（`rotation_applied` が true）、 `rotation != 0`、かつ `YuvConverter` の変換が失敗する状況（EGL コンテキストのロストなど）。
 - 期待する修正: 上記 4 点。クラッシュだけでなく、失敗の固定化とリソースリークも直す必要がある。
+
+## 解決方法
+
+PR #192 (https://github.com/shiguredo-webrtc-build/webrtc-build/pull/192) で修正し、 `feature/m156.8078` にマージした。
+
+- `AndroidVideoTrackSource::OnFrameCaptured` で `ToI420()` の nullptr を検査し、変換できなかったフレームを `OnFrameDropped()` で破棄する
+- `YuvConverter.convert` で `RuntimeException` を捕まえて null を返し、変換用の `GlTextureFrameBuffer` を `release()` して次のフレームで再確保する
+- `YuvConverter.convertInternal` で `prepareBufferForViewportSize()` が retain したバッファを `try` / `finally` で解放し、I420 用の direct `ByteBuffer` も所有権移譲フラグで例外時に解放する
+- `patches/android_toi420_failure_handling.patch` を追加し、 `patches/README.md` と `CHANGES.md` を更新する
+
+`android` と `android_sdk` へのパッチ適用、および Java のコンパイルを確認した。実機での回転確認と logcat の `rtc` タグによる経路確定は PR には記録されていない。
