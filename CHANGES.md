@@ -31,11 +31,15 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
-- 2026-10-20 [FIX] [m156] Android でテクスチャから I420 への変換に失敗すると SIGABRT する不具合を修正する
+- 2026-10-21 [RELEASE] m156.8078.5.1
+  - @t-miya
+- 2026-10-21 [FIX] [m156] Android でテクスチャから I420 への変換に失敗すると SIGABRT する不具合を修正する
   - `AndroidVideoTrackSource::OnFrameCaptured` が `VideoFrameBuffer::ToI420()` の nullptr を検査せずに `VideoFrame::Builder::build()` へ渡しており、`RTC_CHECK(video_frame_buffer_ != nullptr)` でプロセスが落ちていた。`YuvConverter.convert` が `GLException` 以外の例外を捕まえず、JNI 境界でプロセスが落ちる経路もあった
   - `OnFrameCaptured` で nullptr を検査し、変換できなかったフレームをログを出して破棄する
   - `YuvConverter.convert` は変換中の `RuntimeException` を null にして JNI 境界でプロセスが落ちるのを防ぎ、変換に失敗したらフレームバッファを解放して次のフレームで作り直す。`convertInternal` は変換中に保持したバッファと I420 用の ByteBuffer を例外時にも解放する
   - @voluntas
+- 2026-10-21 [RELEASE] m156.8078.5.0
+  - @melpon
 - 2026-10-12 [RELEASE] m156.8078.3.5
   - @melpon
 - 2026-10-12 [CHANGE] [m156] Windows のビルドを upstream と同じ clang + libc++ に揃える
