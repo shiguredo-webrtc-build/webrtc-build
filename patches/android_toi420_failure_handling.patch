@@ -1,8 +1,8 @@
 diff --git a/sdk/android/api/org/webrtc/YuvConverter.java b/sdk/android/api/org/webrtc/YuvConverter.java
-index c855d4be41..58820b131d 100644
+index c855d4be41..594dc7cf73 100644
 --- a/sdk/android/api/org/webrtc/YuvConverter.java
 +++ b/sdk/android/api/org/webrtc/YuvConverter.java
-@@ -12,7 +12,6 @@
+@@ -12,7 +12,6 @@ package org.webrtc;
  
  import android.graphics.Matrix;
  import android.opengl.GLES20;
@@ -10,7 +10,7 @@ index c855d4be41..58820b131d 100644
  import androidx.annotation.Nullable;
  import java.nio.ByteBuffer;
  import org.webrtc.VideoFrame.I420Buffer;
-@@ -128,8 +127,11 @@
+@@ -128,8 +127,11 @@ public final class YuvConverter {
    public I420Buffer convert(TextureBuffer inputTextureBuffer) {
      try {
        return convertInternal(inputTextureBuffer);
@@ -23,8 +23,50 @@ index c855d4be41..58820b131d 100644
      }
      return null;
    }
+@@ -137,6 +139,9 @@ public final class YuvConverter {
+   private I420Buffer convertInternal(TextureBuffer inputTextureBuffer) {
+     TextureBuffer preparedBuffer = (TextureBuffer) videoFrameDrawer.prepareBufferForViewportSize(
+         inputTextureBuffer, inputTextureBuffer.getWidth(), inputTextureBuffer.getHeight());
++    boolean bufferOwnershipTransferred = false;
++    ByteBuffer i420ByteBuffer = null;
++    try {
+ 
+     // We draw into a buffer laid out like
+     //
+@@ -172,7 +177,8 @@ public final class YuvConverter {
+     final int uvHeight = (frameHeight + 1) / 2;
+     // Total height of the combined memory layout.
+     final int totalHeight = frameHeight + uvHeight;
+-    final ByteBuffer i420ByteBuffer = JniCommon.nativeAllocateByteBuffer(stride * totalHeight);
++    final ByteBuffer allocatedBuffer = JniCommon.nativeAllocateByteBuffer(stride * totalHeight);
++    i420ByteBuffer = allocatedBuffer;
+     // Viewport width is divided by four since we are squeezing in four color bytes in each RGBA
+     // pixel.
+     final int viewportWidth = stride / 4;
+@@ -235,10 +241,17 @@ public final class YuvConverter {
+     i420ByteBuffer.limit(vPos + uvSize);
+     final ByteBuffer dataV = i420ByteBuffer.slice();
+ 
+-    preparedBuffer.release();
+-
+-    return JavaI420Buffer.wrap(frameWidth, frameHeight, dataY, stride, dataU, stride, dataV, stride,
+-        () -> { JniCommon.nativeFreeByteBuffer(i420ByteBuffer); });
++    I420Buffer i420Buffer = JavaI420Buffer.wrap(frameWidth, frameHeight, dataY, stride, dataU,
++        stride, dataV, stride,
++        () -> { JniCommon.nativeFreeByteBuffer(allocatedBuffer); });
++    bufferOwnershipTransferred = true;
++    return i420Buffer;
++    } finally {
++      preparedBuffer.release();
++      if (!bufferOwnershipTransferred && i420ByteBuffer != null) {
++        JniCommon.nativeFreeByteBuffer(i420ByteBuffer);
++      }
++    }
+   }
+ 
+   public void release() {
 diff --git a/sdk/android/src/jni/android_video_track_source.cc b/sdk/android/src/jni/android_video_track_source.cc
-index 69b566e342..9cb9b2ffb8 100644
+index 69b566e342..a9fd93a457 100644
 --- a/sdk/android/src/jni/android_video_track_source.cc
 +++ b/sdk/android/src/jni/android_video_track_source.cc
 @@ -186,8 +186,15 @@ void AndroidVideoTrackSource::OnFrameCaptured(
