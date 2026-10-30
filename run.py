@@ -205,7 +205,7 @@ PATCHES = {
         "windows_add_deps.patch",
         "windows_silence_warnings.patch",
         "windows_fix_audio_device.patch",
-        "windows_arm64_fix_arm_neon_language_linkage.patch",
+        "windows_arm64_fix_arm_neon_builtin_conflict.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "remove_crel.patch",

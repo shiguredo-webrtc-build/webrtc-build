@@ -32,8 +32,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 ## タイムライン
 
 - 2026-10-30 [FIX] [m158] Windows ARM64 のビルドが clang 24 の `arm_vector_types.h` と ucrt の `wchar.h` の衝突で失敗するのを回避する
-  - `windows_arm64_fix_arm_neon_language_linkage.patch` を追加する
-  - ucrt の `wchar.h` が `extern "C++"` の中で `<arm_neon.h>` を取り込み、 clang 24 の `arm_vector_types.h` にある `__arm_set_fpm_*` の宣言が C リンケージのビルトイン宣言と衝突するため、 libc++ の `wchar.h` で先に `<arm_neon.h>` を取り込む
+  - `windows_arm64_fix_arm_neon_builtin_conflict.patch` を追加する
+  - ucrt の `wchar.h` が `extern "C++"` の中で `<arm_neon.h>` を取り込み、 clang 24 の `arm_vector_types.h` にある `__arm_set_fpm_*` の宣言がビルトイン宣言と衝突するため、 未使用の 3 つの宣言名を `defines` で別名に置き換える
   - @voluntas
 - 2026-10-29 [UPDATE] [m158] パッチを M158 の upstream に追従させる
   - `logging_sink_min_severity.patch` は同等の変更が M158 で upstream に取り込まれたため削除する

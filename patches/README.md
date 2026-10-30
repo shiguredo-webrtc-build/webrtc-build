@@ -237,17 +237,17 @@ https://bugs.chromium.org/p/webrtc/issues/detail?id=14954
 
 C++ 17 と C++ 20 の非推奨に関するワーニングを抑制するパッチ。
 
-## windows_arm64_fix_arm_neon_language_linkage.patch
+## windows_arm64_fix_arm_neon_builtin_conflict.patch
 
 Windows ARM64 で clang 24 の `<arm_vector_types.h>` と ucrt の `<wchar.h>` が衝突してビルドに失敗するのを回避するパッチ。
 
 ucrt の `<wchar.h>` は C++ 用の領域 (`extern "C++"`) で `<arm_neon.h>` を取り込む。
 clang 24 の `<arm_vector_types.h>` には `__arm_set_fpm_lscale`、`__arm_set_fpm_nscale`、`__arm_set_fpm_lscale2` が通常の C++ の宣言として書かれているが、
-clang 側ではこれらは C リンケージのビルトインとして登録されているため、
-`extern "C++"` の中から取り込まれると `declaration of '...' has a different language linkage` エラーになる。
+clang 側ではこれらはビルトインとして登録されているため、
+`declaration of '...' has a different language linkage` エラーになる。
 
-libc++ の `<wchar.h>` でシステムの `<wchar.h>` を取り込む前に `<arm_neon.h>` を取り込み、
-ucrt 側の取り込みをインクルードガードで無効化することで回避する。
+`build/config/compiler/BUILD.gn` の Windows ARM64 向けに `defines` を追加し、この 3 つの宣言名を別名に置き換えてビルトインとの突き合わせを避ける。
+3 つとも本ビルドのどこからも使われていないため、別名にしてもビルドへの影響はない。
 
 clang 側で修正されたらこのパッチは削除できる。
 
