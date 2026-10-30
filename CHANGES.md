@@ -40,6 +40,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
   - @voluntas
 - 2026-10-21 [RELEASE] m156.8078.5.0
   - @melpon
+- 2026-10-14 [RELEASE] m157.8103.0.0
+  - @melpon
 - 2026-10-12 [RELEASE] m156.8078.3.5
   - @melpon
 - 2026-10-12 [CHANGE] [m156] Windows のビルドを upstream と同じ clang + libc++ に揃える
