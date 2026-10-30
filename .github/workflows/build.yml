@@ -19,16 +19,46 @@ on:
       - daily
     tags:
       - "*"
+  # 指定したグループまたはターゲットだけをビルドする。
+  #
+  # push と tag ではこの入力を見ず、全ターゲットをビルドする。
+  # 空または all も全ターゲットである。
+  # 複数指定するときはカンマで区切る。例: windows,ios
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: "対象。windows / macos / ios / android / linux、またはターゲット名。カンマ区切り。空または all ですべて"
+        required: false
+        default: all
+        type: string
 jobs:
+  # ビルド対象の正本は select_build_targets.sh である。
+  #
+  # このジョブは push を含む全ビルドの前提になる。
+  # このワークフローで使っている Ubuntu のイメージに合わせ、ubuntu-24.04 で動かす。
+  select-targets:
+    runs-on: ubuntu-24.04
+    outputs:
+      windows: ${{ steps.select.outputs.windows }}
+      windows_count: ${{ steps.select.outputs.windows_count }}
+      macos: ${{ steps.select.outputs.macos }}
+      macos_count: ${{ steps.select.outputs.macos_count }}
+      linux: ${{ steps.select.outputs.linux }}
+      linux_count: ${{ steps.select.outputs.linux_count }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: select
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          TARGETS: ${{ github.event.inputs.targets }}
+        run: scripts/select_build_targets.sh
   build-windows:
+    needs: select-targets
+    if: needs.select-targets.outputs.windows_count != '0'
     strategy:
       fail-fast: false
       matrix:
-        platform:
-          - name: windows_x86_64
-            rust-target: x86_64-pc-windows-msvc
-          - name: windows_arm64
-            rust-target: aarch64-pc-windows-msvc
+        platform: ${{ fromJSON(needs.select-targets.outputs.windows) }}
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v7
@@ -112,15 +142,12 @@ jobs:
           name: webrtc.${{ matrix.platform.name }}.zip
           path: _package/${{ matrix.platform.name }}/webrtc.${{ matrix.platform.name }}.zip
   build-macos:
+    needs: select-targets
+    if: needs.select-targets.outputs.macos_count != '0'
     strategy:
       fail-fast: false
       matrix:
-        platform:
-          - name: macos_arm64
-            rust-target: aarch64-apple-darwin
-          - name: ios
-            rust-target: aarch64-apple-ios
-          - name: ios_sdk
+        platform: ${{ fromJSON(needs.select-targets.outputs.macos) }}
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v7
@@ -167,39 +194,12 @@ jobs:
           name: WebRTC.xcframework.zip
           path: _package/${{ matrix.platform.name }}/WebRTC.xcframework.zip
   build-linux:
+    needs: select-targets
+    if: needs.select-targets.outputs.linux_count != '0'
     strategy:
       fail-fast: false
       matrix:
-        platform:
-          - name: raspberry-pi-os_armv8
-            rust-target: aarch64-unknown-linux-gnu
-            runs-on: ubuntu-24.04
-          - name: ubuntu-20.04_armv8
-            rust-target: aarch64-unknown-linux-gnu
-            runs-on: ubuntu-24.04
-          - name: ubuntu-22.04_armv8
-            rust-target: aarch64-unknown-linux-gnu
-            runs-on: ubuntu-24.04
-          - name: ubuntu-24.04_armv8
-            rust-target: aarch64-unknown-linux-gnu
-            runs-on: ubuntu-24.04
-          - name: ubuntu-26.04_armv8
-            rust-target: aarch64-unknown-linux-gnu
-            runs-on: ubuntu-24.04
-          - name: ubuntu-22.04_x86_64
-            rust-target: x86_64-unknown-linux-gnu
-            runs-on: ubuntu-22.04
-          - name: ubuntu-24.04_x86_64
-            rust-target: x86_64-unknown-linux-gnu
-            runs-on: ubuntu-24.04
-          - name: ubuntu-26.04_x86_64
-            rust-target: x86_64-unknown-linux-gnu
-            runs-on: ubuntu-26.04
-          - name: android
-            rust-target: aarch64-linux-android
-            runs-on: ubuntu-24.04
-          - name: android_sdk
-            runs-on: ubuntu-24.04
+        platform: ${{ fromJSON(needs.select-targets.outputs.linux) }}
     runs-on: ${{ matrix.platform.runs-on }}
     steps:
       - uses: actions/checkout@v7
