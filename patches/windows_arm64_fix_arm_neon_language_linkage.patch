@@ -1,0 +1,21 @@
+diff --git a/third_party/libc++/src/include/wchar.h b/third_party/libc++/src/include/wchar.h
+index 7ff0387..3307cd6 100644
+--- a/third_party/libc++/src/include/wchar.h
++++ b/third_party/libc++/src/include/wchar.h
+@@ -109,6 +109,16 @@ size_t wcsrtombs(char* restrict dst, const wchar_t** restrict src, size_t len,
+ #    define __CORRECT_ISO_CPP_WCHAR_H_PROTO
+ #  endif
+ 
++// Windows ARM64 の ucrt の <wchar.h> は extern "C++" の中で <arm_neon.h> を
++// 取り込む。clang 24 の <arm_vector_types.h> は __arm_set_fpm_lscale などを
++// 通常の C++ の宣言として持っており、 C リンケージのビルトイン宣言と衝突して
++// "declaration has a different language linkage" エラーになる。
++// 先に <arm_neon.h> を取り込んでおき、 ucrt 側の取り込みをインクルードガードで
++// 無効化する。
++#  if defined(_WIN32) && defined(_M_ARM64)
++#    include <arm_neon.h>
++#  endif
++
+ // The inclusion of the system's <wchar.h> is intentionally done once outside of any include
+ // guards because some code expects to be able to include the underlying system header multiple
+ // times to get different definitions based on the macros that are set before inclusion.

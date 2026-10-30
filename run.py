@@ -198,7 +198,6 @@ PATCHES = {
         "windows_fix_adm_device_count.patch",
         "unsafe_buffers_optout_list.patch",
         "turn_tls_client_certificate.patch",
-        "logging_sink_min_severity.patch",
     ],
     "windows_arm64": [
         "4k.patch",
@@ -206,12 +205,12 @@ PATCHES = {
         "windows_add_deps.patch",
         "windows_silence_warnings.patch",
         "windows_fix_audio_device.patch",
+        "windows_arm64_fix_arm_neon_language_linkage.patch",
         "ssl_verify_callback_with_native_handle.patch",
         "h265.patch",
         "remove_crel.patch",
         "unsafe_buffers_optout_list.patch",
         "turn_tls_client_certificate.patch",
-        "logging_sink_min_severity.patch",
     ],
     "macos_arm64": [
         "add_deps.patch",
@@ -227,7 +226,6 @@ PATCHES = {
         "remove_crel.patch",
         "unsafe_buffers_optout_list.patch",
         "turn_tls_client_certificate.patch",
-        "logging_sink_min_severity.patch",
     ],
     # ios と ios_sdk の共通パッチを先に、ターゲット固有のパッチを後に並べる。
     # ios_sdk 専用パッチは末尾 (ios の一覧に無いもの) にまとめる。
@@ -253,7 +251,6 @@ PATCHES = {
         "unsafe_buffers_optout_list.patch",
         "ios_ssl_certificate_verifier_chain.patch",
         "turn_tls_client_certificate.patch",
-        "logging_sink_min_severity.patch",
     ],
     "ios_sdk": [
         "add_deps.patch",
@@ -278,7 +275,6 @@ PATCHES = {
         # ios_sdk 専用パッチ
         "ios_audio_track_sink.patch",
         "ios_audio_pause_resume.patch",
-        "logging_sink_min_severity.patch",
     ],
     "android": [
         "add_deps.patch",
@@ -301,7 +297,6 @@ PATCHES = {
         "turn_tls_client_certificate.patch",
         "android_turn_tls_client_certificate.patch",
         "android_jni_zero_generated_java.patch",
-        "logging_sink_min_severity.patch",
         "android_toi420_failure_handling.patch",
     ],
     "android_sdk": [
@@ -325,7 +320,6 @@ PATCHES = {
         "turn_tls_client_certificate.patch",
         "android_turn_tls_client_certificate.patch",
         "android_jni_zero_generated_java.patch",
-        "logging_sink_min_severity.patch",
         "android_toi420_failure_handling.patch",
     ],
     "raspberry-pi-os_armv8": [
@@ -337,7 +331,6 @@ PATCHES = {
         "remove_crel.patch",
         "unsafe_buffers_optout_list.patch",
         "turn_tls_client_certificate.patch",
-        "logging_sink_min_severity.patch",
     ],
     "ubuntu-20.04_armv8": [
         "add_deps.patch",
@@ -348,7 +341,6 @@ PATCHES = {
         "remove_crel.patch",
         "unsafe_buffers_optout_list.patch",
         "turn_tls_client_certificate.patch",
-        "logging_sink_min_severity.patch",
     ],
     "ubuntu-22.04_armv8": [
         "add_deps.patch",
@@ -359,7 +351,6 @@ PATCHES = {
         "remove_crel.patch",
         "unsafe_buffers_optout_list.patch",
         "turn_tls_client_certificate.patch",
-        "logging_sink_min_severity.patch",
     ],
     "ubuntu-24.04_armv8": [
         "add_deps.patch",
@@ -370,7 +361,6 @@ PATCHES = {
         "remove_crel.patch",
         "unsafe_buffers_optout_list.patch",
         "turn_tls_client_certificate.patch",
-        "logging_sink_min_severity.patch",
     ],
     "ubuntu-26.04_armv8": [
         "add_deps.patch",
@@ -381,7 +371,6 @@ PATCHES = {
         "remove_crel.patch",
         "unsafe_buffers_optout_list.patch",
         "turn_tls_client_certificate.patch",
-        "logging_sink_min_severity.patch",
     ],
     "ubuntu-22.04_x86_64": [
         "add_deps.patch",
@@ -392,7 +381,6 @@ PATCHES = {
         "remove_crel.patch",
         "unsafe_buffers_optout_list.patch",
         "turn_tls_client_certificate.patch",
-        "logging_sink_min_severity.patch",
     ],
     "ubuntu-24.04_x86_64": [
         "add_deps.patch",
@@ -403,7 +391,6 @@ PATCHES = {
         "remove_crel.patch",
         "unsafe_buffers_optout_list.patch",
         "turn_tls_client_certificate.patch",
-        "logging_sink_min_severity.patch",
     ],
     "ubuntu-26.04_x86_64": [
         "add_deps.patch",
@@ -414,7 +401,6 @@ PATCHES = {
         "remove_crel.patch",
         "unsafe_buffers_optout_list.patch",
         "turn_tls_client_certificate.patch",
-        "logging_sink_min_severity.patch",
     ],
 }
 

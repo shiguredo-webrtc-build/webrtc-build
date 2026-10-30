@@ -31,6 +31,19 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-10-30 [FIX] [m158] Windows ARM64 のビルドが clang 24 の `arm_vector_types.h` と ucrt の `wchar.h` の衝突で失敗するのを回避する
+  - `windows_arm64_fix_arm_neon_language_linkage.patch` を追加する
+  - ucrt の `wchar.h` が `extern "C++"` の中で `<arm_neon.h>` を取り込み、 clang 24 の `arm_vector_types.h` にある `__arm_set_fpm_*` の宣言が C リンケージのビルトイン宣言と衝突するため、 libc++ の `wchar.h` で先に `<arm_neon.h>` を取り込む
+  - @voluntas
+- 2026-10-29 [UPDATE] [m158] パッチを M158 の upstream に追従させる
+  - `logging_sink_min_severity.patch` は同等の変更が M158 で upstream に取り込まれたため削除する
+  - `revive_proxy.patch` は `BasicPortAllocatorSession::AddAllocatedPort` に M158 で追加されたログ出力で hunk の context が変わったため、 M158 のソースに合わせる
+  - `turn_tls_client_certificate.patch` は M158 で `TurnPort::Create` が `CreateRelayPortArgs` を受け取る形に変わったため、 M158 のソースに合わせる
+  - `unsafe_buffers_optout_list.patch` は hunk が重複していて Windows の `git apply` が失敗するため、 1 つの hunk にまとめて行番号を M158 のソースに合わせる
+  - `android_jni_zero_generated_java.patch` は M158 で `:libjingle_peerconnection_java` が削除されたため依存から外し、 `generate_jni_java` の visibility の hunk を M158 の行番号に合わせる
+  - @voluntas
+- 2026-10-29 [FIX] [m158] `PeerConnectionFactoryDependencies` から `worker_thread` が無くなった `link_test` を修正する
+  - @voluntas
 - 2026-10-21 [RELEASE] m156.8078.5.1
   - @t-miya
 - 2026-10-21 [FIX] [m156] Android でテクスチャから I420 への変換に失敗すると SIGABRT する不具合を修正する

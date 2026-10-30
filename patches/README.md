@@ -93,7 +93,7 @@ $ find $(brew --prefix llvm@16)/lib | grep arm_neon
 /opt/homebrew/opt/llvm@16/lib/clang/16/include/arm_neon.h
 
 # Xcode では tapi 以下に存在する
-$ find $(xcode-select --print-path) | grep arm_neon                                                           
+$ find $(xcode-select --print-path) | grep arm_neon
 /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/15.0.0/include/arm_neon.h
 /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/tapi/15.0.0/include/arm_neon_sve_bridge.h
 /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/tapi/15.0.0/include/arm_neon.h
@@ -110,11 +110,12 @@ $ find $(xcode-select --print-path) | grep arm_neon
 M131 において libaom においても同様の問題が発生したので、両方 third_party 以下のため同じファイルを libaom にも配置する。
 libaom は include の angled と quotes を厳密に見るようなので、それにも対応する。
 
-## revert_asm_changes.patch
+## dav1d_config_change.patch
 
-dav1d/libdav1d/src/arm/asm.S に入った変更を取り消すパッチ。
-m124 のタイミングで aarch64 の拡張機能のサポートチェックをするようになり、そのチェックが失敗するとビルドが失敗するようになった。
-webrtc は aarch64 の拡張機能を使っていないため、このチェックは不要であり、このパッチで取り消す。
+dav1d の apple 向け設定で aarch64 の拡張命令 (`.arch_extension dotprod` と `.arch_extension i8mm`) を無効にするパッチ。
+M124 で dav1d/libdav1d/src/arm/asm.S に aarch64 の拡張機能のサポートチェックが入り、そのチェックが失敗するとビルドが失敗するようになった。
+webrtc はこれらの拡張命令を使っておらず、チェックを通すためだけにアセンブラの対応が必要になるため、`third_party/dav1d/config/apple/arm64/config.h` で `HAVE_AS_ARCHEXT_DOTPROD_DIRECTIVE` と `HAVE_AS_ARCHEXT_I8MM_DIRECTIVE` を 0 にする。
+apple 系のみを対象にしており、それ以外のプラットフォームでは拡張命令を有効にしたままにしている。
 
 ## ios_manual_audio_input.patch
 
@@ -236,6 +237,20 @@ https://bugs.chromium.org/p/webrtc/issues/detail?id=14954
 
 C++ 17 と C++ 20 の非推奨に関するワーニングを抑制するパッチ。
 
+## windows_arm64_fix_arm_neon_language_linkage.patch
+
+Windows ARM64 で clang 24 の `<arm_vector_types.h>` と ucrt の `<wchar.h>` が衝突してビルドに失敗するのを回避するパッチ。
+
+ucrt の `<wchar.h>` は C++ 用の領域 (`extern "C++"`) で `<arm_neon.h>` を取り込む。
+clang 24 の `<arm_vector_types.h>` には `__arm_set_fpm_lscale`、`__arm_set_fpm_nscale`、`__arm_set_fpm_lscale2` が通常の C++ の宣言として書かれているが、
+clang 側ではこれらは C リンケージのビルトインとして登録されているため、
+`extern "C++"` の中から取り込まれると `declaration of '...' has a different language linkage` エラーになる。
+
+libc++ の `<wchar.h>` でシステムの `<wchar.h>` を取り込む前に `<arm_neon.h>` を取り込み、
+ucrt 側の取り込みをインクルードガードで無効化することで回避する。
+
+clang 側で修正されたらこのパッチは削除できる。
+
 ## h265.patch
 
 WebRTC で H.265 を利用できるようにするパッチ。
@@ -317,7 +332,7 @@ m151 で JNI コード生成が jni_zero に移行したことに伴い、`dist_
 
 `dist_jar` は `direct_deps_only = true` のため、直接依存に指定したターゲットの生成物しか集めない。`LoggingJni.class` は `../../rtc_base:base_java_jni_java` が `Logging.java` から生成するが、集約ターゲットである `../../rtc_base:base_java` 経由では `dist_jar` に届かない。このため `base_java_jni_java` を直接依存に加えている。この依存が無いと、`Logging.class` は `LoggingJni.get()` を呼ぶのに `LoggingJni.class` が AAR に含まれず、Sora Android SDK の `libjingleEnabled` 有効時に `NoClassDefFoundError` となる。
 
-併せて `third_party/jni_zero/BUILD.gn` の `generate_jni` ターゲットの visibility に `//sdk/android:*` を追加する。
+`../../third_party/jni_zero:generate_jni_java` も直接依存に加えている。`generate_jni` の visibility は `//sdk/android:*` を許可していないため、`third_party/jni_zero/BUILD.gn` の `generate_jni` の visibility に `//sdk/android:*` を追加する。
 
 ## windows_fix_adm_device_count.patch
 
@@ -405,18 +420,6 @@ libwebrtc 本体の `PeerConnectionInterface::IceServer::tls_client_identity` �
 `tls_client_identity` を生成する。
 
 `IceServer.toString()` には、秘密鍵や証明書 PEM は出力しない。
-
-## logging_sink_min_severity.patch
-
-`LoggingConfig::set_min_severity` で指定した閾値を `LoggingConfig::AddSink` で登録した sink への配信に反映させるパッチ。
-
-libwebrtc は config の sink への配信を `LogSink::min_severity_` で判定している。この値は `LogMessage::AddLogToStream` でしか設定できず、 `AddSink` に閾値の引数が無いため常に `LS_INFO` になる。このため `set_min_severity(LS_WARNING)` でも `LS_INFO` の行が届き、 `set_min_severity(LS_VERBOSE)` では `LS_VERBOSE` の行が届かない。下流では sink の handler 側で同じ条件を再実装して回避している。
-
-- `LogMessage::~LogMessage` の config の sink への配信判定を `config.min_severity()` に変える
-- `LogMessage::UpdateMinLogSeverity` から config の sink を外す。混ぜると `g_min_sev` が `LS_INFO` まで下がり、配信しない行まで構築してしまう
-- legacy な `AddLogToStream` と `GetLogToStream` の経路は変更しない。 `LogSink::min_severity_` は legacy 専用のメンバになる
-
-上流は `webrtc:42234107` (Remove LogSink from rtc::LogMessage) で `AddLogToStream` の削除を進めており、 config の sink の閾値は `min_severity` に従う方向である。上流でこの移行が完了したら、このパッチは削除する。
 
 ## android_toi420_failure_handling.patch
 

@@ -193,11 +193,10 @@ index 10e9d1e49c..b0c361eedd 100644
    }
  
 diff --git a/p2p/client/basic_port_allocator.cc b/p2p/client/basic_port_allocator.cc
-index 22dc035103..544e587b06 100644
+index d0a9db5b0b..76e41aa9a3 100644
 --- a/p2p/client/basic_port_allocator.cc
 +++ b/p2p/client/basic_port_allocator.cc
-@@ -52,7 +52,9 @@
- #include "rtc_base/socket_address.h"
+@@ -55,6 +55,8 @@
  #include "rtc_base/strings/string_builder.h"
  #include "rtc_base/trace_event.h"
  
@@ -206,15 +205,15 @@ index 22dc035103..544e587b06 100644
  namespace webrtc {
  namespace {
  
-@@ -915,6 +917,8 @@ void BasicPortAllocatorSession::AddAllocatedPort(Port* port,
-   RTC_LOG(LS_INFO) << "Adding allocated port for " << content_name();
-   port->set_component(component());
-   port->set_generation(generation());
-+  if (allocator_->proxy().type != webrtc::revive::PROXY_NONE)
-+    port->set_proxy(allocator_->user_agent(), allocator_->proxy());
-   port->set_send_retransmit_count_attribute(
+@@ -920,6 +922,8 @@ void BasicPortAllocatorSession::AddAllocatedPort(Port* port,
        (flags() & PORTALLOCATOR_ENABLE_STUN_RETRANSMIT_ATTRIBUTE) != 0);
  
+   RTC_LOG(LS_INFO) << "Adding allocated port for " << content_name();
++  if (allocator_->proxy().type != webrtc::revive::PROXY_NONE)
++    port->set_proxy(allocator_->user_agent(), allocator_->proxy());
+   ports_.emplace_back(port, seq);
+ 
+   RTC_LOG(LS_INFO) << port->ToString() << ": Added port to allocator";
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
 index 15a55bdb3a..8f1af962c2 100644
 --- a/rtc_base/BUILD.gn
