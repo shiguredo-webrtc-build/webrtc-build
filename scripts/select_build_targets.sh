@@ -5,7 +5,8 @@ set -eu
 # workflow_dispatch の targets から、各ジョブへ渡す matrix を JSON で出す。
 #
 # push と tag では TARGETS を見ない。全ターゲットを出す。
-# workflow_dispatch ではカンマ区切りのトークンを受け付ける。
+# workflow_dispatch では BRANCH が必須で、ブランチ名またはタグ名を指定する。
+# targets はカンマ区切りのトークンを受け付ける。
 # 空文字と all は全ターゲットである。
 #
 # グループは次のとおり。
@@ -58,7 +59,15 @@ EOF
 }
 
 wants_all=0
-if [ "${EVENT_NAME:-}" != "workflow_dispatch" ]; then
+build_ref=""
+if [ "${EVENT_NAME:-}" = "workflow_dispatch" ]; then
+  # 前後と途中の空白は ref 名に含まれない。空白だけは未指定と同じにする。
+  build_ref=$(printf '%s' "${BRANCH:-}" | tr -d ' \t')
+  if [ -z "$build_ref" ]; then
+    echo "branch or tag is required for workflow_dispatch" >&2
+    exit 1
+  fi
+else
   wants_all=1
 fi
 
@@ -185,6 +194,7 @@ write_output() {
   fi
 }
 
+write_output build_ref "$build_ref"
 write_output windows "$windows_json"
 write_output windows_count "$windows_count"
 write_output macos "$macos_json"

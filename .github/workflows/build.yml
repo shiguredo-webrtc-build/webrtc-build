@@ -19,18 +19,17 @@ on:
       - daily
     tags:
       - "*"
-  # 指定したブランチの、指定したターゲットだけをビルドする。
+  # 指定したブランチまたはタグの、指定したターゲットだけをビルドする。
   #
   # push と tag ではこの入力を見ず、起動した commit の全ターゲットをビルドする。
-  # branch が空なら、workflow を起動した ref をビルドする。
+  # 手動実行では branch が必須で、ブランチ名またはタグ名を指定する。
   # targets が空または all なら全ターゲットである。
   # 複数の対象はカンマで区切る。例: windows,ios
   workflow_dispatch:
     inputs:
       branch:
-        description: "ビルドするブランチまたはタグ。空ならこの workflow を起動した ref"
-        required: false
-        default: ""
+        description: "ビルドするブランチまたはタグ"
+        required: true
         type: string
       targets:
         description: "対象。windows / macos / ios / android / linux、またはターゲット名。カンマ区切り。空または all ですべて"
@@ -45,6 +44,7 @@ jobs:
   select-targets:
     runs-on: ubuntu-24.04
     outputs:
+      build_ref: ${{ steps.select.outputs.build_ref }}
       windows: ${{ steps.select.outputs.windows }}
       windows_count: ${{ steps.select.outputs.windows_count }}
       macos: ${{ steps.select.outputs.macos }}
@@ -57,6 +57,7 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           TARGETS: ${{ github.event.inputs.targets }}
+          BRANCH: ${{ github.event.inputs.branch }}
         run: scripts/select_build_targets.sh
   build-windows:
     needs: select-targets
@@ -67,10 +68,11 @@ jobs:
         platform: ${{ fromJSON(needs.select-targets.outputs.windows) }}
     runs-on: windows-2022
     steps:
-      # branch が空なら起動した commit を使う。選択スクリプトは workflow 側のままにする。
+      # 手動実行は branch を checkout する。push と tag は起動した commit を使う。
+      # 選択スクリプトは workflow 側のままにする。
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.inputs.branch || github.sha }}
+          ref: ${{ needs.select-targets.outputs.build_ref || github.sha }}
       - name: Set up Python 3.11
         uses: actions/setup-python@v7
         with:
@@ -161,7 +163,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.inputs.branch || github.sha }}
+          ref: ${{ needs.select-targets.outputs.build_ref || github.sha }}
       - name: Select Xcode 26.0
         run: sudo xcode-select --switch /Applications/Xcode_26.0.app/Contents/Developer
       - name: Setup Git User
@@ -215,7 +217,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.inputs.branch || github.sha }}
+          ref: ${{ needs.select-targets.outputs.build_ref || github.sha }}
       - name: Disk Cleanup
         run: |
           set -x
