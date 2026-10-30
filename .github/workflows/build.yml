@@ -19,13 +19,19 @@ on:
       - daily
     tags:
       - "*"
-  # 指定したグループまたはターゲットだけをビルドする。
+  # 指定したブランチの、指定したターゲットだけをビルドする。
   #
-  # push と tag ではこの入力を見ず、全ターゲットをビルドする。
-  # 空または all も全ターゲットである。
-  # 複数指定するときはカンマで区切る。例: windows,ios
+  # push と tag ではこの入力を見ず、起動した commit の全ターゲットをビルドする。
+  # branch が空なら、workflow を起動した ref をビルドする。
+  # targets が空または all なら全ターゲットである。
+  # 複数の対象はカンマで区切る。例: windows,ios
   workflow_dispatch:
     inputs:
+      branch:
+        description: "ビルドするブランチまたはタグ。空ならこの workflow を起動した ref"
+        required: false
+        default: ""
+        type: string
       targets:
         description: "対象。windows / macos / ios / android / linux、またはターゲット名。カンマ区切り。空または all ですべて"
         required: false
@@ -61,7 +67,10 @@ jobs:
         platform: ${{ fromJSON(needs.select-targets.outputs.windows) }}
     runs-on: windows-2022
     steps:
+      # branch が空なら起動した commit を使う。選択スクリプトは workflow 側のままにする。
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.inputs.branch || github.sha }}
       - name: Set up Python 3.11
         uses: actions/setup-python@v7
         with:
@@ -151,6 +160,8 @@ jobs:
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.inputs.branch || github.sha }}
       - name: Select Xcode 26.0
         run: sudo xcode-select --switch /Applications/Xcode_26.0.app/Contents/Developer
       - name: Setup Git User
@@ -203,6 +214,8 @@ jobs:
     runs-on: ${{ matrix.platform.runs-on }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.inputs.branch || github.sha }}
       - name: Disk Cleanup
         run: |
           set -x
