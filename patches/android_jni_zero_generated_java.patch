@@ -2,7 +2,7 @@ diff --git a/sdk/android/BUILD.gn b/sdk/android/BUILD.gn
 index 92f6d51e16..6b7b76803e 100644
 --- a/sdk/android/BUILD.gn
 +++ b/sdk/android/BUILD.gn
-@@ -27,6 +27,67 @@ if (is_android) {
+@@ -27,6 +27,66 @@ if (is_android) {
    # Aggregate targets #
    #####################
  
@@ -17,7 +17,6 @@ index 92f6d51e16..6b7b76803e 100644
 +    ":hwcodecs_java",
 +    ":java_audio_device_module_java",
 +    ":libaom_av1_encoder_java",
-+    ":libjingle_peerconnection_java",
 +    ":libjingle_peerconnection_metrics_default_java",
 +    ":libvpx_vp8_java",
 +    ":libvpx_vp9_java",
@@ -70,7 +69,7 @@ index 92f6d51e16..6b7b76803e 100644
    dist_jar("libwebrtc") {
      _target_dir_name = get_label_info(":$target_name", "dir")
      output = "${root_out_dir}/lib.java${_target_dir_name}/${target_name}.jar"
-@@ -34,31 +95,12 @@ if (is_android) {
+@@ -95,30 +95,12 @@ if (is_android) {
      use_unprocessed_jars = true
      requires_android = true
  
@@ -85,7 +84,6 @@ index 92f6d51e16..6b7b76803e 100644
 -      ":hwcodecs_java",
 -      ":java_audio_device_module_java",
 -      ":libaom_av1_encoder_java",
--      ":libjingle_peerconnection_java",
 -      ":libjingle_peerconnection_metrics_default_java",
 -      ":libvpx_vp8_java",
 -      ":libvpx_vp9_java",
@@ -107,16 +105,14 @@ index 92f6d51e16..6b7b76803e 100644
 +      "../../third_party/jni_zero:generate_jni_java",
      ]
    }
- 
+
 diff --git a/third_party/jni_zero/BUILD.gn b/third_party/jni_zero/BUILD.gn
-index da1a4181a125..f5e964389fed 100644
 --- a/third_party/jni_zero/BUILD.gn
 +++ b/third_party/jni_zero/BUILD.gn
-@@ -29,6 +29,7 @@ generate_jni("generate_jni") {
+@@ -29,5 +29,6 @@ generate_jni("generate_jni") {
    visibility = [
      ":*",
      "//components/cronet/android/*",
 +    "//sdk/android:*",
    ]
  }
- 

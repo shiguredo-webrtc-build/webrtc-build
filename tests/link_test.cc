@@ -175,19 +175,18 @@ int TestThreadAndTaskQueue() {
 
 // PeerConnectionFactory の実装が入っていることを確認する
 int TestPeerConnectionFactory() {
+  // M158 から PeerConnectionFactoryDependencies には worker_thread が無くなり、
+  // network_thread が worker thread を兼ねる
   std::unique_ptr<webrtc::Thread> network_thread = webrtc::Thread::CreateWithSocketServer();
-  std::unique_ptr<webrtc::Thread> worker_thread = webrtc::Thread::Create();
   std::unique_ptr<webrtc::Thread> signaling_thread = webrtc::Thread::Create();
-  if (network_thread == nullptr || worker_thread == nullptr || signaling_thread == nullptr) {
+  if (network_thread == nullptr || signaling_thread == nullptr) {
     return Failed("スレッドを作成できませんでした");
   }
   network_thread->Start();
-  worker_thread->Start();
   signaling_thread->Start();
 
   webrtc::PeerConnectionFactoryDependencies dependencies;
   dependencies.network_thread = network_thread.get();
-  dependencies.worker_thread = worker_thread.get();
   dependencies.signaling_thread = signaling_thread.get();
   webrtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> factory =
       webrtc::CreateModularPeerConnectionFactory(std::move(dependencies));
@@ -196,7 +195,6 @@ int TestPeerConnectionFactory() {
   }
 
   signaling_thread->Stop();
-  worker_thread->Stop();
   network_thread->Stop();
   std::printf("link_test: PeerConnectionFactory の確認に成功しました\n");
   return 0;

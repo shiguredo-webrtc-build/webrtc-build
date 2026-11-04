@@ -1,0 +1,26 @@
+diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
+index d0b1e80..b2101bf 100644
+--- a/build/config/compiler/BUILD.gn
++++ b/build/config/compiler/BUILD.gn
+@@ -1058,6 +1058,21 @@ config("compiler") {
+   if (current_cpu == "arm64") {
+     defines += [ "__ARM_NEON__=1" ]
+   }
++
++  # Windows ARM64 の clang 24 では、 ucrt の wchar.h が extern "C++"
++  # の中で arm_neon.h を取り込む。 このとき arm_vector_types.h の
++  # 3 つの宣言が、
++  # ビルトイン宣言と衝突して言語リンケージのエラーになる。
++  # 3 つは本ビルドのどこからも使われていないため、
++  # 宣言名を別名に置き換えて衝突を避ける。
++  # clang 側で修正されたらこのブロックは削除する。
++  if (is_win && is_clang && current_cpu == "arm64") {
++    defines += [
++      "__arm_set_fpm_lscale=__arm_set_fpm_lscale_shiguredo",
++      "__arm_set_fpm_nscale=__arm_set_fpm_nscale_shiguredo",
++      "__arm_set_fpm_lscale2=__arm_set_fpm_lscale2_shiguredo",
++    ]
++  }
+ }
+ 
+ config("linker") {

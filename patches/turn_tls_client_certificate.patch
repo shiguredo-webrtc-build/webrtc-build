@@ -258,10 +258,10 @@ index 4616b39865..88b48bb8d3 100644
    int min_port() const {
      CheckRunOnValidThreadIfInitialized();
 diff --git a/p2p/base/turn_port.cc b/p2p/base/turn_port.cc
-index 96952c1809..323381d40e 100644
+index 7c9d93efc9..93f553f254 100644
 --- a/p2p/base/turn_port.cc
 +++ b/p2p/base/turn_port.cc
-@@ -335,6 +335,15 @@ void TurnPort::SetTlsCertPolicy(TlsCertPolicy tls_cert_policy) {
+@@ -340,6 +340,15 @@ void TurnPort::SetTlsCertPolicy(TlsCertPolicy tls_cert_policy) {
    tls_cert_policy_ = tls_cert_policy;
  }
  
@@ -274,10 +274,10 @@ index 96952c1809..323381d40e 100644
 +  return tls_client_identity_.get();
 +}
 +
- void TurnPort::SetTurnLoggingId(absl::string_view turn_logging_id) {
-   turn_logging_id_ = std::string(turn_logging_id);
+ const std::vector<std::string>& TurnPort::GetTlsAlpnProtocols() const {
+   return tls_alpn_protocols_;
  }
-@@ -477,11 +486,12 @@ bool TurnPort::CreateTurnClientSocket() {
+@@ -494,8 +494,11 @@ bool TurnPort::CreateTurnClientSocket() {
      tcp_options.tls_alpn_protocols = tls_alpn_protocols_;
      tcp_options.tls_elliptic_curves = tls_elliptic_curves_;
      tcp_options.tls_cert_verifier = tls_cert_verifier_;
@@ -286,18 +286,17 @@ index 96952c1809..323381d40e 100644
 +    }
      owned_socket_ = socket_factory()->CreateClientTcpSocket(
          env(), SocketAddress(Network()->GetBestIP(), 0),
--        server_address_.address,
--        get_proxy(), get_user_agent(),
--        tcp_options);
-+        server_address_.address, get_proxy(), get_user_agent(), tcp_options);
+         server_address_.address,
+         get_proxy(), get_user_agent(),
+         tcp_options);
      socket_ = owned_socket_.get();
    }
  
 diff --git a/p2p/base/turn_port.h b/p2p/base/turn_port.h
-index 28547e83dd..9b9132942d 100644
+index b7c751f694..bc4b429e34 100644
 --- a/p2p/base/turn_port.h
 +++ b/p2p/base/turn_port.h
-@@ -42,6 +42,7 @@
+@@ -46,6 +46,7 @@
  #include "rtc_base/socket.h"
  #include "rtc_base/socket_address.h"
  #include "rtc_base/ssl_certificate.h"
@@ -305,27 +304,7 @@ index 28547e83dd..9b9132942d 100644
  
  namespace webrtc {
  
-@@ -87,7 +88,7 @@ class TurnPort : public Port {
-       return nullptr;
-     }
-     // Using `new` to access a non-public constructor.
--    return absl::WrapUnique(
-+    auto port = absl::WrapUnique(
-         new TurnPort({.env = args.env,
-                       .network_thread = args.network_thread,
-                       .socket_factory = args.socket_factory,
-@@ -100,6 +101,10 @@ class TurnPort : public Port {
-                      args.relative_priority, args.config->tls_alpn_protocols,
-                      args.config->tls_elliptic_curves, args.turn_customizer,
-                      args.config->tls_cert_verifier));
-+    if (args.config->tls_client_identity) {
-+      port->SetTlsClientIdentity(args.config->tls_client_identity->Clone());
-+    }
-+    return port;
-   }
- 
-   // Create a TURN port that will use a new socket, bound to `network` and
-@@ -111,7 +116,7 @@ class TurnPort : public Port {
+@@ -91,7 +92,7 @@ class TurnPort : public Port {
        return nullptr;
      }
      // Using `new` to access a non-public constructor.
@@ -334,10 +313,30 @@ index 28547e83dd..9b9132942d 100644
          {.env = args.env,
           .network_thread = args.network_thread,
           .socket_factory = args.socket_factory,
-@@ -124,6 +129,10 @@ class TurnPort : public Port {
-         args.relative_priority, args.config->tls_alpn_protocols,
+@@ -111,6 +112,10 @@ class TurnPort : public Port {
          args.config->tls_elliptic_curves, args.turn_customizer,
-         args.config->tls_cert_verifier));
+         args.config->tls_cert_verifier, args.config->tls_cert_policy,
+         args.config->turn_logging_id));
++    if (args.config->tls_client_identity) {
++      port->SetTlsClientIdentity(args.config->tls_client_identity->Clone());
++    }
++    return port;
+   }
+ 
+   // Create a TURN port that will use a new socket, bound to `network` and
+@@ -122,7 +127,7 @@ class TurnPort : public Port {
+       return nullptr;
+     }
+     // Using `new` to access a non-public constructor.
+-    return absl::WrapUnique(new TurnPort(
++    auto port = absl::WrapUnique(new TurnPort(
+         {.env = args.env,
+          .network_thread = args.network_thread,
+          .socket_factory = args.socket_factory,
+@@ -142,6 +147,10 @@ class TurnPort : public Port {
+         args.config->tls_elliptic_curves, args.turn_customizer,
+         args.config->tls_cert_verifier, args.config->tls_cert_policy,
+         args.config->turn_logging_id));
 +    if (args.config->tls_client_identity) {
 +      port->SetTlsClientIdentity(args.config->tls_client_identity->Clone());
 +    }
@@ -345,7 +344,7 @@ index 28547e83dd..9b9132942d 100644
    }
  
    ~TurnPort() override;
-@@ -142,6 +151,9 @@ class TurnPort : public Port {
+@@ -160,6 +169,9 @@ class TurnPort : public Port {
  
    virtual TlsCertPolicy GetTlsCertPolicy() const;
    virtual void SetTlsCertPolicy(TlsCertPolicy tls_cert_policy);
@@ -353,12 +352,12 @@ index 28547e83dd..9b9132942d 100644
 +      std::unique_ptr<SSLIdentity> client_identity);
 +  virtual const SSLIdentity* GetTlsClientIdentity() const;
  
-   void SetTurnLoggingId(absl::string_view turn_logging_id);
- 
-@@ -314,6 +326,7 @@ class TurnPort : public Port {
-   std::vector<std::string> tls_alpn_protocols_;
-   std::vector<std::string> tls_elliptic_curves_;
-   SSLCertificateVerifier* tls_cert_verifier_;
+   virtual const std::vector<std::string>& GetTlsAlpnProtocols() const;
+   virtual const std::vector<std::string>& GetTlsEllipticCurves() const;
+@@ -340,6 +352,7 @@ class TurnPort : public Port {
+   const std::vector<std::string> tls_alpn_protocols_;
+   const std::vector<std::string> tls_elliptic_curves_;
+   SSLCertificateVerifier* const tls_cert_verifier_;
 +  std::unique_ptr<SSLIdentity> tls_client_identity_;
    RelayCredentials credentials_;
    AttemptedServerSet attempted_server_addresses_;
