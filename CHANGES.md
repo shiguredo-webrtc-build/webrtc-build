@@ -31,6 +31,8 @@ VERSION ファイルを上げただけの場合は変更履歴記録は不要。
 
 ## タイムライン
 
+- 2026-11-05 [RELEASE] m158.8127.1.0
+  - @zztkm
 - 2026-11-04 [RELEASE] m158.8127.0.0
   - @voluntas
 - 2026-10-30 [FIX] [m158] Windows ARM64 のビルドが clang 24 の `arm_vector_types.h` と ucrt の `wchar.h` の衝突で失敗するのを回避する
